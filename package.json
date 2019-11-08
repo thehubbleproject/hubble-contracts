@@ -1,0 +1,23 @@
+{
+  "name": "bopr-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "truffle":"truffle"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaibhavchellani/BOPR-contracts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vaibhavchellani/BOPR-contracts/issues"
+  },
+  "homepage": "https://github.com/vaibhavchellani/BOPR-contracts#readme",
+  "dependencies": {
+    "truffle": "^5.0.44"
+  }
+}
