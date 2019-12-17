@@ -8,9 +8,8 @@ contract Rollup {
     MerkleTreeUtil merkelTreeUtil;
     constructor(address merkleTreeLib) public{
         merkelTreeUtil = MerkleTreeUtil(merkleTreeLib);
+        initAccounts();
     }
-    event NewBatch(bytes32 txroot, bytes32 updatedRoot);
-
     // Batch
     struct Batch{
         bytes32 stateRoot;
@@ -20,16 +19,38 @@ contract Rollup {
         bytes32 txRoot;
         uint timestamp;
     }
-    
-    Batch[] public batches;
-    bytes32 public ACCOUNT_TREE_STATE = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    bytes32 public GENESIS_BALANCE_TREE = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    mapping(uint256=>bytes) accounts;
+    uint256 lastAccountIndex=0;
 
-    function updateTx(bytes memory tx_sig,address tx_from,address tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
+    Batch[] public batches;
+    bytes32 public balanceTreeRoot;
+    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    
+    event NewBatch(bytes32 txroot, bytes32 updatedRoot);
+    event NewAccount(bytes32 root, uint256 index);
+    
+    function numberOfBatches() view public returns (uint256){
+        return batches.length;
+    }    
+    
+    function updateTx(bytes memory tx,uint256 tx_from,uint256 tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
        
     }
     
+    // function addAccount(uint256 accountTreeIndex, uint256 token ,uint256 balance, uint256 nonce)public{
+    //     bytes memory data = abi.encodePacked(accountTreeIndex,token,balance,nonce);
+    //     bytes32 root = merkelTreeUtil.insert(keccak256(data));
+    //     uint256 index, = merkelTreeUtil.next_index-1;
+    //     emit NewAccount(root,index);
+    // }
+    
+    function initAccounts() public{
+        accounts[0]=bytes("0x046af4195060cfb39a6f53a84ea8f52c4339f277acb48281476df5b9773a44394fdc5280263a7ccceaa51ed7d2a76fb1b2e4ff3275b4f027d228989d213efadb93");
+        lastAccountIndex++;
+        bytes memory data = abi.encodePacked(uint256(0),uint256(0),uint256(10),uint256(0));
+        bytes32 root = merkelTreeUtil.insert(keccak256(data));
+        balanceTreeRoot = root;
+    }
     
     function submitBatch(bytes[] calldata _txs,bytes32 updatedRoot) external returns(bytes32) {
      bytes32 txRoot=merkelTreeUtil.getMerkleRoot(_txs);
@@ -38,8 +59,8 @@ contract Rollup {
      Batch memory newBatch = Batch({
         stateRoot: updatedRoot,
         committer: msg.sender,
-        account_tree_state: ACCOUNT_TREE_STATE,
-        withdraw_root: ACCOUNT_TREE_STATE,
+        account_tree_state: ZERO_BYTES32,
+        withdraw_root: ZERO_BYTES32,
         txRoot: txRoot,
         timestamp: now
      });
@@ -47,5 +68,16 @@ contract Rollup {
      batches.push(newBatch);
      emit NewBatch(txRoot,updatedRoot);
     }
+
+    // verifyTx verifies a transaction 
+    function verifyTx(bytes memory _tx, uint256 latest_batch_index ,bytes[] memory to_merkel_proof, bytes[]  memory from_merkel_proof) view public {
+           
+    }
+
+    // decodeTx decodes from transaction bytes to struct
+    function decodeTx(bytes memory tx_bytes) view public{
+        
+    }
+    
     
 }

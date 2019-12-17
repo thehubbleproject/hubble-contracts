@@ -13,14 +13,13 @@ contract MerkleTree {
     bytes32[160] public defaultHashes;
 
     
-    event LeafAdded(bytes32 leaf, uint32 leaf_index);
+    event LeafAdded(bytes32 leaf);
     event LeafUpdated(bytes32 leaf, uint32 leaf_index);
 
-    
-    constructor(uint8 tree_levels, uint256 zero) public {
+    constructor() public {
         setDefaultHashes();
-        levels = tree_levels;
-        bytes32 zero_value=bytes32(zero);
+        levels = 32;
+        bytes32 zero_value=bytes32(0);
 
         zeros.push(zero_value);
         filled_subtrees.push(zeros[0]);
@@ -51,8 +50,8 @@ contract MerkleTree {
     }
     
     
-    function insert(uint256 leaf_int) public {
-        bytes32 leaf = bytes32(leaf_int);
+    function insert(bytes32 leaf) public returns(bytes32) {
+        // bytes32 leaf = bytes32(leaf_int);
         uint32 leaf_index = next_index;
         uint32 current_index = next_index;
         next_index += 1;
@@ -70,7 +69,6 @@ contract MerkleTree {
                 left = filled_subtrees[i];
                 right = current_level_hash;
             }
-
             current_level_hash = HashLeftRight(left, right);
 
             current_index /= 2;
@@ -78,7 +76,8 @@ contract MerkleTree {
 
         root = current_level_hash;
 
-        emit LeafAdded(leaf, leaf_index);
+        emit LeafAdded(leaf);
+        return (root);
     }
     
     // function genMerkelRoot(uint256[ ] memory tx_int) public{
