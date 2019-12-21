@@ -29,14 +29,13 @@ contract Rollup {
     event NewBatch(bytes32 txroot, bytes32 updatedRoot);
     event NewAccount(bytes32 root, uint256 index);
     
-    function numberOfBatches() view public returns (uint256){
+    function numberOfBatches() public view returns (uint256){
         return batches.length;
-    }    
-    
-    function updateTx(bytes memory tx,uint256 tx_from,uint256 tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
-       
     }
-    
+
+    function updateTx(bytes memory tx,uint256 tx_from,uint256 tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
+
+    }
     // function addAccount(uint256 accountTreeIndex, uint256 token ,uint256 balance, uint256 nonce)public{
     //     bytes memory data = abi.encodePacked(accountTreeIndex,token,balance,nonce);
     //     bytes32 root = merkelTreeUtil.insert(keccak256(data));
@@ -45,7 +44,7 @@ contract Rollup {
     // }
     
     function initAccounts() public{
-        accounts[0]=bytes("0x046af4195060cfb39a6f53a84ea8f52c4339f277acb48281476df5b9773a44394fdc5280263a7ccceaa51ed7d2a76fb1b2e4ff3275b4f027d228989d213efadb93");
+        accounts[0] = bytes("0x046af4195060cfb39a6f53a84ea8f52c4339f277acb48281476df5b9773a44394fdc5280263a7ccceaa51ed7d2a76fb1b2e4ff3275b4f027d228989d213efadb93");
         lastAccountIndex++;
         bytes memory data = abi.encodePacked(uint256(0),uint256(0),uint256(10),uint256(0));
         bytes32 root = merkelTreeUtil.insert(keccak256(data));
@@ -53,7 +52,7 @@ contract Rollup {
     }
     
     function submitBatch(bytes[] calldata _txs,bytes32 updatedRoot) external returns(bytes32) {
-     bytes32 txRoot=merkelTreeUtil.getMerkleRoot(_txs);
+     bytes32 txRoot = merkelTreeUtil.getMerkleRoot(_txs);
      
      // make merkel root of all txs
      Batch memory newBatch = Batch({
@@ -64,18 +63,39 @@ contract Rollup {
         txRoot: txRoot,
         timestamp: now
      });
-     
+
      batches.push(newBatch);
      emit NewBatch(txRoot,updatedRoot);
     }
 
-    // verifyTx verifies a transaction 
-    function verifyTx(bytes memory _tx, uint256 latest_batch_index ,bytes[] memory to_merkel_proof, bytes[]  memory from_merkel_proof) view public {
-           
+    // verifyTx verifies a transaction and returns the updates leaves
+    function verifyTx(uint256 to, uint256 from, uint256 amount,
+    uint256 nonce,uint256 txType, uint256 sig,
+    uint256 last_batch_index, bytes[] memory to_merkel_proof, bytes[]  memory from_merkel_proof) public view {
+        // basic input validations
+
+        // check from address inclusion in balance tree
+
+        // generate from leaf
+
+        // update balance of from leaf
+
+        // update balance tree
+
+        // show inclusion of to in new balance leaf
+
+        // generate to leaf
+
+        // update balance in to leaf
+
+        // update balance root
+
+        // return updated balance tree, from leaf and to leaf
+        
     }
 
     // decodeTx decodes from transaction bytes to struct
-    function decodeTx(bytes memory tx_bytes) view public{
+    function decodeTx(bytes memory tx_bytes) public view {
         
     }
     

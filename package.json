@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/vaibhavchellani/BOPR-contracts#readme",
   "dependencies": {
+    "big-number": "^2.0.0",
+    "ethereumjs-util": "^6.2.0",
     "solidity-bytes-utils": "0.0.8",
     "truffle": "^5.0.44"
   }
