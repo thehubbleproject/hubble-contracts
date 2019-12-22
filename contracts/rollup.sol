@@ -33,7 +33,7 @@ contract Rollup {
         return batches.length;
     }
 
-    function updateTx(bytes memory tx,uint256 tx_from,uint256 tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
+    function updateTx(bytes memory _tx,uint256 tx_from,uint256 tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
 
     }
     // function addAccount(uint256 accountTreeIndex, uint256 token ,uint256 balance, uint256 nonce)public{
@@ -75,7 +75,7 @@ contract Rollup {
         // basic input validations
 
         // check from address inclusion in balance tree
-
+        
         // generate from leaf
 
         // update balance of from leaf

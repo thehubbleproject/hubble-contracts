@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "truffle": "truffle"
+    "truffle": "truffle",
+    "compile":"truffle compile",
+    "test":"truffle test"
   },
   "repository": {
     "type": "git",
