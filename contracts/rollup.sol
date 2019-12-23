@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import {MerkleTree as MerkleTreeUtil} from "./merkelTreeLib.sol";
+import {MerkleTree as MerkleTreeUtil} from "./merkleTreeLib.sol";
 
 
 contract Rollup {

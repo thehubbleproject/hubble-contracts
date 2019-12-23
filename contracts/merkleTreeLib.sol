@@ -4,10 +4,10 @@ pragma experimental ABIEncoderV2;
 /*
  * Merkle Tree Utilities for Rollup
  */
-contract RollupMerkleUtils {
+contract MerkleTree {
     /* Structs */
     // A partial merkle tree which can be updated with new nodes, recomputing the root
-    struct SparseMerkleTree {
+    struct MerkleTree {
         // The root
         bytes32 root;
         uint height;
@@ -18,10 +18,10 @@ contract RollupMerkleUtils {
     // The default hashes
     bytes32[160] public defaultHashes;
     // A tree which is used in `update()` and `store()`
-    SparseMerkleTree public tree;
+    MerkleTree public tree;
 
     /**
-     * @notice Initialize a new SparseMerkleUtils contract, computing the default hashes for the sparse merkle tree (SMT)
+     * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
     constructor() public {
         // Calculate & set the default hashes
@@ -41,9 +41,9 @@ contract RollupMerkleUtils {
     }
 
     /**
-     * @notice Get the sparse merkle root computed from some set of data blocks.
+     * @notice Get the merkle root computed from some set of data blocks.
      * @param _dataBlocks The data being used to generate the tree.
-     * @return the sparse merkle tree root
+     * @return the merkle tree root
      */
      // 3
     function getMerkleRoot(bytes[] calldata _dataBlocks) external view returns(bytes32) {
@@ -241,7 +241,7 @@ contract RollupMerkleUtils {
     }
 
     /**
-     * @notice Store node in the (in-storage) sparse merkle tree
+     * @notice Store node in the (in-storage) merkle tree
      * @param _parent The parent node
      * @param _leftChild The left child of the parent in the tree
      * @param _rightChild The right child of the parent in the tree
