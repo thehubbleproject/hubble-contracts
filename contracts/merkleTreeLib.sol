@@ -45,7 +45,6 @@ contract MerkleTree {
      * @param _dataBlocks The data being used to generate the tree.
      * @return the merkle tree root
      */
-     // 3
     function getMerkleRoot(bytes[] calldata _dataBlocks) external view returns(bytes32) {
         uint nextLevelLength = _dataBlocks.length;
         uint currentLevel = 0;
