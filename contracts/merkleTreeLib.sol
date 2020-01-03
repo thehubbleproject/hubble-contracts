@@ -44,6 +44,7 @@ contract MerkleTree {
      * @notice Get the merkle root computed from some set of data blocks.
      * @param _dataBlocks The data being used to generate the tree.
      * @return the merkle tree root
+     * NOTE: This is a stateless operation
      */
     function getMerkleRoot(bytes[] calldata _dataBlocks) external view returns(bytes32) {
         uint nextLevelLength = _dataBlocks.length;
@@ -87,6 +88,7 @@ contract MerkleTree {
      * @param _path The path from the leaf to the root.
      * @param _siblings The sibling nodes along the way.
      * @return The next level of the tree
+    * NOTE: This is a stateless operation
      */
     function computeInclusionProofRoot(bytes memory _dataBlock, uint _path, bytes32[] memory _siblings) public pure returns (bytes32) {
         // First compute the leaf node
@@ -111,6 +113,8 @@ contract MerkleTree {
      * @param _path The path from the leaf to the root.
      * @param _siblings The sibling nodes along the way.
      * @return The next level of the tree
+          * NOTE: This is a stateless operation
+
      */
     function verify(bytes32 _root, bytes memory _dataBlock, uint _path, bytes32[] memory _siblings) public pure returns (bool) {
         // First compute the leaf node

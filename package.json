@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "truffle test",
     "truffle": "truffle",
-    "compile":"truffle compile",
-    "test":"truffle test"
+    "compile": "truffle compile"
   },
   "repository": {
     "type": "git",
@@ -22,6 +21,7 @@
   "dependencies": {
     "big-number": "^2.0.0",
     "ethereumjs-util": "^6.2.0",
+    "merkletreejs": "^0.1.7",
     "solidity-bytes-utils": "0.0.8",
     "truffle": "^5.0.44"
   }

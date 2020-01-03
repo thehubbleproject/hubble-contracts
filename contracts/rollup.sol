@@ -2,27 +2,17 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {MerkleTree as MerkleTreeUtil} from "./merkleTreeLib.sol";
-
-
+import {DataTypes as dataTypes} from "./dataTypes.sol";
 contract Rollup {
     /*********************
      * Variable Declarations *
      ********************/
 
-    // Batch
-    struct Batch{
-        bytes32 stateRoot;
-        bytes32 withdraw_root;
-        address committer;
-        bytes32 account_tree_state;
-        bytes32 txRoot;
-        uint timestamp;
-    }
-
     mapping(uint256=>bytes) accounts;
     uint256 lastAccountIndex=0;
-    Batch[] public batches;
-    bytes32 public balanceTreeRoot;
+
+    dataTypes.Batch[] public batches;
+    
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     MerkleTreeUtil merkleTreeUtil;
@@ -32,7 +22,11 @@ contract Rollup {
      ********************/
     event NewBatch(bytes32 txroot, bytes32 updatedRoot);
     event NewAccount(bytes32 root, uint256 index);
-    
+    event SiblingsGenerated(bytes32[] to_siblings, uint to_path, bytes32[] from_siblings, uint from_path);
+
+    /*********************
+     * Constructor *
+     ********************/
 
     constructor(address merkleTreeLib) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
@@ -46,18 +40,6 @@ contract Rollup {
     function numberOfBatches() public view returns (uint256){
         return batches.length;
     }
-
-    // /**
-    //  * @notice Verify an inclusion proof.
-    //  * @param _root The root of the tree we are verifying inclusion for.
-    //  * @param _dataBlock The data block we're verifying inclusion for.
-    //  * @param _path The path from the leaf to the root.
-    //  * @param _siblings The sibling nodes along the way.
-    //  * @return The next level of the tree
-    //  */
-    // function updateTx(bytes memory _tx,uint256 tx_from,uint256 tx_to,uint256 tx_amount,bytes memory proof_from,bytes memory proof_to) public {
-
-    // }
 
     /**
      * @notice Initilises genesis accounts 
@@ -78,7 +60,7 @@ contract Rollup {
     function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external  {
      bytes32 txRoot = merkleTreeUtil.getMerkleRoot(_txs);
      // make merkel root of all txs
-     Batch memory newBatch = Batch({
+     dataTypes.Batch memory newBatch = dataTypes.Batch({
         stateRoot: _updatedRoot,
         committer: msg.sender,
         account_tree_state: ZERO_BYTES32,
@@ -91,53 +73,48 @@ contract Rollup {
      emit NewBatch(txRoot,_updatedRoot);
     }
 
-    // /**
-    //  * @notice Verify an transaction
-    //  * @param _to The root of the tree we are verifying inclusion for.
-    //  * @param _dataBlock The data block we're verifying inclusion for.
-    //  * @param _path The path from the leaf to the root.
-    //  * @param _siblings The sibling nodes along the way.
-    //  * @param _root The root of the tree we are verifying inclusion for.
-    //  * @param _dataBlock The data block we're verifying inclusion for.
-    //  * @param _path The path from the leaf to the root.
-    //  * @param _siblings The sibling nodes along the way.
-    //  * @param _root The root of the tree we are verifying inclusion for.
-    //  * @param _dataBlock The data block we're verifying inclusion for.
-    //  * @param _path The path from the leaf to the root.
-    //  * @param _siblings The sibling nodes along the way.
-    //  * @return The next level of the tree
-    //  */    
-    //  function verifyTx(
-    //     uint256 _to, uint256 _from, uint256 _amount,
-    //     uint256 _nonce,uint256 _txType, uint256 _sig,
-    //     uint256 _prevBatchIndex,
-    //     bytes[] memory _toMerkleProof, bytes[]  memory _fromMerkleProof
-    // ) public view {
-    //     // basic input validations
+    function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
+        dataTypes.MerkleProof memory _from_merkle_proof,dataTypes.MerkleProof memory _to_merkle_proof
+    ) public returns(bytes32, uint256,uint256){
+        //
+        // Verify accounts exist in the provided merkle tree
+        //
 
-    //     // check from address inclusion in balance tree
+        // verify from leaf exists in the balance tree
+        require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_from_merkle_proof.account),_from_merkle_proof.account.path,_from_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");            
+        // verify to leaf exists in the balance tree
+        require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_to_merkle_proof.account),_to_merkle_proof.account.path,_to_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");
+
+        //
+        //  
+        //
         
-    //     // generate from leaf
+        // reduce balance of from leaf
+        // TODO use safe math
+        dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,getBalanceFromAccount(_from_merkle_proof.account)-_tx.amount);
+        merkleTreeUtil.update(getAccountBytes(new_from_leaf), _from_merkle_proof.account.path);
 
-    //     // update balance of from leaf
+        // increase balance of to leaf
+        // TODO use safe math
+        dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,getBalanceFromAccount(_to_merkle_proof.account)+_tx.amount);
+        merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
 
-    //     // update balance tree
+        return (merkleTreeUtil.getRoot(), getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
+    }
 
-    //     // show inclusion of to in new balance leaf
+    // getBalanceFromAccount extracts the balance from the leaf
+    function getBalanceFromAccount(dataTypes.Account memory account) public returns(uint256) {
+        return 0;
+    }
 
-    //     // generate to leaf
+    // returns a new leaf with updated balance
+    function updateBalanceInLeaf(dataTypes.Account memory original_account, uint256 new_balance) public returns(dataTypes.Account memory new_account){
+        dataTypes.Account memory newAccount;
+        return newAccount;
+    }
 
-    //     // update balance in to leaf
-
-    //     // update balance root
-
-    //     // return updated balance tree, from leaf and to leaf
-        
-    // }
-
-    // decodeTx decodes from transaction bytes to struct
-    function decodeTx(bytes memory tx_bytes) public view {
-        
+    function getAccountBytes(dataTypes.Account memory account) public returns(bytes memory){
+        return abi.encode(account.balance, account.nonce,account.path,account.tokenType);
     }
     
     
