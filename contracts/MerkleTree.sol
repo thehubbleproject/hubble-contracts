@@ -230,7 +230,7 @@ contract MerkleTree {
      * @return The merkle root of the tree
      */
     function getRoot() public view returns(bytes32) {
-        return tree.root;
+        return tree.root;   
     }
 
     /**

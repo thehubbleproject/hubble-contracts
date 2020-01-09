@@ -1,20 +1,19 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import {MerkleTree as MerkleTreeUtil} from "./merkleTreeLib.sol";
-import {DataTypes as dataTypes} from "./dataTypes.sol";
+import {MerkleTree as MerkleTreeUtil} from "./MerkleTree.sol";
+import {DataTypes as dataTypes} from "./DataTypes.sol";
+
 contract Rollup {
+    uint DEFAULT_TOKEN_TYPE =0;
+    uint256 DEFAULT_DEPTH = 2;
+    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    
     /*********************
      * Variable Declarations *
      ********************/
-
     mapping(uint256=>dataTypes.Account) accounts;
-    uint256 lastAccountIndex=0;
-    uint256 DEFAULT_DEPTH = 2;
     dataTypes.Batch[] public batches;
-    uint DEFAULT_TOKEN_TYPE =0;
-    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-
     MerkleTreeUtil merkleTreeUtil;
 
     /*********************
@@ -27,7 +26,6 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
-
     constructor(address merkleTreeLib) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
         initAccounts();
@@ -46,14 +44,13 @@ contract Rollup {
      */
     function initAccounts() public{
         dataTypes.Account memory genAccount;
-        genAccount.path = (100);
+        genAccount.path = 100;
         genAccount.balance=100;
         genAccount.tokenType=DEFAULT_TOKEN_TYPE;
         genAccount.nonce=0;
-        bytes[] memory accounts;
-        bytes memory accountBytes = getAccountBytes(genAccount);
-        accounts[0]=accountBytes;
-        bytes32 root = merkleTreeUtil.getMerkleRoot(accounts);
+         bytes[] memory acc = new bytes[](1);
+        acc[0] = getAccountBytes(genAccount);
+        bytes32 root = merkleTreeUtil.getMerkleRoot(acc);
         merkleTreeUtil.setMerkleRootAndHeight(root,DEFAULT_DEPTH);
     }
 

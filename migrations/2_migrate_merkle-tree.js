@@ -1,6 +1,8 @@
 
-const MerkleTree = artifacts.require("MerkleTree");
+const MT = artifacts.require("MerkleTree");
+const RollUp = artifacts.require("Rollup");
 
-module.exports = function(deployer) {
-  deployer.deploy(MerkleTree);
+module.exports = async function(deployer) {
+  await deployer.deploy(MT);
+  await deployer.deploy(RollUp,MT.address);
 };
