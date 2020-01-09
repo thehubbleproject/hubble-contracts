@@ -9,9 +9,7 @@ contract DataTypes {
     // Batch
     struct Batch{
         bytes32 stateRoot;
-        bytes32 withdraw_root;
         address committer;
-        bytes32 account_tree_state;
         bytes32 txRoot;
         uint timestamp;
     }

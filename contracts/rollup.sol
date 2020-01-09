@@ -8,11 +8,11 @@ contract Rollup {
      * Variable Declarations *
      ********************/
 
-    mapping(uint256=>bytes) accounts;
+    mapping(uint256=>dataTypes.Account) accounts;
     uint256 lastAccountIndex=0;
-
+    uint256 DEFAULT_DEPTH = 2;
     dataTypes.Batch[] public batches;
-    
+    uint DEFAULT_TOKEN_TYPE =0;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     MerkleTreeUtil merkleTreeUtil;
@@ -45,11 +45,16 @@ contract Rollup {
      * @notice Initilises genesis accounts 
      */
     function initAccounts() public{
-        accounts[0] = bytes("0x046af4195060cfb39a6f53a84ea8f52c4339f277acb48281476df5b9773a44394fdc5280263a7ccceaa51ed7d2a76fb1b2e4ff3275b4f027d228989d213efadb93");
-        lastAccountIndex++;
-        // bytes memory data = abi.encodePacked(uint256(0),uint256(0),uint256(10),uint256(0));
-        // bytes32 root = merkleTreeUtil.insert(keccak256(data));
-        // balanceTreeRoot = root;
+        dataTypes.Account memory genAccount;
+        genAccount.path = (100);
+        genAccount.balance=100;
+        genAccount.tokenType=DEFAULT_TOKEN_TYPE;
+        genAccount.nonce=0;
+        bytes[] memory accounts;
+        bytes memory accountBytes = getAccountBytes(genAccount);
+        accounts[0]=accountBytes;
+        bytes32 root = merkleTreeUtil.getMerkleRoot(accounts);
+        merkleTreeUtil.setMerkleRootAndHeight(root,DEFAULT_DEPTH);
     }
 
     /**
@@ -63,8 +68,6 @@ contract Rollup {
      dataTypes.Batch memory newBatch = dataTypes.Batch({
         stateRoot: _updatedRoot,
         committer: msg.sender,
-        account_tree_state: ZERO_BYTES32,
-        withdraw_root: ZERO_BYTES32,
         txRoot: txRoot,
         timestamp: now
      });
@@ -86,7 +89,7 @@ contract Rollup {
         require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_to_merkle_proof.account),_to_merkle_proof.account.path,_to_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");
 
         //
-        //  
+        //  TODO add all checks
         //
         
         // reduce balance of from leaf
@@ -99,9 +102,15 @@ contract Rollup {
         dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,getBalanceFromAccount(_to_merkle_proof.account)+_tx.amount);
         merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
 
-        return (merkleTreeUtil.getRoot(), getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
+        return (getBalanceTreeRoot(), getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
     }
 
+
+    //
+    // Utils 
+    //
+    
+    
     // getBalanceFromAccount extracts the balance from the leaf
     function getBalanceFromAccount(dataTypes.Account memory account) public returns(uint256) {
         return 0;
@@ -115,7 +124,9 @@ contract Rollup {
 
     function getAccountBytes(dataTypes.Account memory account) public returns(bytes memory){
         return abi.encode(account.balance, account.nonce,account.path,account.tokenType);
+    }    
+
+    function getBalanceTreeRoot() public view returns(bytes32) {
+        return merkleTreeUtil.getRoot();
     }
-    
-    
 }
