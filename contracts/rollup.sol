@@ -48,7 +48,7 @@ contract Rollup {
         genAccount.balance=100;
         genAccount.tokenType=DEFAULT_TOKEN_TYPE;
         genAccount.nonce=0;
-         bytes[] memory acc = new bytes[](1);
+        bytes[] memory acc = new bytes[](1);
         acc[0] = getAccountBytes(genAccount);
         bytes32 root = merkleTreeUtil.getMerkleRoot(acc);
         merkleTreeUtil.setMerkleRootAndHeight(root,DEFAULT_DEPTH);
@@ -57,7 +57,7 @@ contract Rollup {
     /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .
-     * @param _updatedRoot New balance tree root after processing all the transactions. 
+     * @param _updatedRoot New balance tree root after processing all the transactions
      */
     function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external  {
      bytes32 txRoot = merkleTreeUtil.getMerkleRoot(_txs);
@@ -75,7 +75,7 @@ contract Rollup {
 
     function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
         dataTypes.MerkleProof memory _from_merkle_proof,dataTypes.MerkleProof memory _to_merkle_proof
-    ) public returns(bytes32, uint256,uint256){
+    ) public returns(bytes32,uint256,uint256){
         //
         // Verify accounts exist in the provided merkle tree
         //
@@ -107,19 +107,18 @@ contract Rollup {
     // Utils 
     //
     
-    
-    // getBalanceFromAccount extracts the balance from the leaf
-    function getBalanceFromAccount(dataTypes.Account memory account) public returns(uint256) {
-        return 0;
-    }
-
     // returns a new leaf with updated balance
     function updateBalanceInLeaf(dataTypes.Account memory original_account, uint256 new_balance) public returns(dataTypes.Account memory new_account){
         dataTypes.Account memory newAccount;
         return newAccount;
     }
 
-    function getAccountBytes(dataTypes.Account memory account) public returns(bytes memory){
+    // getBalanceFromAccount extracts the balance from the leaf
+    function getBalanceFromAccount(dataTypes.Account memory account) public view returns(uint256) {
+        return 0;
+    }
+
+    function getAccountBytes(dataTypes.Account memory account) public view returns(bytes memory){
         return abi.encode(account.balance, account.nonce,account.path,account.tokenType);
     }    
 
