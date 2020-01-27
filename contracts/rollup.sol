@@ -69,6 +69,16 @@ contract Rollup {
      emit NewBatch(txRoot,_updatedRoot);
     }
 
+    function disputeBatch(uint256 batch_id,dataTypes.Transaction[] memory _txs, dataTypes.MerkleProof memory _from_proofs, dataTypes.MerkleProof memory _to_proofs)public {
+        
+    }
+
+    /**
+    *  processTxUpdate processes a transactions and returns the updated balance tree
+    *  and the updated leaves. 
+    * @notice Gives the number of batches submitted on-chain
+    * @return Total number of batches submitted onchain
+    */
     function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
         dataTypes.MerkleProof memory _from_merkle_proof,dataTypes.MerkleProof memory _to_merkle_proof
     ) public returns(bytes32,uint256,uint256){
