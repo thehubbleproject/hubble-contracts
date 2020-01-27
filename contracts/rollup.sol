@@ -3,8 +3,11 @@ pragma experimental ABIEncoderV2;
 
 import {MerkleTree as MerkleTreeUtil} from "./MerkleTree.sol";
 import {DataTypes as dataTypes} from "./DataTypes.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Rollup {
+     using SafeMath for uint256;
+
     uint DEFAULT_TOKEN_TYPE =0;
     uint256 DEFAULT_DEPTH = 2;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -23,20 +26,13 @@ contract Rollup {
     event NewAccount(bytes32 root, uint256 index);
     event SiblingsGenerated(bytes32[] to_siblings, uint to_path, bytes32[] from_siblings, uint from_path);
 
+
     /*********************
      * Constructor *
      ********************/
     constructor(address merkleTreeLib) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
         initAccounts();
-    }
-
-    /**
-     * @notice Gives the number of batches submitted on-chain
-     * @return Total number of batches submitted onchain
-     */
-    function numberOfBatches() public view returns (uint256){
-        return batches.length;
     }
 
     /**
@@ -76,27 +72,29 @@ contract Rollup {
     function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
         dataTypes.MerkleProof memory _from_merkle_proof,dataTypes.MerkleProof memory _to_merkle_proof
     ) public returns(bytes32,uint256,uint256){
-        //
-        // Verify accounts exist in the provided merkle tree
-        //
-
+        
         // verify from leaf exists in the balance tree
         require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_from_merkle_proof.account),_from_merkle_proof.account.path,_from_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");            
+        
         // verify to leaf exists in the balance tree
         require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_to_merkle_proof.account),_to_merkle_proof.account.path,_to_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");
 
-        //
-        //  TODO add all checks
-        //
+        // check from leaf has enough balance
+        require(_from_merkle_proof.account.balance>_tx.amount);
+
+        // TODO check signature on the tx is correct
+
+        // check token type is correct
+        require(_tx.tokenType==DEFAULT_TOKEN_TYPE);
         
         // reduce balance of from leaf
-        // TODO use safe math
-        dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,getBalanceFromAccount(_from_merkle_proof.account)-_tx.amount);
+        dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
         merkleTreeUtil.update(getAccountBytes(new_from_leaf), _from_merkle_proof.account.path);
 
+        // TODO update balance tree and credit to leaf with the updated tree
+
         // increase balance of to leaf
-        // TODO use safe math
-        dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,getBalanceFromAccount(_to_merkle_proof.account)+_tx.amount);
+        dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,getBalanceFromAccount(_to_merkle_proof.account).add(_tx.amount));
         merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
 
         return (getBalanceTreeRoot(), getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
@@ -124,5 +122,13 @@ contract Rollup {
 
     function getBalanceTreeRoot() public view returns(bytes32) {
         return merkleTreeUtil.getRoot();
+    }
+
+    /**
+     * @notice Gives the number of batches submitted on-chain
+     * @return Total number of batches submitted onchain
+     */
+    function numberOfBatches() public view returns (uint256){
+        return batches.length;
     }
 }

@@ -25,6 +25,10 @@
     "ethers": "^4.0.43",
     "merkletreejs": "^0.1.7",
     "solidity-bytes-utils": "0.0.8",
-    "truffle": "^5.0.44"
+    "truffle": "^5.0.44",
+    "zeppelin-solidity": "^1.12.0"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "^2.4.0"
   }
 }
