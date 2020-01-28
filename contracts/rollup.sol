@@ -4,9 +4,13 @@ pragma experimental ABIEncoderV2;
 import {MerkleTree as MerkleTreeUtil} from "./MerkleTree.sol";
 import {DataTypes as dataTypes} from "./DataTypes.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import "solidity-bytes-utils/contracts/BytesLib.sol";
+
 
 contract Rollup {
-     using SafeMath for uint256;
+    using SafeMath for uint256;
+    using BytesLib for bytes;
+
 
     uint DEFAULT_TOKEN_TYPE =0;
     uint256 DEFAULT_DEPTH = 2;
@@ -69,7 +73,37 @@ contract Rollup {
      emit NewBatch(txRoot,_updatedRoot);
     }
 
-    function disputeBatch(uint256 batch_id,dataTypes.Transaction[] memory _txs, dataTypes.MerkleProof memory _from_proofs, dataTypes.MerkleProof memory _to_proofs)public {
+
+    /**
+    *  disputeBatch processes a transactions and returns the updated balance tree
+    *  and the updated leaves.
+    * @notice Gives the number of batches submitted on-chain
+    * @return Total number of batches submitted onchain
+    */
+    function disputeBatch(uint256 batch_id,
+        dataTypes.Transaction[] memory _txs,
+        dataTypes.MerkleProof[] memory _from_proofs,
+        dataTypes.MerkleProof[] memory _to_proofs) public returns(bool) {
+            bytes[] memory txs;
+            for (uint i = 0; i < _txs.length; i++) {
+                txs[i] = getTxBytes(_txs[i]);
+            }
+            bytes32 txRoot = merkleTreeUtil.getMerkleRoot(txs);
+
+            // if tx root while submission doesnt match tx root of given txs
+            // dispute is successful
+            if (txRoot!=batches[batch_id].txRoot){
+                // TODO add slash
+                return true;
+            }
+
+            for (uint i = 0; i < _txs.length; i++) {
+                // call process tx update for every transaction to check if any
+                // tx evaluates correctly
+                processTxUpdate(batches[batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
+            }
+
+
         
     }
 
@@ -128,7 +162,13 @@ contract Rollup {
 
     function getAccountBytes(dataTypes.Account memory account) public view returns(bytes memory){
         return abi.encode(account.balance, account.nonce,account.path,account.tokenType);
-    }    
+    }
+    
+    function getTxBytes(dataTypes.Transaction memory tx) public view returns(bytes memory){
+        // return abi.encode(tx.from, tx.to,tx.tokenType,tx.amount,tx.signature);
+        return abi.encode(tx);
+    }
+
 
     function getBalanceTreeRoot() public view returns(bytes32) {
         return merkleTreeUtil.getRoot();
