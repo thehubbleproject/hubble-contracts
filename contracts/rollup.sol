@@ -62,6 +62,7 @@ contract Rollup {
      */
     function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external  {
      bytes32 txRoot = merkleTreeUtil.getMerkleRoot(_txs);
+
      // make merkel root of all txs
      dataTypes.Batch memory newBatch = dataTypes.Batch({
         stateRoot: _updatedRoot,
@@ -97,15 +98,17 @@ contract Rollup {
                 // TODO add slash
                 return true;
             }
-
+            bytes32 newBalanceRoot;
+            uint256 fromBalance;
+            uint256 toBalance;
             for (uint i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                processTxUpdate(batches[batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
+                (newBalanceRoot,fromBalance,toBalance) = processTxUpdate(batches[batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
             }
-
-
-        
+            
+            require(newBalanceRoot==batches[batch_id].stateRoot,"Balance root doesnt match");
+            // TODO slash when balance root doesnt match
     }
 
     /**
@@ -119,28 +122,40 @@ contract Rollup {
     ) public returns(bytes32,uint256,uint256){
         
         // verify from leaf exists in the balance tree
-        require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_from_merkle_proof.account),_from_merkle_proof.account.path,_from_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");            
-        
+        require(merkleTreeUtil.verify(
+                _balanceRoot,getAccountBytes(_from_merkle_proof.account),
+                _from_merkle_proof.account.path,
+                _from_merkle_proof.siblings)
+            ,"Merkle Proof for from leaf is incorrect");
+    
         // verify to leaf exists in the balance tree
-        require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_to_merkle_proof.account),_to_merkle_proof.account.path,_to_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");
+        require(merkleTreeUtil.verify(
+                _balanceRoot,getAccountBytes(_to_merkle_proof.account),
+                _to_merkle_proof.account.path,
+                _to_merkle_proof.siblings),
+            "Merkle Proof for from leaf is incorrect");
 
         // check from leaf has enough balance
         require(_from_merkle_proof.account.balance>_tx.amount,"Sender doesnt have enough balance");
 
-        // TODO check signature on the tx is correct
+        // check signature on the tx is correct
         require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
 
         // check token type is correct
         require(_tx.tokenType==DEFAULT_TOKEN_TYPE,"Invalid token type");
         
         // reduce balance of from leaf
-        dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
+        dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
+            getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
+
         merkleTreeUtil.update(getAccountBytes(new_from_leaf), _from_merkle_proof.account.path);
 
         // TODO update balance tree and credit to leaf with the updated tree
 
         // increase balance of to leaf
-        dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,getBalanceFromAccount(_to_merkle_proof.account).add(_tx.amount));
+        dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
+            getBalanceFromAccount(_to_merkle_proof.account).add(_tx.amount));
+
         merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
 
         return (getBalanceTreeRoot(), getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
@@ -148,7 +163,7 @@ contract Rollup {
 
 
     //
-    // Utils 
+    // Utils
     //
     
     // returns a new leaf with updated balance
