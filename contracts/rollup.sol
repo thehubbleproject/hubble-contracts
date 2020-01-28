@@ -5,12 +5,12 @@ import {MerkleTree as MerkleTreeUtil} from "./MerkleTree.sol";
 import {DataTypes as dataTypes} from "./DataTypes.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
-
+import { ECVerify } from "./ECVerify.sol";
 
 contract Rollup {
     using SafeMath for uint256;
     using BytesLib for bytes;
-
+    using ECVerify for bytes32;
 
     uint DEFAULT_TOKEN_TYPE =0;
     uint256 DEFAULT_DEPTH = 2;
@@ -19,6 +19,7 @@ contract Rollup {
     /*********************
      * Variable Declarations *
      ********************/
+    mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
     MerkleTreeUtil merkleTreeUtil;
@@ -124,12 +125,13 @@ contract Rollup {
         require(merkleTreeUtil.verify(_balanceRoot,getAccountBytes(_to_merkle_proof.account),_to_merkle_proof.account.path,_to_merkle_proof.siblings),"Merkle Proof for from leaf is incorrect");
 
         // check from leaf has enough balance
-        require(_from_merkle_proof.account.balance>_tx.amount);
+        require(_from_merkle_proof.account.balance>_tx.amount,"Sender doesnt have enough balance");
 
         // TODO check signature on the tx is correct
+        require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
 
         // check token type is correct
-        require(_tx.tokenType==DEFAULT_TOKEN_TYPE);
+        require(_tx.tokenType==DEFAULT_TOKEN_TYPE,"Invalid token type");
         
         // reduce balance of from leaf
         dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
@@ -167,6 +169,10 @@ contract Rollup {
     function getTxBytes(dataTypes.Transaction memory tx) public view returns(bytes memory){
         // return abi.encode(tx.from, tx.to,tx.tokenType,tx.amount,tx.signature);
         return abi.encode(tx);
+    }
+
+    function getTxBytesHash(dataTypes.Transaction memory tx) public view returns(bytes32){
+        return keccak256(getTxBytes(tx));
     }
 
 
