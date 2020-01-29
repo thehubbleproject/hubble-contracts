@@ -199,6 +199,31 @@ contract MerkleTree {
     }
 
     /**
+     * @notice Update a leaf using siblings and root
+     *         This is a stateless operation
+     * @param _leaf The leaf we're updating.
+     * @param _path The path from the leaf to the root / the index of the leaf.
+     * @param _root Initial root of the tree
+     * @param _siblings The sibling nodes along the way.
+     * @return Updated root
+     */
+    function updateLeafWithSiblings(bytes32 _leaf,uint _path,bytes32 _root,bytes32[] memory _siblings) public returns(bytes32) {
+            bytes32 computedNode = _leaf;
+            for (uint i = 0; i < _siblings.length; i++) {
+                bytes32 parent;
+                bytes32 sibling = _siblings[i];
+                uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
+                if (isComputedRightSibling == 0) {
+                    parent = getParent(computedNode, sibling);
+                } else {
+                    parent = getParent(sibling, computedNode);
+                }
+                computedNode = parent;
+            }
+            return computedNode;
+    }
+
+    /**
      * @notice Get siblings for a leaf at a particular index of the tree.
      *         This is used for updates which don't include sibling nodes.
      * @param _path The path from the leaf to the root / the index of the leaf.

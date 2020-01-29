@@ -113,7 +113,7 @@ contract Rollup {
 
     /**
     *  processTxUpdate processes a transactions and returns the updated balance tree
-    *  and the updated leaves. 
+    *  and the updated leaves
     * @notice Gives the number of batches submitted on-chain
     * @return Total number of batches submitted onchain
     */
@@ -148,17 +148,18 @@ contract Rollup {
         dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
             getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
 
-        merkleTreeUtil.update(getAccountBytes(new_from_leaf), _from_merkle_proof.account.path);
-
+        bytes32 newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_from_leaf)),_from_merkle_proof.account.path,_balanceRoot,_from_merkle_proof.siblings);
         // TODO update balance tree and credit to leaf with the updated tree
 
         // increase balance of to leaf
         dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
             getBalanceFromAccount(_to_merkle_proof.account).add(_tx.amount));
 
+        // update the merkle tree
         merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
+        newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_to_leaf)),_to_merkle_proof.account.path,newRoot,_to_merkle_proof.siblings);
 
-        return (getBalanceTreeRoot(), getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
+        return (newRoot, getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
     }
 
 
