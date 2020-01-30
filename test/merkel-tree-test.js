@@ -11,8 +11,5 @@ contract("MerkleTree", async accounts => {
     // console.log(await mt.getkeecak(variable1))
     var result = await ethers.utils.solidityKeccak256([ 'bytes1' ], ["0x12"])
     console.log(result)
-    // var result = await mt.getMerkleRoot([variable1,variable2])
-    // console.log("merkle tree root obtained",result.logs)
-    // console.log("Input data",JSON.stringify(result.logs[0].args))
   });
 });

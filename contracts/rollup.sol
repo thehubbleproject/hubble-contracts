@@ -37,6 +37,8 @@ contract Rollup {
      ********************/
     constructor(address merkleTreeLib) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
+
+        // TODO remove after adding deposit
         initAccounts();
     }
 
@@ -148,8 +150,10 @@ contract Rollup {
         dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
             getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
 
-        bytes32 newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_from_leaf)),_from_merkle_proof.account.path,_balanceRoot,_from_merkle_proof.siblings);
-        // TODO update balance tree and credit to leaf with the updated tree
+        bytes32 newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_from_leaf)),
+                _from_merkle_proof.account.path,
+                _balanceRoot,
+                _from_merkle_proof.siblings);
 
         // increase balance of to leaf
         dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
@@ -157,7 +161,10 @@ contract Rollup {
 
         // update the merkle tree
         merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
-        newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_to_leaf)),_to_merkle_proof.account.path,newRoot,_to_merkle_proof.siblings);
+        newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_to_leaf)),
+                _to_merkle_proof.account.path,
+                newRoot,
+                _to_merkle_proof.siblings);
 
         return (newRoot, getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
     }
