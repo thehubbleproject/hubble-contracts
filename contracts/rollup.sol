@@ -46,13 +46,19 @@ contract Rollup {
      * @notice Initilises genesis accounts 
      */
     function initAccounts() public{
-        dataTypes.Account memory genAccount;
-        genAccount.path = 100;
+        dataTypes.Account memory genAccount1;
+        genAccount.path = 00;
         genAccount.balance=100;
         genAccount.tokenType=DEFAULT_TOKEN_TYPE;
         genAccount.nonce=0;
-        bytes[] memory acc = new bytes[](1);
+        dataTypes.Account memory genAccount2;
+        genAccount2.path = 11;
+        genAccount2.balance=100;
+        genAccount2.tokenType=DEFAULT_TOKEN_TYPE;
+        genAccount2.nonce=0;
+        bytes[] memory acc = new bytes[](2);
         acc[0] = getAccountBytes(genAccount);
+        acc[2] = getAccountBytes(genAccount2);
         bytes32 root = merkleTreeUtil.getMerkleRoot(acc);
         merkleTreeUtil.setMerkleRootAndHeight(root,DEFAULT_DEPTH);
     }
@@ -96,10 +102,7 @@ contract Rollup {
 
             // if tx root while submission doesnt match tx root of given txs
             // dispute is successful
-            if (txRoot!=batches[batch_id].txRoot){
-                // TODO add slash
-                return true;
-            }
+            require(txRoot!=batches[batch_id].txRoot,"Dispute incorrect, tx root doesn't match");
             bytes32 newBalanceRoot;
             uint256 fromBalance;
             uint256 toBalance;

@@ -247,6 +247,14 @@ contract MerkleTree {
         return siblings;
     }
 
+
+    // getSiblingsStatelessly returns the sibling node ID's for the given path and root
+    // function getSiblingsStatelessly(uint path, root bytes32) public view returns(bytes32[] memory){
+
+
+
+    // }
+
     /*********************
      * Utility Functions *
      ********************/

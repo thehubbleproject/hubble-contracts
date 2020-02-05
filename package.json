@@ -7,7 +7,8 @@
     "test": "truffle test",
     "truffle": "truffle",
     "compile": "truffle compile",
-    "migrate": "truffle migrate"
+    "migrate": "truffle migrate",
+    "ganache": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 8000000 --gasPrice 0 -b 1"
   },
   "repository": {
     "type": "git",
