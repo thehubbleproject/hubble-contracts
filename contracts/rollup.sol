@@ -38,29 +38,22 @@ contract Rollup {
     constructor(address merkleTreeLib) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
 
-        // TODO remove after adding deposit
-        initAccounts();
+        // initialise merkle tree
+        initMT();
     }
 
     /**
-     * @notice Initilises genesis accounts 
+     * @notice Initilises merkle tree variables
      */
-    function initAccounts() public{
-        dataTypes.Account memory genAccount1;
-        genAccount.path = 00;
-        genAccount.balance=100;
-        genAccount.tokenType=DEFAULT_TOKEN_TYPE;
-        genAccount.nonce=0;
-        dataTypes.Account memory genAccount2;
-        genAccount2.path = 11;
-        genAccount2.balance=100;
-        genAccount2.tokenType=DEFAULT_TOKEN_TYPE;
-        genAccount2.nonce=0;
-        bytes[] memory acc = new bytes[](2);
-        acc[0] = getAccountBytes(genAccount);
-        acc[2] = getAccountBytes(genAccount2);
-        bytes32 root = merkleTreeUtil.getMerkleRoot(acc);
-        merkleTreeUtil.setMerkleRootAndHeight(root,DEFAULT_DEPTH);
+    function initMT() public{
+        merkleTreeUtil.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
+    }
+
+
+    // addAccount adds account to the merkle tree stored
+    function addAccount(dataTypes.Account memory _account) public returns(bytes32){
+        merkleTreeUtil.update(getAccountBytes(_account),_account.path);
+        return merkleTreeUtil.getRoot();
     }
 
     /**
@@ -171,6 +164,10 @@ contract Rollup {
 
         return (newRoot, getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
     }
+
+    // function Deposit(_user_address address, _amount uint256, uint256 tokenType)public payable  returns(bool){
+
+    // }
 
 
     //

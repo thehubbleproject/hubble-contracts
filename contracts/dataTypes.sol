@@ -16,6 +16,8 @@ contract DataTypes {
 
     // Account or leaf structure
     struct Account{
+        bytes32 key;
+        // only used when account used in Merkle Proof
         uint path;
         uint balance;
         uint tokenType;
