@@ -7,7 +7,30 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 import { ECVerify } from "./ECVerify.sol";
 
+
+
+contract ITokenRegistry {
+    address public coordinator;
+    uint256 public numTokens;
+    mapping(address => bool) public pendingTokens;
+    mapping(uint256 => address) public registeredTokens;
+    modifier onlyCoordinator(){
+        assert (msg.sender == coordinator);
+        _;
+    }
+    function registerToken(address tokenContract) public {}
+    function approveToken(address tokenContract) public onlyCoordinator{}
+}
+
+
+contract IERC20 {
+    function transferFrom(address from, address to, uint256 value) public returns(bool) {}
+	function transfer(address recipient, uint value) public returns (bool) {}
+}
+
+
 contract Rollup {
+    
     using SafeMath for uint256;
     using BytesLib for bytes;
     using ECVerify for bytes32;
@@ -22,21 +45,31 @@ contract Rollup {
     mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
+    
+    
     MerkleTreeUtil merkleTreeUtil;
+    ITokenRegistry public tokenRegistry;
+    IERC20 public tokenContract;
 
     /*********************
      * Events *
      ********************/
-    event NewBatch(bytes32 txroot, bytes32 updatedRoot);
+    event NewBatch(address committer,bytes32 txroot, bytes32 updatedRoot);
     event NewAccount(bytes32 root, uint256 index);
-    event SiblingsGenerated(bytes32[] to_siblings, uint to_path, bytes32[] from_siblings, uint from_path);
+
+    event RegisteredToken(uint tokenType, address tokenContract);
+    event RegistrationRequest(address tokenContract);
+
+
+
 
 
     /*********************
      * Constructor *
      ********************/
-    constructor(address merkleTreeLib) public{
+    constructor(address merkleTreeLib,address _tokenRegistryAddr) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
+        tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
 
         // initialise merkle tree
         initMT();
@@ -73,7 +106,7 @@ contract Rollup {
      });
 
      batches.push(newBatch);
-     emit NewBatch(txRoot,_updatedRoot);
+     emit NewBatch(newBatch.committer,txRoot,_updatedRoot);
     }
 
 
@@ -165,9 +198,39 @@ contract Rollup {
         return (newRoot, getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
     }
 
-    // function Deposit(_user_address address, _amount uint256, uint256 tokenType)public payable  returns(bool){
+    function depositFor()public{
+        
+    }
 
-    // }
+
+    function deposit(uint amount,uint tokenType)public{
+        // check token type exists
+        
+        // check amount is greater than 0
+
+        // queue the deposit
+
+        // emit the event
+
+
+    }
+
+    //
+    // registry related functions
+    //
+    function requestTokenRegistration(
+        address tokenContractAddress
+    ) public {
+        tokenRegistry.requestTokenRegistration(tokenContractAddress);
+        emit RegistrationRequest(tokenContractAddress);
+    }
+
+    function finaliseTokenRegistration(
+        address tokenContractAddress
+    ) public onlyCoordinator {
+        tokenRegistry.finaliseTokenRegistration(tokenContractAddress);
+        emit RegisteredToken(tokenRegistry.numTokens(),tokenContractAddress);
+    }
 
 
     //
@@ -210,4 +273,7 @@ contract Rollup {
     function numberOfBatches() public view returns (uint256){
         return batches.length;
     }
+    
+    
+    
 }
