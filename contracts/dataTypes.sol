@@ -16,8 +16,13 @@ contract DataTypes {
 
     // Account or leaf structure
     struct Account{
-        bytes32 key;
-        // only used when account used in Merkle Proof
+        uint balance;
+        uint tokenType;
+        uint nonce;
+    }
+
+    // account leaf also contains the path to the account from the root
+    struct AccountLeaf{
         uint path;
         uint balance;
         uint tokenType;
@@ -33,7 +38,7 @@ contract DataTypes {
     }
 
     struct MerkleProof{
-        Account account;
+        AccountLeaf account;
         bytes32[] siblings;
     }
 }

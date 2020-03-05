@@ -5,7 +5,7 @@ contract TokenRegistry {
     address public owner;
     address public rollupNC;
 
-    mapping(address => bool) public pendingTokens;
+    mapping(address => bool) public pendingRegistrations;
     mapping(uint256 => address) public registeredTokens;
 
     uint256 public numTokens;
@@ -36,14 +36,14 @@ contract TokenRegistry {
     function requestTokenRegistration(
         address tokenContract
     ) public {
-        require(pendingTokens[tokenContract] == false, "Token already registered.");
-        pendingTokens[tokenContract] = true;
+        require(pendingRegistrations[tokenContract] == false, "Token already registered.");
+        pendingRegistrations[tokenContract] = true;
     }
 
     function finaliseTokenRegistration(
         address tokenContract
     ) public fromRollup {
-        require(pendingTokens[tokenContract], 'Token was not registered');
+        require(pendingRegistrations[tokenContract], 'Token was not registered');
         numTokens++;
         registeredTokens[numTokens] = tokenContract; // tokenType => token contract address
     }

@@ -10,16 +10,17 @@ import { ECVerify } from "./ECVerify.sol";
 
 
 contract ITokenRegistry {
-    address public coordinator;
+    address public owner;
     uint256 public numTokens;
-    mapping(address => bool) public pendingTokens;
+    mapping(address => bool) public pendingRegistrations;
     mapping(uint256 => address) public registeredTokens;
-    modifier onlyCoordinator(){
-        assert (msg.sender == coordinator);
+    
+    modifier onlyOwner(){
+        assert(msg.sender == owner);
         _;
     }
-    function registerToken(address tokenContract) public {}
-    function approveToken(address tokenContract) public onlyCoordinator{}
+    function requestTokenRegistration(address tokenContract) public {}
+    function finaliseTokenRegistration(address tokenContract) public onlyOwner{}
 }
 
 
@@ -45,11 +46,18 @@ contract Rollup {
     mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
+    address operator;
     
     
     MerkleTreeUtil merkleTreeUtil;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
+    bytes32[] public pendingDeposits;
+
+    uint public queueNumber;
+    uint public depositSubtreeHeight;
+
+
 
     /*********************
      * Events *
@@ -60,8 +68,16 @@ contract Rollup {
     event RegisteredToken(uint tokenType, address tokenContract);
     event RegistrationRequest(address tokenContract);
 
+    event DepositQueued(address,uint,uint,bytes32);
+    event DepositLeafMerged();
+    event DepositsProcessed();
 
 
+
+    modifier onlyOperator(){
+        assert(msg.sender == operator);
+        _;
+    }
 
 
     /*********************
@@ -70,7 +86,7 @@ contract Rollup {
     constructor(address merkleTreeLib,address _tokenRegistryAddr) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
-
+        operator = msg.sender;
         // initialise merkle tree
         initMT();
     }
@@ -84,17 +100,17 @@ contract Rollup {
 
 
     // addAccount adds account to the merkle tree stored
-    function addAccount(dataTypes.Account memory _account) public returns(bytes32){
-        merkleTreeUtil.update(getAccountBytes(_account),_account.path);
-        return merkleTreeUtil.getRoot();
-    }
+    // function addAccount(dataTypes.Account memory _account) public returns(bytes32){
+    //     merkleTreeUtil.update(getAccountBytes(_account),_account.path);
+    //     return merkleTreeUtil.getRoot();
+    // }
 
     /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external  {
+    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external onlyOperator  {
      bytes32 txRoot = merkleTreeUtil.getMerkleRoot(_txs);
 
      // make merkel root of all txs
@@ -154,14 +170,14 @@ contract Rollup {
         
         // verify from leaf exists in the balance tree
         require(merkleTreeUtil.verify(
-                _balanceRoot,getAccountBytes(_from_merkle_proof.account),
+                _balanceRoot,getAccountBytesFromLeaf(_from_merkle_proof.account),
                 _from_merkle_proof.account.path,
                 _from_merkle_proof.siblings)
             ,"Merkle Proof for from leaf is incorrect");
     
         // verify to leaf exists in the balance tree
         require(merkleTreeUtil.verify(
-                _balanceRoot,getAccountBytes(_to_merkle_proof.account),
+                _balanceRoot,getAccountBytesFromLeaf(_to_merkle_proof.account),
                 _to_merkle_proof.account.path,
                 _to_merkle_proof.siblings),
             "Merkle Proof for from leaf is incorrect");
@@ -170,48 +186,86 @@ contract Rollup {
         require(_from_merkle_proof.account.balance>_tx.amount,"Sender doesnt have enough balance");
 
         // check signature on the tx is correct
-        require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
+        // TODO fix
+        // require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
 
         // check token type is correct
         require(_tx.tokenType==DEFAULT_TOKEN_TYPE,"Invalid token type");
         
         // reduce balance of from leaf
-        dataTypes.Account memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
-            getBalanceFromAccount(_from_merkle_proof.account).sub(_tx.amount));
+        dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
+            getBalanceFromAccountLeaf(_from_merkle_proof.account).sub(_tx.amount));
 
-        bytes32 newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_from_leaf)),
+        bytes32 newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytesFromLeaf(new_from_leaf)),
                 _from_merkle_proof.account.path,
                 _balanceRoot,
                 _from_merkle_proof.siblings);
 
         // increase balance of to leaf
-        dataTypes.Account memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
-            getBalanceFromAccount(_to_merkle_proof.account).add(_tx.amount));
+        dataTypes.AccountLeaf memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
+            getBalanceFromAccountLeaf(_to_merkle_proof.account).add(_tx.amount));
 
         // update the merkle tree
-        merkleTreeUtil.update(getAccountBytes(new_to_leaf), _to_merkle_proof.account.path);
-        newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytes(new_to_leaf)),
+        merkleTreeUtil.update(getAccountBytesFromLeaf(new_to_leaf), _to_merkle_proof.account.path);
+        newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytesFromLeaf(new_to_leaf)),
                 _to_merkle_proof.account.path,
                 newRoot,
                 _to_merkle_proof.siblings);
 
-        return (newRoot, getBalanceFromAccount(new_from_leaf), getBalanceFromAccount(new_to_leaf));
+        return (newRoot, getBalanceFromAccountLeaf(new_from_leaf), getBalanceFromAccountLeaf(new_to_leaf));
     }
 
-    function depositFor()public{
-        
+    function deposit(address _destinationAddress,uint amount,uint tokenType)public{
+        depositFor(msg.sender,amount,tokenType);
     }
 
 
-    function deposit(uint amount,uint tokenType)public{
-        // check token type exists
-        
+    function depositFor(address destination,uint amount,uint tokenType) public {
         // check amount is greater than 0
+        require(amount > 0,"token deposit must be greater than 0");
+
+        // check token type exists
+        address tokenContractAddress = tokenRegistry.registeredTokens(tokenType);
+        tokenContract = IERC20(tokenContractAddress);
+        require(
+            tokenContract.transferFrom(msg.sender, address(this), amount),
+            "token transfer not approved"
+        );
+
+        dataTypes.Account memory newAccount;
+        newAccount.balance = amount;
+        newAccount.tokenType = tokenType;
+        newAccount.nonce = 0;
+
+        bytes32 accountHash = getAccountHash(newAccount);
 
         // queue the deposit
-
+        pendingDeposits.push(accountHash);
+    
         // emit the event
+        emit DepositQueued(destination, amount, tokenType,accountHash);
 
+        queueNumber++;
+        uint tmpDepositSubtreeHeight = 0;
+        uint tmp = queueNumber;
+        while(tmp % 2 == 0){
+            bytes32[] memory deposits = new bytes32[](2);
+            deposits[0] = pendingDeposits[pendingDeposits.length - 2];
+            deposits[1] = pendingDeposits[pendingDeposits.length - 1];
+            // TODO fix
+            // pendingDeposits[pendingDeposits.length - 2] = keccak256(deposits);
+            removeDeposit(pendingDeposits.length - 1);
+            tmp = tmp / 2;
+            tmpDepositSubtreeHeight++;
+        }
+        if (tmpDepositSubtreeHeight > depositSubtreeHeight){
+            depositSubtreeHeight = tmpDepositSubtreeHeight;
+        }
+    }
+
+
+    // finaliseDeposits inlcudes the deposits to the balance tree
+    function finaliseDeposits() public onlyOperator {
 
     }
 
@@ -227,7 +281,7 @@ contract Rollup {
 
     function finaliseTokenRegistration(
         address tokenContractAddress
-    ) public onlyCoordinator {
+    ) public onlyOperator {
         tokenRegistry.finaliseTokenRegistration(tokenContractAddress);
         emit RegisteredToken(tokenRegistry.numTokens(),tokenContractAddress);
     }
@@ -238,18 +292,31 @@ contract Rollup {
     //
     
     // returns a new leaf with updated balance
-    function updateBalanceInLeaf(dataTypes.Account memory original_account, uint256 new_balance) public returns(dataTypes.Account memory new_account){
-        dataTypes.Account memory newAccount;
+    function updateBalanceInLeaf(dataTypes.AccountLeaf memory original_account, uint256 new_balance) public returns(dataTypes.AccountLeaf memory new_account){
+        dataTypes.AccountLeaf memory newAccount;
         return newAccount;
     }
 
     // getBalanceFromAccount extracts the balance from the leaf
     function getBalanceFromAccount(dataTypes.Account memory account) public view returns(uint256) {
+        // TODO add abi.decode
         return 0;
     }
 
+    function getBalanceFromAccountLeaf(dataTypes.AccountLeaf memory account) public view returns(uint256) {
+        return 0;
+    }
+
+    function getAccountHash(dataTypes.Account memory account) public view returns(bytes32){
+        return keccak256(getAccountBytes(account));
+    }
+
     function getAccountBytes(dataTypes.Account memory account) public view returns(bytes memory){
-        return abi.encode(account.balance, account.nonce,account.path,account.tokenType);
+        return abi.encode(account.balance, account.nonce,account.tokenType);
+    }
+
+    function getAccountBytesFromLeaf(dataTypes.AccountLeaf memory account) public view returns(bytes memory){
+        return abi.encode(account.balance, account.nonce,account.tokenType);
     }
     
     function getTxBytes(dataTypes.Transaction memory tx) public view returns(bytes memory){
@@ -272,6 +339,19 @@ contract Rollup {
      */
     function numberOfBatches() public view returns (uint256){
         return batches.length;
+    }
+
+
+    // helper functions
+    function removeDeposit(uint index) internal returns(bytes32[] memory) {
+        require(index < pendingDeposits.length, "index is out of bounds");
+
+        for (uint i = index; i<pendingDeposits.length-1; i++){
+            pendingDeposits[i] = pendingDeposits[i+1];
+        }
+        delete pendingDeposits[pendingDeposits.length-1];
+        pendingDeposits.length--;
+        return pendingDeposits;
     }
     
     
