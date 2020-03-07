@@ -38,8 +38,20 @@ contract Rollup {
 
     uint DEFAULT_TOKEN_TYPE =0;
     uint256 DEFAULT_DEPTH = 2;
+    uint MAX_DEPTH = 5;
+ 
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    
+    // hashes for empty tree of depth MAX DEPTH
+    bytes32[] public zeroCache = new bytes32[](5); 
+    // [
+    //     0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563, //H0 = empty leaf
+    //     0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d,  //H1 = hash(H0, H0)
+    //     0x890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d,  //H2 = hash(H1, H1)
+    //     0x3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd8, //...and so on
+    //     0xecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da
+    //     ];
+
+
     /*********************
      * Variable Declarations *
      ********************/
@@ -47,7 +59,6 @@ contract Rollup {
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
     address operator;
-    
     
     MerkleTreeUtil merkleTreeUtil;
     ITokenRegistry public tokenRegistry;
@@ -72,8 +83,6 @@ contract Rollup {
     event DepositLeafMerged();
     event DepositsProcessed();
 
-
-
     modifier onlyOperator(){
         assert(msg.sender == operator);
         _;
@@ -83,10 +92,13 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
-    constructor(address merkleTreeLib,address _tokenRegistryAddr) public{
+
+    constructor(address merkleTreeLib,address _tokenRegistryAddr,bytes32[] memory _zeroCache) public{
         merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
         operator = msg.sender;
+
+        zeroCache = _zeroCache;
         // initialise merkle tree
         initMT();
     }
@@ -97,13 +109,6 @@ contract Rollup {
     function initMT() public{
         merkleTreeUtil.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
     }
-
-
-    // addAccount adds account to the merkle tree stored
-    // function addAccount(dataTypes.Account memory _account) public returns(bytes32){
-    //     merkleTreeUtil.update(getAccountBytes(_account),_account.path);
-    //     return merkleTreeUtil.getRoot();
-    // }
 
     /**
      * @notice Submits a new batch to batches
@@ -170,14 +175,16 @@ contract Rollup {
         
         // verify from leaf exists in the balance tree
         require(merkleTreeUtil.verify(
-                _balanceRoot,getAccountBytesFromLeaf(_from_merkle_proof.account),
+                _balanceRoot,
+                getAccountBytesFromLeaf(_from_merkle_proof.account),
                 _from_merkle_proof.account.path,
                 _from_merkle_proof.siblings)
             ,"Merkle Proof for from leaf is incorrect");
     
         // verify to leaf exists in the balance tree
         require(merkleTreeUtil.verify(
-                _balanceRoot,getAccountBytesFromLeaf(_to_merkle_proof.account),
+                _balanceRoot,
+                getAccountBytesFromLeaf(_to_merkle_proof.account),
                 _to_merkle_proof.account.path,
                 _to_merkle_proof.siblings),
             "Merkle Proof for from leaf is incorrect");
@@ -265,8 +272,24 @@ contract Rollup {
 
 
     // finaliseDeposits inlcudes the deposits to the balance tree
-    function finaliseDeposits() public onlyOperator {
+    function finaliseDeposits(uint subTreeDepth,dataTypes.MerkleProof memory _zero_account_mp ) public onlyOperator returns(bytes32) {
+        bytes32 emptySubtreeRoot = zeroCache[subTreeDepth];
+        
+        // from mt proof we find the root of the tree
+        // we match the root to the balance tree root on-chain
+        require(merkleTreeUtil.verifyLeaf(
+            merkleTreeUtil.getRoot(),
+            emptySubtreeRoot,
+            _zero_account_mp.account.path,
+            _zero_account_mp.siblings),"proof invalid");
 
+        // get the new root with this replaced leaf
+        merkleTreeUtil.updateLeaf(pendingDeposits[0],_zero_account_mp.account.path);
+    
+        // do queue stuff
+        removeDeposit(0);
+        queueNumber = queueNumber - 2**depositSubtreeHeight;
+        return merkleTreeUtil.getRoot();
     }
 
     //

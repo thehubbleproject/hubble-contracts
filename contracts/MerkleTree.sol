@@ -106,6 +106,31 @@ contract MerkleTree {
         return computedNode;
     }
 
+        /**
+     * @notice Calculate root from an inclusion proof.
+     * @param _leaf The data block we're calculating root for.
+     * @param _path The path from the leaf to the root.
+     * @param _siblings The sibling nodes along the way.
+     * @return The next level of the tree
+    * NOTE: This is a stateless operation
+     */
+    function computeInclusionProofRootWithLeaf(bytes32 _leaf, uint _path, bytes32[] memory _siblings) public pure returns (bytes32) {
+        // First compute the leaf node
+        bytes32 computedNode = _leaf;
+        for (uint i = 0; i < _siblings.length; i++) {
+            bytes32 sibling = _siblings[i];
+            uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
+            if (isComputedRightSibling == 0) {
+                computedNode = getParent(computedNode, sibling);
+            } else {
+                computedNode = getParent(sibling, computedNode);
+            }
+        }
+        // Check if the computed node (_root) is equal to the provided root
+        return computedNode;
+    }
+
+
     /**
      * @notice Verify an inclusion proof.
      * @param _root The root of the tree we are verifying inclusion for.
@@ -120,6 +145,25 @@ contract MerkleTree {
         // First compute the leaf node
         bytes32 calculatedRoot = computeInclusionProofRoot(
             _dataBlock,
+            _path,
+            _siblings
+        );
+        return calculatedRoot == _root;
+    }
+
+    /**
+     * @notice Verify an inclusion proof.
+     * @param _root The root of the tree we are verifying inclusion for.
+     * @param _leaf The data block we're verifying inclusion for.
+     * @param _path The path from the leaf to the root.
+     * @param _siblings The sibling nodes along the way.
+     * @return The next level of the tree
+          * NOTE: This is a stateless operation
+
+     */
+    function verifyLeaf(bytes32 _root, bytes32 _leaf, uint _path, bytes32[] memory _siblings) public pure returns (bool){
+        bytes32 calculatedRoot = computeInclusionProofRootWithLeaf(
+            _leaf,
             _path,
             _siblings
         );
