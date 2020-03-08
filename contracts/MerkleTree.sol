@@ -183,7 +183,7 @@ contract MerkleTree {
     /**
      * @notice Update the stored tree / root with a particular leaf hash at some path (no siblings needed)
      * @param _leaf The leaf we're storing/verifying
-     * @param _path The path from the leaf to the root / the index of the leaf.
+     *   @param _path The path from the leaf to the root / the index of the leaf.
      */
     function updateLeaf(bytes32 _leaf, uint _path) public {
         bytes32[] memory siblings = getSiblings(_path);

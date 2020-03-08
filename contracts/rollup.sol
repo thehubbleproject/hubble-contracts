@@ -7,8 +7,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 import { ECVerify } from "./ECVerify.sol";
 
-
-
+// token registry contract interface
 contract ITokenRegistry {
     address public owner;
     uint256 public numTokens;
@@ -24,14 +23,14 @@ contract ITokenRegistry {
 }
 
 
+// ERC20 token interface
 contract IERC20 {
     function transferFrom(address from, address to, uint256 value) public returns(bool) {}
 	function transfer(address recipient, uint value) public returns (bool) {}
 }
 
-
+// Main rollup contract
 contract Rollup {
-    
     using SafeMath for uint256;
     using BytesLib for bytes;
     using ECVerify for bytes32;
@@ -41,30 +40,35 @@ contract Rollup {
     uint MAX_DEPTH = 5;
  
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
     // hashes for empty tree of depth MAX DEPTH
-    bytes32[] public zeroCache = new bytes32[](5); 
-    // [
+    bytes32[] public zeroCache = new bytes32[](5);
+    //[
     //     0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563, //H0 = empty leaf
     //     0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d,  //H1 = hash(H0, H0)
     //     0x890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d,  //H2 = hash(H1, H1)
     //     0x3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd8, //...and so on
     //     0xecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da
-    //     ];
+    //];
 
 
     /*********************
      * Variable Declarations *
      ********************/
-    mapping(uint256 => address) IdToAccounts;
-    mapping(uint256=>dataTypes.Account) accounts;
-    dataTypes.Batch[] public batches;
-    address operator;
-    
+
+    // external contracts
     MerkleTreeUtil merkleTreeUtil;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
-    bytes32[] public pendingDeposits;
 
+    address operator;
+
+    mapping(uint256 => address) IdToAccounts;
+    mapping(uint256=>dataTypes.Account) accounts;
+    dataTypes.Batch[] public batches;
+    
+    
+    bytes32[] public pendingDeposits;
     uint public queueNumber;
     uint public depositSubtreeHeight;
 
@@ -93,8 +97,8 @@ contract Rollup {
      * Constructor *
      ********************/
 
-    constructor(address merkleTreeLib,address _tokenRegistryAddr,bytes32[] memory _zeroCache) public{
-        merkleTreeUtil = MerkleTreeUtil(merkleTreeLib);
+    constructor(address _merkleTreeLib,address _tokenRegistryAddr,bytes32[] memory _zeroCache) public{
+        merkleTreeUtil = MerkleTreeUtil(_merkleTreeLib);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
         operator = msg.sender;
 
@@ -115,7 +119,7 @@ contract Rollup {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external onlyOperator  {
+    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external {
      bytes32 txRoot = merkleTreeUtil.getMerkleRoot(_txs);
 
      // make merkel root of all txs
@@ -137,7 +141,7 @@ contract Rollup {
     * @notice Gives the number of batches submitted on-chain
     * @return Total number of batches submitted onchain
     */
-    function disputeBatch(uint256 batch_id,
+    function disputeBatch(uint256 _batch_id,
         dataTypes.Transaction[] memory _txs,
         dataTypes.MerkleProof[] memory _from_proofs,
         dataTypes.MerkleProof[] memory _to_proofs) public returns(bool) {
@@ -149,24 +153,23 @@ contract Rollup {
 
             // if tx root while submission doesnt match tx root of given txs
             // dispute is successful
-            require(txRoot!=batches[batch_id].txRoot,"Dispute incorrect, tx root doesn't match");
+            require(txRoot!=batches[_batch_id].txRoot,"Dispute incorrect, tx root doesn't match");
             bytes32 newBalanceRoot;
             uint256 fromBalance;
             uint256 toBalance;
             for (uint i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (newBalanceRoot,fromBalance,toBalance) = processTxUpdate(batches[batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
+                (newBalanceRoot,fromBalance,toBalance) = processTxUpdate(batches[_batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
             }
             
-            require(newBalanceRoot==batches[batch_id].stateRoot,"Balance root doesnt match");
+            require(newBalanceRoot==batches[_batch_id].stateRoot,"Balance root doesnt match");
             // TODO slash when balance root doesnt match
     }
 
     /**
-    *  processTxUpdate processes a transactions and returns the updated balance tree
+    *  @notice processTxUpdate processes a transactions and returns the updated balance tree
     *  and the updated leaves
-    * @notice Gives the number of batches submitted on-chain
     * @return Total number of batches submitted onchain
     */
     function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
@@ -221,36 +224,50 @@ contract Rollup {
 
         return (newRoot, getBalanceFromAccountLeaf(new_from_leaf), getBalanceFromAccountLeaf(new_to_leaf));
     }
-
-    function deposit(address _destinationAddress,uint amount,uint tokenType)public{
-        depositFor(msg.sender,amount,tokenType);
+    
+    /**
+    * @notice Adds a deposit for the msg.sender to the deposit queue
+    * @param _amount Number of tokens that user wants to deposit
+    * @param _tokenType Type of token user is depositing
+    */
+    function deposit(uint _amount,uint _tokenType)public{
+        depositFor(msg.sender,_amount,_tokenType);
     }
 
-
-    function depositFor(address destination,uint amount,uint tokenType) public {
+    /**
+    * @notice Adds a deposit for an address to the deposit queue
+    * @param _destination Address for which we are depositing
+    * @param _amount Number of tokens that user wants to deposit
+    * @param _tokenType Type of token user is depositing
+    */
+    function depositFor(address _destination,uint _amount,uint _tokenType) public {
         // check amount is greater than 0
-        require(amount > 0,"token deposit must be greater than 0");
+        require(_amount > 0,"token deposit must be greater than 0");
 
         // check token type exists
-        address tokenContractAddress = tokenRegistry.registeredTokens(tokenType);
+        address tokenContractAddress = tokenRegistry.registeredTokens(_tokenType);
         tokenContract = IERC20(tokenContractAddress);
+
+        // transfer from msg.sender to this contract
         require(
-            tokenContract.transferFrom(msg.sender, address(this), amount),
+            tokenContract.transferFrom(msg.sender, address(this), _amount),
             "token transfer not approved"
         );
 
+        // create a new account
         dataTypes.Account memory newAccount;
-        newAccount.balance = amount;
-        newAccount.tokenType = tokenType;
+        newAccount.balance = _amount;
+        newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
 
+        // get new account hash
         bytes32 accountHash = getAccountHash(newAccount);
 
         // queue the deposit
         pendingDeposits.push(accountHash);
     
         // emit the event
-        emit DepositQueued(destination, amount, tokenType,accountHash);
+        emit DepositQueued(_destination, _amount, _tokenType,accountHash);
 
         queueNumber++;
         uint tmpDepositSubtreeHeight = 0;
@@ -259,8 +276,8 @@ contract Rollup {
             bytes32[] memory deposits = new bytes32[](2);
             deposits[0] = pendingDeposits[pendingDeposits.length - 2];
             deposits[1] = pendingDeposits[pendingDeposits.length - 1];
-            // TODO fix
-            // pendingDeposits[pendingDeposits.length - 2] = keccak256(deposits);
+
+            pendingDeposits[pendingDeposits.length - 2] = getDepositsHash(deposits[0],deposits[1]);
             removeDeposit(pendingDeposits.length - 1);
             tmp = tmp / 2;
             tmpDepositSubtreeHeight++;
@@ -270,10 +287,14 @@ contract Rollup {
         }
     }
 
-
-    // finaliseDeposits inlcudes the deposits to the balance tree
-    function finaliseDeposits(uint subTreeDepth,dataTypes.MerkleProof memory _zero_account_mp ) public onlyOperator returns(bytes32) {
-        bytes32 emptySubtreeRoot = zeroCache[subTreeDepth];
+    /**
+    * @notice Merges the deposit tree with the balance tree by superimposing the deposit subtree on the balance tree
+    * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
+    * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
+    * @return Updates in-state merkle tree root
+    */
+    function finaliseDeposits(uint _subTreeDepth,dataTypes.MerkleProof memory _zero_account_mp) public onlyOperator returns(bytes32) {
+        bytes32 emptySubtreeRoot = zeroCache[_subTreeDepth];
         
         // from mt proof we find the root of the tree
         // we match the root to the balance tree root on-chain
@@ -283,30 +304,40 @@ contract Rollup {
             _zero_account_mp.account.path,
             _zero_account_mp.siblings),"proof invalid");
 
-        // get the new root with this replaced leaf
+        // update the in-state balance tree with new leaf from pendingDeposits[0]
         merkleTreeUtil.updateLeaf(pendingDeposits[0],_zero_account_mp.account.path);
     
-        // do queue stuff
+        // removed the root at pendingDeposits[0] because it has been added to the balance tree
         removeDeposit(0);
+
+        // update the number of elements present in the queue
         queueNumber = queueNumber - 2**depositSubtreeHeight;
+
+        // return the updated merkle tree root
         return merkleTreeUtil.getRoot();
     }
 
-    //
-    // registry related functions
-    //
+    /**
+    * @notice Requests addition of a new token to the chain, can be called by anyone
+    * @param _tokenContractAddress Address for the new token being added
+    */
     function requestTokenRegistration(
-        address tokenContractAddress
+        address _tokenContractAddress
     ) public {
-        tokenRegistry.requestTokenRegistration(tokenContractAddress);
-        emit RegistrationRequest(tokenContractAddress);
+        // TODO make sure the token that is being added is an ERC20 token and satisfies IERC20
+        tokenRegistry.requestTokenRegistration(_tokenContractAddress);
+        emit RegistrationRequest(_tokenContractAddress);
     }
 
+    /**
+    * @notice Add new tokens to the rollup chain by assigning them an ID called tokenType from here on
+    * @param _tokenContractAddress Deposit tree depth or depth of subtree that is being deposited
+    */
     function finaliseTokenRegistration(
-        address tokenContractAddress
+        address _tokenContractAddress
     ) public onlyOperator {
-        tokenRegistry.finaliseTokenRegistration(tokenContractAddress);
-        emit RegisteredToken(tokenRegistry.numTokens(),tokenContractAddress);
+        tokenRegistry.finaliseTokenRegistration(_tokenContractAddress);
+        emit RegisteredToken(tokenRegistry.numTokens(),_tokenContractAddress);
     }
 
 
@@ -356,6 +387,10 @@ contract Rollup {
         return merkleTreeUtil.getRoot();
     }
 
+    function getDepositsHash(bytes32 a, bytes32 b) public returns(bytes32){
+        return keccak256(abi.encode(a,b));
+    }
+
     /**
      * @notice Gives the number of batches submitted on-chain
      * @return Total number of batches submitted onchain
@@ -364,19 +399,20 @@ contract Rollup {
         return batches.length;
     }
 
+     /**
+    * @notice Removes a deposit from the pendingDeposits queue and shifts the queue
+    * @param _index Index of the element to remove
+    * @return Remaining elements of the array
+    */
+    function removeDeposit(uint _index) internal returns(bytes32[] memory) {
+        require(_index < pendingDeposits.length, "array index is out of bounds");
 
-    // helper functions
-    function removeDeposit(uint index) internal returns(bytes32[] memory) {
-        require(index < pendingDeposits.length, "index is out of bounds");
-
-        for (uint i = index; i<pendingDeposits.length-1; i++){
+        for (uint i = _index; i<pendingDeposits.length-1; i++){
             pendingDeposits[i] = pendingDeposits[i+1];
         }
         delete pendingDeposits[pendingDeposits.length-1];
         pendingDeposits.length--;
         return pendingDeposits;
     }
-    
-    
     
 }
