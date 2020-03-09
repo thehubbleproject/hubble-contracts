@@ -1,7 +1,9 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-import {MerkleTree as MerkleTreeUtil} from "./MerkleTree.sol";
+import {MerkleTree} from "./MerkleTree.sol";
+import {MerkleTreeLib} from "./libs/MerkleTreeLib.sol";
+
 import {DataTypes as dataTypes} from "./DataTypes.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
@@ -57,7 +59,10 @@ contract Rollup {
      ********************/
 
     // external contracts
-    MerkleTreeUtil merkleTreeUtil;
+    MerkleTreeLib public merkleTreeLib;
+    MerkleTree public balancesTree;
+    MerkleTree public accountsTree;
+    
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
 
@@ -67,12 +72,9 @@ contract Rollup {
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
     
-    
     bytes32[] public pendingDeposits;
     uint public queueNumber;
     uint public depositSubtreeHeight;
-
-
 
     /*********************
      * Events *
@@ -96,22 +98,37 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
+    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr, bytes32[] memory _zeroCache) public{
+        balancesTree = MerkleTree(_balancesTree);
+        accountsTree = MerkleTree(_accountsTree);
+        merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
 
-    constructor(address _merkleTreeLib,address _tokenRegistryAddr,bytes32[] memory _zeroCache) public{
-        merkleTreeUtil = MerkleTreeUtil(_merkleTreeLib);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
         operator = msg.sender;
-
+        // setZeroCache();
+        // TODO remove with on-chain zero cache calculation
         zeroCache = _zeroCache;
         // initialise merkle tree
-        initMT();
+        initBalanceTree();
+        initAccountsTree();
+    }
+
+    function setZeroCache() internal {
+
     }
 
     /**
-     * @notice Initilises merkle tree variables
+     * @notice Initilises balance tree variables
      */
-    function initMT() public{
-        merkleTreeUtil.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
+    function initBalanceTree() public{
+        balancesTree.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
+    }
+
+    /**
+     * @notice Initilises account tree variables
+     */
+    function initAccountsTree() public{
+        accountsTree.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
     }
 
     /**
@@ -120,7 +137,7 @@ contract Rollup {
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
     function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external {
-     bytes32 txRoot = merkleTreeUtil.getMerkleRoot(_txs);
+     bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
 
      // make merkel root of all txs
      dataTypes.Batch memory newBatch = dataTypes.Batch({
@@ -149,7 +166,7 @@ contract Rollup {
             for (uint i = 0; i < _txs.length; i++) {
                 txs[i] = getTxBytes(_txs[i]);
             }
-            bytes32 txRoot = merkleTreeUtil.getMerkleRoot(txs);
+            bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
 
             // if tx root while submission doesnt match tx root of given txs
             // dispute is successful
@@ -177,7 +194,7 @@ contract Rollup {
     ) public returns(bytes32,uint256,uint256){
         
         // verify from leaf exists in the balance tree
-        require(merkleTreeUtil.verify(
+        require(merkleTreeLib.verify(
                 _balanceRoot,
                 getAccountBytesFromLeaf(_from_merkle_proof.account),
                 _from_merkle_proof.account.path,
@@ -185,7 +202,7 @@ contract Rollup {
             ,"Merkle Proof for from leaf is incorrect");
     
         // verify to leaf exists in the balance tree
-        require(merkleTreeUtil.verify(
+        require(merkleTreeLib.verify(
                 _balanceRoot,
                 getAccountBytesFromLeaf(_to_merkle_proof.account),
                 _to_merkle_proof.account.path,
@@ -206,7 +223,7 @@ contract Rollup {
         dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
             getBalanceFromAccountLeaf(_from_merkle_proof.account).sub(_tx.amount));
 
-        bytes32 newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytesFromLeaf(new_from_leaf)),
+        bytes32 newRoot = merkleTreeLib.updateLeafWithSiblings(keccak256(getAccountBytesFromLeaf(new_from_leaf)),
                 _from_merkle_proof.account.path,
                 _balanceRoot,
                 _from_merkle_proof.siblings);
@@ -216,8 +233,8 @@ contract Rollup {
             getBalanceFromAccountLeaf(_to_merkle_proof.account).add(_tx.amount));
 
         // update the merkle tree
-        merkleTreeUtil.update(getAccountBytesFromLeaf(new_to_leaf), _to_merkle_proof.account.path);
-        newRoot = merkleTreeUtil.updateLeafWithSiblings(keccak256(getAccountBytesFromLeaf(new_to_leaf)),
+        balancesTree.update(getAccountBytesFromLeaf(new_to_leaf), _to_merkle_proof.account.path);
+        newRoot = merkleTreeLib.updateLeafWithSiblings(keccak256(getAccountBytesFromLeaf(new_to_leaf)),
                 _to_merkle_proof.account.path,
                 newRoot,
                 _to_merkle_proof.siblings);
@@ -298,14 +315,14 @@ contract Rollup {
         
         // from mt proof we find the root of the tree
         // we match the root to the balance tree root on-chain
-        require(merkleTreeUtil.verifyLeaf(
-            merkleTreeUtil.getRoot(),
+        require(merkleTreeLib.verifyLeaf(
+            getBalanceTreeRoot(),
             emptySubtreeRoot,
             _zero_account_mp.account.path,
             _zero_account_mp.siblings),"proof invalid");
 
         // update the in-state balance tree with new leaf from pendingDeposits[0]
-        merkleTreeUtil.updateLeaf(pendingDeposits[0],_zero_account_mp.account.path);
+        balancesTree.updateLeaf(pendingDeposits[0],_zero_account_mp.account.path);
     
         // removed the root at pendingDeposits[0] because it has been added to the balance tree
         removeDeposit(0);
@@ -314,7 +331,7 @@ contract Rollup {
         queueNumber = queueNumber - 2**depositSubtreeHeight;
 
         // return the updated merkle tree root
-        return merkleTreeUtil.getRoot();
+        return getBalanceTreeRoot();
     }
 
     /**
@@ -384,7 +401,7 @@ contract Rollup {
 
 
     function getBalanceTreeRoot() public view returns(bytes32) {
-        return merkleTreeUtil.getRoot();
+        return balancesTree.getRoot();
     }
 
     function getDepositsHash(bytes32 a, bytes32 b) public returns(bytes32){
