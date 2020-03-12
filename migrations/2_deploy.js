@@ -5,7 +5,8 @@ const ECVerify = artifacts.require("ECVerify");
 const TokenRegistry = artifacts.require("TokenRegistry");
 
 module.exports = async function(deployer) {
-  await deployer.deploy(MTLib);
+  var max_depth = 5;
+  await deployer.deploy(MTLib,max_depth);
   var mtLibAddr = MTLib.address
   balanceTree = await deployer.deploy(MT,mtLibAddr);
   accountTree = await deployer.deploy(MT,mtLibAddr);

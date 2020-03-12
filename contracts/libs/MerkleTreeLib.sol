@@ -3,26 +3,43 @@ pragma experimental ABIEncoderV2;
 
 contract MerkleTreeLib{
     // The default hashes
-    bytes32[160] public defaultHashes;
+    bytes32[] public defaultHashes;
+    uint public MAX_DEPTH;
+    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
 
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor() public {
+    constructor(uint depth) public {
+        MAX_DEPTH = depth;
         // Calculate & set the default hashes
-        setDefaultHashes();
+        setDefaultHashes(depth);
     }
 
     /* Methods */
+
     /**
      * @notice Set default hashes
      */
-    function setDefaultHashes() private {
+    function setDefaultHashes(uint depth) internal {
         // Set the initial default hash.
-        defaultHashes[0] = keccak256(abi.encodePacked(uint(0)));
-        for (uint i = 1; i < defaultHashes.length; i ++) {
+        defaultHashes[0] = keccak256(abi.encodePacked(ZERO_BYTES32));
+        for (uint i = 1; i < depth; i ++) {
             defaultHashes[i] = keccak256(abi.encodePacked(defaultHashes[i-1], defaultHashes[i-1]));
         }
+    }
+
+    function getZeroRoot()public returns(bytes32){
+        return defaultHashes[0];
+    }
+
+    function getMaxTreeDepth() public returns(uint){
+        return MAX_DEPTH;
+    }
+
+    function getRoot(uint index) public returns(bytes32){
+        return defaultHashes[index];
     }
 
     /**

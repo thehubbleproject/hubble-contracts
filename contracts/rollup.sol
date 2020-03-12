@@ -38,25 +38,11 @@ contract Rollup {
     using ECVerify for bytes32;
 
     uint DEFAULT_TOKEN_TYPE =0;
-    uint256 DEFAULT_DEPTH = 2;
-    uint MAX_DEPTH = 5;
+    uint MAX_DEPTH;
 
     // finalisation time is the number of blocks required by a batch to finalise
     // Delay period = 7 days. Block time = 15 seconds
     uint finalisationTime = 40320;
- 
-    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-
-    // hashes for empty tree of depth MAX DEPTH
-    bytes32[] public zeroCache = new bytes32[](5);
-    //[
-    //     0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563, //H0 = empty leaf
-    //     0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d,  //H1 = hash(H0, H0)
-    //     0x890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d,  //H2 = hash(H1, H1)
-    //     0x3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd8, //...and so on
-    //     0xecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da
-    //];
-
 
     /*********************
      * Variable Declarations *
@@ -101,41 +87,15 @@ contract Rollup {
         _;
     }
 
-
     /*********************
      * Constructor *
      ********************/
-    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr) public{
+    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr,uint _maxDepth) public{
+        merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
         balancesTree = MerkleTree(_balancesTree);
         accountsTree = MerkleTree(_accountsTree);
-        merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
-
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
         coordinator = msg.sender;
-        // setZeroCache();
-        // TODO remove with on-chain zero cache calculation
-        // zeroCache = _zeroCache;
-        // initialise merkle tree
-        initBalanceTree();
-        initAccountsTree();
-    }
-
-    function setZeroCache() internal {
-
-    }
-
-    /**
-     * @notice Initilises balance tree variables
-     */
-    function initBalanceTree() public{
-        balancesTree.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
-    }
-
-    /**
-     * @notice Initilises account tree variables
-     */
-    function initAccountsTree() public{
-        accountsTree.setMerkleRootAndHeight(ZERO_BYTES32,DEFAULT_DEPTH);
     }
 
     /**
@@ -143,7 +103,7 @@ contract Rollup {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) onlyCoordinator external payable {
+    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external onlyCoordinator  payable {
     require(msg.value==STAKE_AMOUNT,"Please send 32 eth with batch as stake");
      bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
 
@@ -318,14 +278,14 @@ contract Rollup {
     }
 
     /**
-    * @notice Merges the deposit tree with the balance tree by 
+    * @notice Merges the deposit tree with the balance tree by
     *        superimposing the deposit subtree on the balance tree
     * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
     * @return Updates in-state merkle tree root
     */
     function finaliseDeposits(uint _subTreeDepth,dataTypes.MerkleProof memory _zero_account_mp) public onlyCoordinator returns(bytes32) {
-        bytes32 emptySubtreeRoot = zeroCache[_subTreeDepth];
+        bytes32 emptySubtreeRoot = merkleTreeLib.getRoot(_subTreeDepth);
         
         // from mt proof we find the root of the tree
         // we match the root to the balance tree root on-chain
@@ -389,7 +349,7 @@ contract Rollup {
     
     // returns a new leaf with updated balance
     function updateBalanceInLeaf(
-            dataTypes.AccountLeaf memory original_account, 
+            dataTypes.AccountLeaf memory original_account,
             uint256 new_balance
     ) public returns(dataTypes.AccountLeaf memory new_account){
         dataTypes.AccountLeaf memory newAccount;

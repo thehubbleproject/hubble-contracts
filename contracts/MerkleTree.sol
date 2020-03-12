@@ -18,6 +18,7 @@ contract MerkleTree {
     
     constructor(address _mtLibAddress) public {
         MerkleLib = MTLib(_mtLibAddress);
+        setMerkleRootAndHeight(MerkleLib.getZeroRoot(), MerkleLib.getMaxTreeDepth());
     }
 
     // A tree which is used in `update()` and `store()`
