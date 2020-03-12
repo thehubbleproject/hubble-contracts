@@ -20,10 +20,8 @@ contract TokenRegistry {
         _;
     }
 
-    constructor(
-        address _owner
-    ) public {
-        owner = _owner;
+    constructor() public {
+        owner = msg.sender;
         numTokens = 1; //ETH
     }
 

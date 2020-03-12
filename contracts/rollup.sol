@@ -105,7 +105,7 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
-    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr, bytes32[] memory _zeroCache) public{
+    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr) public{
         balancesTree = MerkleTree(_balancesTree);
         accountsTree = MerkleTree(_accountsTree);
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
@@ -114,7 +114,7 @@ contract Rollup {
         operator = msg.sender;
         // setZeroCache();
         // TODO remove with on-chain zero cache calculation
-        zeroCache = _zeroCache;
+        // zeroCache = _zeroCache;
         // initialise merkle tree
         initBalanceTree();
         initAccountsTree();
@@ -371,8 +371,6 @@ contract Rollup {
         emit RegisteredToken(tokenRegistry.numTokens(),_tokenContractAddress);
     }
 
-
-    
     /**
     * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
     * @param batch_id Batch ID that the coordinator submitted
@@ -385,13 +383,15 @@ contract Rollup {
         emit StakeWithdraw(msg.sender,committedBatch.stakeCommitted,batch_id);
     }
 
-
     //
     // Utils
     //
     
     // returns a new leaf with updated balance
-    function updateBalanceInLeaf(dataTypes.AccountLeaf memory original_account, uint256 new_balance) public returns(dataTypes.AccountLeaf memory new_account){
+    function updateBalanceInLeaf(
+            dataTypes.AccountLeaf memory original_account, 
+            uint256 new_balance
+    ) public returns(dataTypes.AccountLeaf memory new_account){
         dataTypes.AccountLeaf memory newAccount;
         return newAccount;
     }
@@ -432,6 +432,10 @@ contract Rollup {
         return balancesTree.getRoot();
     }
 
+    /**
+     * @notice Concatenates 2 deposits 
+     * @return Returns the final hash
+     */
     function getDepositsHash(bytes32 a, bytes32 b) public returns(bytes32){
         return keccak256(abi.encode(a,b));
     }
@@ -444,7 +448,7 @@ contract Rollup {
         return batches.length;
     }
 
-     /**
+    /**
     * @notice Removes a deposit from the pendingDeposits queue and shifts the queue
     * @param _index Index of the element to remove
     * @return Remaining elements of the array
@@ -460,6 +464,12 @@ contract Rollup {
         return pendingDeposits;
     }
 
+
+    /**
+    * @notice Calculates the address from the pubkey
+    * @param pub is the pubkey
+    * @return Returns the address that has been calculated from the pubkey
+    */
     function calculateAddress(bytes memory pub) public pure returns (address addr) {
         bytes32 hash = keccak256(pub);
         assembly {
