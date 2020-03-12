@@ -11,6 +11,8 @@ contract DataTypes {
         bytes32 stateRoot;
         address committer;
         bytes32 txRoot;
+        uint stakeCommitted;
+        uint finalisesOn;
         uint timestamp;
     }
 

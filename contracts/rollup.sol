@@ -40,6 +40,10 @@ contract Rollup {
     uint DEFAULT_TOKEN_TYPE =0;
     uint256 DEFAULT_DEPTH = 2;
     uint MAX_DEPTH = 5;
+
+    // finalisation time is the number of blocks required by a batch to finalise
+    // Delay period = 7 days. Block time = 15 seconds
+    uint finalisationTime = 40320;
  
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
@@ -146,6 +150,8 @@ contract Rollup {
         stateRoot: _updatedRoot,
         committer: msg.sender,
         txRoot: txRoot,
+        stakeCommitted: msg.value,
+        finalisesOn: block.number + finalisationTime,
         timestamp: now
      });
 
