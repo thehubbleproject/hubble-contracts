@@ -29,6 +29,10 @@ contract DataTypes {
         uint nonce;
     }
 
+    struct DepositLeaf{
+        string pubkey;
+    }
+
     struct Transaction{
         Account from;
         Account to;

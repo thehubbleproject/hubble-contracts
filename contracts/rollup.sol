@@ -67,6 +67,7 @@ contract Rollup {
     IERC20 public tokenContract;
 
     address operator;
+    uint STAKE_AMOUNT = 32;
 
     mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
@@ -136,7 +137,8 @@ contract Rollup {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external {
+    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external payable {
+    require(msg.value==STAKE_AMOUNT,"Please send 32 eth with batch as stake");
      bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
 
      // make merkel root of all txs
@@ -185,7 +187,7 @@ contract Rollup {
     }
 
     /**
-    *  @notice processTxUpdate processes a transactions and returns the updated balance tree
+    * @notice processTxUpdate processes a transactions and returns the updated balance tree
     *  and the updated leaves
     * @return Total number of batches submitted onchain
     */
@@ -247,8 +249,8 @@ contract Rollup {
     * @param _amount Number of tokens that user wants to deposit
     * @param _tokenType Type of token user is depositing
     */
-    function deposit(uint _amount,uint _tokenType)public{
-        depositFor(msg.sender,_amount,_tokenType);
+    function deposit(uint _amount,uint _tokenType, bytes memory _pubkey)public{
+        depositFor(msg.sender,_amount,_tokenType,_pubkey);
     }
 
     /**
@@ -257,9 +259,12 @@ contract Rollup {
     * @param _amount Number of tokens that user wants to deposit
     * @param _tokenType Type of token user is depositing
     */
-    function depositFor(address _destination,uint _amount,uint _tokenType) public {
+    function depositFor(address _destination,uint _amount,uint _tokenType, bytes memory _pubkey) public {
         // check amount is greater than 0
         require(_amount > 0,"token deposit must be greater than 0");
+        
+        // ensure public matches the destination address
+       require(_destination == calculateAddress(_pubkey),"public key and address don't match");
 
         // check token type exists
         address tokenContractAddress = tokenRegistry.registeredTokens(_tokenType);
@@ -305,7 +310,8 @@ contract Rollup {
     }
 
     /**
-    * @notice Merges the deposit tree with the balance tree by superimposing the deposit subtree on the balance tree
+    * @notice Merges the deposit tree with the balance tree by 
+    *        superimposing the deposit subtree on the balance tree
     * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
     * @return Updates in-state merkle tree root
@@ -430,6 +436,14 @@ contract Rollup {
         delete pendingDeposits[pendingDeposits.length-1];
         pendingDeposits.length--;
         return pendingDeposits;
+    }
+
+    function calculateAddress(bytes memory pub) public pure returns (address addr) {
+        bytes32 hash = keccak256(pub);
+        assembly {
+            mstore(0, hash)
+            addr := mload(0)
+        }
     }
     
 }

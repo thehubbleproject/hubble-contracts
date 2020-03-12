@@ -52,7 +52,7 @@ contract MerkleTree {
     function verifyAndStore(bytes memory _dataBlock, uint _path, bytes32[] memory _siblings) public {
         bytes32 oldRoot = tree.root;
         store(_dataBlock, _path, _siblings);
-        require(tree.root == oldRoot, "Failed same root verification check! This was an inclusion proof for a different tree!");
+        require(tree.root == oldRoot, "Failed same root verification check!");
     }
 
     /**
@@ -118,6 +118,14 @@ contract MerkleTree {
         // Now store everything
         return siblings;
     }
+    
+    /**
+     * @notice Append leaf will append a leaf to the end of the tree
+     * @return The sibling nodes along the way.
+     */
+    function appendLeaf(bytes32 leaf)public returns(bytes32){
+        
+    }
 
     // }
 
@@ -129,7 +137,7 @@ contract MerkleTree {
      * @return The merkle root of the tree
      */
     function getRoot() public view returns(bytes32) {
-        return tree.root;   
+        return tree.root;
     }
 
     /**
