@@ -70,7 +70,7 @@ contract Rollup {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
 
-    address operator;
+    address coordinator;
     uint STAKE_AMOUNT = 32;
 
     mapping(uint256 => address) IdToAccounts;
@@ -96,8 +96,8 @@ contract Rollup {
 
     event StakeWithdraw(address committed,uint amount,uint batch_id);
 
-    modifier onlyOperator(){
-        assert(msg.sender == operator);
+    modifier onlyCoordinator(){
+        assert(msg.sender == coordinator);
         _;
     }
 
@@ -111,7 +111,7 @@ contract Rollup {
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
 
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
-        operator = msg.sender;
+        coordinator = msg.sender;
         // setZeroCache();
         // TODO remove with on-chain zero cache calculation
         // zeroCache = _zeroCache;
@@ -143,7 +143,7 @@ contract Rollup {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) external payable {
+    function submitBatch(bytes[] calldata _txs,bytes32 _updatedRoot) onlyCoordinator external payable {
     require(msg.value==STAKE_AMOUNT,"Please send 32 eth with batch as stake");
      bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
 
@@ -324,7 +324,7 @@ contract Rollup {
     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
     * @return Updates in-state merkle tree root
     */
-    function finaliseDeposits(uint _subTreeDepth,dataTypes.MerkleProof memory _zero_account_mp) public onlyOperator returns(bytes32) {
+    function finaliseDeposits(uint _subTreeDepth,dataTypes.MerkleProof memory _zero_account_mp) public onlyCoordinator returns(bytes32) {
         bytes32 emptySubtreeRoot = zeroCache[_subTreeDepth];
         
         // from mt proof we find the root of the tree
@@ -366,7 +366,7 @@ contract Rollup {
     */
     function finaliseTokenRegistration(
         address _tokenContractAddress
-    ) public onlyOperator {
+    ) public onlyCoordinator {
         tokenRegistry.finaliseTokenRegistration(_tokenContractAddress);
         emit RegisteredToken(tokenRegistry.numTokens(),_tokenContractAddress);
     }
