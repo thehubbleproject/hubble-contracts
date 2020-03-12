@@ -94,6 +94,8 @@ contract Rollup {
     event DepositLeafMerged();
     event DepositsProcessed();
 
+    event StakeWithdraw(address committed,uint amount,uint batch_id);
+
     modifier onlyOperator(){
         assert(msg.sender == operator);
         _;
@@ -367,6 +369,20 @@ contract Rollup {
     ) public onlyOperator {
         tokenRegistry.finaliseTokenRegistration(_tokenContractAddress);
         emit RegisteredToken(tokenRegistry.numTokens(),_tokenContractAddress);
+    }
+
+
+    
+    /**
+    * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
+    * @param batch_id Batch ID that the coordinator submitted
+    */
+    function WithdrawStake(uint batch_id)public {
+        dataTypes.Batch memory committedBatch = batches[batch_id];
+        require(msg.sender==committedBatch.committer,"You are not the correct committer for this batch");
+        require(block.number>committedBatch.finalisesOn,"This batch is not yet finalised, check back soon!");
+        msg.sender.transfer(committedBatch.stakeCommitted);
+        emit StakeWithdraw(msg.sender,committedBatch.stakeCommitted,batch_id);
     }
 
 
