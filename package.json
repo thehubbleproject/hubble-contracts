@@ -19,6 +19,9 @@
   "bugs": {
     "url": "https://github.com/vaibhavchellani/BOPR-contracts/issues"
   },
+  "config": {
+    "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
+  },
   "homepage": "https://github.com/vaibhavchellani/BOPR-contracts#readme",
   "dependencies": {
     "big-number": "^2.0.0",

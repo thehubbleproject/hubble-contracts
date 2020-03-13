@@ -138,8 +138,7 @@ contract MerkleTreeLib{
      * @param _path The path from the leaf to the root.
      * @param _siblings The sibling nodes along the way.
      * @return The next level of the tree
-          * NOTE: This is a stateless operation
-
+    * NOTE: This is a stateless operation
      */
     function verify(bytes32 _root, bytes memory _dataBlock, uint _path, bytes32[] memory _siblings) public pure returns (bool) {
         // First compute the leaf node
