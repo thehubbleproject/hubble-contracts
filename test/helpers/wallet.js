@@ -1,10 +1,9 @@
-import bip39 from 'bip39'
-import hdkey from 'ethereumjs-wallet/hdkey'
+const bip39 = require('bip39')
+const hdkey = require('ethereumjs-wallet/hdkey')
+var packageJSON = require('../../package.json')
+const mnemonics = packageJSON.config.mnemonics
 
-import packageJSON from '../../package.json'
-
-export const mnemonics = packageJSON.config.mnemonics
-export function generateFirstWallets(mnemonics, n, hdPathIndex = 0) {
+function generateFirstWallets(mnemonics, n, hdPathIndex = 0) {
   const hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonics))
   const result = []
   for (let i = 0; i < n; i++) {
@@ -14,3 +13,5 @@ export function generateFirstWallets(mnemonics, n, hdPathIndex = 0) {
 
   return result
 }
+
+module.exports = { mnemonics, generateFirstWallets}

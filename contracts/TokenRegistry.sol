@@ -2,7 +2,7 @@ pragma solidity >=0.4.21;
 
 contract TokenRegistry {
 
-    address public owner;
+    address public Coordinator;
     address public rollupNC;
 
     mapping(address => bool) public pendingRegistrations;
@@ -15,19 +15,19 @@ contract TokenRegistry {
         _;
     }
 
-    modifier onlyOwner(){
-        assert(msg.sender == owner);
+    modifier onlyCoordinator(){
+        assert(msg.sender == Coordinator);
         _;
     }
 
-    constructor() public {
-        owner = msg.sender;
+    constructor(address _coordinator) public {
+        Coordinator = _coordinator;
         numTokens = 1; //ETH
     }
 
     function setRollupAddress(
         address _rollupNC
-    ) public onlyOwner {
+    ) public onlyCoordinator {
         rollupNC = _rollupNC;
     }
 
