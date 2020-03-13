@@ -3,10 +3,9 @@ pragma experimental ABIEncoderV2;
 
 contract MerkleTreeLib{
     // The default hashes
-    bytes32[] public defaultHashes;
+    bytes32[] public defaultHashes = new bytes32[](160);
     uint public MAX_DEPTH;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-
 
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)

@@ -90,7 +90,7 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
-    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr,uint _maxDepth) public{
+    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr) public{
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
         balancesTree = MerkleTree(_balancesTree);
         accountsTree = MerkleTree(_accountsTree);
@@ -393,7 +393,7 @@ contract Rollup {
     }
 
     /**
-     * @notice Concatenates 2 deposits 
+     * @notice Concatenates 2 deposits
      * @return Returns the final hash
      */
     function getDepositsHash(bytes32 a, bytes32 b) public returns(bytes32){
