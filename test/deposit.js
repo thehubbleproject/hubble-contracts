@@ -15,7 +15,7 @@ contract('Rollup', async function (accounts) {
     it('set Rollup in token registry', async function () {
       let tokenRegistry = await TokenRegistry.deployed();
       let rollupInstance = await Rollup.deployed();
-      let setRollup = await tokenRegistry.setRollupAddress(rollupInstance.address, { from: wallets[0] });
+      let setRollup = await tokenRegistry.setRollupAddress(rollupInstance.address, { from: wallets[0].getAddressString() });
       assert(setRollup, 'setRollupNC failed')
     })
 //     it("should register token", async () => {

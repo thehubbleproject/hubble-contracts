@@ -11,17 +11,17 @@ import { ECVerify } from "./ECVerify.sol";
 
 // token registry contract interface
 contract ITokenRegistry {
-    address public owner;
+    address public Coordinator;
     uint256 public numTokens;
     mapping(address => bool) public pendingRegistrations;
     mapping(uint256 => address) public registeredTokens;
     
-    modifier onlyOwner(){
-        assert(msg.sender == owner);
+    modifier onlyCoordinator(){
+        assert(msg.sender == Coordinator);
         _;
     }
     function requestTokenRegistration(address tokenContract) public {}
-    function finaliseTokenRegistration(address tokenContract) public onlyOwner{}
+    function finaliseTokenRegistration(address tokenContract) public {}
 }
 
 
@@ -90,12 +90,12 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
-    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr) public{
+    constructor(address _balancesTree,address _accountsTree, address _merkleTreeLib, address _tokenRegistryAddr,address _coordinator) public{
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
         balancesTree = MerkleTree(_balancesTree);
         accountsTree = MerkleTree(_accountsTree);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
-        coordinator = msg.sender;
+        coordinator = _coordinator;
     }
 
     /**
