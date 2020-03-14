@@ -162,23 +162,6 @@ contract Rollup {
     function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
         dataTypes.MerkleProof memory _from_merkle_proof,dataTypes.MerkleProof memory _to_merkle_proof
     ) public returns(bytes32,uint256,uint256){
-        
-        // verify from leaf exists in the balance tree
-        require(merkleTreeLib.verify(
-                _balanceRoot,
-                getAccountBytesFromLeaf(_from_merkle_proof.account),
-                _from_merkle_proof.account.path,
-                _from_merkle_proof.siblings)
-            ,"Merkle Proof for from leaf is incorrect");
-    
-        // verify to leaf exists in the balance tree
-        require(merkleTreeLib.verify(
-                _balanceRoot,
-                getAccountBytesFromLeaf(_to_merkle_proof.account),
-                _to_merkle_proof.account.path,
-                _to_merkle_proof.siblings),
-            "Merkle Proof for from leaf is incorrect");
-
         // check from leaf has enough balance
         require(_from_merkle_proof.account.balance>_tx.amount,"Sender doesnt have enough balance");
 
@@ -189,7 +172,17 @@ contract Rollup {
         // check token type is correct
         // TODO fix, pick from token registry
         require(_tx.tokenType==DEFAULT_TOKEN_TYPE,"Invalid token type");
+
+        // TODO check the to leaf accepts this token type
         
+        // verify from leaf exists in the balance tree
+        require(merkleTreeLib.verify(
+                _balanceRoot,
+                getAccountBytesFromLeaf(_from_merkle_proof.account),
+                _from_merkle_proof.account.path,
+                _from_merkle_proof.siblings)
+            ,"Merkle Proof for from leaf is incorrect");
+
         // reduce balance of from leaf
         dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
             getBalanceFromAccountLeaf(_from_merkle_proof.account).sub(_tx.amount));
@@ -198,6 +191,14 @@ contract Rollup {
                 _from_merkle_proof.account.path,
                 _balanceRoot,
                 _from_merkle_proof.siblings);
+
+        // verify to leaf exists in the balance tree
+        require(merkleTreeLib.verify(
+                newRoot,
+                getAccountBytesFromLeaf(_to_merkle_proof.account),
+                _to_merkle_proof.account.path,
+                _to_merkle_proof.siblings),
+            "Merkle Proof for from leaf is incorrect");
 
         // increase balance of to leaf
         dataTypes.AccountLeaf memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
