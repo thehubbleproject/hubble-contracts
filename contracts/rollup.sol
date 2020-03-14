@@ -250,6 +250,7 @@ contract Rollup {
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
+        //TODO add pubkey to the accounts tree
 
         // get new account hash
         bytes32 accountHash = getAccountHash(newAccount);
