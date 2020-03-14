@@ -187,6 +187,7 @@ contract Rollup {
         // require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
 
         // check token type is correct
+        // TODO fix, pick from token registry
         require(_tx.tokenType==DEFAULT_TOKEN_TYPE,"Invalid token type");
         
         // reduce balance of from leaf
@@ -353,6 +354,7 @@ contract Rollup {
             uint256 new_balance
     ) public returns(dataTypes.AccountLeaf memory new_account){
         dataTypes.AccountLeaf memory newAccount;
+        newAccount.balance = new_balance;
         return newAccount;
     }
 
