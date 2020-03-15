@@ -40,7 +40,8 @@ contract Rollup {
     uint MAX_DEPTH;
     uint STAKE_AMOUNT = 32;
     address payable BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
-    
+    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
     address coordinator;
 
     // finalisation time is the number of blocks required by a batch to finalise
@@ -126,7 +127,7 @@ contract Rollup {
 
     /** 
     *  disputeBatch processes a transactions and returns the updated balance tree
-    *  and the updated leaves.
+    *  and the updated leaves. 
     * @notice Gives the number of batches submitted on-chain
     * @return Total number of batches submitted onchain
     */
@@ -156,10 +157,23 @@ contract Rollup {
             bytes32 newBalanceRoot;
             uint256 fromBalance;
             uint256 toBalance;
+
+            // start with false state 
+            bool isDisputeValid = false;
+
             for (uint i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (newBalanceRoot,fromBalance,toBalance) = processTxUpdate(batches[_batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
+                (newBalanceRoot,fromBalance,toBalance,isTxValid) = processTx(batches[_batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
+                if(!isTxValid){
+                    isDisputeValid = true;
+                    break;    
+                }
+            }
+
+            // dispute is valid, we need to slash and rollback :(
+            if(isDisputeValid){
+                SlashAndRollback(_batch_id);
             }
             
             // if new root doesnt match what was submitted by coordinator
@@ -170,34 +184,60 @@ contract Rollup {
     }
     
     /**
-    * @notice processTxUpdate processes a transactions and returns the updated balance tree
+    * @notice processTx processes a transactions and returns the updated balance tree
     *  and the updated leaves
+    * conditions in require mean that the dispute be declared invalid
+    * if conditons evaluate if the coordinator was at fault
     * @return Total number of batches submitted onchain
     */
-    function processTxUpdate(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
+    function processTx(bytes32 _balanceRoot, dataTypes.Transaction memory _tx,
         dataTypes.MerkleProof memory _from_merkle_proof,dataTypes.MerkleProof memory _to_merkle_proof
-    ) public returns(bytes32,uint256,uint256){
-        // check from leaf has enough balance
-        require(_from_merkle_proof.account.balance>_tx.amount,"Sender doesnt have enough balance");
-
+    ) public returns(bytes32,uint256,uint256,bool){
         // check signature on the tx is correct
-        // TODO fix
+        // TODO fix after adding account tree
         // require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
 
         // check token type is registered
-        require(tokenRegistry.registeredTokens(_tx.tokenType)!=address(0),"Token not registered");
-            
+        if (tokenRegistry.registeredTokens(_tx.tokenType)==address(0)){
+            // invalid state transition
+            // to be slashed because the submitted transaction
+            // had invalid token type
+            return ZERO_BYTES32,0,0,false
+        }
+
+        // TODO get path from the contract instead of from user
         // verify from leaf exists in the balance tree
         require(merkleTreeLib.verify(
                 _balanceRoot,
-                getAccountBytesFromLeaf(_from_merkle_proof.account),
-                _from_merkle_proof.account.path,
+                getAccountBytesFromLeaf(_tx.from),
+                _tx.from.path,
                 _from_merkle_proof.siblings)
             ,"Merkle Proof for from leaf is incorrect");
 
-        // account holds the token type in the tx
-        require(_from_merkle_proof.account.tokenType==_tx.tokenType,"From leaf doesn't hold the token mentioned");
+        if(_tx.amount<=0){
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had amount less than or equal to 0
+            return ZERO_BYTES32,0,0,false
+        }
 
+        // check from leaf has enough balance
+        if(_from_merkle_proof.account.balance<_tx.amount){
+            // invalid state transition
+            // needs to be slashed because the account doesnt have enough balance
+            // for the transfer
+            return ZERO_BYTES32,0,0,false
+        }
+
+        // TODO pick account data from on-chain state and not from the user
+        // account holds the token type in the tx
+        if(_from_merkle_proof.account.tokenType!=_tx.tokenType){
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return ZERO_BYTES32,0,0,false
+        }
+        
         // reduce balance of from leaf
         dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
             getBalanceFromAccountLeaf(_from_merkle_proof.account).sub(_tx.amount));
@@ -210,13 +250,19 @@ contract Rollup {
         // verify to leaf exists in the balance tree
         require(merkleTreeLib.verify(
                 newRoot,
-                getAccountBytesFromLeaf(_to_merkle_proof.account),
-                _to_merkle_proof.account.path,
+                getAccountBytesFromLeaf(_tx.to),
+                _tx.to.path,
                 _to_merkle_proof.siblings),
             "Merkle Proof for from leaf is incorrect");
 
+        // TODO pick account data from on-chain state and not from the user
         // account holds the token type in the tx
-        require(_to_merkle_proof.account.tokenType==_tx.tokenType,"To leaf doesn't hold the token mentioned");
+        if(_to_merkle_proof.account.tokenType!=_tx.tokenType){
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return ZERO_BYTES32,0,0,false
+        }
 
         // increase balance of to leaf
         dataTypes.AccountLeaf memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
@@ -311,7 +357,7 @@ contract Rollup {
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
-        
+
         //TODO add pubkey to the accounts tree
 
         // get new account hash
