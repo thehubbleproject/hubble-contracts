@@ -39,7 +39,7 @@ contract Rollup {
 
     uint MAX_DEPTH;
     uint STAKE_AMOUNT = 32;
-    address BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
+    address payable BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     
     address coordinator;
 
@@ -120,7 +120,6 @@ contract Rollup {
      });
 
      batches.push(newBatch);
-     nonChallengedBatches++;
      emit NewBatch(newBatch.committer,txRoot,_updatedRoot);
     }
 
@@ -136,8 +135,8 @@ contract Rollup {
         dataTypes.MerkleProof[] memory _from_proofs,
         dataTypes.MerkleProof[] memory _to_proofs) public {
             // load batch
-            dataTypes.Batch disputed_batch = batches[_batch_id];
-            require(!disputed_batch.isSlashed,"Batch is already slashed");
+            dataTypes.Batch memory disputed_batch = batches[_batch_id];
+            require(disputed_batch.stakeCommitted!=0, "Batch doesnt exist or is slashed already");
 
             // check if batch is disputable
             require(block.number < disputed_batch.finalisesOn,"Batch already finalised");
@@ -181,12 +180,14 @@ contract Rollup {
         uint totalSlashings = 0;
         for(uint i = batches.length-1;i>=_invalid_batch_id; i--){
             // load batch
-            dataTypes.Batch batch = batches[i];
+            dataTypes.Batch memory batch = batches[i];
 
             // TODO use safe math
             // calculate challeger's reward
-            challengeReward += batch.stakeCommitted * 2 / 3;
-            burnedAmount += batch.stakeCommitted.sub(challengeReward);
+            challengerRewards += batch.stakeCommitted * 2 / 3;
+            burnedAmount += batch.stakeCommitted.sub(challengerRewards);
+            
+            batches[i].stakeCommitted = 0;
 
             // delete batch
             delete batches[i];
@@ -236,7 +237,7 @@ contract Rollup {
             ,"Merkle Proof for from leaf is incorrect");
 
         // account holds the token type in the tx
-        require(_from_merkle_proof.account.tokenType==_tx.tokenType),"From leaf doesn't hold the token mentioned");
+        require(_from_merkle_proof.account.tokenType==_tx.tokenType,"From leaf doesn't hold the token mentioned");
 
         // reduce balance of from leaf
         dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
@@ -256,7 +257,7 @@ contract Rollup {
             "Merkle Proof for from leaf is incorrect");
 
         // account holds the token type in the tx
-        require(_to_merkle_proof.account.tokenType==_tx.tokenType),"To leaf doesn't hold the token mentioned");
+        require(_to_merkle_proof.account.tokenType==_tx.tokenType,"To leaf doesn't hold the token mentioned");
 
         // increase balance of to leaf
         dataTypes.AccountLeaf memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
@@ -440,13 +441,13 @@ contract Rollup {
         return abi.encode(account.balance, account.nonce,account.tokenType);
     }
     
-    function getTxBytes(dataTypes.Transaction memory tx) public view returns(bytes memory){
+    function getTxBytes(dataTypes.Transaction memory _tx) public view returns(bytes memory){
         // return abi.encode(tx.from, tx.to,tx.tokenType,tx.amount,tx.signature);
-        return abi.encode(tx);
+        return abi.encode(_tx);
     }
 
-    function getTxBytesHash(dataTypes.Transaction memory tx) public view returns(bytes32){
-        return keccak256(getTxBytes(tx));
+    function getTxBytesHash(dataTypes.Transaction memory _tx) public view returns(bytes32){
+        return keccak256(getTxBytes(_tx));
     }
 
 
