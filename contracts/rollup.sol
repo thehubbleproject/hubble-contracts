@@ -37,9 +37,12 @@ contract Rollup {
     using BytesLib for bytes;
     using ECVerify for bytes32;
 
-    uint DEFAULT_TOKEN_TYPE =0;
     uint MAX_DEPTH;
+    uint STAKE_AMOUNT = 32;
     address BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
+    
+    address coordinator;
+
     // finalisation time is the number of blocks required by a batch to finalise
     // Delay period = 7 days. Block time = 15 seconds
     uint finalisationTime = 40320;
@@ -56,10 +59,6 @@ contract Rollup {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
 
-    address coordinator;
-    uint STAKE_AMOUNT = 32;
-
-    mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
     
@@ -73,14 +72,17 @@ contract Rollup {
     event NewBatch(address committer,bytes32 txroot, bytes32 updatedRoot);
     event NewAccount(bytes32 root, uint256 index);
 
-    event RegisteredToken(uint tokenType, address tokenContract);
-    event RegistrationRequest(address tokenContract);
-
     event DepositQueued(address,uint,uint,bytes32);
     event DepositLeafMerged();
     event DepositsProcessed();
 
     event StakeWithdraw(address committed,uint amount,uint batch_id);
+    event BatchRollback(uint batch_id,address committer,bytes32 stateRoot,bytes32 txRoot,uint stakeSlashed);
+
+    event RollbackFinalisation(uint totalBatchesSlashed);
+
+    event RegisteredToken(uint tokenType, address tokenContract);
+    event RegistrationRequest(address tokenContract);
 
     modifier onlyCoordinator(){
         assert(msg.sender == coordinator);
@@ -175,9 +177,9 @@ contract Rollup {
     */
     function SlashAndRollback(uint _invalid_batch_id)internal{
         uint challengerRewards = 0;
-        uint burnedAmount =0;
-
-        for(uint i = batches.length-1;i>=_invalid_batch_id; i-){
+        uint burnedAmount = 0;
+        uint totalSlashings = 0;
+        for(uint i = batches.length-1;i>=_invalid_batch_id; i--){
             // load batch
             dataTypes.Batch batch = batches[i];
 
@@ -188,18 +190,23 @@ contract Rollup {
 
             // delete batch
             delete batches[i];
+
+            totalSlashings++;
+            emit BatchRollback(i,batch.committer,batch.stateRoot,batch.txRoot,batch.stakeCommitted);
         }
 
         // TODO add deposit rollback
 
         // transfer reward to challenger
-        payable(msg.sender).transfer(challengerRewards);
+        (msg.sender).transfer(challengerRewards);
 
         // burn the remaning amount
-        payable(BURN_ADDRESS).transfer(burnedAmount);
+        (BURN_ADDRESS).transfer(burnedAmount);
 
         // resize batches length
         batches.length = batches.length.sub(_invalid_batch_id.sub(1));
+        
+        emit RollbackFinalisation(totalSlashings);
     }
 
     /**
@@ -217,12 +224,9 @@ contract Rollup {
         // TODO fix
         // require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
 
-        // check token type is correct
-        // TODO fix, pick from token registry
-        require(_tx.tokenType==DEFAULT_TOKEN_TYPE,"Invalid token type");
-
-        // TODO check the to leaf accepts this token type
-        
+        // check token type is registered
+        require(tokenRegistry.registeredTokens(_tx.tokenType)!=address(0),"Token not registered");
+            
         // verify from leaf exists in the balance tree
         require(merkleTreeLib.verify(
                 _balanceRoot,
@@ -230,6 +234,9 @@ contract Rollup {
                 _from_merkle_proof.account.path,
                 _from_merkle_proof.siblings)
             ,"Merkle Proof for from leaf is incorrect");
+
+        // account holds the token type in the tx
+        require(_from_merkle_proof.account.tokenType==_tx.tokenType),"From leaf doesn't hold the token mentioned");
 
         // reduce balance of from leaf
         dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(_from_merkle_proof.account,
@@ -247,6 +254,9 @@ contract Rollup {
                 _to_merkle_proof.account.path,
                 _to_merkle_proof.siblings),
             "Merkle Proof for from leaf is incorrect");
+
+        // account holds the token type in the tx
+        require(_to_merkle_proof.account.tokenType==_tx.tokenType),"To leaf doesn't hold the token mentioned");
 
         // increase balance of to leaf
         dataTypes.AccountLeaf memory new_to_leaf = updateBalanceInLeaf(_to_merkle_proof.account,
