@@ -62,6 +62,9 @@ contract Rollup {
     mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
+
+    // just a metric
+    uint nonChallengedBatches;
     
     bytes32[] public pendingDeposits;
     uint public queueNumber;
@@ -113,11 +116,13 @@ contract Rollup {
         committer: msg.sender,
         txRoot: txRoot,
         stakeCommitted: msg.value,
+        isSlashed: false,
         finalisesOn: block.number + finalisationTime,
         timestamp: now
      });
 
      batches.push(newBatch);
+     nonChallengedBatches++;
      emit NewBatch(newBatch.committer,txRoot,_updatedRoot);
     }
 
@@ -131,7 +136,15 @@ contract Rollup {
     function disputeBatch(uint256 _batch_id,
         dataTypes.Transaction[] memory _txs,
         dataTypes.MerkleProof[] memory _from_proofs,
-        dataTypes.MerkleProof[] memory _to_proofs) public returns(bool) {
+        dataTypes.MerkleProof[] memory _to_proofs) public {
+            // load batch
+            dataTypes.Batch disputed_batch = batches[_batch_id];
+            require(!disputed_batch.isSlashed,"Batch is already slashed");
+
+            // check if batch is disputable
+            require(block.number < disputed_batch.finalisesOn,"Batch already finalised");
+
+            // generate merkle tree from the txs provided by user
             bytes[] memory txs;
             for (uint i = 0; i < _txs.length; i++) {
                 txs[i] = getTxBytes(_txs[i]);
@@ -139,8 +152,10 @@ contract Rollup {
             bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
 
             // if tx root while submission doesnt match tx root of given txs
-            // dispute is successful
-            require(txRoot!=batches[_batch_id].txRoot,"Dispute incorrect, tx root doesn't match");
+            // dispute is unsuccessful
+            require(txRoot!=disputed_batch.txRoot,"Invalid dispute, tx root doesn't match");
+
+            // run every transaction through transaction evaluators
             bytes32 newBalanceRoot;
             uint256 fromBalance;
             uint256 toBalance;
@@ -150,8 +165,37 @@ contract Rollup {
                 (newBalanceRoot,fromBalance,toBalance) = processTxUpdate(batches[_batch_id].stateRoot,_txs[i],_from_proofs[i],_to_proofs[i]);
             }
             
-            require(newBalanceRoot==batches[_batch_id].stateRoot,"Balance root doesnt match");
-            // TODO slash when balance root doesnt match
+            // if new root doesnt match what was submitted by coordinator
+            // slash and rollback
+            if (newBalanceRoot!=disputed_batch.stateRoot) {
+                SlashAndRollback(_batch_id);
+            }
+    }
+
+    /**
+    * @notice SlashAndRollback processes a transactions and returns the updated balance tree
+    *  and the updated leaves
+    * @return Total number of batches submitted onchain
+    */
+    function SlashAndRollback(uint _invalid_batch_id)internal{
+
+        uint batches_challenged = 0;
+        for(uint i = _invalid_batch_id ;i<batches.length; i++){
+            // load batch
+            dataTypes.Batch batch = batches[i];
+            
+            // if batch isnt already slashed
+            if(!batch.isSlashed){
+                batches_challenged++;
+                uint challengeReward = batch.stakeCommitted * 2 / 3;
+                payable(msg.sender).transfer(challengeReward);
+                batch.stakeCommitted = 0;
+                batch.isSlashed = true;
+            }
+        }
+
+        // update nonChallengedBatches
+        nonChallengedBatches = nonChallengedBatches - batches_challenged;
     }
 
     /**
@@ -367,7 +411,7 @@ contract Rollup {
     }
 
     function getBalanceFromAccountLeaf(dataTypes.AccountLeaf memory account) public view returns(uint256) {
-        return 0;
+        return account.balance;
     }
 
     function getAccountHash(dataTypes.Account memory account) public view returns(bytes32){
