@@ -168,48 +168,7 @@ contract Rollup {
                 SlashAndRollback(_batch_id);
             }
     }
-
-    /**
-    * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
-    * and rewards challegers. Also deletes all the batches after invalid batch
-    * @param _invalid_batch_id ID of the batch that has been challenged
-    */
-    function SlashAndRollback(uint _invalid_batch_id)internal{
-        uint challengerRewards = 0;
-        uint burnedAmount = 0;
-        uint totalSlashings = 0;
-        for(uint i = batches.length-1;i>=_invalid_batch_id; i--){
-            // load batch
-            dataTypes.Batch memory batch = batches[i];
-
-            // TODO use safe math
-            // calculate challeger's reward
-            challengerRewards += batch.stakeCommitted * 2 / 3;
-            burnedAmount += batch.stakeCommitted.sub(challengerRewards);
-            
-            batches[i].stakeCommitted = 0;
-
-            // delete batch
-            delete batches[i];
-
-            totalSlashings++;
-            emit BatchRollback(i,batch.committer,batch.stateRoot,batch.txRoot,batch.stakeCommitted);
-        }
-
-        // TODO add deposit rollback
-
-        // transfer reward to challenger
-        (msg.sender).transfer(challengerRewards);
-
-        // burn the remaning amount
-        (BURN_ADDRESS).transfer(burnedAmount);
-
-        // resize batches length
-        batches.length = batches.length.sub(_invalid_batch_id.sub(1));
-        
-        emit RollbackFinalisation(totalSlashings);
-    }
-
+    
     /**
     * @notice processTxUpdate processes a transactions and returns the updated balance tree
     *  and the updated leaves
@@ -272,6 +231,48 @@ contract Rollup {
 
         return (newRoot, getBalanceFromAccountLeaf(new_from_leaf), getBalanceFromAccountLeaf(new_to_leaf));
     }
+
+
+    /**
+    * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
+    * and rewards challegers. Also deletes all the batches after invalid batch
+    * @param _invalid_batch_id ID of the batch that has been challenged
+    */
+    function SlashAndRollback(uint _invalid_batch_id)internal{
+        uint challengerRewards = 0;
+        uint burnedAmount = 0;
+        uint totalSlashings = 0;
+        for(uint i = batches.length-1;i>=_invalid_batch_id; i--){
+            // load batch
+            dataTypes.Batch memory batch = batches[i];
+
+            // TODO use safe math
+            // calculate challeger's reward
+            challengerRewards += batch.stakeCommitted * 2 / 3;
+            burnedAmount += batch.stakeCommitted.sub(challengerRewards);
+            
+            batches[i].stakeCommitted = 0;
+
+            // delete batch
+            delete batches[i];
+
+            totalSlashings++;
+            emit BatchRollback(i,batch.committer,batch.stateRoot,batch.txRoot,batch.stakeCommitted);
+        }
+
+        // TODO add deposit rollback
+
+        // transfer reward to challenger
+        (msg.sender).transfer(challengerRewards);
+
+        // burn the remaning amount
+        (BURN_ADDRESS).transfer(burnedAmount);
+
+        // resize batches length
+        batches.length = batches.length.sub(_invalid_batch_id.sub(1));
+        
+        emit RollbackFinalisation(totalSlashings);
+    }
     
     /**
     * @notice Adds a deposit for the msg.sender to the deposit queue
@@ -310,6 +311,7 @@ contract Rollup {
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
+        
         //TODO add pubkey to the accounts tree
 
         // get new account hash
