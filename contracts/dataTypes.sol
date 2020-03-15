@@ -13,7 +13,6 @@ contract DataTypes {
         bytes32 txRoot;
         uint stakeCommitted;
         uint finalisesOn;
-        bool isSlashed;
         uint timestamp;
     }
 

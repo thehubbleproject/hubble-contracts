@@ -39,7 +39,7 @@ contract Rollup {
 
     uint DEFAULT_TOKEN_TYPE =0;
     uint MAX_DEPTH;
-
+    address BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     // finalisation time is the number of blocks required by a batch to finalise
     // Delay period = 7 days. Block time = 15 seconds
     uint finalisationTime = 40320;
@@ -48,7 +48,7 @@ contract Rollup {
      * Variable Declarations *
      ********************/
 
-    // external contracts
+    // External contracts
     MerkleTreeLib public merkleTreeLib;
     MerkleTree public balancesTree;
     MerkleTree public accountsTree;
@@ -62,9 +62,6 @@ contract Rollup {
     mapping(uint256 => address) IdToAccounts;
     mapping(uint256=>dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
-
-    // just a metric
-    uint nonChallengedBatches;
     
     bytes32[] public pendingDeposits;
     uint public queueNumber;
@@ -116,7 +113,6 @@ contract Rollup {
         committer: msg.sender,
         txRoot: txRoot,
         stakeCommitted: msg.value,
-        isSlashed: false,
         finalisesOn: block.number + finalisationTime,
         timestamp: now
      });
@@ -127,7 +123,7 @@ contract Rollup {
     }
 
 
-    /**
+    /** 
     *  disputeBatch processes a transactions and returns the updated balance tree
     *  and the updated leaves.
     * @notice Gives the number of batches submitted on-chain
@@ -173,29 +169,37 @@ contract Rollup {
     }
 
     /**
-    * @notice SlashAndRollback processes a transactions and returns the updated balance tree
-    *  and the updated leaves
-    * @return Total number of batches submitted onchain
+    * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
+    * and rewards challegers. Also deletes all the batches after invalid batch
+    * @param _invalid_batch_id ID of the batch that has been challenged
     */
     function SlashAndRollback(uint _invalid_batch_id)internal{
+        uint challengerRewards = 0;
+        uint burnedAmount =0;
 
-        uint batches_challenged = 0;
-        for(uint i = _invalid_batch_id ;i<batches.length; i++){
+        for(uint i = batches.length-1;i>=_invalid_batch_id; i-){
             // load batch
             dataTypes.Batch batch = batches[i];
-            
-            // if batch isnt already slashed
-            if(!batch.isSlashed){
-                batches_challenged++;
-                uint challengeReward = batch.stakeCommitted * 2 / 3;
-                payable(msg.sender).transfer(challengeReward);
-                batch.stakeCommitted = 0;
-                batch.isSlashed = true;
-            }
+
+            // TODO use safe math
+            // calculate challeger's reward
+            challengeReward += batch.stakeCommitted * 2 / 3;
+            burnedAmount += batch.stakeCommitted.sub(challengeReward);
+
+            // delete batch
+            delete batches[i];
         }
 
-        // update nonChallengedBatches
-        nonChallengedBatches = nonChallengedBatches - batches_challenged;
+        // TODO add deposit rollback
+
+        // transfer reward to challenger
+        payable(msg.sender).transfer(challengerRewards);
+
+        // burn the remaning amount
+        payable(BURN_ADDRESS).transfer(burnedAmount);
+
+        // resize batches length
+        batches.length = batches.length.sub(_invalid_batch_id.sub(1));
     }
 
     /**
