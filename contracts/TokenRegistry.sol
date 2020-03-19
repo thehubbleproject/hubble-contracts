@@ -1,7 +1,7 @@
 pragma solidity >=0.4.21;
 
-contract TokenRegistry {
 
+contract TokenRegistry {
     address public Coordinator;
     address public rollupNC;
 
@@ -10,12 +10,12 @@ contract TokenRegistry {
 
     uint256 public numTokens;
 
-    modifier fromRollup{
+    modifier fromRollup {
         assert(msg.sender == rollupNC);
         _;
     }
 
-    modifier onlyCoordinator(){
+    modifier onlyCoordinator() {
         assert(msg.sender == Coordinator);
         _;
     }
@@ -25,25 +25,27 @@ contract TokenRegistry {
         numTokens = 1; //ETH
     }
 
-    function setRollupAddress(
-        address _rollupNC
-    ) public onlyCoordinator {
+    function setRollupAddress(address _rollupNC) public onlyCoordinator {
         rollupNC = _rollupNC;
     }
 
-    function requestTokenRegistration(
-        address tokenContract
-    ) public {
-        require(pendingRegistrations[tokenContract] == false, "Token already registered.");
+    function requestTokenRegistration(address tokenContract) public {
+        require(
+            pendingRegistrations[tokenContract] == false,
+            "Token already registered."
+        );
         pendingRegistrations[tokenContract] = true;
     }
 
-    function finaliseTokenRegistration(
-        address tokenContract
-    ) public fromRollup {
-        require(pendingRegistrations[tokenContract], 'Token was not registered');
+    function finaliseTokenRegistration(address tokenContract)
+        public
+        fromRollup
+    {
+        require(
+            pendingRegistrations[tokenContract],
+            "Token was not registered"
+        );
         numTokens++;
         registeredTokens[numTokens] = tokenContract; // tokenType => token contract address
     }
-
 }

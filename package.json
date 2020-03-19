@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "truffle test",
+    "lint": "prettier --list-different **/*.sol",
+    "prettier": "prettier --write **/*.sol",
     "truffle": "truffle",
     "compile": "truffle compile",
     "migrate": "truffle migrate --reset",
@@ -38,6 +40,8 @@
     "zeppelin-solidity": "^1.12.0"
   },
   "devDependencies": {
-    "@openzeppelin/contracts": "^2.4.0"
+    "@openzeppelin/contracts": "^2.4.0",
+    "prettier": "^1.19.1",
+    "prettier-plugin-solidity": "^1.0.0-alpha.46"
   }
 }
