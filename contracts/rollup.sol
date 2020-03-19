@@ -56,6 +56,7 @@ contract Rollup {
     // Delay period = 7 days. Block time = 15 seconds
     uint256 TIME_TO_FINALISE = 40320;
 
+    uint256 MIN_GAS_LIMIT_LEFT = 100000;
     /*********************
      * Variable Declarations *
      ********************/
@@ -74,6 +75,11 @@ contract Rollup {
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
+
+    // this variable will be greater than 0 if
+    // there is rollback in progress
+    // will be reset to 0 once rollback is completed
+    uint256 invalidBatchMarker;
 
     /*********************
      * Events *
@@ -104,6 +110,16 @@ contract Rollup {
         _;
     }
 
+    modifier isNotRollingBack() {
+        assert(invalidBatchMarker == 0);
+        _;
+    }
+
+    modifier isRollingBack() {
+        assert(invalidBatchMarker > 0);
+        _;
+    }
+
     /*********************
      * Constructor *
      ********************/
@@ -130,6 +146,7 @@ contract Rollup {
         external
         payable
         onlyCoordinator
+        isNotRollingBack
     {
         require(
             msg.value == STAKE_AMOUNT,
@@ -176,6 +193,11 @@ contract Rollup {
             "Batch already finalised"
         );
 
+        require(
+            _batch_id < invalidBatchMarker,
+            "Already successfully disputed. Roll back in process"
+        );
+
         // generate merkle tree from the txs provided by user
         bytes[] memory txs;
         for (uint256 i = 0; i < _txs.length; i++) {
@@ -216,13 +238,19 @@ contract Rollup {
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {
+            // before rolling back mark the batch invalid
+            // so we can pause and unpause
+            invalidBatchMarker = _batch_id;
             SlashAndRollback(_batch_id);
+            return;
         }
 
         // if new root doesnt match what was submitted by coordinator
         // slash and rollback
         if (newBalanceRoot != disputed_batch.stateRoot) {
+            invalidBatchMarker = _batch_id;
             SlashAndRollback(_batch_id);
+            return;
         }
     }
 
@@ -251,7 +279,6 @@ contract Rollup {
             return (ZERO_BYTES32, 0, 0, false);
         }
 
-        // TODO get path from the contract instead of from user
         // verify from leaf exists in the balance tree
         require(
             merkleTreeLib.verify(
@@ -278,7 +305,6 @@ contract Rollup {
             return (ZERO_BYTES32, 0, 0, false);
         }
 
-        // TODO pick account data from on-chain state and not from the user
         // account holds the token type in the tx
         if (_from_merkle_proof.account.tokenType != _tx.tokenType) {
             // invalid state transition
@@ -313,7 +339,6 @@ contract Rollup {
             "Merkle Proof for from leaf is incorrect"
         );
 
-        // TODO pick account data from on-chain state and not from the user
         // account holds the token type in the tx
         if (_to_merkle_proof.account.tokenType != _tx.tokenType) {
             // invalid state transition
@@ -350,13 +375,28 @@ contract Rollup {
     /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challegers. Also deletes all the batches after invalid batch
-     * @param _invalid_batch_id ID of the batch that has been challenged
+     * @param _start_batch_id ID of the batch that has been challenged
      */
-    function SlashAndRollback(uint256 _invalid_batch_id) internal {
+    function SlashAndRollback(uint256 _start_batch_id) public isRollingBack {
         uint256 challengerRewards = 0;
         uint256 burnedAmount = 0;
         uint256 totalSlashings = 0;
-        for (uint256 i = batches.length - 1; i >= _invalid_batch_id; i--) {
+
+        for (uint256 i = batches.length - 1; i >= _start_batch_id; i--) {
+            // if gas left is low we would like to do all the transfers
+            // and persist intermediate states so someone else can send another tx
+            // and rollback remaining batches
+            if (gasleft() <= MIN_GAS_LIMIT_LEFT) {
+                // exit loop gracefully
+                break;
+            }
+
+            if (i == invalidBatchMarker) {
+                // we have completed rollback
+                // update the marker
+                invalidBatchMarker = 0;
+            }
+
             // load batch
             dataTypes.Batch memory batch = batches[i];
 
@@ -389,7 +429,7 @@ contract Rollup {
         (BURN_ADDRESS).transfer(burnedAmount);
 
         // resize batches length
-        batches.length = batches.length.sub(_invalid_batch_id.sub(1));
+        batches.length = batches.length.sub(_start_batch_id.sub(1));
 
         emit RollbackFinalisation(totalSlashings);
     }
