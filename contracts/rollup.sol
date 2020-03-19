@@ -241,7 +241,7 @@ contract Rollup {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
             invalidBatchMarker = _batch_id;
-            SlashAndRollback(_batch_id);
+            SlashAndRollback();
             return;
         }
 
@@ -249,7 +249,7 @@ contract Rollup {
         // slash and rollback
         if (newBalanceRoot != disputed_batch.stateRoot) {
             invalidBatchMarker = _batch_id;
-            SlashAndRollback(_batch_id);
+            SlashAndRollback();
             return;
         }
     }
@@ -283,17 +283,17 @@ contract Rollup {
         require(
             merkleTreeLib.verify(
                 _balanceRoot,
-                getAccountBytesFromLeaf(_tx.from),
-                _tx.from.path,
+                getAccountBytesFromAccount(_tx.from),
+                _from_merkle_proof.account.path,
                 _from_merkle_proof.siblings
             ),
             "Merkle Proof for from leaf is incorrect"
         );
 
-        if (_tx.amount <= 0) {
+        if (_tx.amount < 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
-            // had amount less than or equal to 0
+            // had amount less than 0
             return (ZERO_BYTES32, 0, 0, false);
         }
 
@@ -332,8 +332,8 @@ contract Rollup {
         require(
             merkleTreeLib.verify(
                 newRoot,
-                getAccountBytesFromLeaf(_tx.to),
-                _tx.to.path,
+                getAccountBytesFromAccount(_tx.to),
+                _to_merkle_proof.account.path,
                 _to_merkle_proof.siblings
             ),
             "Merkle Proof for from leaf is incorrect"
@@ -368,21 +368,21 @@ contract Rollup {
         return (
             newRoot,
             getBalanceFromAccountLeaf(new_from_leaf),
-            getBalanceFromAccountLeaf(new_to_leaf)
+            getBalanceFromAccountLeaf(new_to_leaf),
+            true
         );
     }
 
     /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challegers. Also deletes all the batches after invalid batch
-     * @param _start_batch_id ID of the batch that has been challenged
      */
-    function SlashAndRollback(uint256 _start_batch_id) public isRollingBack {
+    function SlashAndRollback() public isRollingBack {
         uint256 challengerRewards = 0;
         uint256 burnedAmount = 0;
         uint256 totalSlashings = 0;
 
-        for (uint256 i = batches.length - 1; i >= _start_batch_id; i--) {
+        for (uint256 i = batches.length - 1; i >= invalidBatchMarker; i--) {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
@@ -429,7 +429,7 @@ contract Rollup {
         (BURN_ADDRESS).transfer(burnedAmount);
 
         // resize batches length
-        batches.length = batches.length.sub(_start_batch_id.sub(1));
+        batches.length = batches.length.sub(invalidBatchMarker.sub(1));
 
         emit RollbackFinalisation(totalSlashings);
     }
@@ -634,10 +634,10 @@ contract Rollup {
         view
         returns (bytes32)
     {
-        return keccak256(getAccountBytes(account));
+        return keccak256(getAccountBytesFromAccount(account));
     }
 
-    function getAccountBytes(dataTypes.Account memory account)
+    function getAccountBytesFromAccount(dataTypes.Account memory account)
         public
         view
         returns (bytes memory)
