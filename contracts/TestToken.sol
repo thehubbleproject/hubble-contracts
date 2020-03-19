@@ -14,3 +14,4 @@ contract TestToken is ERC20, Ownable {
         _mint(_coordinator, 100000000000);
     }
 }
+ 
