@@ -517,6 +517,58 @@ contract Rollup {
     }
 
     /**
+     * @notice Allows user to withdraw the balance in the leaf of the balances tree.
+     *        User has to do the following: Prove that a transfer of X tokens was made to the burn address or leaf 0
+     * @param _batch_id Deposit tree depth or depth of subtree that is being deposited
+     * @param _tx_index Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
+     * @param _txs Deposit tree depth or depth of subtree that is being deposited
+     * @param _from_proofs Deposit tree depth or depth of subtree that is being deposited
+     * @param _to_proofs Deposit tree depth or depth of subtree that is being deposited
+     */
+    function Withdraw(
+        uint256 _batch_id,
+        uint256 _tx_index,
+        dataTypes.Transaction[] memory _txs,
+        dataTypes.MerkleProof memory _from_proof,
+        dataTypes.MerkleProof memory _to_proof
+    ) external {
+        // make sure the batch id is valid
+        require(
+            batches.length - 1 >= _batch_id,
+            "Batch id greater than total number of batches, invalid batch id"
+        );
+
+        dataTypes.Batch memory batch = batches[_batch_id];
+
+        // check if the batch is finalised
+        require(block.number > batch.finalisesOn, "Batch not finalised yet");
+
+        // check validity of transactions submitted
+        bytes[] memory txs;
+        for (uint256 i = 0; i < _txs.length; i++) {
+            txs[i] = getTxBytes(_txs[i]);
+        }
+        bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
+
+        // if tx root while submission doesnt match tx root of given txs
+        // invalid data submitted
+        require(
+            txRoot != batch.txRoot,
+            "Invalid dispute, tx root doesn't match"
+        );
+
+        //NOTE: withdraw transaction is _txs[_tx_index];
+
+        // TODO do we need to check if from and to leaf exist in the balance tree here? 
+
+        // ensure the `to` leaf was the 0th leaf
+        // require(_txs[_tx_index].to)
+
+
+
+    }
+
+    /**
      * @notice Merges the deposit tree with the balance tree by
      *        superimposing the deposit subtree on the balance tree
      * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited

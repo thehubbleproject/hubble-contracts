@@ -38,6 +38,7 @@ contract('Rollup', async function (accounts) {
       let testToken = await TestToken.deployed();
       let rollupInstance = await Rollup.deployed();
       let approveToken = await rollupInstance.finaliseTokenRegistration(testToken.address,{ from: wallets[0].getAddressString()} )
+
       assert(approveToken, "token registration failed");
   });
 
@@ -52,5 +53,21 @@ contract('Rollup', async function (accounts) {
       assert(approveToken, "approveToken failed")
   });
 
+  it("should approve Rollup on TestToken", async () => {
+    let rollupInstance = await Rollup.deployed();
+    let testToken = await TestToken.deployed();
+      let approveToken = await testToken.approve(
+        rollupInstance.address, 1700,
+        { from: wallets[0].getAddressString()}
+      )
+      assert(approveToken, "approveToken failed")
+  });
+
+  // Testing deposit
+  it("should approve allow depositing one test token", async () => {
+    let rollupInstance = await Rollup.deployed();
+    let result =  await rollupInstance.deposit(10,0,"string");
+    console.log(result);
+  });
 
   })
