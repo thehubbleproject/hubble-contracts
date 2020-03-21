@@ -7,7 +7,13 @@ pragma experimental ABIEncoderV2;
  * @notice TODO
  */
 contract DataTypes {
-    // Batch
+    // PDALeaf represents the leaf in
+    // Pubkey DataAvailability Tree
+    struct PDALeaf {
+        bytes pubkey;
+    }
+
+    // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
         bytes32 stateRoot;
         address committer;
@@ -17,35 +23,35 @@ contract DataTypes {
         uint256 timestamp;
     }
 
-    // Account or leaf structure
-    struct Account {
-        uint256 balance;
-        uint256 tokenType;
-        uint256 nonce;
-    }
-
-    // account leaf also contains the path to the account from the root
-    struct AccountLeaf {
-        uint256 path;
-        uint256 balance;
-        uint256 tokenType;
-        uint256 nonce;
-    }
-
-    struct DepositLeaf {
-        string pubkey;
-    }
-
+    // Transaction represents how each transaction looks like for
+    // this rollup chain
     struct Transaction {
-        Account from;
-        Account to;
+        UserAccount from;
+        UserAccount to;
         uint256 tokenType;
         uint32 amount;
         bytes signature;
     }
 
-    struct MerkleProof {
-        AccountLeaf account;
+    // AccountInclusionProof consists of the following fields
+    // 1. Path to the account leaf from root in the balances tree
+    // 2. Actual data stored in the leaf
+    struct AccountInclusionProof {
+        uint256 pathToAccount;
+        UserAccount account;
+    }
+
+    // UserAccount contains the actual data stored in the leaf of balance tree
+    struct UserAccount {
+        // ID is the path to the pubkey in the PDA tree
+        uint256 ID;
+        uint256 tokenType;
+        uint256 balance;
+        uint256 nonce;
+    }
+
+    struct AccountMerkleProof {
+        AccountInclusionProof accountIP;
         bytes32[] siblings;
     }
 }

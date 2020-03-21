@@ -9,7 +9,6 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ECVerify} from "./ECVerify.sol";
 
-
 // token registry contract interface
 contract ITokenRegistry {
     address public Coordinator;
@@ -27,7 +26,6 @@ contract ITokenRegistry {
     function finaliseTokenRegistration(address tokenContract) public {}
 }
 
-
 // ERC20 token interface
 contract IERC20 {
     function transferFrom(address from, address to, uint256 value)
@@ -37,7 +35,6 @@ contract IERC20 {
 
     function transfer(address recipient, uint256 value) public returns (bool) {}
 }
-
 
 // Main rollup contract
 contract Rollup {
@@ -525,48 +522,46 @@ contract Rollup {
      * @param _from_proofs Deposit tree depth or depth of subtree that is being deposited
      * @param _to_proofs Deposit tree depth or depth of subtree that is being deposited
      */
-    function Withdraw(
-        uint256 _batch_id,
-        uint256 _tx_index,
-        dataTypes.Transaction[] memory _txs,
-        dataTypes.MerkleProof memory _from_proof,
-        dataTypes.MerkleProof memory _to_proof
-    ) external {
-        // make sure the batch id is valid
-        require(
-            batches.length - 1 >= _batch_id,
-            "Batch id greater than total number of batches, invalid batch id"
-        );
+    // function Withdraw(
+    //     uint256 _batch_id,
+    //     uint256 _tx_index,
+    //     dataTypes.Transaction[] memory _txs,
+    //     dataTypes.MerkleProof memory _from_proof,
+    //     dataTypes.MerkleProof memory _to_proof
+    // ) external {
+    //     // make sure the batch id is valid
+    //     require(
+    //         batches.length - 1 >= _batch_id,
+    //         "Batch id greater than total number of batches, invalid batch id"
+    //     );
 
-        dataTypes.Batch memory batch = batches[_batch_id];
+    //     dataTypes.Batch memory batch = batches[_batch_id];
 
-        // check if the batch is finalised
-        require(block.number > batch.finalisesOn, "Batch not finalised yet");
+    //     // check if the batch is finalised
+    //     require(block.number > batch.finalisesOn, "Batch not finalised yet");
 
-        // check validity of transactions submitted
-        bytes[] memory txs;
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = getTxBytes(_txs[i]);
-        }
-        bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
+    //     // check validity of transactions submitted
+    //     bytes[] memory txs;
+    //     for (uint256 i = 0; i < _txs.length; i++) {
+    //         txs[i] = getTxBytes(_txs[i]);
+    //     }
+    //     bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
 
-        // if tx root while submission doesnt match tx root of given txs
-        // invalid data submitted
-        require(
-            txRoot != batch.txRoot,
-            "Invalid dispute, tx root doesn't match"
-        );
+    //     // if tx root while submission doesnt match tx root of given txs
+    //     // invalid data submitted
+    //     require(
+    //         txRoot != batch.txRoot,
+    //         "Invalid dispute, tx root doesn't match"
+    //     );
 
-        //NOTE: withdraw transaction is _txs[_tx_index];
+    //     //NOTE: withdraw transaction is _txs[_tx_index];
 
-        // TODO do we need to check if from and to leaf exist in the balance tree here? 
+    //     // TODO do we need to check if from and to leaf exist in the balance tree here?
 
-        // ensure the `to` leaf was the 0th leaf
-        // require(_txs[_tx_index].to)
+    //     // ensure the `to` leaf was the 0th leaf
+    //     // require(_txs[_tx_index].to)
 
-
-
-    }
+    // }
 
     /**
      * @notice Merges the deposit tree with the balance tree by
