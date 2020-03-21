@@ -9,6 +9,7 @@ import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ECVerify} from "./ECVerify.sol";
 
+
 // token registry contract interface
 contract ITokenRegistry {
     address public Coordinator;
@@ -26,6 +27,7 @@ contract ITokenRegistry {
     function finaliseTokenRegistration(address tokenContract) public {}
 }
 
+
 // ERC20 token interface
 contract IERC20 {
     function transferFrom(address from, address to, uint256 value)
@@ -35,6 +37,7 @@ contract IERC20 {
 
     function transfer(address recipient, uint256 value) public returns (bool) {}
 }
+
 
 // Main rollup contract
 contract Rollup {
@@ -53,6 +56,7 @@ contract Rollup {
     // Delay period = 7 days. Block time = 15 seconds
     uint256 TIME_TO_FINALISE = 40320;
 
+    // min gas required before rollback pauses
     uint256 MIN_GAS_LIMIT_LEFT = 100000;
     /*********************
      * Variable Declarations *
@@ -66,7 +70,6 @@ contract Rollup {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
 
-    mapping(uint256 => dataTypes.Account) accounts;
     dataTypes.Batch[] public batches;
 
     bytes32[] public pendingDeposits;
@@ -174,8 +177,8 @@ contract Rollup {
     function disputeBatch(
         uint256 _batch_id,
         dataTypes.Transaction[] memory _txs,
-        dataTypes.MerkleProof[] memory _from_proofs,
-        dataTypes.MerkleProof[] memory _to_proofs
+        dataTypes.AccountMerkleProof[] memory _from_proofs,
+        dataTypes.AccountMerkleProof[] memory _to_proofs
     ) public {
         // load batch
         dataTypes.Batch memory disputed_batch = batches[_batch_id];
@@ -198,7 +201,7 @@ contract Rollup {
         // generate merkle tree from the txs provided by user
         bytes[] memory txs;
         for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = getTxBytes(_txs[i]);
+            txs[i] = BytesFromTx(_txs[i]);
         }
         bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
 
@@ -261,8 +264,8 @@ contract Rollup {
     function processTx(
         bytes32 _balanceRoot,
         dataTypes.Transaction memory _tx,
-        dataTypes.MerkleProof memory _from_merkle_proof,
-        dataTypes.MerkleProof memory _to_merkle_proof
+        dataTypes.AccountMerkleProof memory _from_merkle_proof,
+        dataTypes.AccountMerkleProof memory _to_merkle_proof
     ) public returns (bytes32, uint256, uint256, bool) {
         // check signature on the tx is correct
         // TODO fix after adding account tree
@@ -280,8 +283,8 @@ contract Rollup {
         require(
             merkleTreeLib.verify(
                 _balanceRoot,
-                getAccountBytesFromAccount(_tx.from),
-                _from_merkle_proof.account.path,
+                BytesFromAccount(_tx.from),
+                _from_merkle_proof.accountIP.pathToAccount,
                 _from_merkle_proof.siblings
             ),
             "Merkle Proof for from leaf is incorrect"
@@ -295,7 +298,7 @@ contract Rollup {
         }
 
         // check from leaf has enough balance
-        if (_from_merkle_proof.account.balance < _tx.amount) {
+        if (_from_merkle_proof.accountIP.account.balance < _tx.amount) {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer
@@ -303,7 +306,7 @@ contract Rollup {
         }
 
         // account holds the token type in the tx
-        if (_from_merkle_proof.account.tokenType != _tx.tokenType) {
+        if (_from_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
@@ -311,16 +314,16 @@ contract Rollup {
         }
 
         // reduce balance of from leaf
-        dataTypes.AccountLeaf memory new_from_leaf = updateBalanceInLeaf(
-            _from_merkle_proof.account,
-            getBalanceFromAccountLeaf(_from_merkle_proof.account).sub(
+        dataTypes.UserAccount memory new_from_leaf = UpdateBalanceInAccount(
+            _from_merkle_proof.accountIP.account,
+            BalanceFromAccount(_from_merkle_proof.accountIP.account).sub(
                 _tx.amount
             )
         );
 
         bytes32 newRoot = merkleTreeLib.updateLeafWithSiblings(
-            keccak256(getAccountBytesFromLeaf(new_from_leaf)),
-            _from_merkle_proof.account.path,
+            keccak256(BytesFromAccount(new_from_leaf)),
+            _from_merkle_proof.accountIP.pathToAccount,
             _balanceRoot,
             _from_merkle_proof.siblings
         );
@@ -329,15 +332,15 @@ contract Rollup {
         require(
             merkleTreeLib.verify(
                 newRoot,
-                getAccountBytesFromAccount(_tx.to),
-                _to_merkle_proof.account.path,
+                BytesFromAccount(_tx.to),
+                _to_merkle_proof.accountIP.pathToAccount,
                 _to_merkle_proof.siblings
             ),
             "Merkle Proof for from leaf is incorrect"
         );
 
         // account holds the token type in the tx
-        if (_to_merkle_proof.account.tokenType != _tx.tokenType) {
+        if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
@@ -345,27 +348,29 @@ contract Rollup {
         }
 
         // increase balance of to leaf
-        dataTypes.AccountLeaf memory new_to_leaf = updateBalanceInLeaf(
-            _to_merkle_proof.account,
-            getBalanceFromAccountLeaf(_to_merkle_proof.account).add(_tx.amount)
+        dataTypes.UserAccount memory new_to_leaf = UpdateBalanceInAccount(
+            _to_merkle_proof.accountIP.account,
+            BalanceFromAccount(_to_merkle_proof.accountIP.account).add(
+                _tx.amount
+            )
         );
 
         // update the merkle tree
         balancesTree.update(
-            getAccountBytesFromLeaf(new_to_leaf),
-            _to_merkle_proof.account.path
+            BytesFromAccount(new_to_leaf),
+            _to_merkle_proof.accountIP.pathToAccount
         );
         newRoot = merkleTreeLib.updateLeafWithSiblings(
-            keccak256(getAccountBytesFromLeaf(new_to_leaf)),
-            _to_merkle_proof.account.path,
+            keccak256(BytesFromAccount(new_to_leaf)),
+            _to_merkle_proof.accountIP.pathToAccount,
             newRoot,
             _to_merkle_proof.siblings
         );
 
         return (
             newRoot,
-            getBalanceFromAccountLeaf(new_from_leaf),
-            getBalanceFromAccountLeaf(new_to_leaf),
+            BalanceFromAccount(new_from_leaf),
+            BalanceFromAccount(new_to_leaf),
             true
         );
     }
@@ -476,7 +481,7 @@ contract Rollup {
         );
 
         // create a new account
-        dataTypes.Account memory newAccount;
+        dataTypes.UserAccount memory newAccount;
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
@@ -484,7 +489,7 @@ contract Rollup {
         //TODO add pubkey to the accounts tree
 
         // get new account hash
-        bytes32 accountHash = getAccountHash(newAccount);
+        bytes32 accountHash = HashFromAccount(newAccount);
 
         // queue the deposit
         pendingDeposits.push(accountHash);
@@ -572,7 +577,7 @@ contract Rollup {
      */
     function finaliseDeposits(
         uint256 _subTreeDepth,
-        dataTypes.MerkleProof memory _zero_account_mp
+        dataTypes.AccountMerkleProof memory _zero_account_mp
     ) public onlyCoordinator returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleTreeLib.getRoot(_subTreeDepth);
 
@@ -582,7 +587,7 @@ contract Rollup {
             merkleTreeLib.verifyLeaf(
                 getBalanceTreeRoot(),
                 emptySubtreeRoot,
-                _zero_account_mp.account.path,
+                _zero_account_mp.accountIP.pathToAccount,
                 _zero_account_mp.siblings
             ),
             "proof invalid"
@@ -591,7 +596,7 @@ contract Rollup {
         // update the in-state balance tree with new leaf from pendingDeposits[0]
         balancesTree.updateLeaf(
             pendingDeposits[0],
-            _zero_account_mp.account.path
+            _zero_account_mp.accountIP.pathToAccount
         );
 
         // removed the root at pendingDeposits[0] because it has been added to the balance tree
@@ -648,27 +653,19 @@ contract Rollup {
     // Utils
     //
 
-    // returns a new leaf with updated balance
-    function updateBalanceInLeaf(
-        dataTypes.AccountLeaf memory original_account,
+    // ---------- Account Related Utils -------------------
+
+    // returns a new User Account with updated balance
+    function UpdateBalanceInAccount(
+        dataTypes.UserAccount memory original_account,
         uint256 new_balance
-    ) public returns (dataTypes.AccountLeaf memory new_account) {
-        dataTypes.AccountLeaf memory newAccount;
+    ) public returns (dataTypes.UserAccount memory new_account) {
+        dataTypes.UserAccount memory newAccount;
         newAccount.balance = new_balance;
         return newAccount;
     }
 
-    // getBalanceFromAccount extracts the balance from the leaf
-    function getBalanceFromAccount(dataTypes.Account memory account)
-        public
-        view
-        returns (uint256)
-    {
-        // TODO add abi.decode
-        return 0;
-    }
-
-    function getBalanceFromAccountLeaf(dataTypes.AccountLeaf memory account)
+    function BalanceFromAccount(dataTypes.UserAccount memory account)
         public
         view
         returns (uint256)
@@ -676,15 +673,15 @@ contract Rollup {
         return account.balance;
     }
 
-    function getAccountHash(dataTypes.Account memory account)
+    function HashFromAccount(dataTypes.UserAccount memory account)
         public
         view
         returns (bytes32)
     {
-        return keccak256(getAccountBytesFromAccount(account));
+        return keccak256(BytesFromAccount(account));
     }
 
-    function getAccountBytesFromAccount(dataTypes.Account memory account)
+    function BytesFromAccount(dataTypes.UserAccount memory account)
         public
         view
         returns (bytes memory)
@@ -692,29 +689,22 @@ contract Rollup {
         return abi.encode(account.balance, account.nonce, account.tokenType);
     }
 
-    function getAccountBytesFromLeaf(dataTypes.AccountLeaf memory account)
-        public
-        view
-        returns (bytes memory)
-    {
-        return abi.encode(account.balance, account.nonce, account.tokenType);
-    }
+    // ---------- Tx Related Utils -------------------
 
-    function getTxBytes(dataTypes.Transaction memory _tx)
+    function BytesFromTx(dataTypes.Transaction memory _tx)
         public
         view
         returns (bytes memory)
     {
-        // return abi.encode(tx.from, tx.to,tx.tokenType,tx.amount,tx.signature);
         return abi.encode(_tx);
     }
 
-    function getTxBytesHash(dataTypes.Transaction memory _tx)
+    function HashFromTx(dataTypes.Transaction memory _tx)
         public
         view
         returns (bytes32)
     {
-        return keccak256(getTxBytes(_tx));
+        return keccak256(BytesFromTx(_tx));
     }
 
     function getBalanceTreeRoot() public view returns (bytes32) {
