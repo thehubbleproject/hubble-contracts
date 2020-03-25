@@ -1,0 +1,107 @@
+pragma solidity ^0.5.0;
+
+
+contract Logger {
+    /*********************
+     * Rollup Contract *
+     ********************/
+    event NewBatch(
+        address committer,
+        bytes32 txroot,
+        bytes32 updatedRoot,
+        uint256 index
+    );
+
+    function logNewBatch(
+        address committer,
+        bytes32 txroot,
+        bytes32 updatedRoot,
+        uint256 index
+    ) public {
+        emit NewBatch(committer, txroot, updatedRoot, index);
+    }
+
+    event StakeWithdraw(address committed, uint256 amount, uint256 batch_id);
+
+    function logStakeWithdraw(
+        address committed,
+        uint256 amount,
+        uint256 batch_id
+    ) public {
+        emit StakeWithdraw(committed, amount, batch_id);
+    }
+
+    event BatchRollback(
+        uint256 batch_id,
+        address committer,
+        bytes32 stateRoot,
+        bytes32 txRoot,
+        uint256 stakeSlashed
+    );
+
+    function logBatchRollback(
+        uint256 batch_id,
+        address committer,
+        bytes32 stateRoot,
+        bytes32 txRoot,
+        uint256 stakeSlashed
+    ) public {
+        emit BatchRollback(
+            batch_id,
+            committer,
+            stateRoot,
+            txRoot,
+            stakeSlashed
+        );
+    }
+
+    event RollbackFinalisation(uint256 totalBatchesSlashed);
+
+    function logRollbackFinalisation(uint256 totalBatchesSlashed) public {
+        emit RollbackFinalisation(totalBatchesSlashed);
+    }
+
+    event RegisteredToken(uint256 tokenType, address tokenContract);
+
+    function logRegisteredToken(uint256 tokenType, address tokenContract)
+        public
+    {
+        emit RegisteredToken(tokenType, tokenContract);
+    }
+
+    event RegistrationRequest(address tokenContract);
+
+    function logRegistrationRequest(address tokenContract) public {
+        emit RegistrationRequest(tokenContract);
+    }
+
+    event DepositQueued(
+        address destination,
+        uint256 amount,
+        uint256 token,
+        bytes32 accountHash,
+        bytes pubkey
+    );
+
+    function logDepositQueued(
+        address destination,
+        uint256 amount,
+        uint256 token,
+        bytes32 accountHash,
+        bytes memory pubkey
+    ) public {
+        emit DepositQueued(destination, amount, token, accountHash, pubkey);
+    }
+
+    event DepositLeafMerged();
+
+    function logDepositLeafMerged() public {
+        emit DepositLeafMerged();
+    }
+
+    event DepositsProcessed();
+
+    function logDepositsProcessed() public {
+        emit DepositsProcessed();
+    }
+}

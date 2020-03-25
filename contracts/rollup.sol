@@ -1,6 +1,8 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
+import {Logger} from "./logger.sol";
+
 import {MerkleTree} from "./MerkleTree.sol";
 import {MerkleTreeLib} from "./libs/MerkleTreeLib.sol";
 
@@ -67,6 +69,8 @@ contract Rollup {
     MerkleTree public balancesTree;
     MerkleTree public accountsTree;
 
+    Logger public logger;
+
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
 
@@ -80,35 +84,6 @@ contract Rollup {
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
     uint256 invalidBatchMarker;
-
-    /*********************
-     * Events *
-     ********************/
-    event NewBatch(
-        address committer,
-        bytes32 txroot,
-        bytes32 updatedRoot,
-        uint256 index
-    );
-    event NewAccount(bytes32 root, uint256 index);
-
-    event DepositQueued(address, uint256, uint256, bytes32);
-    event DepositLeafMerged();
-    event DepositsProcessed();
-
-    event StakeWithdraw(address committed, uint256 amount, uint256 batch_id);
-    event BatchRollback(
-        uint256 batch_id,
-        address committer,
-        bytes32 stateRoot,
-        bytes32 txRoot,
-        uint256 stakeSlashed
-    );
-
-    event RollbackFinalisation(uint256 totalBatchesSlashed);
-
-    event RegisteredToken(uint256 tokenType, address tokenContract);
-    event RegistrationRequest(address tokenContract);
 
     modifier onlyCoordinator() {
         assert(msg.sender == coordinator);
@@ -133,12 +108,14 @@ contract Rollup {
         address _accountsTree,
         address _merkleTreeLib,
         address _tokenRegistryAddr,
+        address _logger,
         address _coordinator
     ) public {
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
         balancesTree = MerkleTree(_balancesTree);
         accountsTree = MerkleTree(_accountsTree);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
+        logger = Logger(_logger);
         coordinator = _coordinator;
     }
 
@@ -170,7 +147,7 @@ contract Rollup {
         });
 
         batches.push(newBatch);
-        emit NewBatch(
+        logger.logNewBatch(
             newBatch.committer,
             txRoot,
             _updatedRoot,
@@ -423,7 +400,7 @@ contract Rollup {
             delete batches[i];
 
             totalSlashings++;
-            emit BatchRollback(
+            logger.logBatchRollback(
                 i,
                 batch.committer,
                 batch.stateRoot,
@@ -443,7 +420,7 @@ contract Rollup {
         // resize batches length
         batches.length = batches.length.sub(invalidBatchMarker.sub(1));
 
-        emit RollbackFinalisation(totalSlashings);
+        logger.logRollbackFinalisation(totalSlashings);
     }
 
     /**
@@ -505,7 +482,13 @@ contract Rollup {
         pendingDeposits.push(accountHash);
 
         // emit the event
-        emit DepositQueued(_destination, _amount, _tokenType, accountHash);
+        logger.logDepositQueued(
+            _destination,
+            _amount,
+            _tokenType,
+            accountHash,
+            _pubkey
+        );
 
         queueNumber++;
         uint256 tmpDepositSubtreeHeight = 0;
@@ -626,7 +609,7 @@ contract Rollup {
     function requestTokenRegistration(address _tokenContractAddress) public {
         // TODO make sure the token that is being added is an ERC20 token and satisfies IERC20
         tokenRegistry.requestTokenRegistration(_tokenContractAddress);
-        emit RegistrationRequest(_tokenContractAddress);
+        logger.logRegistrationRequest(_tokenContractAddress);
     }
 
     /**
@@ -638,7 +621,10 @@ contract Rollup {
         onlyCoordinator
     {
         tokenRegistry.finaliseTokenRegistration(_tokenContractAddress);
-        emit RegisteredToken(tokenRegistry.numTokens(), _tokenContractAddress);
+        logger.logRegisteredToken(
+            tokenRegistry.numTokens(),
+            _tokenContractAddress
+        );
     }
 
     /**
@@ -656,7 +642,11 @@ contract Rollup {
             "This batch is not yet finalised, check back soon!"
         );
         msg.sender.transfer(committedBatch.stakeCommitted);
-        emit StakeWithdraw(msg.sender, committedBatch.stakeCommitted, batch_id);
+        logger.logStakeWithdraw(
+            msg.sender,
+            committedBatch.stakeCommitted,
+            batch_id
+        );
     }
 
     //
