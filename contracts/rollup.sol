@@ -84,7 +84,12 @@ contract Rollup {
     /*********************
      * Events *
      ********************/
-    event NewBatch(address committer, bytes32 txroot, bytes32 updatedRoot);
+    event NewBatch(
+        address committer,
+        bytes32 txroot,
+        bytes32 updatedRoot,
+        uint256 index
+    );
     event NewAccount(bytes32 root, uint256 index);
 
     event DepositQueued(address, uint256, uint256, bytes32);
@@ -165,7 +170,12 @@ contract Rollup {
         });
 
         batches.push(newBatch);
-        emit NewBatch(newBatch.committer, txRoot, _updatedRoot);
+        emit NewBatch(
+            newBatch.committer,
+            txRoot,
+            _updatedRoot,
+            batches.length - 1
+        );
     }
 
     /**
