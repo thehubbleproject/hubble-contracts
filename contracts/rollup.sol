@@ -2,43 +2,14 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {Logger} from "./logger.sol";
-
 import {MerkleTree} from "./MerkleTree.sol";
 import {MerkleTreeLib} from "./libs/MerkleTreeLib.sol";
-
 import {DataTypes as dataTypes} from "./DataTypes.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ECVerify} from "./ECVerify.sol";
-
-
-// token registry contract interface
-contract ITokenRegistry {
-    address public Coordinator;
-    uint256 public numTokens;
-    mapping(address => bool) public pendingRegistrations;
-    mapping(uint256 => address) public registeredTokens;
-
-    modifier onlyCoordinator() {
-        assert(msg.sender == Coordinator);
-        _;
-    }
-
-    function requestTokenRegistration(address tokenContract) public {}
-
-    function finaliseTokenRegistration(address tokenContract) public {}
-}
-
-
-// ERC20 token interface
-contract IERC20 {
-    function transferFrom(address from, address to, uint256 value)
-        public
-        returns (bool)
-    {}
-
-    function transfer(address recipient, uint256 value) public returns (bool) {}
-}
+import {IERC20} from "./interfaces/IERC20.sol";
+import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 
 
 // Main rollup contract
