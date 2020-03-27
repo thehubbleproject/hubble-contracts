@@ -483,6 +483,7 @@ contract Rollup {
 
         // emit the event
         logger.logDepositQueued(
+            1,
             _destination,
             _amount,
             _tokenType,
