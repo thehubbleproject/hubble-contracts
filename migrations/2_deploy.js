@@ -57,4 +57,4 @@ module.exports = async function(deployer) {
     Logger: logger.address
   };
   writeContractAddresses(contractAddresses);
-};
+}

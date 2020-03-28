@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "baseUrl": ".",
+    "declaration": true,
+    "typeRoots": ["./types", "node_modules/@types"],
+    "paths": {
+      "*": ["node_modules/*", "src/types/*", "test/types/*"]
+    },
+    "types": ["node", "truffle-contracts"],
+
+    "lib": ["es2015"]
+  },
+  "exclude": ["node_modules", "test", "dist", "example"]
+}
