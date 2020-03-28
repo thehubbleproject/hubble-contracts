@@ -1,10 +1,10 @@
+import * as chai from "chai";
 const walletHelper = require("./helpers/wallet.js");
 const TestToken = artifacts.require("TestToken");
-import * as chai from "chai";
-// import * as chaiAsPromised from "chai-as-promised";
 const chaiAsPromised = require("chai-as-promised");
 const Rollup = artifacts.require("Rollup");
 const TokenRegistry = artifacts.require("TokenRegistry");
+
 chai.use(chaiAsPromised);
 
 contract("Rollup", async function(accounts) {
@@ -56,10 +56,13 @@ contract("Rollup", async function(accounts) {
     assert(approveToken, "approveToken failed");
   });
 
-  // Testing deposit
-  // it("should approve allow depositing one test token", async () => {
-  //   let rollupInstance = await Rollup.deployed();
-  //   let result = await rollupInstance.deposit(10, 0, "string".toBuffer());
-  //   console.log(result);
-  // });
+  it("should approve allow depositing one test token", async () => {
+    let rollupInstance = await Rollup.deployed();
+    let result = await rollupInstance.deposit(
+      10,
+      0,
+      wallets[0].getPublicKeyString()
+    );
+    console.log(result);
+  });
 });
