@@ -1,10 +1,9 @@
 import * as chai from "chai";
-const walletHelper = require("./helpers/wallet.js");
+import walletHelper from "./helpers/wallet.js";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const Rollup = artifacts.require("Rollup");
 const TokenRegistry = artifacts.require("TokenRegistry");
-
 chai.use(chaiAsPromised);
 
 contract("Rollup", async function(accounts) {
