@@ -1,16 +1,17 @@
 pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
-contract MerkleTreeLib{
+
+contract MerkleTreeLib {
     // The default hashes
     bytes32[] public defaultHashes = new bytes32[](160);
-    uint public MAX_DEPTH;
+    uint256 public MAX_DEPTH;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor(uint depth) public {
+    constructor(uint256 depth) public {
         MAX_DEPTH = depth;
         // Calculate & set the default hashes
         setDefaultHashes(depth);
@@ -21,23 +22,25 @@ contract MerkleTreeLib{
     /**
      * @notice Set default hashes
      */
-    function setDefaultHashes(uint depth) internal {
+    function setDefaultHashes(uint256 depth) internal {
         // Set the initial default hash.
         defaultHashes[0] = keccak256(abi.encodePacked(ZERO_BYTES32));
-        for (uint i = 1; i < depth; i ++) {
-            defaultHashes[i] = keccak256(abi.encodePacked(defaultHashes[i-1], defaultHashes[i-1]));
+        for (uint256 i = 1; i < depth; i++) {
+            defaultHashes[i] = keccak256(
+                abi.encodePacked(defaultHashes[i - 1], defaultHashes[i - 1])
+            );
         }
     }
 
-    function getZeroRoot()public returns(bytes32){
+    function getZeroRoot() public returns (bytes32) {
         return defaultHashes[0];
     }
 
-    function getMaxTreeDepth() public returns(uint){
+    function getMaxTreeDepth() public returns (uint256) {
         return MAX_DEPTH;
     }
 
-    function getRoot(uint index) public returns(bytes32){
+    function getRoot(uint256 index) public returns (bytes32) {
         return defaultHashes[index];
     }
 
@@ -47,12 +50,16 @@ contract MerkleTreeLib{
      * @return the merkle tree root
      * NOTE: This is a stateless operation
      */
-    function getMerkleRoot(bytes[] calldata _dataBlocks) external view returns(bytes32) {
-        uint nextLevelLength = _dataBlocks.length;
-        uint currentLevel = 0;
+    function getMerkleRoot(bytes[] calldata _dataBlocks)
+        external
+        view
+        returns (bytes32)
+    {
+        uint256 nextLevelLength = _dataBlocks.length;
+        uint256 currentLevel = 0;
         bytes32[] memory nodes = new bytes32[](nextLevelLength + 1); // Add one in case we have an odd number of leaves
         // Generate the leaves
-        for (uint i = 0; i < _dataBlocks.length; i++) {
+        for (uint256 i = 0; i < _dataBlocks.length; i++) {
             nodes[i] = keccak256(_dataBlocks[i]);
         }
         if (_dataBlocks.length == 1) {
@@ -68,8 +75,8 @@ contract MerkleTreeLib{
         while (nextLevelLength > 1) {
             currentLevel += 1;
             // Calculate the nodes for the currentLevel
-            for (uint i = 0; i < nextLevelLength / 2; i++) {
-                nodes[i] = getParent(nodes[i*2], nodes[i*2 + 1]);
+            for (uint256 i = 0; i < nextLevelLength / 2; i++) {
+                nodes[i] = getParent(nodes[i * 2], nodes[i * 2 + 1]);
             }
             nextLevelLength = nextLevelLength / 2;
             // Check if we will need to add an extra node
@@ -89,12 +96,16 @@ contract MerkleTreeLib{
      * @param _path The path from the leaf to the root.
      * @param _siblings The sibling nodes along the way.
      * @return The next level of the tree
-    * NOTE: This is a stateless operation
+     * NOTE: This is a stateless operation
      */
-    function computeInclusionProofRoot(bytes memory _dataBlock, uint _path, bytes32[] memory _siblings) public pure returns (bytes32) {
+    function computeInclusionProofRoot(
+        bytes memory _dataBlock,
+        uint256 _path,
+        bytes32[] memory _siblings
+    ) public pure returns (bytes32) {
         // First compute the leaf node
         bytes32 computedNode = keccak256(_dataBlock);
-        for (uint i = 0; i < _siblings.length; i++) {
+        for (uint256 i = 0; i < _siblings.length; i++) {
             bytes32 sibling = _siblings[i];
             uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
             if (isComputedRightSibling == 0) {
@@ -113,12 +124,16 @@ contract MerkleTreeLib{
      * @param _path The path from the leaf to the root.
      * @param _siblings The sibling nodes along the way.
      * @return The next level of the tree
-    * NOTE: This is a stateless operation
+     * NOTE: This is a stateless operation
      */
-    function computeInclusionProofRootWithLeaf(bytes32 _leaf, uint _path, bytes32[] memory _siblings) public pure returns (bytes32) {
+    function computeInclusionProofRootWithLeaf(
+        bytes32 _leaf,
+        uint256 _path,
+        bytes32[] memory _siblings
+    ) public pure returns (bytes32) {
         // First compute the leaf node
         bytes32 computedNode = _leaf;
-        for (uint i = 0; i < _siblings.length; i++) {
+        for (uint256 i = 0; i < _siblings.length; i++) {
             bytes32 sibling = _siblings[i];
             uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
             if (isComputedRightSibling == 0) {
@@ -138,9 +153,14 @@ contract MerkleTreeLib{
      * @param _path The path from the leaf to the root.
      * @param _siblings The sibling nodes along the way.
      * @return The next level of the tree
-    * NOTE: This is a stateless operation
+     * NOTE: This is a stateless operation
      */
-    function verify(bytes32 _root, bytes memory _dataBlock, uint _path, bytes32[] memory _siblings) public pure returns (bool) {
+    function verify(
+        bytes32 _root,
+        bytes memory _dataBlock,
+        uint256 _path,
+        bytes32[] memory _siblings
+    ) public pure returns (bool) {
         // First compute the leaf node
         bytes32 calculatedRoot = computeInclusionProofRoot(
             _dataBlock,
@@ -160,7 +180,12 @@ contract MerkleTreeLib{
           * NOTE: This is a stateless operation
 
      */
-    function verifyLeaf(bytes32 _root, bytes32 _leaf, uint _path, bytes32[] memory _siblings) public pure returns (bool){
+    function verifyLeaf(
+        bytes32 _root,
+        bytes32 _leaf,
+        uint256 _path,
+        bytes32[] memory _siblings
+    ) public pure returns (bool) {
         bytes32 calculatedRoot = computeInclusionProofRootWithLeaf(
             _leaf,
             _path,
@@ -174,26 +199,28 @@ contract MerkleTreeLib{
      *         This is a stateless operation
      * @param _leaf The leaf we're updating.
      * @param _path The path from the leaf to the root / the index of the leaf.
-     * @param _root Initial root of the tree
      * @param _siblings The sibling nodes along the way.
      * @return Updated root
      */
-    function updateLeafWithSiblings(bytes32 _leaf,uint _path,bytes32 _root,bytes32[] memory _siblings) public returns(bytes32) {
-            bytes32 computedNode = _leaf;
-            for (uint i = 0; i < _siblings.length; i++) {
-                bytes32 parent;
-                bytes32 sibling = _siblings[i];
-                uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
-                if (isComputedRightSibling == 0) {
-                    parent = getParent(computedNode, sibling);
-                } else {
-                    parent = getParent(sibling, computedNode);
-                }
-                computedNode = parent;
+    function updateLeafWithSiblings(
+        bytes32 _leaf,
+        uint256 _path,
+        bytes32[] memory _siblings
+    ) public returns (bytes32) {
+        bytes32 computedNode = _leaf;
+        for (uint256 i = 0; i < _siblings.length; i++) {
+            bytes32 parent;
+            bytes32 sibling = _siblings[i];
+            uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
+            if (isComputedRightSibling == 0) {
+                parent = getParent(computedNode, sibling);
+            } else {
+                parent = getParent(sibling, computedNode);
             }
-            return computedNode;
+            computedNode = parent;
+        }
+        return computedNode;
     }
-
 
     /**
      * @notice Get the parent of two children nodes in the tree
@@ -201,7 +228,11 @@ contract MerkleTreeLib{
      * @param _right The right child
      * @return The parent node
      */
-    function getParent(bytes32 _left, bytes32 _right)public pure returns(bytes32) {
+    function getParent(bytes32 _left, bytes32 _right)
+        public
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encodePacked(_left, _right));
     }
 
@@ -212,10 +243,13 @@ contract MerkleTreeLib{
      * @param _index The index of the bit we want to extract
      * @return The bit (1 or 0) in a uint8
      */
-    function getNthBitFromRight(uint _intVal, uint _index) public pure returns (uint8) {
-        return uint8(_intVal >> _index & 1);
+    function getNthBitFromRight(uint256 _intVal, uint256 _index)
+        public
+        pure
+        returns (uint8)
+    {
+        return uint8((_intVal >> _index) & 1);
     }
-
 
     /**
      * @notice Get the right sibling key. Note that these keys overwrite the first bit of the hash
@@ -223,8 +257,10 @@ contract MerkleTreeLib{
      * @param _parent The parent node
      * @return the key for the left sibling (0 as the first bit)
      */
-    function getLeftSiblingKey(bytes32 _parent) public pure returns(bytes32) {
-        return _parent & 0x0111111111111111111111111111111111111111111111111111111111111111;
+    function getLeftSiblingKey(bytes32 _parent) public pure returns (bytes32) {
+        return
+            _parent &
+            0x0111111111111111111111111111111111111111111111111111111111111111;
     }
 
     /**
@@ -233,9 +269,9 @@ contract MerkleTreeLib{
      * @param _parent The parent node
      * @return the key for the right sibling (1 as the first bit)
      */
-    function getRightSiblingKey(bytes32 _parent) public pure returns(bytes32) {
-        return _parent | 0x1000000000000000000000000000000000000000000000000000000000000000;
+    function getRightSiblingKey(bytes32 _parent) public pure returns (bytes32) {
+        return
+            _parent |
+            0x1000000000000000000000000000000000000000000000000000000000000000;
     }
-
-
 }

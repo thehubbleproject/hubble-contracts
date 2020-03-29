@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 pragma experimental ABIEncoderV2;
 
 import {Logger} from "./logger.sol";
-import {MerkleTree} from "./MerkleTree.sol";
+import {Tree} from "./Tree.sol";
 import {MerkleTreeLib} from "./libs/MerkleTreeLib.sol";
 import {DataTypes as dataTypes} from "./DataTypes.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -18,8 +18,9 @@ contract Rollup {
     using BytesLib for bytes;
     using ECVerify for bytes32;
 
-    uint256 MAX_DEPTH;
-    uint256 STAKE_AMOUNT = 32;
+    uint256 public MAX_DEPTH = 10;
+    uint256 constant MAX_TXS_PER_BATCH = 10;
+    uint256 public STAKE_AMOUNT = 32;
     address payable BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
@@ -37,8 +38,8 @@ contract Rollup {
 
     // External contracts
     MerkleTreeLib public merkleTreeLib;
-    MerkleTree public balancesTree;
-    MerkleTree public accountsTree;
+    Tree public balancesTree;
+    Tree public accountsTree;
 
     Logger public logger;
 
@@ -50,6 +51,10 @@ contract Rollup {
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
+
+    // Stores transaction paths claimed per batch
+    // TO BE REMOVED post withdraw mass migration
+    bool[][MAX_TXS_PER_BATCH] withdrawTxClaimed;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
@@ -83,8 +88,8 @@ contract Rollup {
         address _coordinator
     ) public {
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
-        balancesTree = MerkleTree(_balancesTree);
-        accountsTree = MerkleTree(_accountsTree);
+        balancesTree = Tree(_balancesTree);
+        accountsTree = Tree(_accountsTree);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
         logger = Logger(_logger);
         coordinator = _coordinator;
@@ -104,6 +109,12 @@ contract Rollup {
         require(
             msg.value == STAKE_AMOUNT,
             "Please send 32 eth with batch as stake"
+        );
+        if (_txs.length > MAX_TXS_PER_BATCH) {}
+
+        require(
+            _txs.length <= MAX_TXS_PER_BATCH,
+            "Batch contains more transations than the limit"
         );
         bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
 
@@ -486,52 +497,59 @@ contract Rollup {
     /**
      * @notice Allows user to withdraw the balance in the leaf of the balances tree.
      *        User has to do the following: Prove that a transfer of X tokens was made to the burn address or leaf 0
+     *        The batch we are allowing withdraws from should have been already finalised, so we can assume all data in the batch to be correct
      * @param _batch_id Deposit tree depth or depth of subtree that is being deposited
-     * @param _tx_index Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
-     * @param _txs Deposit tree depth or depth of subtree that is being deposited
-     * @param _from_proofs Deposit tree depth or depth of subtree that is being deposited
-     * @param _to_proofs Deposit tree depth or depth of subtree that is being deposited
+     * @param withdraw_tx_proof contains the siblints, txPath and the txData for the withdraw transaction
      */
-    // function Withdraw(
-    //     uint256 _batch_id,
-    //     uint256 _tx_index,
-    //     dataTypes.Transaction[] memory _txs,
-    //     dataTypes.MerkleProof memory _from_proof,
-    //     dataTypes.MerkleProof memory _to_proof
-    // ) external {
-    //     // make sure the batch id is valid
-    //     require(
-    //         batches.length - 1 >= _batch_id,
-    //         "Batch id greater than total number of batches, invalid batch id"
-    //     );
+    function Withdraw(
+        uint256 _batch_id,
+        dataTypes.TransactionMerkleProof memory withdraw_tx_proof
+    ) public {
+        // make sure the batch id is valid
+        require(
+            batches.length - 1 >= _batch_id,
+            "Batch id greater than total number of batches, invalid batch id"
+        );
 
-    //     dataTypes.Batch memory batch = batches[_batch_id];
+        dataTypes.Batch memory batch = batches[_batch_id];
 
-    //     // check if the batch is finalised
-    //     require(block.number > batch.finalisesOn, "Batch not finalised yet");
+        // check if the batch is finalised
+        require(block.number > batch.finalisesOn, "Batch not finalised yet");
 
-    //     // check validity of transactions submitted
-    //     bytes[] memory txs;
-    //     for (uint256 i = 0; i < _txs.length; i++) {
-    //         txs[i] = getTxBytes(_txs[i]);
-    //     }
-    //     bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
+        // verify transaction exists in the batch
+        merkleTreeLib.verify(
+            batch.txRoot,
+            BytesFromTx(withdraw_tx_proof._tx.data),
+            withdraw_tx_proof._tx.pathToTx,
+            withdraw_tx_proof.siblings
+        );
 
-    //     // if tx root while submission doesnt match tx root of given txs
-    //     // invalid data submitted
-    //     require(
-    //         txRoot != batch.txRoot,
-    //         "Invalid dispute, tx root doesn't match"
-    //     );
+        // check if the transaction is withdraw transaction
+        // ensure the `to` leaf was the 0th leaf
+        require(
+            withdraw_tx_proof._tx.data.to.ID == 0,
+            "Not a withdraw transaction"
+        );
 
-    //     //NOTE: withdraw transaction is _txs[_tx_index];
+        bool isClaimed = withdrawTxClaimed[_batch_id][withdraw_tx_proof
+            ._tx
+            .pathToTx];
+        require(!isClaimed, "Withdraw transaction already claimed");
+        withdrawTxClaimed[_batch_id][withdraw_tx_proof._tx.pathToTx] = true;
 
-    //     // TODO do we need to check if from and to leaf exist in the balance tree here?
+        // withdraw checks out, transfer to the account in account tree
+        address tokenContractAddress = tokenRegistry.registeredTokens(
+            withdraw_tx_proof._tx.data.tokenType
+        );
 
-    //     // ensure the `to` leaf was the 0th leaf
-    //     // require(_txs[_tx_index].to)
+        //TODO get account address from PDA tree
+        address receiver;
 
-    // }
+        uint256 amount = withdraw_tx_proof._tx.data.amount;
+
+        tokenContract = IERC20(tokenContractAddress);
+        require(tokenContract.transfer(receiver, amount), "Unable to trasnfer");
+    }
 
     /**
      * @notice Merges the deposit tree with the balance tree by
@@ -631,10 +649,9 @@ contract Rollup {
     function UpdateBalanceInAccount(
         dataTypes.UserAccount memory original_account,
         uint256 new_balance
-    ) public returns (dataTypes.UserAccount memory new_account) {
-        dataTypes.UserAccount memory newAccount;
-        newAccount.balance = new_balance;
-        return newAccount;
+    ) public returns (dataTypes.UserAccount memory updated_account) {
+        original_account.balance = new_balance;
+        return original_account;
     }
 
     function BalanceFromAccount(dataTypes.UserAccount memory account)

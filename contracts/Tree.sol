@@ -6,7 +6,7 @@ import {MerkleTreeLib as MTLib} from "./libs/MerkleTreeLib.sol";
 /*
  * Merkle Tree Utilities for Rollup
  */
-contract MerkleTree {
+contract Tree {
     MTLib MerkleLib;
     /* Structs */
     // A partial merkle tree which can be updated with new nodes, recomputing the root

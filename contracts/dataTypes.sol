@@ -41,6 +41,11 @@ contract DataTypes {
         UserAccount account;
     }
 
+    struct TranasctionInclusionProof {
+        uint256 pathToTx;
+        Transaction data;
+    }
+
     // UserAccount contains the actual data stored in the leaf of balance tree
     struct UserAccount {
         // ID is the path to the pubkey in the PDA tree
@@ -52,6 +57,11 @@ contract DataTypes {
 
     struct AccountMerkleProof {
         AccountInclusionProof accountIP;
+        bytes32[] siblings;
+    }
+
+    struct TransactionMerkleProof {
+        TranasctionInclusionProof _tx;
         bytes32[] siblings;
     }
 }

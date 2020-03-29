@@ -1,6 +1,6 @@
 const MTLib = artifacts.require("MerkleTreeLib");
 
-const MT = artifacts.require("MerkleTree");
+const MT = artifacts.require("Tree");
 const RollUp = artifacts.require("Rollup");
 const ECVerify = artifacts.require("ECVerify");
 const TokenRegistry = artifacts.require("TokenRegistry");
@@ -57,4 +57,4 @@ module.exports = async function(deployer) {
     Logger: logger.address
   };
   writeContractAddresses(contractAddresses);
-}
+};
