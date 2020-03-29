@@ -293,7 +293,6 @@ contract Rollup {
         bytes32 newRoot = merkleTreeLib.updateLeafWithSiblings(
             keccak256(BytesFromAccount(new_from_leaf)),
             _from_merkle_proof.accountIP.pathToAccount,
-            _balanceRoot,
             _from_merkle_proof.siblings
         );
 
@@ -332,7 +331,6 @@ contract Rollup {
         newRoot = merkleTreeLib.updateLeafWithSiblings(
             keccak256(BytesFromAccount(new_to_leaf)),
             _to_merkle_proof.accountIP.pathToAccount,
-            newRoot,
             _to_merkle_proof.siblings
         );
 

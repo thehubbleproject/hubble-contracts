@@ -24,10 +24,10 @@ contract MerkleTreeLib {
      */
     function setDefaultHashes(uint256 depth) internal {
         // Set the initial default hash.
-        defaultHashes[0] = keccak256(abi.encodePacked(ZERO_BYTES32));
+        defaultHashes[0] = keccak256(abi.encode(ZERO_BYTES32));
         for (uint256 i = 1; i < depth; i++) {
             defaultHashes[i] = keccak256(
-                abi.encodePacked(defaultHashes[i - 1], defaultHashes[i - 1])
+                abi.encode(defaultHashes[i - 1], defaultHashes[i - 1])
             );
         }
     }
@@ -233,7 +233,7 @@ contract MerkleTreeLib {
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encodePacked(_left, _right));
+        return keccak256(abi.encode(_left, _right));
     }
 
     /**

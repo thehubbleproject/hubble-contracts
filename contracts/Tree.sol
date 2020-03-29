@@ -143,8 +143,6 @@ contract Tree {
      */
     function appendLeaf(bytes32 leaf) public returns (bytes32) {}
 
-    // }
-
     /*********************
      * Utility Functions *
      ********************/
