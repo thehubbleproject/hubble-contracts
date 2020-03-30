@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "rebuild": "npm run clean && npm run generate",
     "clean": "rm -rf build types",
-    "rebuild": "clean generate",
-    "test": "truffle test",
+    "test": "truffle test && npm tsc",
     "lint": "prettier --list-different **/*.sol",
     "prettier": "prettier --write **/*.sol",
     "truffle": "truffle",
