@@ -32,15 +32,15 @@ contract MerkleTreeLib {
         }
     }
 
-    function getZeroRoot() public returns (bytes32) {
+    function getZeroRoot() public view returns (bytes32) {
         return defaultHashes[0];
     }
 
-    function getMaxTreeDepth() public returns (uint256) {
+    function getMaxTreeDepth() public view returns (uint256) {
         return MAX_DEPTH;
     }
 
-    function getRoot(uint256 index) public returns (bytes32) {
+    function getRoot(uint256 index) public view returns (bytes32) {
         return defaultHashes[index];
     }
 
@@ -206,7 +206,7 @@ contract MerkleTreeLib {
         bytes32 _leaf,
         uint256 _path,
         bytes32[] memory _siblings
-    ) public returns (bytes32) {
+    ) public pure returns (bytes32) {
         bytes32 computedNode = _leaf;
         for (uint256 i = 0; i < _siblings.length; i++) {
             bytes32 parent;

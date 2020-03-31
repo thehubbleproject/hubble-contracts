@@ -39,7 +39,7 @@
     "eth-gas-reporter": "^0.2.16",
     "ethereumjs-util": "^6.2.0",
     "ethereumjs-wallet": "0.6.2",
-    "ethers": "^4.0.43",
+    "ethers": "^4.0.46",
     "merkletreejs": "^0.1.7",
     "node-gyp": "^3.7.0",
     "solidity-bytes-utils": "0.0.8",

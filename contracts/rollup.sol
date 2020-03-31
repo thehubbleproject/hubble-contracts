@@ -647,14 +647,14 @@ contract Rollup {
     function UpdateBalanceInAccount(
         dataTypes.UserAccount memory original_account,
         uint256 new_balance
-    ) public returns (dataTypes.UserAccount memory updated_account) {
+    ) public pure returns (dataTypes.UserAccount memory updated_account) {
         original_account.balance = new_balance;
         return original_account;
     }
 
     function BalanceFromAccount(dataTypes.UserAccount memory account)
         public
-        view
+        pure
         returns (uint256)
     {
         return account.balance;
@@ -662,7 +662,7 @@ contract Rollup {
 
     function HashFromAccount(dataTypes.UserAccount memory account)
         public
-        view
+        pure
         returns (bytes32)
     {
         return keccak256(BytesFromAccount(account));
@@ -670,7 +670,7 @@ contract Rollup {
 
     function BytesFromAccount(dataTypes.UserAccount memory account)
         public
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encode(account.balance, account.nonce, account.tokenType);
@@ -680,7 +680,7 @@ contract Rollup {
 
     function BytesFromTx(dataTypes.Transaction memory _tx)
         public
-        view
+        pure
         returns (bytes memory)
     {
         return abi.encode(_tx);
@@ -688,7 +688,7 @@ contract Rollup {
 
     function HashFromTx(dataTypes.Transaction memory _tx)
         public
-        view
+        pure
         returns (bytes32)
     {
         return keccak256(BytesFromTx(_tx));
@@ -702,7 +702,11 @@ contract Rollup {
      * @notice Concatenates 2 deposits
      * @return Returns the final hash
      */
-    function getDepositsHash(bytes32 a, bytes32 b) public returns (bytes32) {
+    function getDepositsHash(bytes32 a, bytes32 b)
+        public
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encode(a, b));
     }
 
