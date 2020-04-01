@@ -44,6 +44,10 @@ contract MerkleTreeLib {
         return defaultHashes[index];
     }
 
+    function keecakHash(bytes memory data) public pure returns (bytes32) {
+        return keccak256(data);
+    }
+
     /**
      * @notice Get the merkle root computed from some set of data blocks.
      * @param _dataBlocks The data being used to generate the tree.
@@ -52,7 +56,6 @@ contract MerkleTreeLib {
      */
     function getMerkleRoot(bytes[] calldata _dataBlocks)
         external
-        view
         returns (bytes32)
     {
         uint256 nextLevelLength = _dataBlocks.length;
@@ -85,7 +88,6 @@ contract MerkleTreeLib {
                 nextLevelLength += 1;
             }
         }
-
         // Alright! We should be left with a single node! Return it...
         return nodes[0];
     }
@@ -102,9 +104,10 @@ contract MerkleTreeLib {
         bytes memory _dataBlock,
         uint256 _path,
         bytes32[] memory _siblings
-    ) public pure returns (bytes32) {
+    ) public view returns (bytes32) {
         // First compute the leaf node
         bytes32 computedNode = keccak256(_dataBlock);
+
         for (uint256 i = 0; i < _siblings.length; i++) {
             bytes32 sibling = _siblings[i];
             uint8 isComputedRightSibling = getNthBitFromRight(_path, i);
@@ -130,7 +133,7 @@ contract MerkleTreeLib {
         bytes32 _leaf,
         uint256 _path,
         bytes32[] memory _siblings
-    ) public pure returns (bytes32) {
+    ) public view returns (bytes32) {
         // First compute the leaf node
         bytes32 computedNode = _leaf;
         for (uint256 i = 0; i < _siblings.length; i++) {
@@ -160,7 +163,7 @@ contract MerkleTreeLib {
         bytes memory _dataBlock,
         uint256 _path,
         bytes32[] memory _siblings
-    ) public pure returns (bool) {
+    ) public view returns (bool) {
         // First compute the leaf node
         bytes32 calculatedRoot = computeInclusionProofRoot(
             _dataBlock,
@@ -185,7 +188,7 @@ contract MerkleTreeLib {
         bytes32 _leaf,
         uint256 _path,
         bytes32[] memory _siblings
-    ) public pure returns (bool) {
+    ) public view returns (bool) {
         bytes32 calculatedRoot = computeInclusionProofRootWithLeaf(
             _leaf,
             _path,
