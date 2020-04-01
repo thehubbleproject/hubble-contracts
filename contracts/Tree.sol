@@ -137,12 +137,6 @@ contract Tree {
         return siblings;
     }
 
-    /**
-     * @notice Append leaf will append a leaf to the end of the tree
-     * @return The sibling nodes along the way.
-     */
-    function appendLeaf(bytes32 leaf) public returns (bytes32) {}
-
     /*********************
      * Utility Functions *
      ********************/

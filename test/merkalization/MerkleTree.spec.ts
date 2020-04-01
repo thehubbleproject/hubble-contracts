@@ -1,5 +1,6 @@
 const MTLib = artifacts.require("MerkleTreeLib");
 const IMT = artifacts.require("IncrementalTree.sol");
+const Tree = artifacts.require("Tree");
 
 import * as walletHelper from "../helpers/wallet";
 import * as utils from "../helpers/utils";
@@ -178,6 +179,57 @@ contract("MerkelTreeLib", async function(accounts) {
     var isValid = await mtlibInstance.verifyLeaf(root, leaf, path, siblings);
 
     // TODO fix
+    expect(isValid).to.be.deep.eq(false);
+  });
+});
+
+contract("Tree", async function(accounts) {
+  var wallets: any;
+  var depth: number = 2;
+  var firstDataBlock = utils.StringToBytes32("0x123");
+  var secondDataBlock = utils.StringToBytes32("0x334");
+  var thirdDataBlock = utils.StringToBytes32("0x4343");
+  var fourthDataBlock = utils.StringToBytes32("0x334");
+  var dataBlocks = [
+    firstDataBlock,
+    secondDataBlock,
+    thirdDataBlock,
+    fourthDataBlock
+  ];
+  var dataLeaves = [
+    utils.Hash(firstDataBlock),
+    utils.Hash(secondDataBlock),
+    utils.Hash(thirdDataBlock),
+    utils.Hash(fourthDataBlock)
+  ];
+  before(async function() {
+    wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
+  });
+
+  it("should be able to add a new leaf at a particular index", async function() {
+    var mtlibInstance = await MTLib.new(depth, {
+      from: wallets[0].getAddressString()
+    });
+
+    var balancesTree = await Tree.new(mtlibInstance.address, {
+      from: wallets[0].getAddressString()
+    });
+    var path = "00";
+    await balancesTree.updateLeaf(dataLeaves[0], "00");
+    var root = await balancesTree.getRoot();
+    // var siblings = await balancesTree.getSiblings(path);
+    var siblings: Array<string> = [
+      dataLeaves[1],
+      utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+    ];
+
+    console.log("data", root, dataLeaves[0], path, siblings);
+    var isValid = await mtlibInstance.verifyLeaf(
+      root,
+      dataLeaves[0],
+      path,
+      siblings
+    );
     expect(isValid).to.be.deep.eq(false);
   });
 });
