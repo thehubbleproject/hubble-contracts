@@ -104,7 +104,7 @@ contract MerkleTreeLib {
         bytes memory _dataBlock,
         uint256 _path,
         bytes32[] memory _siblings
-    ) public view returns (bytes32) {
+    ) public pure returns (bytes32) {
         // First compute the leaf node
         bytes32 computedNode = keccak256(_dataBlock);
 
