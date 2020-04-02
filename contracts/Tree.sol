@@ -113,18 +113,21 @@ contract Tree {
         tree.root = computedNode;
     }
 
+    event Iteration(uint256 index, bytes32 left, bytes32 right);
+
     /**
      * @notice Get siblings for a leaf at a particular index of the tree.
      *         This is used for updates which don't include sibling nodes.
      * @param _path The path from the leaf to the root / the index of the leaf.
      * @return The sibling nodes along the way.
      */
-    function getSiblings(uint256 _path) public view returns (bytes32[] memory) {
+    function getSiblings(uint256 _path) public returns (bytes32[] memory) {
         bytes32[] memory siblings = new bytes32[](tree.height);
         bytes32 computedNode = tree.root;
         for (uint256 i = tree.height; i > 0; i--) {
             uint256 siblingIndex = i - 1;
             (bytes32 leftChild, bytes32 rightChild) = getChildren(computedNode);
+            emit Iteration(i, leftChild, rightChild);
             if (MerkleLib.getNthBitFromRight(_path, siblingIndex) == 0) {
                 computedNode = leftChild;
                 siblings[siblingIndex] = rightChild;

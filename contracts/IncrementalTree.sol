@@ -38,7 +38,7 @@ contract IncrementalTree {
      * @notice Append leaf will append a leaf to the end of the tree
      * @return The sibling nodes along the way.
      */
-    function appendLeaf(bytes32 _leaf) public returns (bytes32) {
+    function appendLeaf(bytes32 _leaf) public returns (uint256) {
         uint256 currentIndex = nextLeafIndex;
 
         uint256 depth = uint256(tree.height);
@@ -63,8 +63,10 @@ contract IncrementalTree {
             currentIndex >>= 1;
         }
         tree.root = currentLevelHash;
+        uint256 n;
+        n = nextLeafIndex;
         nextLeafIndex += 1;
-        return tree.root;
+        return n;
     }
 
     /**

@@ -3,6 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import {Logger} from "./logger.sol";
 import {Tree} from "./Tree.sol";
+import {IncrementalTree} from "./IncrementalTree.sol";
+
 import {MerkleTreeLib} from "./libs/MerkleTreeLib.sol";
 import {DataTypes as dataTypes} from "./DataTypes.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
@@ -39,7 +41,7 @@ contract Rollup {
     // External contracts
     MerkleTreeLib public merkleTreeLib;
     Tree public balancesTree;
-    Tree public accountsTree;
+    IncrementalTree public accountsTree;
 
     Logger public logger;
 
@@ -89,7 +91,7 @@ contract Rollup {
     ) public {
         merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
         balancesTree = Tree(_balancesTree);
-        accountsTree = Tree(_accountsTree);
+        accountsTree = IncrementalTree(_accountsTree);
         tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
         logger = Logger(_logger);
         coordinator = _coordinator;
@@ -118,9 +120,11 @@ contract Rollup {
         );
         bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
 
+        // TODO need to commit the depths of all trees as well, because they are variable depth
         // make merkel root of all txs
         dataTypes.Batch memory newBatch = dataTypes.Batch({
             stateRoot: _updatedRoot,
+            accountRoot: accountsTree.getTreeRoot(),
             committer: msg.sender,
             txRoot: txRoot,
             stakeCommitted: msg.value,
@@ -147,18 +151,19 @@ contract Rollup {
         uint256 _batch_id,
         dataTypes.Transaction[] memory _txs,
         dataTypes.AccountMerkleProof[] memory _from_proofs,
+        dataTypes.PDAMerkleProof[] memory _pda_proof,
         dataTypes.AccountMerkleProof[] memory _to_proofs
     ) public {
         // load batch
-        dataTypes.Batch memory disputed_batch = batches[_batch_id];
+        // dataTypes.Batch memory disputed_batch = batches[_batch_id];
         require(
-            disputed_batch.stakeCommitted != 0,
+            batches[_batch_id].stakeCommitted != 0,
             "Batch doesnt exist or is slashed already"
         );
 
         // check if batch is disputable
         require(
-            block.number < disputed_batch.finalisesOn,
+            block.number < batches[_batch_id].finalisesOn,
             "Batch already finalised"
         );
 
@@ -177,7 +182,7 @@ contract Rollup {
         // if tx root while submission doesnt match tx root of given txs
         // dispute is unsuccessful
         require(
-            txRoot != disputed_batch.txRoot,
+            txRoot != batches[_batch_id].txRoot,
             "Invalid dispute, tx root doesn't match"
         );
 
@@ -195,7 +200,9 @@ contract Rollup {
             // tx evaluates correctly
             (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
                 batches[_batch_id].stateRoot,
+                batches[_batch_id].accountRoot,
                 _txs[i],
+                _pda_proof[i],
                 _from_proofs[i],
                 _to_proofs[i]
             );
@@ -216,7 +223,7 @@ contract Rollup {
 
         // if new root doesnt match what was submitted by coordinator
         // slash and rollback
-        if (newBalanceRoot != disputed_batch.stateRoot) {
+        if (newBalanceRoot != batches[_batch_id].stateRoot) {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;
@@ -232,13 +239,39 @@ contract Rollup {
      */
     function processTx(
         bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
         dataTypes.Transaction memory _tx,
+        dataTypes.PDAMerkleProof memory _pda_proof,
         dataTypes.AccountMerkleProof memory _from_merkle_proof,
         dataTypes.AccountMerkleProof memory _to_merkle_proof
     ) public returns (bytes32, uint256, uint256, bool) {
-        // check signature on the tx is correct
-        // TODO fix after adding account tree
-        // require(IdToAccounts[_tx.from.path] == getTxBytesHash(_tx).ecrecovery(_tx.signature),"Signature is incorrect");
+        // verify pubkey exists in PDA tree
+        require(
+            merkleTreeLib.verify(
+                _accountsRoot,
+                _pda_proof._pda.pubkey_leaf.pubkey,
+                _pda_proof._pda.pathToPubkey,
+                _pda_proof.siblings
+            ),
+            "The PDA proof is incorrect"
+        );
+
+        // convert pubkey path to ID
+        uint256 computedID = merkleTreeLib.pathToIndex(
+            _pda_proof._pda.pathToPubkey,
+            MAX_DEPTH
+        );
+
+        require(
+            computedID == _tx.from.ID,
+            "Pubkey not related to the from account in the transaction"
+        );
+
+        require(
+            calculateAddress(_pda_proof._pda.pubkey_leaf.pubkey) ==
+                HashFromTx(_tx).ecrecovery(_tx.signature),
+            "Signature is incorrect"
+        );
 
         // check token type is registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
@@ -447,13 +480,19 @@ contract Rollup {
             "token transfer not approved"
         );
 
+        // Add pubkey to PDA tree
+        dataTypes.PDALeaf memory newPDALeaf;
+        newPDALeaf.pubkey = _pubkey;
+
+        // returns leaf index upon successfull append
+        uint256 accID = accountsTree.appendLeaf(PDALeafToHash(newPDALeaf));
+
         // create a new account
         dataTypes.UserAccount memory newAccount;
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
-
-        //TODO add pubkey to the accounts tree
+        newAccount.ID = accID;
 
         // get new account hash
         bytes32 accountHash = HashFromAccount(newAccount);
@@ -501,6 +540,7 @@ contract Rollup {
      */
     function Withdraw(
         uint256 _batch_id,
+        dataTypes.PDAMerkleProof memory _pda_proof,
         dataTypes.TransactionMerkleProof memory withdraw_tx_proof
     ) public {
         // make sure the batch id is valid
@@ -541,7 +581,27 @@ contract Rollup {
         );
 
         //TODO get account address from PDA tree
-        address receiver;
+
+        // convert pubkey path to ID
+        // TODO replace MAX_DEPTH with the committed depth
+        uint256 computedID = merkleTreeLib.pathToIndex(
+            _pda_proof._pda.pathToPubkey,
+            MAX_DEPTH
+        );
+
+        require(
+            computedID == withdraw_tx_proof._tx.data.from.ID,
+            "Pubkey not related to the from account in the transaction"
+        );
+
+        address receiver = calculateAddress(_pda_proof._pda.pubkey_leaf.pubkey);
+        require(
+            receiver ==
+                HashFromTx(withdraw_tx_proof._tx.data).ecrecovery(
+                    withdraw_tx_proof._tx.data.signature
+                ),
+            "Signature is incorrect"
+        );
 
         uint256 amount = withdraw_tx_proof._tx.data.amount;
 
@@ -642,6 +702,13 @@ contract Rollup {
     //
 
     // ---------- Account Related Utils -------------------
+    function PDALeafToHash(dataTypes.PDALeaf memory _PDA_Leaf)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(_PDA_Leaf.pubkey));
+    }
 
     // returns a new User Account with updated balance
     function UpdateBalanceInAccount(
@@ -673,7 +740,13 @@ contract Rollup {
         pure
         returns (bytes memory)
     {
-        return abi.encode(account.balance, account.nonce, account.tokenType);
+        return
+            abi.encode(
+                account.ID,
+                account.balance,
+                account.nonce,
+                account.tokenType
+            );
     }
 
     // ---------- Tx Related Utils -------------------

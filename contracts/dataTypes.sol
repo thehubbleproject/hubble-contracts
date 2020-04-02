@@ -16,6 +16,7 @@ contract DataTypes {
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
         bytes32 stateRoot;
+        bytes32 accountRoot;
         address committer;
         bytes32 txRoot;
         uint256 stakeCommitted;
@@ -46,6 +47,11 @@ contract DataTypes {
         Transaction data;
     }
 
+    struct PDAInclusionProof {
+        uint256 pathToPubkey;
+        PDALeaf pubkey_leaf;
+    }
+
     // UserAccount contains the actual data stored in the leaf of balance tree
     struct UserAccount {
         // ID is the path to the pubkey in the PDA tree
@@ -62,6 +68,11 @@ contract DataTypes {
 
     struct TransactionMerkleProof {
         TranasctionInclusionProof _tx;
+        bytes32[] siblings;
+    }
+
+    struct PDAMerkleProof {
+        PDAInclusionProof _pda;
         bytes32[] siblings;
     }
 }

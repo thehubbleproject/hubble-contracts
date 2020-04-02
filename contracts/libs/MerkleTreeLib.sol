@@ -277,4 +277,18 @@ contract MerkleTreeLib {
             _parent |
             0x1000000000000000000000000000000000000000000000000000000000000000;
     }
+
+    function pathToIndex(uint256 path, uint256 height)
+        public
+        view
+        returns (uint256)
+    {
+        uint256 result = 0;
+        for (uint256 i = 0; i < height; i++) {
+            uint8 temp = getNthBitFromRight(path, i);
+            // UNSAFE FIX THIS
+            result = result + (temp * (2**i));
+        }
+        return result;
+    }
 }
