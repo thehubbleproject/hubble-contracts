@@ -54,13 +54,13 @@ contract("Rollup", async function(accounts) {
     assert(approveToken, "approveToken failed");
   });
 
-  it("should approve allow depositing one test token", async () => {
-    let rollupInstance = await Rollup.deployed();
-    let result = await rollupInstance.deposit(
-      10,
-      0,
-      wallets[0].getPublicKeyString()
-    );
-    console.log(result);
-  });
+  // it("should approve allow depositing one test token", async () => {
+  //   let rollupInstance = await Rollup.deployed();
+  //   let result = await rollupInstance.deposit(
+  //     10,
+  //     0,
+  //     wallets[0].getPublicKeyString()
+  //   );
+  //   console.log(result);
+  // });
 });

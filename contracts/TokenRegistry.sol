@@ -1,45 +1,47 @@
 pragma solidity >=0.4.21;
 
+import {Logger} from "./logger.sol";
+
 
 contract TokenRegistry {
     address public Coordinator;
     address public rollupNC;
-
+    Logger public logger;
     mapping(address => bool) public pendingRegistrations;
     mapping(uint256 => address) public registeredTokens;
 
     uint256 public numTokens;
-
-    modifier fromRollup {
-        assert(msg.sender == rollupNC);
-        _;
-    }
 
     modifier onlyCoordinator() {
         assert(msg.sender == Coordinator);
         _;
     }
 
-    constructor(address _coordinator) public {
+    constructor(address _coordinator, address _logger) public {
         Coordinator = _coordinator;
-        numTokens = 1; //ETH
+        logger = Logger(_logger);
     }
 
-    function setRollupAddress(address _rollupNC) public onlyCoordinator {
-        rollupNC = _rollupNC;
-    }
-
+    /**
+     * @notice Requests addition of a new token to the chain, can be called by anyone
+     * @param tokenContract Address for the new token being added
+     */
     function requestTokenRegistration(address tokenContract) public {
         require(
             pendingRegistrations[tokenContract] == false,
             "Token already registered."
         );
         pendingRegistrations[tokenContract] = true;
+        logger.logRegistrationRequest(tokenContract);
     }
 
+    /**
+     * @notice Add new tokens to the rollup chain by assigning them an ID called tokenType from here on
+     * @param tokenContract Deposit tree depth or depth of subtree that is being deposited
+     */
     function finaliseTokenRegistration(address tokenContract)
         public
-        fromRollup
+        onlyCoordinator
     {
         require(
             pendingRegistrations[tokenContract],
@@ -47,5 +49,6 @@ contract TokenRegistry {
         );
         numTokens++;
         registeredTokens[numTokens] = tokenContract; // tokenType => token contract address
+        logger.logRegisteredToken(numTokens, tokenContract);
     }
 }
