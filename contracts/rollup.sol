@@ -1,17 +1,20 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import {Logger} from "./logger.sol";
-import {Tree} from "./Tree.sol";
+import {Tree as MerkleTree} from "./Tree.sol";
 import {IncrementalTree} from "./IncrementalTree.sol";
-
-import {MerkleTreeLib} from "./libs/MerkleTreeLib.sol";
-import {DataTypes as dataTypes} from "./DataTypes.sol";
+import {ParamManager} from "./libs/ParamManager.sol";
+import {RollupUtils} from "./libs/RollupUtils.sol";
+import {Types} from "./libs/Types.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
-import {ECVerify} from "./ECVerify.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
+import {NameRegistry as Registry} from "./NameRegistry.sol";
+import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+
+import {ECVerify} from "./libs/ECVerify.sol";
 
 
 // Main rollup contract
@@ -20,39 +23,21 @@ contract Rollup {
     using BytesLib for bytes;
     using ECVerify for bytes32;
 
-    uint256 public MAX_DEPTH = 10;
-    uint256 constant MAX_TXS_PER_BATCH = 10;
-    uint256 public STAKE_AMOUNT = 32;
-    address payable BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
-    bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-
-    address coordinator;
-
-    // finalisation time is the number of blocks required by a batch to finalise
-    // Delay period = 7 days. Block time = 15 seconds
-    uint256 TIME_TO_FINALISE = 40320;
-
-    // min gas required before rollback pauses
-    uint256 MIN_GAS_LIMIT_LEFT = 100000;
     /*********************
      * Variable Declarations *
      ********************/
 
+    address coordinator;
+
     // External contracts
-    MerkleTreeLib public merkleTreeLib;
-    Tree public balancesTree;
+    MerkleTree public balancesTree;
     IncrementalTree public accountsTree;
-
     Logger public logger;
-
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
-
-    dataTypes.Batch[] public batches;
-
-    // Stores transaction paths claimed per batch
-    // TO BE REMOVED post withdraw mass migration
-    bool[][MAX_TXS_PER_BATCH] withdrawTxClaimed;
+    Registry public nameRegistry;
+    Types.Batch[] public batches;
+    MTUtils public merkleUtils;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
@@ -74,23 +59,26 @@ contract Rollup {
         _;
     }
 
+    // Stores transaction paths claimed per batch
+    // TO BE REMOVED post withdraw mass migration
+    bool[][] withdrawTxClaimed = new bool[][](ParamManager.MAX_TXS_PER_BATCH());
+
     /*********************
      * Constructor *
      ********************/
-    constructor(
-        address _balancesTree,
-        address _accountsTree,
-        address _merkleTreeLib,
-        address _tokenRegistryAddr,
-        address _logger,
-        address _coordinator
-    ) public {
-        merkleTreeLib = MerkleTreeLib(_merkleTreeLib);
-        balancesTree = Tree(_balancesTree);
-        accountsTree = IncrementalTree(_accountsTree);
-        tokenRegistry = ITokenRegistry(_tokenRegistryAddr);
-        logger = Logger(_logger);
-        coordinator = _coordinator;
+    constructor(address _registryAddr) public {
+        nameRegistry = Registry(_registryAddr);
+
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        balancesTree = MerkleTree(
+            nameRegistry.getContractDetails(ParamManager.BALANCES_TREE())
+        );
+        merkleUtils = MTUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
+        accountsTree = IncrementalTree(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        );
     }
 
     /**
@@ -105,26 +93,28 @@ contract Rollup {
         isNotRollingBack
     {
         require(
-            msg.value == STAKE_AMOUNT,
+            msg.value == ParamManager.STAKE_AMOUNT(),
             "Please send 32 eth with batch as stake"
         );
-        if (_txs.length > MAX_TXS_PER_BATCH) {}
+        if (_txs.length > ParamManager.MAX_TXS_PER_BATCH()) {
+            // TODO
+        }
 
         require(
-            _txs.length <= MAX_TXS_PER_BATCH,
+            _txs.length <= ParamManager.MAX_TXS_PER_BATCH(),
             "Batch contains more transations than the limit"
         );
-        bytes32 txRoot = merkleTreeLib.getMerkleRoot(_txs);
+        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
 
         // TODO need to commit the depths of all trees as well, because they are variable depth
         // make merkel root of all txs
-        dataTypes.Batch memory newBatch = dataTypes.Batch({
+        Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
             committer: msg.sender,
             txRoot: txRoot,
             stakeCommitted: msg.value,
-            finalisesOn: block.number + TIME_TO_FINALISE,
+            finalisesOn: block.number + ParamManager.TIME_TO_FINALISE(),
             timestamp: now
         });
 
@@ -145,13 +135,13 @@ contract Rollup {
      */
     function disputeBatch(
         uint256 _batch_id,
-        dataTypes.Transaction[] memory _txs,
-        dataTypes.AccountMerkleProof[] memory _from_proofs,
-        dataTypes.PDAMerkleProof[] memory _pda_proof,
-        dataTypes.AccountMerkleProof[] memory _to_proofs
+        Types.Transaction[] memory _txs,
+        Types.AccountMerkleProof[] memory _from_proofs,
+        Types.PDAMerkleProof[] memory _pda_proof,
+        Types.AccountMerkleProof[] memory _to_proofs
     ) public {
         // load batch
-        // dataTypes.Batch memory disputed_batch = batches[_batch_id];
+        // Types.Batch memory disputed_batch = batches[_batch_id];
         require(
             batches[_batch_id].stakeCommitted != 0,
             "Batch doesnt exist or is slashed already"
@@ -171,9 +161,9 @@ contract Rollup {
         // generate merkle tree from the txs provided by user
         bytes[] memory txs;
         for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = BytesFromTx(_txs[i]);
+            txs[i] = RollupUtils.BytesFromTx(_txs[i]);
         }
-        bytes32 txRoot = merkleTreeLib.getMerkleRoot(txs);
+        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
 
         // if tx root while submission doesnt match tx root of given txs
         // dispute is unsuccessful
@@ -236,14 +226,14 @@ contract Rollup {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        dataTypes.Transaction memory _tx,
-        dataTypes.PDAMerkleProof memory _pda_proof,
-        dataTypes.AccountMerkleProof memory _from_merkle_proof,
-        dataTypes.AccountMerkleProof memory _to_merkle_proof
+        Types.Transaction memory _tx,
+        Types.PDAMerkleProof memory _pda_proof,
+        Types.AccountMerkleProof memory _from_merkle_proof,
+        Types.AccountMerkleProof memory _to_merkle_proof
     ) public returns (bytes32, uint256, uint256, bool) {
         // verify pubkey exists in PDA tree
         require(
-            merkleTreeLib.verify(
+            merkleUtils.verify(
                 _accountsRoot,
                 _pda_proof._pda.pubkey_leaf.pubkey,
                 _pda_proof._pda.pathToPubkey,
@@ -253,9 +243,9 @@ contract Rollup {
         );
 
         // convert pubkey path to ID
-        uint256 computedID = merkleTreeLib.pathToIndex(
+        uint256 computedID = merkleUtils.pathToIndex(
             _pda_proof._pda.pathToPubkey,
-            MAX_DEPTH
+            ParamManager.MAX_DEPTH()
         );
 
         require(
@@ -264,8 +254,8 @@ contract Rollup {
         );
 
         require(
-            calculateAddress(_pda_proof._pda.pubkey_leaf.pubkey) ==
-                HashFromTx(_tx).ecrecovery(_tx.signature),
+            RollupUtils.calculateAddress(_pda_proof._pda.pubkey_leaf.pubkey) ==
+                RollupUtils.HashFromTx(_tx).ecrecovery(_tx.signature),
             "Signature is incorrect"
         );
 
@@ -274,14 +264,14 @@ contract Rollup {
             // invalid state transition
             // to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, 0, 0, false);
+            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
         }
 
         // verify from leaf exists in the balance tree
         require(
-            merkleTreeLib.verify(
+            merkleUtils.verify(
                 _balanceRoot,
-                BytesFromAccount(_tx.from),
+                RollupUtils.BytesFromAccount(_tx.from),
                 _from_merkle_proof.accountIP.pathToAccount,
                 _from_merkle_proof.siblings
             ),
@@ -292,7 +282,7 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had amount less than 0
-            return (ZERO_BYTES32, 0, 0, false);
+            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
         }
 
         // check from leaf has enough balance
@@ -300,7 +290,7 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer
-            return (ZERO_BYTES32, 0, 0, false);
+            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
         }
 
         // account holds the token type in the tx
@@ -308,28 +298,29 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, 0, 0, false);
+            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
         }
 
         // reduce balance of from leaf
-        dataTypes.UserAccount memory new_from_leaf = UpdateBalanceInAccount(
+        Types.UserAccount memory new_from_leaf = RollupUtils
+            .UpdateBalanceInAccount(
             _from_merkle_proof.accountIP.account,
-            BalanceFromAccount(_from_merkle_proof.accountIP.account).sub(
-                _tx.amount
-            )
+            RollupUtils
+                .BalanceFromAccount(_from_merkle_proof.accountIP.account)
+                .sub(_tx.amount)
         );
 
-        bytes32 newRoot = merkleTreeLib.updateLeafWithSiblings(
-            keccak256(BytesFromAccount(new_from_leaf)),
+        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
+            keccak256(RollupUtils.BytesFromAccount(new_from_leaf)),
             _from_merkle_proof.accountIP.pathToAccount,
             _from_merkle_proof.siblings
         );
 
         // verify to leaf exists in the balance tree
         require(
-            merkleTreeLib.verify(
+            merkleUtils.verify(
                 newRoot,
-                BytesFromAccount(_tx.to),
+                RollupUtils.BytesFromAccount(_tx.to),
                 _to_merkle_proof.accountIP.pathToAccount,
                 _to_merkle_proof.siblings
             ),
@@ -341,32 +332,33 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, 0, 0, false);
+            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
         }
 
         // increase balance of to leaf
-        dataTypes.UserAccount memory new_to_leaf = UpdateBalanceInAccount(
+        Types.UserAccount memory new_to_leaf = RollupUtils
+            .UpdateBalanceInAccount(
             _to_merkle_proof.accountIP.account,
-            BalanceFromAccount(_to_merkle_proof.accountIP.account).add(
-                _tx.amount
-            )
+            RollupUtils
+                .BalanceFromAccount(_to_merkle_proof.accountIP.account)
+                .add(_tx.amount)
         );
 
         // update the merkle tree
         balancesTree.update(
-            BytesFromAccount(new_to_leaf),
+            RollupUtils.BytesFromAccount(new_to_leaf),
             _to_merkle_proof.accountIP.pathToAccount
         );
-        newRoot = merkleTreeLib.updateLeafWithSiblings(
-            keccak256(BytesFromAccount(new_to_leaf)),
+        newRoot = merkleUtils.updateLeafWithSiblings(
+            keccak256(RollupUtils.BytesFromAccount(new_to_leaf)),
             _to_merkle_proof.accountIP.pathToAccount,
             _to_merkle_proof.siblings
         );
 
         return (
             newRoot,
-            BalanceFromAccount(new_from_leaf),
-            BalanceFromAccount(new_to_leaf),
+            RollupUtils.BalanceFromAccount(new_from_leaf),
+            RollupUtils.BalanceFromAccount(new_to_leaf),
             true
         );
     }
@@ -384,7 +376,7 @@ contract Rollup {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
-            if (gasleft() <= MIN_GAS_LIMIT_LEFT) {
+            if (gasleft() <= ParamManager.MIN_GAS_LIMIT_LEFT()) {
                 // exit loop gracefully
                 break;
             }
@@ -396,7 +388,7 @@ contract Rollup {
             }
 
             // load batch
-            dataTypes.Batch memory batch = batches[i];
+            Types.Batch memory batch = batches[i];
 
             // TODO use safe math
             // calculate challeger's reward
@@ -424,12 +416,35 @@ contract Rollup {
         (msg.sender).transfer(challengerRewards);
 
         // burn the remaning amount
-        (BURN_ADDRESS).transfer(burnedAmount);
+        address payable burnAddress = ParamManager.BURN_ADDRESS();
+        (burnAddress).transfer(burnedAmount);
 
         // resize batches length
         batches.length = batches.length.sub(invalidBatchMarker.sub(1));
 
         logger.logRollbackFinalisation(totalSlashings);
+    }
+
+    /**
+     * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
+     * @param batch_id Batch ID that the coordinator submitted
+     */
+    function WithdrawStake(uint256 batch_id) public {
+        Types.Batch memory committedBatch = batches[batch_id];
+        require(
+            msg.sender == committedBatch.committer,
+            "You are not the correct committer for this batch"
+        );
+        require(
+            block.number > committedBatch.finalisesOn,
+            "This batch is not yet finalised, check back soon!"
+        );
+        msg.sender.transfer(committedBatch.stakeCommitted);
+        logger.logStakeWithdraw(
+            msg.sender,
+            committedBatch.stakeCommitted,
+            batch_id
+        );
     }
 
     /**
@@ -441,8 +456,8 @@ contract Rollup {
      */
     function Withdraw(
         uint256 _batch_id,
-        dataTypes.PDAMerkleProof memory _pda_proof,
-        dataTypes.TransactionMerkleProof memory withdraw_tx_proof
+        Types.PDAMerkleProof memory _pda_proof,
+        Types.TransactionMerkleProof memory withdraw_tx_proof
     ) public {
         // make sure the batch id is valid
         require(
@@ -450,15 +465,14 @@ contract Rollup {
             "Batch id greater than total number of batches, invalid batch id"
         );
 
-        dataTypes.Batch memory batch = batches[_batch_id];
+        Types.Batch memory batch = batches[_batch_id];
 
         // check if the batch is finalised
-        require(block.number > batch.finalisesOn, "Batch not finalised yet");
-
+        require(block.number > batch.finalisesOn, "Batch not finalised yt");
         // verify transaction exists in the batch
-        merkleTreeLib.verify(
+        merkleUtils.verify(
             batch.txRoot,
-            BytesFromTx(withdraw_tx_proof._tx.data),
+            RollupUtils.BytesFromTx(withdraw_tx_proof._tx.data),
             withdraw_tx_proof._tx.pathToTx,
             withdraw_tx_proof.siblings
         );
@@ -481,13 +495,11 @@ contract Rollup {
             withdraw_tx_proof._tx.data.tokenType
         );
 
-        //TODO get account address from PDA tree
-
         // convert pubkey path to ID
         // TODO replace MAX_DEPTH with the committed depth
-        uint256 computedID = merkleTreeLib.pathToIndex(
+        uint256 computedID = merkleUtils.pathToIndex(
             _pda_proof._pda.pathToPubkey,
-            MAX_DEPTH
+            ParamManager.MAX_DEPTH()
         );
 
         require(
@@ -495,10 +507,12 @@ contract Rollup {
             "Pubkey not related to the from account in the transaction"
         );
 
-        address receiver = calculateAddress(_pda_proof._pda.pubkey_leaf.pubkey);
+        address receiver = RollupUtils.calculateAddress(
+            _pda_proof._pda.pubkey_leaf.pubkey
+        );
         require(
             receiver ==
-                HashFromTx(withdraw_tx_proof._tx.data).ecrecovery(
+                RollupUtils.HashFromTx(withdraw_tx_proof._tx.data).ecrecovery(
                     withdraw_tx_proof._tx.data.signature
                 ),
             "Signature is incorrect"
@@ -508,68 +522,5 @@ contract Rollup {
 
         tokenContract = IERC20(tokenContractAddress);
         require(tokenContract.transfer(receiver, amount), "Unable to trasnfer");
-    }
-
-    /**
-     * @notice Merges the deposit tree with the balance tree by
-     *        superimposing the deposit subtree on the balance tree
-     * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
-     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
-     * @return Updates in-state merkle tree root
-     */
-    function finaliseDeposits(
-        uint256 _subTreeDepth,
-        dataTypes.AccountMerkleProof memory _zero_account_mp
-    ) public onlyCoordinator returns (bytes32) {
-        bytes32 emptySubtreeRoot = merkleTreeLib.getRoot(_subTreeDepth);
-
-        // from mt proof we find the root of the tree
-        // we match the root to the balance tree root on-chain
-        require(
-            merkleTreeLib.verifyLeaf(
-                getBalanceTreeRoot(),
-                emptySubtreeRoot,
-                _zero_account_mp.accountIP.pathToAccount,
-                _zero_account_mp.siblings
-            ),
-            "proof invalid"
-        );
-
-        // update the in-state balance tree with new leaf from pendingDeposits[0]
-        balancesTree.updateLeaf(
-            pendingDeposits[0],
-            _zero_account_mp.accountIP.pathToAccount
-        );
-
-        // removed the root at pendingDeposits[0] because it has been added to the balance tree
-        removeDeposit(0);
-
-        // update the number of elements present in the queue
-        queueNumber = queueNumber - 2**depositSubtreeHeight;
-
-        // return the updated merkle tree root
-        return getBalanceTreeRoot();
-    }
-
-    /**
-     * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
-     * @param batch_id Batch ID that the coordinator submitted
-     */
-    function WithdrawStake(uint256 batch_id) public {
-        dataTypes.Batch memory committedBatch = batches[batch_id];
-        require(
-            msg.sender == committedBatch.committer,
-            "You are not the correct committer for this batch"
-        );
-        require(
-            block.number > committedBatch.finalisesOn,
-            "This batch is not yet finalised, check back soon!"
-        );
-        msg.sender.transfer(committedBatch.stakeCommitted);
-        logger.logStakeWithdraw(
-            msg.sender,
-            committedBatch.stakeCommitted,
-            batch_id
-        );
     }
 }

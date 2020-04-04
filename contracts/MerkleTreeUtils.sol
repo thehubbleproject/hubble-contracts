@@ -1,8 +1,8 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 
-contract MerkleTreeLib {
+contract MerkleTreeUtils {
     // The default hashes
     bytes32[] public defaultHashes = new bytes32[](160);
     uint256 public MAX_DEPTH;

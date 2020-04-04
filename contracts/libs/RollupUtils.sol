@@ -1,9 +1,12 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.5.15;
+pragma experimental ABIEncoderV2;
+
+import {Types} from "./Types.sol";
 
 
 library RollupUtils {
     // ---------- Account Related Utils -------------------
-    function PDALeafToHash(dataTypes.PDALeaf memory _PDA_Leaf)
+    function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
         pure
         returns (bytes32)
@@ -13,14 +16,14 @@ library RollupUtils {
 
     // returns a new User Account with updated balance
     function UpdateBalanceInAccount(
-        dataTypes.UserAccount memory original_account,
+        Types.UserAccount memory original_account,
         uint256 new_balance
-    ) public pure returns (dataTypes.UserAccount memory updated_account) {
+    ) public pure returns (Types.UserAccount memory updated_account) {
         original_account.balance = new_balance;
         return original_account;
     }
 
-    function BalanceFromAccount(dataTypes.UserAccount memory account)
+    function BalanceFromAccount(Types.UserAccount memory account)
         public
         pure
         returns (uint256)
@@ -28,7 +31,7 @@ library RollupUtils {
         return account.balance;
     }
 
-    function HashFromAccount(dataTypes.UserAccount memory account)
+    function HashFromAccount(Types.UserAccount memory account)
         public
         pure
         returns (bytes32)
@@ -36,7 +39,7 @@ library RollupUtils {
         return keccak256(BytesFromAccount(account));
     }
 
-    function BytesFromAccount(dataTypes.UserAccount memory account)
+    function BytesFromAccount(Types.UserAccount memory account)
         public
         pure
         returns (bytes memory)
@@ -52,7 +55,7 @@ library RollupUtils {
 
     // ---------- Tx Related Utils -------------------
 
-    function BytesFromTx(dataTypes.Transaction memory _tx)
+    function BytesFromTx(Types.Transaction memory _tx)
         public
         pure
         returns (bytes memory)
@@ -60,16 +63,12 @@ library RollupUtils {
         return abi.encode(_tx);
     }
 
-    function HashFromTx(dataTypes.Transaction memory _tx)
+    function HashFromTx(Types.Transaction memory _tx)
         public
         pure
         returns (bytes32)
     {
         return keccak256(BytesFromTx(_tx));
-    }
-
-    function getBalanceTreeRoot() public view returns (bytes32) {
-        return balancesTree.getRoot();
     }
 
     /**
@@ -82,14 +81,6 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(abi.encode(a, b));
-    }
-
-    /**
-     * @notice Gives the number of batches submitted on-chain
-     * @return Total number of batches submitted onchain
-     */
-    function numberOfBatches() public view returns (uint256) {
-        return batches.length;
     }
 
     /**

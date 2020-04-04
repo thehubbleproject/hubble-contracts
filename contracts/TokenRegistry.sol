@@ -1,6 +1,8 @@
 pragma solidity >=0.4.21;
 
-import {Logger} from "./logger.sol";
+import {Logger} from "./Logger.sol";
+import {NameRegistry as Registry} from "./NameRegistry.sol";
+import {ParamManager} from "./libs/ParamManager.sol";
 
 
 contract TokenRegistry {
@@ -16,10 +18,13 @@ contract TokenRegistry {
         assert(msg.sender == Coordinator);
         _;
     }
+    Registry public nameRegistry;
 
-    constructor(address _coordinator, address _logger) public {
-        Coordinator = _coordinator;
-        logger = Logger(_logger);
+    constructor(address _registryAddr) public {
+        nameRegistry = Registry(_registryAddr);
+        // Coordinator = _coordinator;
+
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
     }
 
     /**

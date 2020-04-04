@@ -1,12 +1,10 @@
-pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.5.15;
 
 
 /**
  * @title DataTypes
- * @notice TODO
  */
-contract DataTypes {
+library Types {
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {

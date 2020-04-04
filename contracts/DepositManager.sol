@@ -1,20 +1,45 @@
-pragma solidity ^0.5.0;
-
-import {DataTypes as dataTypes} from "./DataTypes.sol";
-import {Logger} from "./logger.sol";
+pragma solidity ^0.5.15;
+pragma experimental ABIEncoderV2;
+import {IncrementalTree} from "./IncrementalTree.sol";
+import {Types} from "./libs/Types.sol";
+import {Logger} from "./Logger.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
+import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+import {NameRegistry as Registry} from "./NameRegistry.sol";
+import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
+import {IERC20} from "./interfaces/IERC20.sol";
+import {Tree as MerkleTree} from "./Tree.sol";
+import {ParamManager} from "./libs/ParamManager.sol";
 
 
 contract DepositManager {
+    MTUtils public merkleUtils;
+    Registry public nameRegistry;
+    MerkleTree public balancesTree;
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
     Logger public logger;
     address public Coordinator;
+    ITokenRegistry public tokenRegistry;
+    IERC20 public tokenContract;
+    IncrementalTree public accountsTree;
 
-    constructor(address _coordinator, address _logger) public {
-        Coordinator = _coordinator;
-        logger = Logger(_logger);
+    constructor(address _registryAddr) public {
+        nameRegistry = Registry(_registryAddr);
+        merkleUtils = MTUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
+        tokenRegistry = ITokenRegistry(
+            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+        );
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        accountsTree = IncrementalTree(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        );
+        balancesTree = MerkleTree(
+            nameRegistry.getContractDetails(ParamManager.BALANCES_TREE())
+        );
     }
 
     /**
@@ -62,21 +87,23 @@ contract DepositManager {
         );
 
         // Add pubkey to PDA tree
-        dataTypes.PDALeaf memory newPDALeaf;
+        Types.PDALeaf memory newPDALeaf;
         newPDALeaf.pubkey = _pubkey;
 
         // returns leaf index upon successfull append
-        uint256 accID = accountsTree.appendLeaf(PDALeafToHash(newPDALeaf));
+        uint256 accID = accountsTree.appendLeaf(
+            RollupUtils.PDALeafToHash(newPDALeaf)
+        );
 
         // create a new account
-        dataTypes.UserAccount memory newAccount;
+        Types.UserAccount memory newAccount;
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
         newAccount.ID = accID;
 
         // get new account hash
-        bytes32 accountHash = HashFromAccount(newAccount);
+        bytes32 accountHash = RollupUtils.HashFromAccount(newAccount);
 
         // queue the deposit
         pendingDeposits.push(accountHash);
@@ -99,10 +126,8 @@ contract DepositManager {
             deposits[0] = pendingDeposits[pendingDeposits.length - 2];
             deposits[1] = pendingDeposits[pendingDeposits.length - 1];
 
-            pendingDeposits[pendingDeposits.length - 2] = getDepositsHash(
-                deposits[0],
-                deposits[1]
-            );
+            pendingDeposits[pendingDeposits.length - 2] = RollupUtils
+                .getDepositsHash(deposits[0], deposits[1]);
             removeDeposit(pendingDeposits.length - 1);
             tmp = tmp / 2;
             tmpDepositSubtreeHeight++;
@@ -110,6 +135,47 @@ contract DepositManager {
         if (tmpDepositSubtreeHeight > depositSubtreeHeight) {
             depositSubtreeHeight = tmpDepositSubtreeHeight;
         }
+    }
+
+    /**
+     * @notice Merges the deposit tree with the balance tree by
+     *        superimposing the deposit subtree on the balance tree
+     * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
+     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
+     * @return Updates in-state merkle tree root
+     */
+    function finaliseDeposits(
+        uint256 _subTreeDepth,
+        Types.AccountMerkleProof memory _zero_account_mp
+    ) public returns (bytes32) {
+        bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
+
+        // from mt proof we find the root of the tree
+        // we match the root to the balance tree root on-chain
+        require(
+            merkleUtils.verifyLeaf(
+                balancesTree.getRoot(),
+                emptySubtreeRoot,
+                _zero_account_mp.accountIP.pathToAccount,
+                _zero_account_mp.siblings
+            ),
+            "proof invalid"
+        );
+
+        // update the in-state balance tree with new leaf from pendingDeposits[0]
+        balancesTree.updateLeaf(
+            pendingDeposits[0],
+            _zero_account_mp.accountIP.pathToAccount
+        );
+
+        // removed the root at pendingDeposits[0] because it has been added to the balance tree
+        removeDeposit(0);
+
+        // update the number of elements present in the queue
+        queueNumber = queueNumber - 2**depositSubtreeHeight;
+
+        // return the updated merkle tree root
+        return balancesTree.getRoot();
     }
 
     /**

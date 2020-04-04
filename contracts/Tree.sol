@@ -1,14 +1,13 @@
-pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
-import {MerkleTreeLib as MTLib} from "./libs/MerkleTreeLib.sol";
+pragma solidity ^0.5.15;
+import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+import {NameRegistry as Registry} from "./NameRegistry.sol";
 
 
 /*
  * Merkle Tree Utilities for Rollup
  */
 contract Tree {
-    MTLib MerkleLib;
-    /* Structs */
+    MTUtils merkleUtils; /* Structs */
     // A partial merkle tree which can be updated with new nodes, recomputing the root
     struct MerkleTree {
         // The root
@@ -17,11 +16,11 @@ contract Tree {
         mapping(bytes32 => bytes32) nodes;
     }
 
-    constructor(address _mtLibAddress) public {
-        MerkleLib = MTLib(_mtLibAddress);
+    constructor(address _mtutils) public {
+        merkleUtils = MTUtils(_mtutils);
         setMerkleRootAndHeight(
-            MerkleLib.getZeroRoot(),
-            MerkleLib.getMaxTreeDepth()
+            merkleUtils.getZeroRoot(),
+            merkleUtils.getMaxTreeDepth()
         );
     }
 
@@ -94,16 +93,16 @@ contract Tree {
         for (uint256 i = 0; i < _siblings.length; i++) {
             bytes32 parent;
             bytes32 sibling = _siblings[i];
-            uint8 isComputedRightSibling = MerkleLib.getNthBitFromRight(
+            uint8 isComputedRightSibling = merkleUtils.getNthBitFromRight(
                 _path,
                 i
             );
             if (isComputedRightSibling == 0) {
-                parent = MerkleLib.getParent(computedNode, sibling);
+                parent = merkleUtils.getParent(computedNode, sibling);
                 // Store the node!
                 storeNode(parent, computedNode, sibling);
             } else {
-                parent = MerkleLib.getParent(sibling, computedNode);
+                parent = merkleUtils.getParent(sibling, computedNode);
                 // Store the node!
                 storeNode(parent, sibling, computedNode);
             }
@@ -112,8 +111,6 @@ contract Tree {
         // Store the new root
         tree.root = computedNode;
     }
-
-    event Iteration(uint256 index, bytes32 left, bytes32 right);
 
     /**
      * @notice Get siblings for a leaf at a particular index of the tree.
@@ -127,8 +124,7 @@ contract Tree {
         for (uint256 i = tree.height; i > 0; i--) {
             uint256 siblingIndex = i - 1;
             (bytes32 leftChild, bytes32 rightChild) = getChildren(computedNode);
-            emit Iteration(i, leftChild, rightChild);
-            if (MerkleLib.getNthBitFromRight(_path, siblingIndex) == 0) {
+            if (merkleUtils.getNthBitFromRight(_path, siblingIndex) == 0) {
                 computedNode = leftChild;
                 siblings[siblingIndex] = rightChild;
             } else {
@@ -170,8 +166,8 @@ contract Tree {
     function storeNode(bytes32 _parent, bytes32 _leftChild, bytes32 _rightChild)
         public
     {
-        tree.nodes[MerkleLib.getLeftSiblingKey(_parent)] = _leftChild;
-        tree.nodes[MerkleLib.getRightSiblingKey(_parent)] = _rightChild;
+        tree.nodes[merkleUtils.getLeftSiblingKey(_parent)] = _leftChild;
+        tree.nodes[merkleUtils.getRightSiblingKey(_parent)] = _rightChild;
     }
 
     /**
@@ -185,8 +181,8 @@ contract Tree {
         returns (bytes32, bytes32)
     {
         return (
-            tree.nodes[MerkleLib.getLeftSiblingKey(_parent)],
-            tree.nodes[MerkleLib.getRightSiblingKey(_parent)]
+            tree.nodes[merkleUtils.getLeftSiblingKey(_parent)],
+            tree.nodes[merkleUtils.getRightSiblingKey(_parent)]
         );
     }
 }

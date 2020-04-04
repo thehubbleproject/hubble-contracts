@@ -1,16 +1,16 @@
-pragma solidity ^0.5.0;
-pragma experimental ABIEncoderV2;
+pragma solidity ^0.5.15;
 
-import {MerkleTreeLib as MTLib} from "./libs/MerkleTreeLib.sol";
+import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+import {ParamManager} from "./libs/ParamManager.sol";
+import {NameRegistry as Registry} from "./NameRegistry.sol";
 
 
 contract IncrementalTree {
-    MTLib mtLib;
+    Registry public nameRegistry;
+    MTUtils public merkleUtils;
 
-    // The maximum tree depth
-    uint8 internal constant MAX_DEPTH = 32;
-    /* Structs */
-    // A partial merkle tree which can be updated with new nodes, recomputing the root
+    MerkleTree public tree;
+    // Merkle Tree to store the whole tree
     struct MerkleTree {
         // Root of the tree
         bytes32 root;
@@ -18,21 +18,25 @@ contract IncrementalTree {
         uint256 height;
         // Allows you to compute the path to the element (but it's not the path to
         // the elements). Caching these values is essential to efficient appends.
-        bytes32[MAX_DEPTH] filledSubtrees;
+        bytes32[] filledSubtrees;
     }
 
     // The number of inserted leaves
-    uint256 internal nextLeafIndex = 0;
+    uint256 public nextLeafIndex = 0;
 
-    constructor(address _mtLibAddress) public {
-        mtLib = MTLib(_mtLibAddress);
-        setMerkleRootAndHeight(mtLib.getZeroRoot(), mtLib.getMaxTreeDepth());
-        for (uint8 i = 1; i < mtLib.getMaxTreeDepth(); i++) {
-            tree.filledSubtrees[i] = mtLib.getRoot(0);
+    constructor(address _registryAddr) public {
+        nameRegistry = Registry(_registryAddr);
+        merkleUtils = MTUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
+        setMerkleRootAndHeight(
+            merkleUtils.getZeroRoot(),
+            merkleUtils.getMaxTreeDepth()
+        );
+        for (uint8 i = 1; i < merkleUtils.getMaxTreeDepth(); i++) {
+            tree.filledSubtrees[i] = merkleUtils.getRoot(0);
         }
     }
-
-    MerkleTree public tree;
 
     /**
      * @notice Append leaf will append a leaf to the end of the tree
@@ -53,13 +57,13 @@ contract IncrementalTree {
         for (uint8 i = 0; i < tree.height; i++) {
             if (currentIndex % 2 == 0) {
                 left = currentLevelHash;
-                right = mtLib.getRoot(i);
+                right = merkleUtils.getRoot(i);
                 tree.filledSubtrees[i] = currentLevelHash;
             } else {
                 left = tree.filledSubtrees[i];
                 right = currentLevelHash;
             }
-            currentLevelHash = mtLib.getParent(left, right);
+            currentLevelHash = merkleUtils.getParent(left, right);
             currentIndex >>= 1;
         }
         tree.root = currentLevelHash;
