@@ -1,12 +1,14 @@
 pragma solidity ^0.5.15;
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
+import {ParamManager} from "./libs/ParamManager.sol";
 
 
 /*
  * Merkle Tree Utilities for Rollup
  */
 contract Tree {
+    Registry public nameRegistry;
     MTUtils merkleUtils; /* Structs */
     // A partial merkle tree which can be updated with new nodes, recomputing the root
     struct MerkleTree {
@@ -16,8 +18,11 @@ contract Tree {
         mapping(bytes32 => bytes32) nodes;
     }
 
-    constructor(address _mtutils) public {
-        merkleUtils = MTUtils(_mtutils);
+    constructor(address _registryAddr) public {
+        nameRegistry = Registry(_registryAddr);
+        merkleUtils = MTUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
         setMerkleRootAndHeight(
             merkleUtils.getZeroRoot(),
             merkleUtils.getMaxTreeDepth()
