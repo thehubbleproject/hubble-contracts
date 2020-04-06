@@ -1,13 +1,14 @@
-const MTLib = artifacts.require("MerkleTreeLib");
-
-const MT = artifacts.require("Tree");
-const RollUp = artifacts.require("Rollup");
 const ECVerify = artifacts.require("ECVerify");
-const TokenRegistry = artifacts.require("TokenRegistry");
-const TestToken = artifacts.require("TestToken");
-const Logger = artifacts.require("Logger");
-
+const ParamManager = artifacts.require("ParamManager");
+const RollupUtils = artifacts.require("RollupUtils");
+const Types = artifacts.require("Types");
+const NameRegistry = artifacts.require("NameRegistry");
+const deployerContract = artifacts.require("deployer");
 const fs = require("fs");
+const Tree = artifacts.require("Tree");
+const IncrementalTree = artifacts.require("IncrementalTree");
+const DepositManager = artifacts.require("DepositManager");
+const Rollup = artifacts.require("Rollup");
 
 function writeContractAddresses(contractAddresses) {
   fs.writeFileSync(
@@ -20,41 +21,61 @@ module.exports = async function(deployer) {
   var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
   var max_depth = 5;
 
-  await deployer.deploy(MTLib, max_depth);
-  var mtLibAddr = MTLib.address;
-
-  balanceTree = await deployer.deploy(MT, mtLibAddr);
-  accountTree = await deployer.deploy(MT, mtLibAddr);
-
+  // deploy libs
   await deployer.deploy(ECVerify);
-  await deployer.link(ECVerify, RollUp);
+  await deployer.deploy(Types);
+  await deployer.deploy(ParamManager);
+  await deployer.deploy(RollupUtils);
 
-  logger = await deployer.deploy(Logger);
-  tokenRegistry = await deployer.deploy(TokenRegistry, coordinator);
+  // deploy name registry
+  var nameRegistry = await deployer.deploy(NameRegistry);
 
-  rollupContract = await deployer.deploy(
-    RollUp,
-    balanceTree.address,
-    accountTree.address,
-    mtLibAddr,
-    tokenRegistry.address,
-    logger.address,
-    coordinator
+  await deployer.link(ECVerify, deployerContract);
+  await deployer.link(Types, deployerContract);
+  await deployer.link(ParamManager, deployerContract);
+  await deployer.link(RollupUtils, deployerContract);
+  var deployerContractInstance = await deployer.deploy(
+    deployerContract,
+    nameRegistry.address
   );
 
-  await deployer.deploy(TestToken, coordinator);
-  console.log("writing contract addresses to file...");
+  await deployer.link(ParamManager, Tree);
+  // deploy balances tree
+  var balancesTree = await deployer.deploy(Tree, nameRegistry.address);
+
+  await deployer.link(ParamManager, IncrementalTree);
+  // deploy accounts tree
+  var accountsTree = await deployer.deploy(
+    IncrementalTree,
+    nameRegistry.address
+  );
+
+  await deployer.link(Types, DepositManager);
+  await deployer.link(ParamManager, DepositManager);
+  await deployer.link(RollupUtils, DepositManager);
+  // deploy deposit manager
+  var depositManager = await deployer.deploy(
+    DepositManager,
+    nameRegistry.address
+  );
+
+  await deployer.link(ECVerify, Rollup);
+  await deployer.link(Types, Rollup);
+  await deployer.link(ParamManager, Rollup);
+  await deployer.link(RollupUtils, Rollup);
+  // deploy rollup core
+  var rollup = await deployer.deploy(Rollup, nameRegistry.address);
+
+  // merkleUtils = await NameRegistry.getContractDetails();
 
   const contractAddresses = {
-    Coordinator: coordinator,
-    MerkleTreeLib: MTLib.address,
-    BalanceTree: balanceTree.address,
-    AccountTree: accountTree.address,
-    ECVeridy: ECVerify.address,
-    TokenRegistry: TokenRegistry.address,
-    TestTokenContract: TestToken.address,
-    RollupContract: rollupContract.address,
-    Logger: logger.address
+    // MerkleUtils: MTLib.address,
+    BalanceTree: balancesTree.address,
+    AccountTree: accountsTree.address,
+    // ECVeridy: ECVerify.address,
+    // TokenRegistry: TokenRegistry.address,
+    // TestTokenContract: TestToken.address,
+    RollupContract: rollup.address
   };
   writeContractAddresses(contractAddresses);
 };

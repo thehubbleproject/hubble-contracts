@@ -1,6 +1,7 @@
-const MTLib = artifacts.require("MerkleTreeLib");
+const MTLib = artifacts.require("MerkleTreeUtils");
 const IMT = artifacts.require("IncrementalTree");
-
+const nameRegistry = artifacts.require("NameRegistry");
+const ParamManager = artifacts.require("ParamManager");
 import * as walletHelper from "../helpers/wallet";
 import * as utils from "../helpers/utils";
 contract("IncrementalTree", async function(accounts) {
@@ -29,12 +30,12 @@ contract("IncrementalTree", async function(accounts) {
 
   // test if we are able to create append a leaf
   it("create incremental MT and add 2 leaves", async function() {
-    let mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
-    let IMTInstace = await IMT.new(mtlibInstance.address, {
-      from: wallets[0].getAddressString()
-    });
+    var nameRegistryInstance = await nameRegistry.deployed();
+    var paramManager = await ParamManager.deployed();
+    var mtLibKey = await paramManager.MERKLE_UTILS();
+    var MtUtilsAddr = await nameRegistryInstance.getContractDetails(mtLibKey);
+    var mtlibInstance = await MTLib.at(MtUtilsAddr);
+    let IMTInstace = await IMT.deployed();
     var leaf = dataLeaves[0];
     var zeroLeaf = await mtlibInstance.getRoot(0);
     await IMTInstace.appendLeaf(leaf);

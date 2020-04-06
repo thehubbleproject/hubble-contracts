@@ -33,9 +33,9 @@ contract IncrementalTree {
             merkleUtils.getZeroRoot(),
             merkleUtils.getMaxTreeDepth()
         );
-        for (uint8 i = 1; i < merkleUtils.getMaxTreeDepth(); i++) {
-            tree.filledSubtrees[i] = merkleUtils.getRoot(0);
-        }
+        // for (uint8 i = 1; i < merkleUtils.getMaxTreeDepth(); i++) {
+        //     tree.filledSubtrees[i] = merkleUtils.getRoot(0);
+        // }
     }
 
     /**

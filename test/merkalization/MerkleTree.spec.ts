@@ -1,11 +1,16 @@
-const MTLib = artifacts.require("MerkleTreeLib");
+const MTLib = artifacts.require("MerkleTreeUtils");
 const IMT = artifacts.require("IncrementalTree.sol");
 const Tree = artifacts.require("Tree");
-
+const nameRegistry = artifacts.require("NameRegistry");
+const ParamManager = artifacts.require("ParamManager");
+const ECVerify = artifacts.require("ECVerify");
+const RollupUtils = artifacts.require("RollupUtils");
+const Types = artifacts.require("Types");
 import * as walletHelper from "../helpers/wallet";
 import * as utils from "../helpers/utils";
+
 // Test all stateless operations
-contract("MerkelTreeLib", async function(accounts) {
+contract("MerkleTreeUtils", async function(accounts) {
   var wallets: any;
   var depth: number = 2;
   var firstDataBlock = utils.StringToBytes32("0x123");
@@ -229,30 +234,29 @@ contract("Tree", async function(accounts) {
   });
 
   it("should be able to add a new leaf at a particular index", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
-
-    var balancesTree = await Tree.new(mtlibInstance.address, {
-      from: wallets[0].getAddressString()
-    });
+    var balancesTree = await Tree.deployed();
+    console.log("balancesTree", balancesTree);
     var path = "00";
-    await balancesTree.updateLeaf(dataLeaves[0], "00");
+    await balancesTree.updateLeaf(dataLeaves[0], path);
     var root = await balancesTree.getRoot();
-    var siblings0 = await balancesTree.getSiblings(path);
-    console.log("siblings from contract", siblings0);
-    // var siblings: Array<string> = [
-    //   dataLeaves[1],
-    //   utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
-    // ];
+    var siblings0 = await balancesTree.getSiblings.call(path);
+    console.log("siblings from contract", siblings0, root);
+    var siblings: Array<string> = [
+      dataLeaves[1],
+      utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+    ];
 
-    // console.log("data", root, dataLeaves[0], path, siblings);
-    // var isValid = await mtlibInstance.verifyLeaf(
-    //   root,
-    //   dataLeaves[0],
-    //   path,
-    //   siblings
-    // );
-    // expect(isValid).to.be.deep.eq(false);
+    var nameRegistryInstance = await nameRegistry.deployed();
+    var paramManager = await ParamManager.deployed();
+    var mtLibKey = await paramManager.MERKLE_UTILS();
+    var MtUtilsAddr = await nameRegistryInstance.getContractDetails(mtLibKey);
+    var mtlibInstance = await MTLib.at(MtUtilsAddr);
+    var isValid = await mtlibInstance.verifyLeaf(
+      root,
+      dataLeaves[0],
+      path,
+      siblings
+    );
+    expect(isValid).to.be.deep.eq(false);
   });
 });

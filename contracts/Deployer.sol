@@ -8,36 +8,68 @@ import {TestToken} from "./TestToken.sol";
 import {Rollup} from "./Rollup.sol";
 import {TokenRegistry} from "./TokenRegistry.sol";
 import {Logger} from "./Logger.sol";
+import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 
 
 // Deployer is supposed to deploy new set of contracts while setting up all the utilities
 // libraries and other auxiallry contracts like registry
 contract Deployer {
-    constructor() public {
-        deployContracts();
+    constructor(address nameregistry) public {
+        deployContracts(nameregistry);
     }
 
-    function deployContracts() internal {
-        Registry registry = new Registry();
-        address nameRegistryAddr = address(registry);
-        address balancesTree = address(new MerkleTree(nameRegistryAddr));
-        registry.registerName(ParamManager.BALANCES_TREE(), balancesTree);
-        // deploy accounts tree
-        address accountsTree = address(new IncrementalTree(nameRegistryAddr));
-        registry.registerName(ParamManager.ACCOUNTS_TREE(), accountsTree);
+    function deployContracts(address nameRegistryAddr)
+        public
+        returns (address)
+    {
+        Registry registry = Registry(nameRegistryAddr);
 
-        // deposit manager
-        address depositManager = address(new DepositManager(nameRegistryAddr));
-        registry.registerName(ParamManager.DEPOSIT_MANAGER(), depositManager);
-
-        address tokenRegistry = address(new TokenRegistry(nameRegistryAddr));
-        registry.registerName(ParamManager.TOKEN_REGISTRY(), tokenRegistry);
+        address mtUtils = address(new MTUtils(ParamManager.MAX_DEPTH()));
+        require(
+            registry.registerName(ParamManager.MERKLE_UTILS(), mtUtils),
+            "Could not register merkle utils tree"
+        );
 
         address logger = address(new Logger());
-        registry.registerName(ParamManager.LOGGER(), logger);
+        require(
+            registry.registerName(ParamManager.LOGGER(), logger),
+            "Cannot register logger"
+        );
 
-        // deploy core rollup contract
-        address rollup = address(new Rollup(nameRegistryAddr));
-        registry.registerName(ParamManager.ROLLUP_CORE(), rollup);
+        address tokenRegistry = address(new TokenRegistry(nameRegistryAddr));
+        require(
+            registry.registerName(ParamManager.TOKEN_REGISTRY(), tokenRegistry),
+            "Cannot register token registry"
+        );
+
+        return nameRegistryAddr;
+        // address balancesTree = address(new MerkleTree(nameRegistryAddr));
+        // require(
+        //     registry.registerName(ParamManager.BALANCES_TREE(), balancesTree),
+        //     "Could not register balances tree"
+        // );
+        // deploy accounts tree
+        // address accountsTree = address(new IncrementalTree(nameRegistryAddr));
+        // require(
+        //     registry.registerName(ParamManager.ACCOUNTS_TREE(), accountsTree),
+        //     "Could not register accounts tree"
+        // );
+
+        // deposit manager
+        // address depositManager = address(new DepositManager(nameRegistryAddr));
+        // require(
+        //     registry.registerName(
+        //         ParamManager.DEPOSIT_MANAGER(),
+        //         depositManager
+        //     ),
+        //     "Cannot register deposit manager"
+        // );
+
+        // // deploy core rollup contract
+        // address rollup = address(new Rollup(nameRegistryAddr));
+        // require(
+        //     registry.registerName(ParamManager.ROLLUP_CORE(), rollup),
+        //     "Cannot register core rollup"
+        // );
     }
 }

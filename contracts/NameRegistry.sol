@@ -6,7 +6,7 @@ contract NameRegistry {
         // registered contract address
         address contractAddress;
     }
-
+    event RegisteredNewContract(bytes32 name, address contractAddr);
     mapping(bytes32 => ContractDetails) registry;
 
     function registerName(bytes32 name, address addr) external returns (bool) {
