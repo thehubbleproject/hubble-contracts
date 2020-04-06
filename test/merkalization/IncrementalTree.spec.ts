@@ -38,7 +38,7 @@ contract("IncrementalTree", async function(accounts) {
     let IMTInstace = await IMT.deployed();
     var leaf = dataLeaves[0];
     var zeroLeaf = await mtlibInstance.getRoot(0);
-    await IMTInstace.appendLeaf(leaf);
+    console.log(await IMTInstace.appendLeaf.call(leaf));
     var root = await IMTInstace.getTreeRoot();
     var path = "00";
     var siblings = [zeroLeaf, utils.getParentLeaf(zeroLeaf, zeroLeaf)];

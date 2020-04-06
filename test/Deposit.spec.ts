@@ -2,6 +2,7 @@ import * as chai from "chai";
 import * as walletHelper from "./helpers/wallet";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
+const DepositManager = artifacts.require("DepositManager");
 const Rollup = artifacts.require("Rollup");
 const TokenRegistry = artifacts.require("TokenRegistry");
 chai.use(chaiAsPromised);
@@ -12,20 +13,10 @@ contract("Rollup", async function(accounts) {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
   });
 
-  it("set Rollup in token registry", async function() {
-    let tokenRegistry = await TokenRegistry.deployed();
-    let rollupInstance = await Rollup.deployed();
-    let setRollup = await tokenRegistry.setRollupAddress(
-      rollupInstance.address,
-      {from: wallets[0].getAddressString()}
-    );
-    assert(setRollup, "setRollupNC failed");
-  });
-
   it("should register a token", async function() {
     let testToken = await TestToken.deployed();
-    let rollupInstance = await Rollup.deployed();
-    let registerTokenReceipt = await rollupInstance.requestTokenRegistration(
+    let tokenRegistryInstance = await TokenRegistry.deployed();
+    let registerTokenReceipt = await tokenRegistryInstance.requestTokenRegistration(
       testToken.address,
       {from: wallets[0].getAddressString()}
     );
@@ -35,8 +26,9 @@ contract("Rollup", async function(accounts) {
 
   it("should finalise token registration", async () => {
     let testToken = await TestToken.deployed();
-    let rollupInstance = await Rollup.deployed();
-    let approveToken = await rollupInstance.finaliseTokenRegistration(
+
+    let tokenRegistryInstance = await TokenRegistry.deployed();
+    let approveToken = await tokenRegistryInstance.finaliseTokenRegistration(
       testToken.address,
       {from: wallets[0].getAddressString()}
     );
@@ -46,11 +38,15 @@ contract("Rollup", async function(accounts) {
 
   // ----------------------------------------------------------------------------------
   it("should approve Rollup on TestToken", async () => {
-    let rollupInstance = await Rollup.deployed();
     let testToken = await TestToken.deployed();
-    let approveToken = await testToken.approve(rollupInstance.address, 1700, {
-      from: wallets[0].getAddressString()
-    });
+    let depositManagerInstance = await DepositManager.deployed();
+    let approveToken = await testToken.approve(
+      depositManagerInstance.address,
+      1700,
+      {
+        from: wallets[0].getAddressString()
+      }
+    );
     assert(approveToken, "approveToken failed");
   });
 

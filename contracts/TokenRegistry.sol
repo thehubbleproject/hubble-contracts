@@ -22,7 +22,7 @@ contract TokenRegistry {
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
-        // Coordinator = _coordinator;
+        Coordinator = msg.sender;
 
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
     }

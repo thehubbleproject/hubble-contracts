@@ -9,7 +9,8 @@ const Tree = artifacts.require("Tree");
 const IncrementalTree = artifacts.require("IncrementalTree");
 const DepositManager = artifacts.require("DepositManager");
 const Rollup = artifacts.require("Rollup");
-
+const TokenRegistry = artifacts.require("TokenRegistry");
+const TestToken = artifacts.require("TestToken");
 function writeContractAddresses(contractAddresses) {
   fs.writeFileSync(
     `${process.cwd()}/contractAddresses.json`,
@@ -59,10 +60,20 @@ module.exports = async function(deployer) {
     nameRegistry.address
   );
 
+  // deploy test token
+  var testTokenInstance = await deployer.deploy(TestToken);
+
+  await deployer.link(ParamManager, TokenRegistry);
+  var tokenRegistryInstance = await deployer.deploy(
+    TokenRegistry,
+    nameRegistry.address
+  );
+
   await deployer.link(ECVerify, Rollup);
   await deployer.link(Types, Rollup);
   await deployer.link(ParamManager, Rollup);
   await deployer.link(RollupUtils, Rollup);
+
   // deploy rollup core
   var rollup = await deployer.deploy(Rollup, nameRegistry.address);
 
