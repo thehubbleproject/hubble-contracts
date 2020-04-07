@@ -43,11 +43,9 @@ contract TokenRegistry {
     /**
      * @notice Add new tokens to the rollup chain by assigning them an ID called tokenType from here on
      * @param tokenContract Deposit tree depth or depth of subtree that is being deposited
+     * TODO: add a modifier to allow only coordinator
      */
-    function finaliseTokenRegistration(address tokenContract)
-        public
-        onlyCoordinator
-    {
+    function finaliseTokenRegistration(address tokenContract) public {
         require(
             pendingRegistrations[tokenContract],
             "Token was not registered"

@@ -6,6 +6,7 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 
 
 contract IncrementalTree {
+    uint256 DEPTH = ParamManager.MAX_DEPTH();
     Registry public nameRegistry;
     MTUtils public merkleUtils;
 
@@ -25,6 +26,7 @@ contract IncrementalTree {
     uint256 public nextLeafIndex = 0;
 
     constructor(address _registryAddr) public {
+        tree.filledSubtrees = new bytes32[](DEPTH);
         nameRegistry = Registry(_registryAddr);
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
@@ -33,9 +35,10 @@ contract IncrementalTree {
             merkleUtils.getZeroRoot(),
             merkleUtils.getMaxTreeDepth()
         );
-        // for (uint8 i = 1; i < merkleUtils.getMaxTreeDepth(); i++) {
-        //     tree.filledSubtrees[i] = merkleUtils.getRoot(0);
-        // }
+        bytes32 zero = merkleUtils.getRoot(0);
+        for (uint8 i = 1; i < DEPTH; i++) {
+            tree.filledSubtrees[i] = zero;
+        }
     }
 
     /**
@@ -50,7 +53,6 @@ contract IncrementalTree {
             currentIndex < uint256(2)**depth,
             "IncrementalMerkleTree: tree is full"
         );
-
         bytes32 currentLevelHash = _leaf;
         bytes32 left;
         bytes32 right;

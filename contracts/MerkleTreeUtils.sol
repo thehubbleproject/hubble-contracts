@@ -1,5 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
+import {ParamManager} from "./libs/ParamManager.sol";
 
 
 contract MerkleTreeUtils {
@@ -11,10 +12,10 @@ contract MerkleTreeUtils {
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor(uint256 depth) public {
-        MAX_DEPTH = depth;
+    constructor() public {
+        MAX_DEPTH = ParamManager.MAX_DEPTH();
         // Calculate & set the default hashes
-        setDefaultHashes(depth);
+        setDefaultHashes(MAX_DEPTH);
     }
 
     /* Methods */

@@ -11,6 +11,7 @@ const DepositManager = artifacts.require("DepositManager");
 const Rollup = artifacts.require("Rollup");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const TestToken = artifacts.require("TestToken");
+const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 function writeContractAddresses(contractAddresses) {
   fs.writeFileSync(
     `${process.cwd()}/contractAddresses.json`,
@@ -40,16 +41,24 @@ module.exports = async function(deployer) {
     nameRegistry.address
   );
 
+  var paramManagerInstance = await ParamManager.deployed();
+
   await deployer.link(ParamManager, Tree);
   // deploy balances tree
   var balancesTree = await deployer.deploy(Tree, nameRegistry.address);
+  var key = await paramManagerInstance.BALANCES_TREE();
+  await nameRegistry.registerName(key, balancesTree.address);
 
   await deployer.link(ParamManager, IncrementalTree);
+
   // deploy accounts tree
   var accountsTree = await deployer.deploy(
     IncrementalTree,
     nameRegistry.address
   );
+
+  var key = await paramManagerInstance.ACCOUNTS_TREE();
+  await nameRegistry.registerName(key, accountsTree.address);
 
   await deployer.link(Types, DepositManager);
   await deployer.link(ParamManager, DepositManager);
@@ -60,14 +69,15 @@ module.exports = async function(deployer) {
     nameRegistry.address
   );
 
+  var key = await paramManagerInstance.DEPOSIT_MANAGER();
+
+  await nameRegistry.registerName(key, depositManager.address);
+
   // deploy test token
   var testTokenInstance = await deployer.deploy(TestToken);
 
-  await deployer.link(ParamManager, TokenRegistry);
-  var tokenRegistryInstance = await deployer.deploy(
-    TokenRegistry,
-    nameRegistry.address
-  );
+  var key = await paramManagerInstance.TEST_TOKEN();
+  await nameRegistry.registerName(key, testTokenInstance.address);
 
   await deployer.link(ECVerify, Rollup);
   await deployer.link(Types, Rollup);
@@ -76,8 +86,8 @@ module.exports = async function(deployer) {
 
   // deploy rollup core
   var rollup = await deployer.deploy(Rollup, nameRegistry.address);
-
-  // merkleUtils = await NameRegistry.getContractDetails();
+  var key = await paramManagerInstance.ROLLUP_CORE();
+  await nameRegistry.registerName(key, rollup.address);
 
   const contractAddresses = {
     // MerkleUtils: MTLib.address,
