@@ -5,6 +5,7 @@ import {ParamManager} from "./libs/ParamManager.sol";
 
 contract MerkleTreeUtils {
     // The default hashes
+    // TODO remove 160 and use max depth from parammanager
     bytes32[] public defaultHashes = new bytes32[](160);
     uint256 public MAX_DEPTH;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -25,7 +26,7 @@ contract MerkleTreeUtils {
      */
     function setDefaultHashes(uint256 depth) internal {
         // Set the initial default hash.
-        defaultHashes[0] = keccak256(abi.encode(ZERO_BYTES32));
+        defaultHashes[0] = keccak256(abi.encode(0));
         for (uint256 i = 1; i < depth; i++) {
             defaultHashes[i] = keccak256(
                 abi.encode(defaultHashes[i - 1], defaultHashes[i - 1])
@@ -34,7 +35,13 @@ contract MerkleTreeUtils {
     }
 
     function getZeroRoot() public view returns (bytes32) {
-        return defaultHashes[0];
+        return
+            keccak256(
+                abi.encode(
+                    defaultHashes[MAX_DEPTH - 1],
+                    defaultHashes[MAX_DEPTH - 1]
+                )
+            );
     }
 
     function getMaxTreeDepth() public view returns (uint256) {

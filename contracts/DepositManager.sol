@@ -110,7 +110,7 @@ contract DepositManager {
 
         // emit the event
         logger.logDepositQueued(
-            1,
+            accID,
             _destination,
             _amount,
             _tokenType,
@@ -149,7 +149,6 @@ contract DepositManager {
         Types.AccountMerkleProof memory _zero_account_mp
     ) public returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
-
         // from mt proof we find the root of the tree
         // we match the root to the balance tree root on-chain
         require(

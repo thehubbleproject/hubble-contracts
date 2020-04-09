@@ -35,9 +35,8 @@ contract("MerkleTreeUtils", async function(accounts) {
 
   it("utils hash should be the same as keccak hash", async function() {
     var data = utils.StringToBytes32("0x123");
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+
+    var mtlibInstance = await MTLib.deployed();
     var hash = utils.Hash(data);
 
     var keccakHash = await mtlibInstance.keecakHash(data);
@@ -45,9 +44,8 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("test get parent", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
+
     let localHash = utils.getParentLeaf(firstDataBlock, secondDataBlock);
     let contractHash = await mtlibInstance.getParent(
       firstDataBlock,
@@ -57,9 +55,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("test index to path", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     var result = await mtlibInstance.pathToIndex("10", 2);
     expect(result.toNumber()).to.be.deep.eq(2);
@@ -79,9 +75,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[LEAF] [STATELESS] verifying correct proof", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
 
@@ -100,9 +94,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[DATABLOCK] [STATELESS] verifying correct proof", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
 
@@ -121,9 +113,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[LEAF] [STATELESS] verifying proof with wrong path", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     // create merkle tree and get root
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
@@ -139,9 +129,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[DATABLOCK] [STATELESS] verifying proof with wrong path", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     // create merkle tree and get root
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
@@ -157,9 +145,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[LEAF] [STATELESS] verifying other leaves", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
 
@@ -174,9 +160,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[DATABLOCK] [STATELESS] verifying other leaves", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
 
@@ -191,9 +175,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   });
 
   it("[DATABLOCK] [STATELESS] path greater than depth", async function() {
-    var mtlibInstance = await MTLib.new(depth, {
-      from: wallets[0].getAddressString()
-    });
+    var mtlibInstance = await MTLib.deployed();
 
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
 
