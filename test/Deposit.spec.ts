@@ -64,75 +64,99 @@ contract("DepositManager", async function(accounts) {
   it("should approve allow depositing one test token", async () => {
     let depositManagerInstance = await DepositManager.deployed();
     var testTokenInstance = await TestToken.deployed();
-    await testTokenInstance.transfer(wallets[1].getAddressString(), 100);
-    var balBefore = await testTokenInstance.balanceOf(
-      wallets[0].getAddressString()
-    );
-    console.log("balance of user before deposit", balBefore.toString());
-    var pendingDepositsBefore = await depositManagerInstance.queueNumber();
-    console.log("Pending deposits in queue before", pendingDepositsBefore);
-    var depositAmount = 10;
-    let tokenID = 1;
+    var MTutilsInstance = await getMerkleTreeUtils();
+    var Alice = {
+      Address: wallets[0].getAddressString(),
+      Pubkey: wallets[0].getPublicKeyString(),
+      Amount: 10,
+      TokenType: 1,
+      AccID: 0,
+      Path: "00"
+    };
+    var Bob = {
+      Address: wallets[1].getAddressString(),
+      Pubkey: wallets[1].getPublicKeyString(),
+      Amount: 10,
+      TokenType: 1,
+      AccID: 1,
+      Path: "01"
+    };
+    // transfer funds from Alice to bob
+    await testTokenInstance.transfer(Alice.Address, 100);
+    var BalanceOfAlice = await testTokenInstance.balanceOf(Alice.Address);
+    console.log("balance of user before deposit", BalanceOfAlice.toString());
+
+    // Deposit Alice
     let result = await depositManagerInstance.deposit(
-      depositAmount,
-      tokenID,
-      wallets[0].getPublicKeyString()
+      Alice.Amount,
+      Alice.TokenType,
+      Alice.Pubkey
     );
-    var balAfter = await testTokenInstance.balanceOf(
-      wallets[0].getAddressString()
+    var AliceAccountLeaf = await utils.CreateAccountLeaf(
+      Alice.AccID,
+      Alice.Amount,
+      0,
+      Alice.TokenType
     );
-    console.log("balance of user after deposit", balAfter.toString());
+    var BalanceOfAliceAfterDeposit = await testTokenInstance.balanceOf(
+      Alice.Address
+    );
+
     assert.equal(
-      balAfter,
-      balBefore - depositAmount,
+      BalanceOfAliceAfterDeposit,
+      BalanceOfAlice - Alice.Amount,
       "User balance did not reduce after deposit"
     );
-    var pendingDepositAfter = await depositManagerInstance.queueNumber();
-    console.log("Pending deposits in queue after", pendingDepositAfter);
-    assert.equal(pendingDepositAfter, 1, "pending deposits mismatch");
+
     // verify pending deposits
     var pendingDeposits0 = await depositManagerInstance.pendingDeposits(0);
-    assert.equal(
-      pendingDeposits0,
-      utils.CreateAccountLeaf(0, 10, 0, 1),
-      "Account hash mismatch"
-    );
+    assert.equal(pendingDeposits0, AliceAccountLeaf, "Account hash mismatch");
 
     //
     // do second deposit
     //
 
-    balBefore = await testTokenInstance.balanceOf(
-      wallets[1].getAddressString()
+    var BobBalanceBeforeDeposit = await testTokenInstance.balanceOf(
+      Bob.Address
     );
 
     result = await depositManagerInstance.depositFor(
-      wallets[1].getAddressString(),
-      depositAmount,
-      tokenID,
-      wallets[1].getPublicKeyString()
+      Bob.Address,
+      Bob.Amount,
+      Bob.TokenType,
+      Bob.Pubkey
+    );
+
+    var BobAccountLeaf = await utils.CreateAccountLeaf(
+      Bob.AccID,
+      Bob.Amount,
+      0,
+      Bob.TokenType
+    );
+    pendingDeposits0 = await depositManagerInstance.pendingDeposits(0);
+    assert.equal(
+      pendingDeposits0,
+      utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf),
+      "Account hash mismatch 2"
     );
 
     var pendingDepositAfter = await depositManagerInstance.queueNumber();
-    console.log("Pending deposits in queue after", pendingDepositAfter);
     assert.equal(pendingDepositAfter, 2, "pending deposits mismatch");
 
-    console.log(
-      "deposit subtree height",
-      await depositManagerInstance.depositSubtreeHeight()
+    var subtreeDepth = 1;
+    var depositSubTreeHeightOnChain = await depositManagerInstance.depositSubtreeHeight();
+    assert.equal(
+      depositSubTreeHeightOnChain,
+      subtreeDepth,
+      "deposit subtree height after 2 deposits should be 1"
     );
 
     // finalise the deposit back to the state tree
-    var MTutilsInstance = await getMerkleTreeUtils();
     console.log("root at depth", await MTutilsInstance.getRoot(3));
-
-    var subtreeDepth = 1;
     var path = 0;
 
     var defaultHashes = await utils.defaultHashes(2);
-
     var siblingsInProof = [defaultHashes[1]];
-
     var _zero_account_mp = {
       accountIP: {
         pathToAccount: path,
@@ -145,6 +169,7 @@ contract("DepositManager", async function(accounts) {
       },
       siblings: siblingsInProof
     };
+
     var txResponse = await depositManagerInstance.finaliseDeposits(
       subtreeDepth,
       _zero_account_mp
@@ -156,21 +181,19 @@ contract("DepositManager", async function(accounts) {
 
     var balancesTreeInstance = await Tree.deployed();
     var newBalanceRoot = await balancesTreeInstance.getRoot();
-    console.log("new balance root from contract", newBalanceRoot);
 
-    var deposit1Leaf = utils.CreateAccountLeaf(0, 10, 0, 1);
-    var deposit2Leaf = utils.CreateAccountLeaf(1, 10, 0, 1);
-    console.log(
-      "new balance root should be",
-      utils.getParentLeaf(
-        utils.getParentLeaf(deposit1Leaf, deposit2Leaf),
-        defaultHashes[1]
-      )
+    // verify sub tree has been inserted first at path 0
+    var isSubTreeInserted = await MTutilsInstance.verifyLeaf(
+      newBalanceRoot,
+      utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf),
+      "0",
+      siblingsInProof
     );
+    expect(isSubTreeInserted).to.be.deep.eq(true);
 
     // verify first account at path 00
-    var account1siblings: Array<string> = [deposit2Leaf, defaultHashes[1]];
-    var leaf = deposit1Leaf;
+    var account1siblings: Array<string> = [BobAccountLeaf, siblingsInProof[0]];
+    var leaf = AliceAccountLeaf;
     var firstAccountPath: string = "00";
     var isValid = await MTutilsInstance.verifyLeaf(
       newBalanceRoot,
@@ -181,6 +204,19 @@ contract("DepositManager", async function(accounts) {
     expect(isValid).to.be.deep.eq(true);
 
     // verify second account at path 11
+    var account2siblings: Array<string> = [
+      AliceAccountLeaf,
+      siblingsInProof[0]
+    ];
+    var leaf = BobAccountLeaf;
+    var secondAccountPath: string = "01";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      newBalanceRoot,
+      leaf,
+      secondAccountPath,
+      account2siblings
+    );
+    expect(isValid).to.be.deep.eq(true);
   });
 });
 

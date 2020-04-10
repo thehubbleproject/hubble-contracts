@@ -72,18 +72,6 @@ library RollupUtils {
     }
 
     /**
-     * @notice Concatenates 2 deposits
-     * @return Returns the final hash
-     */
-    function getDepositsHash(bytes32 a, bytes32 b)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encode(a, b));
-    }
-
-    /**
      * @notice Calculates the address from the pubkey
      * @param pub is the pubkey
      * @return Returns the address that has been calculated from the pubkey

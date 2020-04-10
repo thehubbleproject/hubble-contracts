@@ -126,8 +126,10 @@ contract DepositManager {
             deposits[0] = pendingDeposits[pendingDeposits.length - 2];
             deposits[1] = pendingDeposits[pendingDeposits.length - 1];
 
-            pendingDeposits[pendingDeposits.length - 2] = RollupUtils
-                .getDepositsHash(deposits[0], deposits[1]);
+            pendingDeposits[pendingDeposits.length - 2] = merkleUtils.getParent(
+                deposits[0],
+                deposits[1]
+            );
             removeDeposit(pendingDeposits.length - 1);
             tmp = tmp / 2;
             tmpDepositSubtreeHeight++;
@@ -162,9 +164,15 @@ contract DepositManager {
         );
 
         // update the in-state balance tree with new leaf from pendingDeposits[0]
-        balancesTree.updateLeaf(
+        // balancesTree.updateLeaf(
+        //     pendingDeposits[0],
+        //     _zero_account_mp.accountIP.pathToAccount
+        // );
+
+        balancesTree.storeLeaf(
             pendingDeposits[0],
-            _zero_account_mp.accountIP.pathToAccount
+            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.siblings
         );
 
         // removed the root at pendingDeposits[0] because it has been added to the balance tree

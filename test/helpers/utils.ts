@@ -43,6 +43,10 @@ export function CreateAccountLeaf(
 }
 
 // returns parent node hash given child node hashes
+// are structured in a way that the leaf are at index 0 and index increases layer by layer to root
+// for depth =2
+// defaultHashes[0] = leaves
+// defaultHashes[depth-1] = root
 export async function defaultHashes(depth: number) {
   var zeroValue = 0;
   var defaultHashes = [];
