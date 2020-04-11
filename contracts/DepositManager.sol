@@ -130,6 +130,11 @@ contract DepositManager {
                 deposits[0],
                 deposits[1]
             );
+            logger.logDepositLeavesMerged(
+                deposits[0],
+                deposits[1],
+                pendingDeposits[0]
+            );
             removeDeposit(pendingDeposits.length - 1);
             tmp = tmp / 2;
             tmpDepositSubtreeHeight++;
@@ -180,9 +185,17 @@ contract DepositManager {
 
         // update the number of elements present in the queue
         queueNumber = queueNumber - 2**depositSubtreeHeight;
+        bytes32 newRoot = balancesTree.getRoot();
+
+        // emit the event
+        logger.logDepositFinalised(
+            pendingDeposits[0],
+            _zero_account_mp.accountIP.pathToAccount,
+            newRoot
+        );
 
         // return the updated merkle tree root
-        return balancesTree.getRoot();
+        return newRoot;
     }
 
     /**

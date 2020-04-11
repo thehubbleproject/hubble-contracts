@@ -102,15 +102,29 @@ contract Logger {
         );
     }
 
-    event DepositLeafMerged();
+    event DepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot);
 
-    function logDepositLeafMerged() public {
-        emit DepositLeafMerged();
+    function logDepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot)
+        public
+    {
+        emit DepositLeafMerged(left, right, newRoot);
     }
 
-    event DepositsProcessed();
+    event DepositsFinalised(
+        bytes32 depositSubTreeRoot,
+        uint256 pathToSubTree,
+        bytes32 newDepositRoot
+    );
 
-    function logDepositsProcessed() public {
-        emit DepositsProcessed();
+    function logDepositFinalised(
+        bytes32 depositSubTreeRoot,
+        uint256 pathToSubTree,
+        bytes32 newDepositRoot
+    ) public {
+        emit DepositsFinalised(
+            depositSubTreeRoot,
+            pathToSubTree,
+            newDepositRoot
+        );
     }
 }
