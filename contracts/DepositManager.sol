@@ -130,7 +130,7 @@ contract DepositManager {
                 deposits[0],
                 deposits[1]
             );
-            logger.logDepositLeavesMerged(
+            logger.logDepositLeafMerged(
                 deposits[0],
                 deposits[1],
                 pendingDeposits[0]
