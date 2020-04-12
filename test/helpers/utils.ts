@@ -1,4 +1,7 @@
 import {ethers} from "ethers";
+const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
+const ParamManager = artifacts.require("ParamManager");
+const nameRegistry = artifacts.require("NameRegistry");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -39,6 +42,7 @@ export function CreateAccountLeaf(
   token: number
 ) {
   var data = BytesFromAccountData(ID, balance, nonce, token);
+  console.log("databytes", data);
   return Hash(data);
 }
 
@@ -64,4 +68,20 @@ export async function defaultHashes(depth: number) {
   }
 
   return defaultHashes;
+}
+
+export async function getMerkleTreeUtils() {
+  // get deployed name registry instance
+  var nameRegistryInstance = await nameRegistry.deployed();
+
+  // get deployed parama manager instance
+  var paramManager = await ParamManager.deployed();
+
+  // get accounts tree key
+  var merkleTreeUtilKey = await paramManager.MERKLE_UTILS();
+
+  var merkleTreeUtilsAddr = await nameRegistryInstance.getContractDetails(
+    merkleTreeUtilKey
+  );
+  return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
