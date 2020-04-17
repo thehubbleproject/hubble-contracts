@@ -113,18 +113,18 @@ contract Logger {
     event DepositsFinalised(
         bytes32 depositSubTreeRoot,
         uint256 pathToSubTree,
-        bytes32 newDepositRoot
+        bytes32 newBalanceRoot
     );
 
     function logDepositFinalised(
         bytes32 depositSubTreeRoot,
         uint256 pathToSubTree,
-        bytes32 newDepositRoot
+        bytes32 newBalanceRoot
     ) public {
         emit DepositsFinalised(
             depositSubTreeRoot,
             pathToSubTree,
-            newDepositRoot
+            newBalanceRoot
         );
     }
 }

@@ -23,7 +23,7 @@ module.exports = {
           `https://goerli.infura.io/v3/${API_KEY}`
         );
       },
-      network_id: 5,
+      network_id: "*",
       gas: 80000000
     }
   },

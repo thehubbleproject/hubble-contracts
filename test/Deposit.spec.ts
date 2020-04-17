@@ -61,10 +61,10 @@ contract("DepositManager", async function(accounts) {
     assert(approveToken, "approveToken failed");
   });
 
-  it("should approve allow depositing one test token", async () => {
+  it("should allow depositing 2 leaves in a subtree and merging it", async () => {
     let depositManagerInstance = await DepositManager.deployed();
     var testTokenInstance = await TestToken.deployed();
-    var MTutilsInstance = await getMerkleTreeUtils();
+    var MTutilsInstance = await utils.getMerkleTreeUtils();
     var Alice = {
       Address: wallets[0].getAddressString(),
       Pubkey: wallets[0].getPublicKeyString(),
@@ -234,20 +234,4 @@ async function getTokenRegistry() {
     tokenRegistryKey
   );
   return TokenRegistry.at(tokenRegistryAddress);
-}
-
-async function getMerkleTreeUtils() {
-  // get deployed name registry instance
-  var nameRegistryInstance = await nameRegistry.deployed();
-
-  // get deployed parama manager instance
-  var paramManager = await ParamManager.deployed();
-
-  // get accounts tree key
-  var merkleTreeUtilKey = await paramManager.MERKLE_UTILS();
-
-  var merkleTreeUtilsAddr = await nameRegistryInstance.getContractDetails(
-    merkleTreeUtilKey
-  );
-  return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }

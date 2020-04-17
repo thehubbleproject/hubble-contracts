@@ -115,10 +115,10 @@ contract("MerkleTreeUtils", async function(accounts) {
 
   it("[LEAF] [STATELESS] verifying proof with wrong path", async function() {
     var mtlibInstance = await utils.getMerkleTreeUtils();
-
+    console.log("datablocks", dataBlocks);
     // create merkle tree and get root
     var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
-
+    console.log("root created", root);
     var siblings: Array<string> = [
       dataLeaves[1],
       utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
