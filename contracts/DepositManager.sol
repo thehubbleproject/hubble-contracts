@@ -19,11 +19,20 @@ contract DepositManager {
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
-    Logger public logger;
+
     address public Coordinator;
+
+    Logger public logger;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
     IncrementalTree public accountsTree;
+
+    bool isPaused;
+
+    modifier isNotWaitingForFinalisation() {
+        assert(isPaused == false);
+        _;
+    }
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -49,6 +58,7 @@ contract DepositManager {
      */
     function deposit(uint256 _amount, uint256 _tokenType, bytes memory _pubkey)
         public
+        isNotWaitingForFinalisation
     {
         depositFor(msg.sender, _amount, _tokenType, _pubkey);
     }
@@ -64,7 +74,7 @@ contract DepositManager {
         uint256 _amount,
         uint256 _tokenType,
         bytes memory _pubkey
-    ) public {
+    ) public isNotWaitingForFinalisation {
         // check amount is greater than 0
         require(_amount > 0, "token deposit must be greater than 0");
 
@@ -107,7 +117,6 @@ contract DepositManager {
 
         // queue the deposit
         pendingDeposits.push(accountHash);
-
         // emit the event
         logger.logDepositQueued(
             accID,
@@ -130,17 +139,27 @@ contract DepositManager {
                 deposits[0],
                 deposits[1]
             );
+
+            // thow event for the coordinator
             logger.logDepositLeafMerged(
                 deposits[0],
                 deposits[1],
                 pendingDeposits[0]
             );
+
+            // remove 1 deposit from the pending deposit queue
             removeDeposit(pendingDeposits.length - 1);
             tmp = tmp / 2;
+
+            // update the temp deposit subtree height
             tmpDepositSubtreeHeight++;
         }
         if (tmpDepositSubtreeHeight > depositSubtreeHeight) {
             depositSubtreeHeight = tmpDepositSubtreeHeight;
+        }
+        if (depositSubtreeHeight == ParamManager.MAX_DEPOSIT_SUBTREE()) {
+            // pause and wait for finalisation
+            isPaused = true;
         }
     }
 
@@ -179,10 +198,8 @@ contract DepositManager {
             _zero_account_mp.accountIP.pathToAccount,
             _zero_account_mp.siblings
         );
-
-        // removed the root at pendingDeposits[0] because it has been added to the balance tree
+        // empty the pending deposits queue
         removeDeposit(0);
-
         // update the number of elements present in the queue
         queueNumber = queueNumber - 2**depositSubtreeHeight;
         bytes32 newRoot = balancesTree.getRoot();

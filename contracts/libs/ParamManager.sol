@@ -48,6 +48,12 @@ library ParamManager {
         return _MAX_DEPTH;
     }
 
+    uint8 public constant _MAX_DEPOSIT_SUBTREE = 2;
+
+    function MAX_DEPOSIT_SUBTREE() public pure returns (uint8) {
+        return _MAX_DEPOSIT_SUBTREE;
+    }
+
     bytes32 public constant _CHAIN_ID = keccak256("opru-123");
 
     function CHAIN_ID() public pure returns (bytes32) {

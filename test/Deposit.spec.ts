@@ -81,6 +81,8 @@ contract("DepositManager", async function(accounts) {
       AccID: 1,
       Path: "01"
     };
+    console.log("User information", "Alice", Alice, "bob", Bob);
+
     // transfer funds from Alice to bob
     await testTokenInstance.transfer(Alice.Address, 100);
     var BalanceOfAlice = await testTokenInstance.balanceOf(Alice.Address);
@@ -92,12 +94,14 @@ contract("DepositManager", async function(accounts) {
       Alice.TokenType,
       Alice.Pubkey
     );
+
     var AliceAccountLeaf = await utils.CreateAccountLeaf(
       Alice.AccID,
       Alice.Amount,
       0,
       Alice.TokenType
     );
+
     var BalanceOfAliceAfterDeposit = await testTokenInstance.balanceOf(
       Alice.Address
     );
@@ -152,7 +156,7 @@ contract("DepositManager", async function(accounts) {
     );
 
     // finalise the deposit back to the state tree
-    console.log("root at depth", await MTutilsInstance.getRoot(3));
+    // console.log("root at depth", await MTutilsInstance.getRoot(3));
     var path = 0;
 
     var defaultHashes = await utils.defaultHashes(2);
