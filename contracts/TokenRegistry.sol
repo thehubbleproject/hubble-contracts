@@ -3,10 +3,10 @@ pragma solidity >=0.4.21;
 import {Logger} from "./Logger.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
+import {POB} from "./POB.sol";
 
 
 contract TokenRegistry {
-    address public Coordinator;
     address public rollupNC;
     Logger public logger;
     mapping(address => bool) public pendingRegistrations;
@@ -15,14 +15,16 @@ contract TokenRegistry {
     uint256 public numTokens;
 
     modifier onlyCoordinator() {
-        assert(msg.sender == Coordinator);
+        POB pobContract = POB(
+            nameRegistry.getContractDetails(ParamManager.POB())
+        );
+        assert(msg.sender == pobContract.getCoordinator());
         _;
     }
     Registry public nameRegistry;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
-        Coordinator = msg.sender;
 
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
     }

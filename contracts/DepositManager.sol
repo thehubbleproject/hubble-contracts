@@ -10,6 +10,7 @@ import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {Tree as MerkleTree} from "./Tree.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
+import {POB} from "./POB.sol";
 
 
 contract DepositManager {
@@ -20,8 +21,6 @@ contract DepositManager {
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
 
-    address public Coordinator;
-
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
@@ -31,6 +30,14 @@ contract DepositManager {
 
     modifier isNotWaitingForFinalisation() {
         assert(isPaused == false);
+        _;
+    }
+
+    modifier onlyCoordinator() {
+        POB pobContract = POB(
+            nameRegistry.getContractDetails(ParamManager.POB())
+        );
+        assert(msg.sender == pobContract.getCoordinator());
         _;
     }
 

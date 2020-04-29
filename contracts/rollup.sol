@@ -3,6 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import {Logger} from "./logger.sol";
 import {Tree as MerkleTree} from "./Tree.sol";
+import {POB} from "./POB.sol";
+
 import {IncrementalTree} from "./IncrementalTree.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
@@ -26,8 +28,6 @@ contract Rollup {
      * Variable Declarations *
      ********************/
 
-    address coordinator;
-
     // External contracts
     MerkleTree public balancesTree;
     IncrementalTree public accountsTree;
@@ -37,14 +37,16 @@ contract Rollup {
     Registry public nameRegistry;
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
-
     // this variable will be greater than 0 if
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
     uint256 invalidBatchMarker;
 
     modifier onlyCoordinator() {
-        assert(msg.sender == coordinator);
+        POB pobContract = POB(
+            nameRegistry.getContractDetails(ParamManager.POB())
+        );
+        assert(msg.sender == pobContract.getCoordinator());
         _;
     }
 

@@ -14,6 +14,10 @@ library ParamManager {
         return keccak256("test_token");
     }
 
+    function POB() public pure returns (bytes32) {
+        return keccak256("pob");
+    }
+
     function ROLLUP_CORE() public pure returns (bytes32) {
         return keccak256("rollup_core");
     }
