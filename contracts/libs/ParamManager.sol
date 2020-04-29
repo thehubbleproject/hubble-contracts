@@ -46,7 +46,7 @@ library ParamManager {
         return keccak256("token_registry");
     }
 
-    uint8 public constant _MAX_DEPTH = 4;
+    uint8 public constant _MAX_DEPTH = 2;
 
     function MAX_DEPTH() public pure returns (uint8) {
         return _MAX_DEPTH;

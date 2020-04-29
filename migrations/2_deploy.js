@@ -12,6 +12,7 @@ const Rollup = artifacts.require("Rollup");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const TestToken = artifacts.require("TestToken");
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
+const POB = artifacts.require("POB");
 function writeContractAddresses(contractAddresses) {
   fs.writeFileSync(
     `${process.cwd()}/contractAddresses.json`,
@@ -44,6 +45,12 @@ module.exports = async function(deployer) {
   var paramManagerInstance = await ParamManager.deployed();
 
   await deployer.link(ParamManager, Tree);
+
+  // deploy proof of burn contract
+  var pobContract = await deployer.deploy(POB);
+  var key = await paramManagerInstance.POB();
+  await nameRegistry.registerName(key, pobContract.address);
+
   // deploy balances tree
   var balancesTree = await deployer.deploy(Tree, nameRegistry.address);
   var key = await paramManagerInstance.BALANCES_TREE();

@@ -5,7 +5,6 @@ import {ParamManager} from "./libs/ParamManager.sol";
 
 contract MerkleTreeUtils {
     // The default hashes
-    // TODO remove 160 and use max depth from parammanager
     bytes32[] public defaultHashes;
     uint256 public MAX_DEPTH;
     bytes32 public ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
