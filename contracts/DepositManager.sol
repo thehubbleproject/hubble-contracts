@@ -140,19 +140,19 @@ contract DepositManager {
                 deposits[1]
             );
 
-            // thow event for the coordinator
-            logger.logDepositLeafMerged(
-                deposits[0],
-                deposits[1],
-                pendingDeposits[0]
-            );
-
             // remove 1 deposit from the pending deposit queue
             removeDeposit(pendingDeposits.length - 1);
             tmp = tmp / 2;
 
             // update the temp deposit subtree height
             tmpDepositSubtreeHeight++;
+
+            // thow event for the coordinator
+            logger.logDepositLeafMerged(
+                deposits[0],
+                deposits[1],
+                pendingDeposits[0]
+            );
         }
         if (tmpDepositSubtreeHeight > depositSubtreeHeight) {
             depositSubtreeHeight = tmpDepositSubtreeHeight;
@@ -220,17 +220,26 @@ contract DepositManager {
      * @param _index Index of the element to remove
      * @return Remaining elements of the array
      */
-    function removeDeposit(uint256 _index) internal returns (bytes32[] memory) {
+    function removeDeposit(uint256 _index) internal {
         require(
             _index < pendingDeposits.length,
             "array index is out of bounds"
         );
 
-        for (uint256 i = _index; i < pendingDeposits.length - 1; i++) {
-            pendingDeposits[i] = pendingDeposits[i + 1];
+        // if we want to nuke the queue
+        if (_index == 0) {
+            for (uint256 i = 0; i < pendingDeposits.length - 1; i++) {
+                delete pendingDeposits[i];
+
+                pendingDeposits.length--;
+            }
+            return;
         }
-        delete pendingDeposits[pendingDeposits.length - 1];
-        pendingDeposits.length--;
-        return pendingDeposits;
+
+        if (_index == pendingDeposits.length - 1) {
+            delete pendingDeposits[pendingDeposits.length - 1];
+            pendingDeposits.length--;
+            return;
+        }
     }
 }
