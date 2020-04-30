@@ -34,7 +34,6 @@ contract Rollup {
     IncrementalTree public accountsTree;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
-    IERC20 public tokenContract;
     Registry public nameRegistry;
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
@@ -67,7 +66,7 @@ contract Rollup {
 
     // Stores transaction paths claimed per batch
     // TO BE REMOVED post withdraw mass migration
-    bool[][] withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
+    bool[][] withdrawTxClaimed;
 
     /*********************
      * Constructor *
@@ -88,13 +87,11 @@ contract Rollup {
         accountsTree = IncrementalTree(
             nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
         );
-        tokenContract = IERC20(
-            nameRegistry.getContractDetails(ParamManager.TEST_TOKEN())
-        );
 
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
+        withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
     }
 
     /**

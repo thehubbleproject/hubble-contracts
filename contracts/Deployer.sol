@@ -9,20 +9,33 @@ import {Rollup} from "./Rollup.sol";
 import {TokenRegistry} from "./TokenRegistry.sol";
 import {Logger} from "./Logger.sol";
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+import {Governance} from "./Governance.sol";
 
 
 // Deployer is supposed to deploy new set of contracts while setting up all the utilities
 // libraries and other auxiallry contracts like registry
 contract Deployer {
-    constructor(address nameregistry) public {
-        deployContracts(nameregistry);
+    constructor(
+        address nameregistry,
+        uint256 maxDepth,
+        uint256 maxDepositSubTree
+    ) public {
+        deployContracts(nameregistry, maxDepth, maxDepositSubTree);
     }
 
-    function deployContracts(address nameRegistryAddr)
-        public
-        returns (address)
-    {
+    function deployContracts(
+        address nameRegistryAddr,
+        uint256 maxDepth,
+        uint256 maxDepositSubTree
+    ) public returns (address) {
         Registry registry = Registry(nameRegistryAddr);
+        address governance = address(
+            new Governance(maxDepth, maxDepositSubTree)
+        );
+        require(
+            registry.registerName(ParamManager.Governance(), governance),
+            "Could not register governance"
+        );
         address mtUtils = address(new MTUtils(nameRegistryAddr));
         require(
             registry.registerName(ParamManager.MERKLE_UTILS(), mtUtils),

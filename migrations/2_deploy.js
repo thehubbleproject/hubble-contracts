@@ -22,7 +22,8 @@ function writeContractAddresses(contractAddresses) {
 module.exports = async function(deployer) {
   // picked address from mnemoic
   var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
-  var max_depth = 5;
+  var max_depth = 4;
+  var maxDepositSubtreeDepth = 2;
 
   // deploy libs
   await deployer.deploy(ECVerify);
@@ -37,9 +38,12 @@ module.exports = async function(deployer) {
   await deployer.link(Types, deployerContract);
   await deployer.link(ParamManager, deployerContract);
   await deployer.link(RollupUtils, deployerContract);
+
   var deployerContractInstance = await deployer.deploy(
     deployerContract,
-    nameRegistry.address
+    nameRegistry.address,
+    max_depth,
+    maxDepositSubtreeDepth
   );
 
   var paramManagerInstance = await ParamManager.deployed();
