@@ -149,7 +149,6 @@ contract Rollup {
         Types.AccountMerkleProof[] memory _to_proofs
     ) public {
         // load batch
-        // Types.Batch memory disputed_batch = batches[_batch_id];
         require(
             batches[_batch_id].stakeCommitted != 0,
             "Batch doesnt exist or is slashed already"

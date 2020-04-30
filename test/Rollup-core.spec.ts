@@ -11,9 +11,7 @@ contract("IncrementalTree", async function(accounts) {
 
     var right = utils.CreateAccountLeaf(1, 10, 0, 0);
     var root = utils.getParentLeaf(left, right);
-    console.log("left,right", left, right, root);
 
     var defaultHashes = await utils.defaultHashes(2);
-    console.log(defaultHashes);
   });
 });

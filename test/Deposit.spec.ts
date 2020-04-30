@@ -70,23 +70,41 @@ contract("DepositManager", async function(accounts) {
       Pubkey: wallets[0].getPublicKeyString(),
       Amount: 10,
       TokenType: 1,
-      AccID: 0,
-      Path: "00"
+      AccID: 1,
+      Path: "0010"
     };
     var Bob = {
       Address: wallets[1].getAddressString(),
       Pubkey: wallets[1].getPublicKeyString(),
       Amount: 10,
       TokenType: 1,
-      AccID: 1,
-      Path: "01"
+      AccID: 2,
+      Path: "0011"
     };
+
+    var charlie = {
+      address: wallets[2].getAddressString(),
+      pubkey: wallets[2].getPublicKeyString(),
+      amount: 10,
+      tokentype: 1,
+      accid: 1,
+      path: "01"
+    };
+
+    var Harry = {
+      address: wallets[1].getAddressString(),
+      pubkey: wallets[1].getPublicKeyString(),
+      amount: 10,
+      tokentype: 1,
+      accid: 1,
+      path: "01"
+    };
+
     console.log("User information", "Alice", Alice, "bob", Bob);
 
     // transfer funds from Alice to bob
     await testTokenInstance.transfer(Alice.Address, 100);
     var BalanceOfAlice = await testTokenInstance.balanceOf(Alice.Address);
-    console.log("balance of user before deposit", BalanceOfAlice.toString());
 
     // Deposit Alice
     let result = await depositManagerInstance.deposit(
@@ -156,7 +174,6 @@ contract("DepositManager", async function(accounts) {
     );
 
     // finalise the deposit back to the state tree
-    // console.log("root at depth", await MTutilsInstance.getRoot(3));
     var path = 0;
 
     var defaultHashes = await utils.defaultHashes(2);

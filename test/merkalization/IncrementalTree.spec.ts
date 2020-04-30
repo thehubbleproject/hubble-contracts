@@ -39,14 +39,26 @@ contract("IncrementalTree", async function(accounts) {
     // get leaf to be inserted
     var leaf = dataLeaves[0];
     var zeroLeaf = await mtlibInstance.getRoot(0);
+    var zeroLeaf1 = await mtlibInstance.getRoot(1);
+    var zeroLeaf2 = await mtlibInstance.getRoot(2);
+    var zeroLeaf3 = await mtlibInstance.getRoot(3);
+
+    console.log(
+      "data",
+      zeroLeaf,
+      zeroLeaf1,
+      zeroLeaf2,
+      zeroLeaf3,
+      utils.getParentLeaf(zeroLeaf, zeroLeaf)
+    );
 
     // append leaf to the tree
     await IMTInstace.appendLeaf(leaf);
 
     // validate if the leaf was inserted correctly
     var root = await IMTInstace.getTreeRoot();
-    var path = "00";
-    var siblings = [zeroLeaf, utils.getParentLeaf(zeroLeaf, zeroLeaf)];
+    var path = "0000";
+    var siblings = [zeroLeaf, zeroLeaf1, zeroLeaf2, zeroLeaf3];
 
     // call stateless merkle tree utils
     var isValid = await mtlibInstance.verifyLeaf(root, leaf, path, siblings);
@@ -58,8 +70,8 @@ contract("IncrementalTree", async function(accounts) {
 
     // verify that the new leaf was inserted correctly
     root = await IMTInstace.getTreeRoot();
-    path = "01";
-    var siblings2 = [dataLeaves[0], utils.getParentLeaf(zeroLeaf, zeroLeaf)];
+    path = "0001";
+    var siblings2 = [dataLeaves[0], zeroLeaf1, zeroLeaf2, zeroLeaf3];
 
     // validate using mt utils
     isValid = await mtlibInstance.verifyLeaf(root, leaf, path, siblings2);
