@@ -3,13 +3,16 @@ import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 
+import {Governance} from "./Governance.sol";
+
 
 /*
  * Merkle Tree Utilities for Rollup
  */
 contract Tree {
     Registry public nameRegistry;
-    MTUtils merkleUtils; /* Structs */
+    MTUtils merkleUtils;
+    Governance public governance;
     // A partial merkle tree which can be updated with new nodes, recomputing the root
     struct MerkleTree {
         // The root
@@ -22,6 +25,9 @@ contract Tree {
         nameRegistry = Registry(_registryAddr);
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
+        governance = Governance(
+            nameRegistry.getContractDetails(ParamManager.Governance())
         );
         setMerkleRootAndHeight(
             merkleUtils.getZeroRoot(),

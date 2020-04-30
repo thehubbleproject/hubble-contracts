@@ -16,6 +16,7 @@ import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {ECVerify} from "./libs/ECVerify.sol";
+import {Governance} from "./Governance.sol";
 
 
 // Main rollup contract
@@ -37,6 +38,10 @@ contract Rollup {
     Registry public nameRegistry;
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
+    bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
+    Governance public governance;
+
     // this variable will be greater than 0 if
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
@@ -62,7 +67,7 @@ contract Rollup {
 
     // Stores transaction paths claimed per batch
     // TO BE REMOVED post withdraw mass migration
-    bool[][] withdrawTxClaimed = new bool[][](ParamManager.MAX_TXS_PER_BATCH());
+    bool[][] withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
 
     /*********************
      * Constructor *
@@ -73,6 +78,9 @@ contract Rollup {
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
         balancesTree = MerkleTree(
             nameRegistry.getContractDetails(ParamManager.BALANCES_TREE())
+        );
+        governance = Governance(
+            nameRegistry.getContractDetails(ParamManager.Governance())
         );
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
@@ -101,15 +109,15 @@ contract Rollup {
         isNotRollingBack
     {
         require(
-            msg.value == ParamManager.STAKE_AMOUNT(),
+            msg.value == governance.STAKE_AMOUNT(),
             "Please send 32 eth with batch as stake"
         );
-        if (_txs.length > ParamManager.MAX_TXS_PER_BATCH()) {
+        if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
             // TODO
         }
 
         require(
-            _txs.length <= ParamManager.MAX_TXS_PER_BATCH(),
+            _txs.length <= governance.MAX_TXS_PER_BATCH(),
             "Batch contains more transations than the limit"
         );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
@@ -122,7 +130,7 @@ contract Rollup {
             committer: msg.sender,
             txRoot: txRoot,
             stakeCommitted: msg.value,
-            finalisesOn: block.number + ParamManager.TIME_TO_FINALISE(),
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             timestamp: now
         });
 
@@ -252,7 +260,7 @@ contract Rollup {
         // convert pubkey path to ID
         uint256 computedID = merkleUtils.pathToIndex(
             _pda_proof._pda.pathToPubkey,
-            ParamManager.MAX_DEPTH()
+            governance.MAX_DEPTH()
         );
 
         require(
@@ -271,7 +279,7 @@ contract Rollup {
             // invalid state transition
             // to be slashed because the submitted transaction
             // had invalid token type
-            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
+            return (ZERO_BYTES32, 0, 0, false);
         }
 
         // verify from leaf exists in the balance tree
@@ -289,7 +297,7 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had amount less than 0
-            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
+            return (ZERO_BYTES32, 0, 0, false);
         }
 
         // check from leaf has enough balance
@@ -297,7 +305,7 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer
-            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
+            return (ZERO_BYTES32, 0, 0, false);
         }
 
         // account holds the token type in the tx
@@ -305,7 +313,7 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
+            return (ZERO_BYTES32, 0, 0, false);
         }
 
         // reduce balance of from leaf
@@ -339,7 +347,7 @@ contract Rollup {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ParamManager.ZERO_BYTES32(), 0, 0, false);
+            return (ZERO_BYTES32, 0, 0, false);
         }
 
         // increase balance of to leaf
@@ -383,7 +391,7 @@ contract Rollup {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
-            if (gasleft() <= ParamManager.MIN_GAS_LIMIT_LEFT()) {
+            if (gasleft() <= governance.MIN_GAS_LIMIT_LEFT()) {
                 // exit loop gracefully
                 break;
             }
@@ -423,8 +431,7 @@ contract Rollup {
         (msg.sender).transfer(challengerRewards);
 
         // burn the remaning amount
-        address payable burnAddress = ParamManager.BURN_ADDRESS();
-        (burnAddress).transfer(burnedAmount);
+        (BURN_ADDRESS).transfer(burnedAmount);
 
         // resize batches length
         batches.length = batches.length.sub(invalidBatchMarker.sub(1));

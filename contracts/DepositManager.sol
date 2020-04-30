@@ -11,6 +11,7 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {Tree as MerkleTree} from "./Tree.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {POB} from "./POB.sol";
+import {Governance} from "./Governance.sol";
 
 
 contract DepositManager {
@@ -20,7 +21,7 @@ contract DepositManager {
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
-
+    Governance public governance;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
@@ -43,6 +44,9 @@ contract DepositManager {
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
+        governance = Governance(
+            nameRegistry.getContractDetails(ParamManager.Governance())
+        );
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
@@ -164,7 +168,7 @@ contract DepositManager {
         if (tmpDepositSubtreeHeight > depositSubtreeHeight) {
             depositSubtreeHeight = tmpDepositSubtreeHeight;
         }
-        if (depositSubtreeHeight == ParamManager.MAX_DEPOSIT_SUBTREE()) {
+        if (depositSubtreeHeight == governance.MAX_DEPOSIT_SUBTREE()) {
             // pause and wait for finalisation
             isPaused = true;
         }

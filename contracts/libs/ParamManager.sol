@@ -18,6 +18,10 @@ library ParamManager {
         return keccak256("pob");
     }
 
+    function Governance() public pure returns (bytes32) {
+        return keccak256("governance");
+    }
+
     function ROLLUP_CORE() public pure returns (bytes32) {
         return keccak256("rollup_core");
     }
@@ -46,60 +50,9 @@ library ParamManager {
         return keccak256("token_registry");
     }
 
-    uint8 public constant _MAX_DEPTH = 4;
-
-    function MAX_DEPTH() public pure returns (uint8) {
-        return _MAX_DEPTH;
-    }
-
-    uint8 public constant _MAX_DEPOSIT_SUBTREE = 2;
-
-    function MAX_DEPOSIT_SUBTREE() public pure returns (uint8) {
-        return _MAX_DEPOSIT_SUBTREE;
-    }
-
     bytes32 public constant _CHAIN_ID = keccak256("opru-123");
 
     function CHAIN_ID() public pure returns (bytes32) {
         return _CHAIN_ID;
-    }
-
-    // finalisation time is the number of blocks required by a batch to finalise
-    // Delay period = 7 days. Block time = 15 seconds
-    uint256 public constant _TIME_TO_FINALISE = 7 days;
-
-    function TIME_TO_FINALISE() public pure returns (uint256) {
-        return _TIME_TO_FINALISE;
-    }
-
-    // min gas required before rollback pauses
-    uint256 public constant _MIN_GAS_LIMIT_LEFT = 100000;
-
-    function MIN_GAS_LIMIT_LEFT() public pure returns (uint256) {
-        return _MIN_GAS_LIMIT_LEFT;
-    }
-
-    uint256 public constant _MAX_TXS_PER_BATCH = 10;
-
-    function MAX_TXS_PER_BATCH() public pure returns (uint256) {
-        return _MAX_TXS_PER_BATCH;
-    }
-
-    uint256 public constant _STAKE_AMOUNT = 32;
-
-    function STAKE_AMOUNT() public pure returns (uint256) {
-        return _STAKE_AMOUNT;
-    }
-
-    address payable constant _BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
-
-    function BURN_ADDRESS() public pure returns (address payable) {
-        return _BURN_ADDRESS;
-    }
-
-    bytes32 public constant _ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-
-    function ZERO_BYTES32() public pure returns (bytes32) {
-        return _ZERO_BYTES32;
     }
 }

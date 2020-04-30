@@ -3,13 +3,13 @@ pragma solidity ^0.5.15;
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
+import {Governance} from "./Governance.sol";
 
 
 contract IncrementalTree {
-    uint256 DEPTH = ParamManager.MAX_DEPTH();
     Registry public nameRegistry;
     MTUtils public merkleUtils;
-
+    Governance public governance;
     MerkleTree public tree;
     // Merkle Tree to store the whole tree
     struct MerkleTree {
@@ -26,17 +26,20 @@ contract IncrementalTree {
     uint256 public nextLeafIndex = 0;
 
     constructor(address _registryAddr) public {
-        tree.filledSubtrees = new bytes32[](DEPTH);
         nameRegistry = Registry(_registryAddr);
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
+        governance = Governance(
+            nameRegistry.getContractDetails(ParamManager.Governance())
+        );
+        tree.filledSubtrees = new bytes32[](governance.MAX_DEPTH());
         setMerkleRootAndHeight(
             merkleUtils.getZeroRoot(),
             merkleUtils.getMaxTreeDepth()
         );
         bytes32 zero = merkleUtils.getRoot(0);
-        for (uint8 i = 1; i < DEPTH; i++) {
+        for (uint8 i = 1; i < governance.MAX_DEPTH(); i++) {
             tree.filledSubtrees[i] = zero;
         }
     }

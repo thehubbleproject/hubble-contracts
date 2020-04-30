@@ -23,7 +23,7 @@ contract Deployer {
         returns (address)
     {
         Registry registry = Registry(nameRegistryAddr);
-        address mtUtils = address(new MTUtils());
+        address mtUtils = address(new MTUtils(nameRegistryAddr));
         require(
             registry.registerName(ParamManager.MERKLE_UTILS(), mtUtils),
             "Could not register merkle utils tree"
