@@ -5,7 +5,6 @@ const Types = artifacts.require("Types");
 const NameRegistry = artifacts.require("NameRegistry");
 const deployerContract = artifacts.require("deployer");
 const fs = require("fs");
-const Tree = artifacts.require("Tree");
 const IncrementalTree = artifacts.require("IncrementalTree");
 const DepositManager = artifacts.require("DepositManager");
 const Rollup = artifacts.require("Rollup");
@@ -47,8 +46,6 @@ module.exports = async function(deployer) {
   );
 
   var paramManagerInstance = await ParamManager.deployed();
-
-  await deployer.link(ParamManager, Tree);
 
   // deploy proof of burn contract
   var pobContract = await deployer.deploy(POB);
