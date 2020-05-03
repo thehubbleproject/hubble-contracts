@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import {Logger} from "./logger.sol";
-import {Tree as MerkleTree} from "./Tree.sol";
 import {POB} from "./POB.sol";
 
 import {IncrementalTree} from "./IncrementalTree.sol";
@@ -52,6 +51,11 @@ contract Rollup {
             nameRegistry.getContractDetails(ParamManager.POB())
         );
         assert(msg.sender == pobContract.getCoordinator());
+        _;
+    }
+
+    modifier isNotWaitingForFinalisation() {
+        assert(depositManager.isDepositPaused() == false);
         _;
     }
 
@@ -114,6 +118,7 @@ contract Rollup {
         payable
         onlyCoordinator
         isNotRollingBack
+        isNotWaitingForFinalisation
     {
         if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
             // TODO
@@ -125,6 +130,29 @@ contract Rollup {
         );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
         validateAndAddNewBatch(txRoot, _updatedRoot);
+    }
+
+    function finaliseDepositsAndSubmitBatch(
+        uint256 _subTreeDepth,
+        Types.AccountMerkleProof calldata _zero_account_mp,
+        bytes[] calldata _txs,
+        bytes32 updatedRoot
+    ) external payable onlyCoordinator isNotRollingBack {
+        depositManager.finaliseDeposits(_subTreeDepth, _zero_account_mp);
+
+        if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
+            // TODO
+        }
+
+        require(
+            _txs.length <= governance.MAX_TXS_PER_BATCH(),
+            "Batch contains more transations than the limit"
+        );
+
+        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
+
+        // validate and create new batch
+        validateAndAddNewBatch(txRoot, updatedRoot);
     }
 
     function validateAndAddNewBatch(bytes32 txRoot, bytes32 _updatedRoot)
@@ -463,29 +491,6 @@ contract Rollup {
             committedBatch.stakeCommitted,
             batch_id
         );
-    }
-
-    function FinaliseDeposits(
-        uint256 _subTreeDepth,
-        Types.AccountMerkleProof calldata _zero_account_mp,
-        bytes[] calldata _txs,
-        bytes32 updatedRoot
-    ) external payable onlyCoordinator isNotRollingBack {
-        depositManager.finaliseDeposits(_subTreeDepth, _zero_account_mp);
-
-        if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
-            // TODO
-        }
-
-        require(
-            _txs.length <= governance.MAX_TXS_PER_BATCH(),
-            "Batch contains more transations than the limit"
-        );
-
-        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
-
-        // validate and create new batch
-        validateAndAddNewBatch(txRoot, updatedRoot);
     }
 
     /**

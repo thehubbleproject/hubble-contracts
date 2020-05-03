@@ -29,6 +29,10 @@ contract DepositManager {
 
     bool isPaused;
 
+    function isDepositPaused() external returns (bool) {
+        return isPaused;
+    }
+
     modifier isNotWaitingForFinalisation() {
         assert(isPaused == false);
         _;

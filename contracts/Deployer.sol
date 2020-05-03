@@ -1,7 +1,6 @@
 pragma solidity ^0.5.15;
 import {ParamManager} from "./libs/ParamManager.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {Tree as MerkleTree} from "./Tree.sol";
 import {IncrementalTree} from "./IncrementalTree.sol";
 import {DepositManager} from "./DepositManager.sol";
 import {TestToken} from "./TestToken.sol";
