@@ -12,6 +12,7 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 const TestToken = artifacts.require("TestToken");
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const POB = artifacts.require("POB");
+const utils = "../test/helpers/utils.ts";
 function writeContractAddresses(contractAddresses) {
   fs.writeFileSync(
     `${process.cwd()}/contractAddresses.json`,
@@ -87,8 +88,10 @@ module.exports = async function(deployer) {
   await deployer.link(ParamManager, Rollup);
   await deployer.link(RollupUtils, Rollup);
 
+  var root = await getMerkleRootWithCoordinatorAccount(max_depth);
+
   // deploy rollup core
-  var rollup = await deployer.deploy(Rollup, nameRegistry.address);
+  var rollup = await deployer.deploy(Rollup, nameRegistry.address, root);
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistry.registerName(key, rollup.address);
 
@@ -102,3 +105,36 @@ module.exports = async function(deployer) {
   };
   writeContractAddresses(contractAddresses);
 };
+
+async function getMerkleRootWithCoordinatorAccount(maxSize) {
+  // coordinator account
+  var coordinator =
+    "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
+  var dataLeaves = [];
+  dataLeaves[0] = coordinator;
+
+  // create empty leaves
+  for (var i = 1; i < maxSize; i++) {
+    dataLeaves[i] =
+      "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
+  }
+
+  // get deployed name registry instance
+  var nameRegistryInstance = await NameRegistry.deployed();
+
+  // get deployed parama manager instance
+  var paramManager = await ParamManager.deployed();
+
+  // get accounts tree key
+  var merkleTreeUtilKey = await paramManager.MERKLE_UTILS();
+
+  var merkleTreeUtilsAddr = await nameRegistryInstance.getContractDetails(
+    merkleTreeUtilKey
+  );
+
+  MTUtilsDeployed = await MerkleTreeUtils.at(merkleTreeUtilsAddr);
+  var result = await MTUtilsDeployed.getMerkleRoot.call(dataLeaves);
+  console.log("result", result);
+
+  return result;
+}

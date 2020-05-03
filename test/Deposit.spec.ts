@@ -1,5 +1,5 @@
 import * as chai from "chai";
-import * as walletHelper from "./helpers/wallet";
+import * as walletHelper from "../scripts/helpers/wallet";
 const TestToken = artifacts.require("TestToken");
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const chaiAsPromised = require("chai-as-promised");
@@ -10,7 +10,7 @@ const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
 const IncrementalTree = artifacts.require("IncrementalTree");
 const Logger = artifacts.require("Logger");
-import * as utils from "./helpers/utils";
+import * as utils from "../scripts/helpers/utils";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
 chai.use(chaiAsPromised);

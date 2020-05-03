@@ -1,6 +1,6 @@
-import * as utils from "./helpers/utils";
+import * as utils from "../scripts/helpers/utils";
 import {ethers} from "ethers";
-import * as walletHelper from "./helpers/wallet";
+import * as walletHelper from "../scripts/helpers/wallet";
 const RollupUtils = artifacts.require("RollupUtils");
 contract("RollupUtils", async function(accounts) {
   var wallets: any;

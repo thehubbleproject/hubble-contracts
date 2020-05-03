@@ -2,8 +2,8 @@ const MTLib = artifacts.require("MerkleTreeUtils");
 const IMT = artifacts.require("IncrementalTree");
 const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
-import * as walletHelper from "../helpers/wallet";
-import * as utils from "../helpers/utils";
+import * as walletHelper from "../../scripts/helpers/wallet";
+import * as utils from "../../scripts/helpers/utils";
 contract("IncrementalTree", async function(accounts) {
   var wallets: any;
   var depth: number = 2;

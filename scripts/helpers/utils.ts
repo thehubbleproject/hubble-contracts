@@ -54,9 +54,7 @@ export async function defaultHashes(depth: number) {
   var zeroValue = 0;
   var defaultHashes = [];
   var abiCoder = ethers.utils.defaultAbiCoder;
-  var zeroHash = ethers.utils.keccak256(
-    abiCoder.encode(["uint256"], [zeroValue])
-  );
+  var zeroHash = await getZeroHash(zeroValue);
   defaultHashes[0] = zeroHash;
 
   for (let i = 1; i < depth; i++) {
@@ -67,6 +65,25 @@ export async function defaultHashes(depth: number) {
   }
 
   return defaultHashes;
+}
+
+export async function getZeroHash(zeroValue: any) {
+  var abiCoder = ethers.utils.defaultAbiCoder;
+  return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
+}
+
+export async function getMerkleRootWithCoordinatorAccount(maxSize: any) {
+  // coordinator account
+  var coordinator = CreateAccountLeaf(0, 0, 0, 0);
+  var dataLeaves = [];
+  dataLeaves[0] = coordinator;
+  console.log("hered");
+  // create empty leaves
+  for (var i = 1; i < maxSize; i++) {
+    dataLeaves[i] = getZeroHash(0);
+  }
+
+  var merkleTree = getMerkleTreeUtils();
 }
 
 export async function getMerkleTreeUtils() {

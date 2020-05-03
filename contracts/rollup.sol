@@ -76,7 +76,7 @@ contract Rollup {
     /*********************
      * Constructor *
      ********************/
-    constructor(address _registryAddr) public {
+    constructor(address _registryAddr, bytes32 genesisStateRoot) public {
         nameRegistry = Registry(_registryAddr);
 
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
@@ -98,6 +98,8 @@ contract Rollup {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
+
+        validateAndAddNewBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
     /**

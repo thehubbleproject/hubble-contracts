@@ -1,4 +1,4 @@
-import * as utils from "./helpers/utils";
+import * as utils from "../scripts/helpers/utils";
 import {ethers} from "ethers";
 contract("IncrementalTree", async function(accounts) {
   before(async function() {

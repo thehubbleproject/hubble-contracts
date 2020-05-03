@@ -5,8 +5,8 @@ const ParamManager = artifacts.require("ParamManager");
 const ECVerify = artifacts.require("ECVerify");
 const RollupUtils = artifacts.require("RollupUtils");
 const Types = artifacts.require("Types");
-import * as walletHelper from "../helpers/wallet";
-import * as utils from "../helpers/utils";
+import * as walletHelper from "../../scripts/helpers/wallet";
+import * as utils from "../../scripts/helpers/utils";
 
 // Test all stateless operations
 contract("MerkleTreeUtils", async function(accounts) {
