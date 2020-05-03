@@ -30,10 +30,6 @@ library ParamManager {
         return keccak256("accounts_tree");
     }
 
-    function BALANCES_TREE() public pure returns (bytes32) {
-        return keccak256("balances_tree");
-    }
-
     function LOGGER() public pure returns (bytes32) {
         return keccak256("logger");
     }

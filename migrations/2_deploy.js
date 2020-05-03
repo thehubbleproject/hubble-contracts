@@ -55,11 +55,6 @@ module.exports = async function(deployer) {
   var key = await paramManagerInstance.POB();
   await nameRegistry.registerName(key, pobContract.address);
 
-  // deploy balances tree
-  var balancesTree = await deployer.deploy(Tree, nameRegistry.address);
-  var key = await paramManagerInstance.BALANCES_TREE();
-  await nameRegistry.registerName(key, balancesTree.address);
-
   await deployer.link(ParamManager, IncrementalTree);
 
   // deploy accounts tree
@@ -102,7 +97,6 @@ module.exports = async function(deployer) {
 
   const contractAddresses = {
     // MerkleUtils: MTLib.address,
-    BalanceTree: balancesTree.address,
     AccountTree: accountsTree.address,
     // ECVeridy: ECVerify.address,
     // TokenRegistry: TokenRegistry.address,

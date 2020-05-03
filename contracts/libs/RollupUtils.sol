@@ -53,6 +53,21 @@ library RollupUtils {
             );
     }
 
+    function getAccountHash(
+        uint256 id,
+        uint256 balance,
+        uint256 nonce,
+        uint256 tokenType
+    ) public view returns (bytes32) {
+        Types.UserAccount memory userAccount = Types.UserAccount({
+            ID: id,
+            tokenType: tokenType,
+            balance: balance,
+            nonce: nonce
+        });
+        return HashFromAccount(userAccount);
+    }
+
     // ---------- Tx Related Utils -------------------
 
     function BytesFromTx(Types.Transaction memory _tx)

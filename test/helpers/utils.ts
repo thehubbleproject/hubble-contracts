@@ -42,7 +42,6 @@ export function CreateAccountLeaf(
   token: number
 ) {
   var data = BytesFromAccountData(ID, balance, nonce, token);
-  console.log("databytes", data);
   return Hash(data);
 }
 

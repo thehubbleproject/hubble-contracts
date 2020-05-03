@@ -17,6 +17,7 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {ECVerify} from "./libs/ECVerify.sol";
 import {Governance} from "./Governance.sol";
+import {DepositManager} from "./DepositManager.sol";
 
 
 // Main rollup contract
@@ -30,7 +31,7 @@ contract Rollup {
      ********************/
 
     // External contracts
-    MerkleTree public balancesTree;
+    DepositManager public depositManager;
     IncrementalTree public accountsTree;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
@@ -75,9 +76,10 @@ contract Rollup {
         nameRegistry = Registry(_registryAddr);
 
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
-        balancesTree = MerkleTree(
-            nameRegistry.getContractDetails(ParamManager.BALANCES_TREE())
+        depositManager = DepositManager(
+            nameRegistry.getContractDetails(ParamManager.DEPOSIT_MANAGER())
         );
+
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
         );
@@ -95,6 +97,14 @@ contract Rollup {
     }
 
     /**
+     * @notice Returns the latest state root
+     */
+
+    function getLatestBalanceTreeRoot() public view returns (bytes32) {
+        return batches[batches.length - 1].stateRoot;
+    }
+
+    /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
@@ -105,10 +115,6 @@ contract Rollup {
         onlyCoordinator
         isNotRollingBack
     {
-        require(
-            msg.value == governance.STAKE_AMOUNT(),
-            "Please send 32 eth with batch as stake"
-        );
         if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
             // TODO
         }
@@ -118,7 +124,12 @@ contract Rollup {
             "Batch contains more transations than the limit"
         );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
+        validateAndAddNewBatch(txRoot, _updatedRoot);
+    }
 
+    function validateAndAddNewBatch(bytes32 txRoot, bytes32 _updatedRoot)
+        internal
+    {
         // TODO need to commit the depths of all trees as well, because they are variable depth
         // make merkel root of all txs
         Types.Batch memory newBatch = Types.Batch({
@@ -357,10 +368,6 @@ contract Rollup {
         );
 
         // update the merkle tree
-        balancesTree.update(
-            RollupUtils.BytesFromAccount(new_to_leaf),
-            _to_merkle_proof.accountIP.pathToAccount
-        );
         newRoot = merkleUtils.updateLeafWithSiblings(
             keccak256(RollupUtils.BytesFromAccount(new_to_leaf)),
             _to_merkle_proof.accountIP.pathToAccount,
@@ -456,6 +463,29 @@ contract Rollup {
             committedBatch.stakeCommitted,
             batch_id
         );
+    }
+
+    function FinaliseDeposits(
+        uint256 _subTreeDepth,
+        Types.AccountMerkleProof calldata _zero_account_mp,
+        bytes[] calldata _txs,
+        bytes32 updatedRoot
+    ) external payable onlyCoordinator isNotRollingBack {
+        depositManager.finaliseDeposits(_subTreeDepth, _zero_account_mp);
+
+        if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
+            // TODO
+        }
+
+        require(
+            _txs.length <= governance.MAX_TXS_PER_BATCH(),
+            "Batch contains more transations than the limit"
+        );
+
+        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
+
+        // validate and create new batch
+        validateAndAddNewBatch(txRoot, updatedRoot);
     }
 
     /**

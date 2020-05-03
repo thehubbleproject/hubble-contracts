@@ -55,11 +55,7 @@ contract Deployer {
         );
 
         return nameRegistryAddr;
-        // address balancesTree = address(new MerkleTree(nameRegistryAddr));
-        // require(
-        //     registry.registerName(ParamManager.BALANCES_TREE(), balancesTree),
-        //     "Could not register balances tree"
-        // );
+
         // deploy accounts tree
         // address accountsTree = address(new IncrementalTree(nameRegistryAddr));
         // require(

@@ -8,16 +8,16 @@ import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
-import {Tree as MerkleTree} from "./Tree.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
+import {Rollup} from "./Rollup.sol";
 
 
 contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
-    MerkleTree public balancesTree;
+    Rollup public rollupCore;
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
@@ -57,9 +57,17 @@ contract DepositManager {
         accountsTree = IncrementalTree(
             nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
         );
-        balancesTree = MerkleTree(
-            nameRegistry.getContractDetails(ParamManager.BALANCES_TREE())
+        rollupCore = Rollup(
+            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
         );
+        AddCoordinatorLeaf();
+    }
+
+    function AddCoordinatorLeaf() internal {
+        // Add pubkey to PDA tree
+        Types.PDALeaf memory newPDALeaf;
+        // returns leaf index upon successfull append
+        accountsTree.appendLeaf(RollupUtils.PDALeafToHash(newPDALeaf));
     }
 
     /**
@@ -184,13 +192,13 @@ contract DepositManager {
     function finaliseDeposits(
         uint256 _subTreeDepth,
         Types.AccountMerkleProof memory _zero_account_mp
-    ) public returns (bytes32) {
+    ) public {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
         // from mt proof we find the root of the tree
         // we match the root to the balance tree root on-chain
         require(
             merkleUtils.verifyLeaf(
-                balancesTree.getRoot(),
+                rollupCore.getLatestBalanceTreeRoot(),
                 emptySubtreeRoot,
                 _zero_account_mp.accountIP.pathToAccount,
                 _zero_account_mp.siblings
@@ -198,32 +206,27 @@ contract DepositManager {
             "proof invalid"
         );
 
-        // update the in-state balance tree with new leaf from pendingDeposits[0]
-        // balancesTree.updateLeaf(
+        // REMOVED: we are doing deposits optimistically too
+        // bytes32 newRoot = merkleUtils.updateleafWithSiblings(
         //     pendingDeposits[0],
-        //     _zero_account_mp.accountIP.pathToAccount
+        //     _zero_account_mp.accountIP.pathToAccount,
+        //     _zero_account_mp.siblings
         // );
-
-        balancesTree.storeLeaf(
-            pendingDeposits[0],
-            _zero_account_mp.accountIP.pathToAccount,
-            _zero_account_mp.siblings
-        );
-        // empty the pending deposits queue
-        removeDeposit(0);
-        // update the number of elements present in the queue
-        queueNumber = queueNumber - 2**depositSubtreeHeight;
-        bytes32 newRoot = balancesTree.getRoot();
 
         // emit the event
         logger.logDepositFinalised(
             pendingDeposits[0],
-            _zero_account_mp.accountIP.pathToAccount,
-            newRoot
+            _zero_account_mp.accountIP.pathToAccount
         );
 
+        // empty the pending deposits queue
+        removeDeposit(0);
+
+        // update the number of elements present in the queue
+        queueNumber = queueNumber - 2**depositSubtreeHeight;
+
         // return the updated merkle tree root
-        return newRoot;
+        return;
     }
 
     /**
