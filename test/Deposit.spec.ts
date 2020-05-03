@@ -10,7 +10,6 @@ const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
 const IncrementalTree = artifacts.require("IncrementalTree");
 const Logger = artifacts.require("Logger");
-const Tree = artifacts.require("Tree");
 import * as utils from "./helpers/utils";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
@@ -199,9 +198,6 @@ contract("DepositManager", async function(accounts) {
     //
     // verify accounts exist in the new balance root
     //
-
-    var balancesTreeInstance = await Tree.deployed();
-    var newBalanceRoot = await balancesTreeInstance.getRoot();
 
     // verify sub tree has been inserted first at path 0
     // var isSubTreeInserted = await MTutilsInstance.verifyLeaf(

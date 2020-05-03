@@ -1,6 +1,5 @@
 const MTLib = artifacts.require("MerkleTreeUtils");
 const IMT = artifacts.require("IncrementalTree.sol");
-const Tree = artifacts.require("Tree");
 const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
 const ECVerify = artifacts.require("ECVerify");
