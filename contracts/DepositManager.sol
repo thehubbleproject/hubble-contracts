@@ -26,7 +26,7 @@ contract DepositManager {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
     IncrementalTree public accountsTree;
-
+    bytes32 public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     bool isPaused;
 
     function isDepositPaused() external returns (bool) {
@@ -68,10 +68,8 @@ contract DepositManager {
     }
 
     function AddCoordinatorLeaf() internal {
-        // Add pubkey to PDA tree
-        Types.PDALeaf memory newPDALeaf;
-        // returns leaf index upon successfull append
-        accountsTree.appendLeaf(RollupUtils.PDALeafToHash(newPDALeaf));
+        // first leaf in the incremental tree belongs to the coordinator
+        accountsTree.appendLeaf(ZERO_BYTES32);
     }
 
     /**

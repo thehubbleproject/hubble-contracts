@@ -6,19 +6,19 @@ Governance contract handles all the proof of burn related functionality
 */
 contract Governance {
     constructor(uint256 maxDepth, uint256 maxDepositSubTree) public {
-        _MAX_DEPTH = 4;
-        _MAX_DEPOSIT_SUBTREE = 2;
+        _MAX_DEPTH = maxDepth;
+        _MAX_DEPOSIT_SUBTREE = maxDepositSubTree;
     }
 
-    uint8 public _MAX_DEPTH = 4;
+    uint256 public _MAX_DEPTH = 4;
 
-    function MAX_DEPTH() public view returns (uint8) {
+    function MAX_DEPTH() public view returns (uint256) {
         return _MAX_DEPTH;
     }
 
-    uint8 public _MAX_DEPOSIT_SUBTREE = 2;
+    uint256 public _MAX_DEPOSIT_SUBTREE = 2;
 
-    function MAX_DEPOSIT_SUBTREE() public view returns (uint8) {
+    function MAX_DEPOSIT_SUBTREE() public view returns (uint256) {
         return _MAX_DEPOSIT_SUBTREE;
     }
 

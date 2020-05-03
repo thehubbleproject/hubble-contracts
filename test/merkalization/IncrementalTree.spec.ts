@@ -4,6 +4,8 @@ const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
 import * as walletHelper from "../../scripts/helpers/wallet";
 import * as utils from "../../scripts/helpers/utils";
+const BN = require("bn.js");
+
 contract("IncrementalTree", async function(accounts) {
   var wallets: any;
   var depth: number = 2;
@@ -38,6 +40,8 @@ contract("IncrementalTree", async function(accounts) {
 
     // get leaf to be inserted
     var leaf = dataLeaves[0];
+    var coordinator =
+      "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
     var zeroLeaf = await mtlibInstance.getRoot(0);
     var zeroLeaf1 = await mtlibInstance.getRoot(1);
     var zeroLeaf2 = await mtlibInstance.getRoot(2);
@@ -57,24 +61,46 @@ contract("IncrementalTree", async function(accounts) {
 
     // validate if the leaf was inserted correctly
     var root = await IMTInstace.getTreeRoot();
-    var path = "0000";
-    var siblings = [zeroLeaf, zeroLeaf1, zeroLeaf2, zeroLeaf3];
+    var path = "0001";
+    var siblings = [coordinator, zeroLeaf1, zeroLeaf2, zeroLeaf3];
 
     // call stateless merkle tree utils
-    var isValid = await mtlibInstance.verifyLeaf(root, leaf, path, siblings);
+    var isValid = await mtlibInstance.verifyLeaf(root, leaf, "1", siblings);
     expect(isValid).to.be.deep.eq(true);
 
     // add another leaf to the tree
     leaf = dataLeaves[1];
     await IMTInstace.appendLeaf(leaf);
-
+    var nextLeafIndex = await IMTInstace.nextLeafIndex();
     // verify that the new leaf was inserted correctly
-    root = await IMTInstace.getTreeRoot();
-    path = "0001";
-    var siblings2 = [dataLeaves[0], zeroLeaf1, zeroLeaf2, zeroLeaf3];
+    var root1 = await IMTInstace.getTreeRoot();
 
-    // validate using mt utils
-    isValid = await mtlibInstance.verifyLeaf(root, leaf, path, siblings2);
+    var path1 = "0010";
+    var siblings2 = [
+      zeroLeaf,
+      utils.getParentLeaf(coordinator, dataLeaves[0]),
+      zeroLeaf2,
+      zeroLeaf3
+    ];
+    isValid = await mtlibInstance.verifyLeaf(root1, leaf, "2", siblings2);
     expect(isValid).to.be.deep.eq(true);
   });
 });
+
+/**
+ * Converts a big number to a hex string.
+ * @param bn the big number to be converted.
+ * @returns the big number as a string.
+ */
+export const bnToHexString = (bn: BN): string => {
+  return "0x" + bn.toString("hex");
+};
+
+/**
+ * Converts a buffer to a hex string.
+ * @param buf the buffer to be converted.
+ * @returns the buffer as a string.
+ */
+export const bufToHexString = (buf: Buffer): string => {
+  return "0x" + buf.toString("hex");
+};

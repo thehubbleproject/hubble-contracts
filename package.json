@@ -33,10 +33,12 @@
   },
   "homepage": "https://github.com/vaibhavchellani/BOPR-contracts#readme",
   "dependencies": {
+    "@types/bignumber.js": "^5.0.0",
     "@types/chai-as-promised": "^7.1.2",
     "abi-decoder": "^2.3.0",
     "big-number": "^2.0.0",
     "bip39": "^2.5.0",
+    "bn.js": "^5.1.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "eth-gas-reporter": "^0.2.16",
