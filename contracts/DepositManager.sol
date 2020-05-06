@@ -11,6 +11,7 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
+import {Rollup} from "./Rollup.sol";
 
 
 contract DepositManager {
@@ -41,6 +42,14 @@ contract DepositManager {
             nameRegistry.getContractDetails(ParamManager.POB())
         );
         assert(msg.sender == pobContract.getCoordinator());
+        _;
+    }
+
+    modifier onlyRollup() {
+        assert(
+            msg.sender ==
+                nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+        );
         _;
     }
 
@@ -191,7 +200,7 @@ contract DepositManager {
         uint256 _subTreeDepth,
         Types.AccountMerkleProof memory _zero_account_mp,
         bytes32 latestBalanceTree
-    ) public {
+    ) public onlyRollup {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
 
         // from mt proof we find the root of the tree
