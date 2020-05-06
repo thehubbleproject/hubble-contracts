@@ -140,7 +140,11 @@ contract Rollup {
         bytes[] calldata _txs,
         bytes32 updatedRoot
     ) external payable onlyCoordinator isNotRollingBack {
-        depositManager.finaliseDeposits(_subTreeDepth, _zero_account_mp);
+        depositManager.finaliseDeposits(
+            _subTreeDepth,
+            _zero_account_mp,
+            getLatestBalanceTreeRoot()
+        );
 
         if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
             // TODO

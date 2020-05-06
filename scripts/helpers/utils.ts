@@ -101,3 +101,44 @@ export async function getMerkleTreeUtils() {
   );
   return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
+
+export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
+  var nextLevelLength = dataLeaves.length;
+  var currentLevel = 0;
+  var nodes: any = dataLeaves.slice();
+  var defaultHashesForLeaves: any = defaultHashes(maxDepth);
+  // create a merkle root to see if this is valid
+  while (nextLevelLength > 1) {
+    currentLevel += 1;
+    // Calculate the nodes for the currentLevel
+    for (var i = 0; i < nextLevelLength / 2; i++) {
+      nodes[i] = getParentLeaf(nodes[i * 2], nodes[i * 2 + 1]);
+      console.log("root", nodes[i]);
+    }
+    nextLevelLength = nextLevelLength / 2;
+    // Check if we will need to add an extra node
+    if (nextLevelLength % 2 == 1 && nextLevelLength != 1) {
+      nodes[nextLevelLength] = defaultHashesForLeaves[currentLevel];
+      nextLevelLength += 1;
+    }
+  }
+  return nodes[0];
+}
+
+export async function genMerkleRootFromSiblings(
+  siblings: any,
+  path: string,
+  leaf: string
+) {
+  var computedNode: any = leaf;
+  var splitPath = path.split("");
+  for (var i = 0; i < siblings.length; i++) {
+    var sibling = siblings[i];
+    if (splitPath[splitPath.length - i - 1] == "0") {
+      computedNode = getParentLeaf(computedNode, sibling);
+    } else {
+      computedNode = getParentLeaf(sibling, computedNode);
+    }
+  }
+  return computedNode;
+}

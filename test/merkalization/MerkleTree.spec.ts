@@ -11,7 +11,6 @@ import * as utils from "../../scripts/helpers/utils";
 // Test all stateless operations
 contract("MerkleTreeUtils", async function(accounts) {
   var wallets: any;
-  var depth: number = 2;
   var firstDataBlock = utils.StringToBytes32("0x123");
   var secondDataBlock = utils.StringToBytes32("0x334");
   var thirdDataBlock = utils.StringToBytes32("0x4343");
@@ -30,6 +29,36 @@ contract("MerkleTreeUtils", async function(accounts) {
   ];
   before(async function() {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
+  });
+
+  it("ensure root created on-chain and via utils is the same", async function() {
+    var coordinator =
+      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
+    var maxSize = 4;
+    var tempDataLeaves = [];
+    tempDataLeaves[0] = coordinator;
+    var numberOfDataLeaves = 2 ** maxSize;
+    // create empty leaves
+    for (var i = 1; i < numberOfDataLeaves; i++) {
+      tempDataLeaves[i] =
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
+    }
+    var mtlibInstance = await utils.getMerkleTreeUtils();
+    var rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
+      tempDataLeaves
+    );
+    // root that we are creating for on-chain data
+    var rootWhileDeployingContracts =
+      "0xfe55b4be5e50828667fb2dc97c9757fd0c295b19c6de05f4d8800ed128f66ad4";
+    var generatedRoot = await utils.getMerkleRoot(tempDataLeaves, maxSize);
+    var rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
+      tempDataLeaves
+    );
+    assert.equal(
+      rootFromContract,
+      generatedRoot,
+      "root generated off chain and on-chains should match"
+    );
   });
 
   it("utils hash should be the same as keccak hash", async function() {
@@ -77,7 +106,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   it("[LEAF] [STATELESS] verifying correct proof", async function() {
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
     var siblings: Array<string> = [
       dataLeaves[1],
@@ -96,7 +125,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   it("[DATABLOCK] [STATELESS] verifying correct proof", async function() {
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
     var siblings: Array<string> = [
       dataLeaves[1],
@@ -130,7 +159,7 @@ contract("MerkleTreeUtils", async function(accounts) {
     );
 
     // create merkle tree and get root
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
     console.log("root created", root);
     var siblings: Array<string> = [
       dataLeaves[1],
@@ -146,7 +175,7 @@ contract("MerkleTreeUtils", async function(accounts) {
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
     // create merkle tree and get root
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
     var siblings: Array<string> = [
       dataLeaves[1],
@@ -161,7 +190,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   it("[LEAF] [STATELESS] verifying other leaves", async function() {
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
     var siblings: Array<string> = [
       dataLeaves[0],
@@ -176,7 +205,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   it("[DATABLOCK] [STATELESS] verifying other leaves", async function() {
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
     var siblings: Array<string> = [
       dataLeaves[0],
@@ -191,7 +220,7 @@ contract("MerkleTreeUtils", async function(accounts) {
   it("[DATABLOCK] [STATELESS] path greater than depth", async function() {
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
-    var root = await mtlibInstance.getMerkleRoot.call(dataBlocks);
+    var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
     var siblings: Array<string> = [
       dataLeaves[0],

@@ -10,6 +10,7 @@ const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
 const IncrementalTree = artifacts.require("IncrementalTree");
 const Logger = artifacts.require("Logger");
+const RollupCore = artifacts.require("Rollup");
 import * as utils from "../scripts/helpers/utils";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
@@ -63,6 +64,8 @@ contract("DepositManager", async function(accounts) {
   it("should allow depositing 2 leaves in a subtree and merging it", async () => {
     let depositManagerInstance = await DepositManager.deployed();
     var testTokenInstance = await TestToken.deployed();
+
+    let rollupCoreInstance = await RollupCore.deployed();
     var MTutilsInstance = await utils.getMerkleTreeUtils();
     var Alice = {
       Address: wallets[0].getAddressString(),
@@ -70,7 +73,7 @@ contract("DepositManager", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 1,
-      Path: "0001"
+      Path: "2"
     };
     var Bob = {
       Address: wallets[1].getAddressString(),
@@ -78,27 +81,29 @@ contract("DepositManager", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 2,
-      Path: "0010"
+      Path: "3"
     };
 
     var charlie = {
-      address: wallets[2].getAddressString(),
-      pubkey: wallets[2].getPublicKeyString(),
-      amount: 10,
-      tokentype: 1,
-      accid: 1,
-      path: "01"
+      Address: wallets[2].getAddressString(),
+      Pubkey: wallets[2].getPublicKeyString(),
+      Amount: 10,
+      TokenType: 1,
+      AccID: 3,
+      Path: "3"
     };
 
-    var Harry = {
-      address: wallets[1].getAddressString(),
-      pubkey: wallets[1].getPublicKeyString(),
-      amount: 10,
-      tokentype: 1,
-      accid: 1,
-      path: "0001"
+    var charlie = {
+      Address: wallets[3].getAddressString(),
+      Pubkey: wallets[3].getPublicKeyString(),
+      Amount: 10,
+      TokenType: 1,
+      AccID: 4,
+      Path: "4"
     };
-
+    var coordinator =
+      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
+    var maxSize = 4;
     console.log("User information", "Alice", Alice, "bob", Bob);
 
     // transfer funds from Alice to bob
@@ -154,6 +159,7 @@ contract("DepositManager", async function(accounts) {
       0,
       Bob.TokenType
     );
+
     pendingDeposits0 = await depositManagerInstance.pendingDeposits(0);
     assert.equal(
       pendingDeposits0,
@@ -175,8 +181,13 @@ contract("DepositManager", async function(accounts) {
     // finalise the deposit back to the state tree
     var path = "001";
 
-    var defaultHashes = await utils.defaultHashes(2);
-    var siblingsInProof = [defaultHashes[1]];
+    var defaultHashes = await utils.defaultHashes(4);
+    var siblingsInProof = [
+      utils.getParentLeaf(coordinator, defaultHashes[0]),
+      defaultHashes[2],
+      defaultHashes[3]
+    ];
+
     var _zero_account_mp = {
       accountIP: {
         pathToAccount: path,
@@ -190,50 +201,73 @@ contract("DepositManager", async function(accounts) {
       siblings: siblingsInProof
     };
 
-    var txResponse = await depositManagerInstance.finaliseDeposits(
+    // await depositManagerInstance.finaliseDeposits(
+    //   subtreeDepth,
+    //   _zero_account_mp
+    // );
+    var newRoot = await utils.genMerkleRootFromSiblings(
+      siblingsInProof,
+      path,
+      utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf)
+    );
+
+    var txs: string[] = [
+      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d"
+    ];
+    await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
-      _zero_account_mp
+      _zero_account_mp,
+      txs,
+      newRoot
     );
 
     //
     // verify accounts exist in the new balance root
     //
+    var newBalanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
 
     // verify sub tree has been inserted first at path 0
-    // var isSubTreeInserted = await MTutilsInstance.verifyLeaf(
-    //   newBalanceRoot,
-    //   utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf),
-    //   "0",
-    //   siblingsInProof
-    // );
-    // expect(isSubTreeInserted).to.be.deep.eq(true);
+    var isSubTreeInserted = await MTutilsInstance.verifyLeaf(
+      newBalanceRoot,
+      utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf),
+      "001",
+      siblingsInProof
+    );
+    expect(isSubTreeInserted).to.be.deep.eq(true);
 
-    // // verify first account at path 00
-    // var account1siblings: Array<string> = [BobAccountLeaf, siblingsInProof[0]];
-    // var leaf = AliceAccountLeaf;
-    // var firstAccountPath: string = "0001";
-    // var isValid = await MTutilsInstance.verifyLeaf(
-    //   newBalanceRoot,
-    //   leaf,
-    //   firstAccountPath,
-    //   account1siblings
-    // );
-    // expect(isValid).to.be.deep.eq(true);
+    // verify first account at path 0001
+    var account1siblings: Array<string> = [
+      BobAccountLeaf,
+      siblingsInProof[0],
+      siblingsInProof[1],
+      siblingsInProof[2]
+    ];
+    var leaf = AliceAccountLeaf;
+    var firstAccountPath: string = "2";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      newBalanceRoot,
+      leaf,
+      firstAccountPath,
+      account1siblings
+    );
+    expect(isValid).to.be.deep.eq(true);
 
-    // // verify second account at path 11
-    // var account2siblings: Array<string> = [
-    //   AliceAccountLeaf,
-    //   siblingsInProof[0]
-    // ];
-    // var leaf = BobAccountLeaf;
-    // var secondAccountPath: string = "0010";
-    // var isValid = await MTutilsInstance.verifyLeaf(
-    //   newBalanceRoot,
-    //   leaf,
-    //   secondAccountPath,
-    //   account2siblings
-    // );
-    // expect(isValid).to.be.deep.eq(true);
+    // verify second account at path 11
+    var account2siblings: Array<string> = [
+      AliceAccountLeaf,
+      siblingsInProof[0],
+      siblingsInProof[1],
+      siblingsInProof[2]
+    ];
+    var leaf = BobAccountLeaf;
+    var secondAccountPath: string = "3";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      newBalanceRoot,
+      leaf,
+      secondAccountPath,
+      account2siblings
+    );
+    expect(isValid).to.be.deep.eq(true);
   });
 });
 

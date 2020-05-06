@@ -11,13 +11,11 @@ import {IERC20} from "./interfaces/IERC20.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
-import {Rollup} from "./Rollup.sol";
 
 
 contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
-    Rollup public rollupCore;
     bytes32[] public pendingDeposits;
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
@@ -61,9 +59,7 @@ contract DepositManager {
         accountsTree = IncrementalTree(
             nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
         );
-        rollupCore = Rollup(
-            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
-        );
+
         AddCoordinatorLeaf();
     }
 
@@ -193,27 +189,21 @@ contract DepositManager {
      */
     function finaliseDeposits(
         uint256 _subTreeDepth,
-        Types.AccountMerkleProof memory _zero_account_mp
+        Types.AccountMerkleProof memory _zero_account_mp,
+        bytes32 latestBalanceTree
     ) public {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
+
         // from mt proof we find the root of the tree
         // we match the root to the balance tree root on-chain
-        require(
-            merkleUtils.verifyLeaf(
-                rollupCore.getLatestBalanceTreeRoot(),
-                emptySubtreeRoot,
-                _zero_account_mp.accountIP.pathToAccount,
-                _zero_account_mp.siblings
-            ),
-            "proof invalid"
+        bool isValid = merkleUtils.verifyLeaf(
+            latestBalanceTree,
+            emptySubtreeRoot,
+            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.siblings
         );
-
-        // REMOVED: we are doing deposits optimistically too
-        // bytes32 newRoot = merkleUtils.updateleafWithSiblings(
-        //     pendingDeposits[0],
-        //     _zero_account_mp.accountIP.pathToAccount,
-        //     _zero_account_mp.siblings
-        // );
+        // bool isValid = true;
+        require(isValid, "proof invalid");
 
         // emit the event
         logger.logDepositFinalised(

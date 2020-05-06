@@ -64,19 +64,6 @@ module.exports = async function(deployer) {
   var key = await paramManagerInstance.ACCOUNTS_TREE();
   await nameRegistry.registerName(key, accountsTree.address);
 
-  await deployer.link(Types, DepositManager);
-  await deployer.link(ParamManager, DepositManager);
-  await deployer.link(RollupUtils, DepositManager);
-  // deploy deposit manager
-  var depositManager = await deployer.deploy(
-    DepositManager,
-    nameRegistry.address
-  );
-
-  var key = await paramManagerInstance.DEPOSIT_MANAGER();
-
-  await nameRegistry.registerName(key, depositManager.address);
-
   // deploy test token
   var testTokenInstance = await deployer.deploy(TestToken);
 
@@ -90,11 +77,21 @@ module.exports = async function(deployer) {
 
   var root = await getMerkleRootWithCoordinatorAccount(max_depth);
 
+  await deployer.link(Types, DepositManager);
+  await deployer.link(ParamManager, DepositManager);
+  await deployer.link(RollupUtils, DepositManager);
+  // deploy deposit manager
+  var depositManager = await deployer.deploy(
+    DepositManager,
+    nameRegistry.address
+  );
+  var key = await paramManagerInstance.DEPOSIT_MANAGER();
+  await nameRegistry.registerName(key, depositManager.address);
+
   // deploy rollup core
   var rollup = await deployer.deploy(Rollup, nameRegistry.address, root);
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistry.registerName(key, rollup.address);
-
   const contractAddresses = {
     // MerkleUtils: MTLib.address,
     AccountTree: accountsTree.address,
@@ -112,9 +109,9 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
     "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
   var dataLeaves = [];
   dataLeaves[0] = coordinator;
-
+  var numberOfDataLeaves = 2 ** maxSize;
   // create empty leaves
-  for (var i = 1; i < maxSize; i++) {
+  for (var i = 1; i < numberOfDataLeaves; i++) {
     dataLeaves[i] =
       "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
   }
@@ -133,7 +130,7 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
   );
 
   MTUtilsDeployed = await MerkleTreeUtils.at(merkleTreeUtilsAddr);
-  var result = await MTUtilsDeployed.getMerkleRoot.call(dataLeaves);
+  var result = await MTUtilsDeployed.getMerkleRootFromLeaves(dataLeaves);
   console.log("result", result);
 
   return result;
