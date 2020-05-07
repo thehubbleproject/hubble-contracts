@@ -16,6 +16,21 @@ contract("RollupCore", async function(accounts) {
     var testTokenInstance = await TestToken.deployed();
     let rollupCoreInstance = await RollupCore.deployed();
     var MTutilsInstance = await utils.getMerkleTreeUtils();
+    let testToken = await TestToken.deployed();
+    let tokenRegistryInstance = await utils.getTokenRegistry();
+    await tokenRegistryInstance.requestTokenRegistration(testToken.address, {
+      from: wallets[0].getAddressString()
+    });
+    await tokenRegistryInstance.finaliseTokenRegistration(testToken.address, {
+      from: wallets[0].getAddressString()
+    });
+    await testToken.approve(
+      depositManagerInstance.address,
+      web3.utils.toWei("1"),
+      {
+        from: wallets[0].getAddressString()
+      }
+    );
 
     var Alice = {
       Address: wallets[0].getAddressString(),
@@ -110,7 +125,6 @@ contract("RollupCore", async function(accounts) {
     ];
     var newRoot =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
-
     await rollupCoreInstance.submitBatch(txs, newRoot);
   });
 });

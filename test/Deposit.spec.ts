@@ -25,7 +25,7 @@ contract("DepositManager", async function(accounts) {
 
   it("should register a token", async function() {
     let testToken = await TestToken.deployed();
-    let tokenRegistryInstance = await getTokenRegistry();
+    let tokenRegistryInstance = await utils.getTokenRegistry();
     let registerTokenReceipt = await tokenRegistryInstance.requestTokenRegistration(
       testToken.address,
       {from: wallets[0].getAddressString()}
@@ -37,7 +37,7 @@ contract("DepositManager", async function(accounts) {
   it("should finalise token registration", async () => {
     let testToken = await TestToken.deployed();
 
-    let tokenRegistryInstance = await getTokenRegistry();
+    let tokenRegistryInstance = await utils.getTokenRegistry();
 
     let approveToken = await tokenRegistryInstance.finaliseTokenRegistration(
       testToken.address,
@@ -270,19 +270,3 @@ contract("DepositManager", async function(accounts) {
     expect(isValid).to.be.deep.eq(true);
   });
 });
-
-async function getTokenRegistry() {
-  // get deployed name registry instance
-  var nameRegistryInstance = await nameRegistry.deployed();
-
-  // get deployed parama manager instance
-  var paramManager = await ParamManager.deployed();
-
-  // get accounts tree key
-  var tokenRegistryKey = await paramManager.TOKEN_REGISTRY();
-
-  var tokenRegistryAddress = await nameRegistryInstance.getContractDetails(
-    tokenRegistryKey
-  );
-  return TokenRegistry.at(tokenRegistryAddress);
-}

@@ -2,7 +2,7 @@ import {ethers} from "ethers";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
-
+const TokenRegistry = artifacts.require("TokenRegistry");
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
   var abiCoder = ethers.utils.defaultAbiCoder;
@@ -141,4 +141,20 @@ export async function genMerkleRootFromSiblings(
     }
   }
   return computedNode;
+}
+
+export async function getTokenRegistry() {
+  // get deployed name registry instance
+  var nameRegistryInstance = await nameRegistry.deployed();
+
+  // get deployed parama manager instance
+  var paramManager = await ParamManager.deployed();
+
+  // get accounts tree key
+  var tokenRegistryKey = await paramManager.TOKEN_REGISTRY();
+
+  var tokenRegistryAddress = await nameRegistryInstance.getContractDetails(
+    tokenRegistryKey
+  );
+  return TokenRegistry.at(tokenRegistryAddress);
 }
