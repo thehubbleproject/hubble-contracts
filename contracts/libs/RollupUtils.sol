@@ -75,7 +75,8 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx);
+        return
+            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.amount);
     }
 
     function HashFromTx(Types.Transaction memory _tx)
@@ -84,6 +85,16 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(BytesFromTx(_tx));
+    }
+
+    function getTxHash(
+        uint256 fromIndex,
+        uint256 toIndex,
+        uint256 tokenType,
+        uint256 amount
+    ) public view returns (bytes32) {
+        bytes memory data = abi.encode(fromIndex, toIndex, tokenType, amount);
+        return keccak256(data);
     }
 
     /**

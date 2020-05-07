@@ -8,7 +8,7 @@
     "solc": "solc",
     "create-docs": "solidity-docgen",
     "clean": "rm -rf build types",
-    "test": "truffle test && npm tsc",
+    "test": "truffle test",
     "lint": "prettier --list-different **/*.sol",
     "prettier": "prettier --write **/*.sol",
     "truffle": "truffle",

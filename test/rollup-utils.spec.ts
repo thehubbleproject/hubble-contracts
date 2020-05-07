@@ -41,4 +41,30 @@ contract("RollupUtils", async function(accounts) {
     );
     assert.equal(AliceAccountLeaf, accountHash, "Account hash mismatch");
   });
+  it("test if tx is correctly encoded to bytes and hash", async function() {
+    var rollupUtils = await RollupUtils.deployed();
+    var tx = {
+      fromIndex: 1,
+      toIndex: 2,
+      tokenType: 1,
+      amount: 1,
+      signature:
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
+    };
+
+    var expectedResult = utils.HashFromTx(
+      tx.fromIndex,
+      tx.toIndex,
+      tx.tokenType,
+      tx.amount
+    );
+
+    var result = await rollupUtils.getTxHash(
+      tx.fromIndex,
+      tx.toIndex,
+      tx.tokenType,
+      tx.amount
+    );
+    assert.equal(expectedResult, result, "Account hash mismatch");
+  });
 });

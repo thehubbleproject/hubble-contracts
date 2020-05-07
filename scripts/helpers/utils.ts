@@ -13,8 +13,13 @@ export function getParentLeaf(left: string, right: string) {
 }
 
 export function Hash(data: string) {
-  // var dataBytes = ethers.utils.toUtf8Bytes(data);
   return ethers.utils.keccak256(data);
+}
+
+export function PubKeyHash(pubkey: string) {
+  var abiCoder = ethers.utils.defaultAbiCoder;
+  var result = ethers.utils.keccak256(abiCoder.encode(["bytes"], [pubkey]));
+  return result;
 }
 
 export function StringToBytes32(data: string) {
@@ -42,6 +47,30 @@ export function CreateAccountLeaf(
   token: number
 ) {
   var data = BytesFromAccountData(ID, balance, nonce, token);
+  return Hash(data);
+}
+
+export function BytesFromTx(
+  from: number,
+  to: number,
+  token: number,
+  amount: number
+) {
+  var abiCoder = ethers.utils.defaultAbiCoder;
+
+  return abiCoder.encode(
+    ["uint256", "uint256", "uint256", "uint256"],
+    [from, to, token, amount]
+  );
+}
+
+export function HashFromTx(
+  from: number,
+  to: number,
+  token: number,
+  amount: number
+) {
+  var data = BytesFromTx(from, to, token, amount);
   return Hash(data);
 }
 
