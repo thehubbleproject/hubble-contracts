@@ -198,36 +198,38 @@ contract Rollup {
         Types.PDAMerkleProof[] memory _pda_proof,
         Types.AccountMerkleProof[] memory _to_proofs
     ) public {
-        // load batch
-        require(
-            batches[_batch_id].stakeCommitted != 0,
-            "Batch doesnt exist or is slashed already"
-        );
+        {
+            // load batch
+            require(
+                batches[_batch_id].stakeCommitted != 0,
+                "Batch doesnt exist or is slashed already"
+            );
 
-        // check if batch is disputable
-        require(
-            block.number < batches[_batch_id].finalisesOn,
-            "Batch already finalised"
-        );
+            // check if batch is disputable
+            require(
+                block.number < batches[_batch_id].finalisesOn,
+                "Batch already finalised"
+            );
 
-        require(
-            _batch_id < invalidBatchMarker,
-            "Already successfully disputed. Roll back in process"
-        );
+            require(
+                _batch_id < invalidBatchMarker,
+                "Already successfully disputed. Roll back in process"
+            );
 
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs;
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.BytesFromTx(_txs[i]);
+            // generate merkle tree from the txs provided by user
+            bytes[] memory txs;
+            for (uint256 i = 0; i < _txs.length; i++) {
+                txs[i] = RollupUtils.BytesFromTx(_txs[i]);
+            }
+            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
+
+            // if tx root while submission doesnt match tx root of given txs
+            // dispute is unsuccessful
+            require(
+                txRoot != batches[_batch_id].txRoot,
+                "Invalid dispute, tx root doesn't match"
+            );
         }
-        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
-
-        // if tx root while submission doesnt match tx root of given txs
-        // dispute is unsuccessful
-        require(
-            txRoot != batches[_batch_id].txRoot,
-            "Invalid dispute, tx root doesn't match"
-        );
 
         // run every transaction through transaction evaluators
         bytes32 newBalanceRoot;
@@ -242,8 +244,8 @@ contract Rollup {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
             (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
-                batches[_batch_id].stateRoot,
-                batches[_batch_id].accountRoot,
+                batches[_batch_id - 1].stateRoot,
+                batches[_batch_id - 1].accountRoot,
                 _txs[i],
                 _pda_proof[i],
                 _from_proofs[i],
@@ -284,39 +286,45 @@ contract Rollup {
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.Transaction memory _tx,
-        Types.PDAMerkleProof memory _pda_proof,
+        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _from_merkle_proof,
         Types.AccountMerkleProof memory _to_merkle_proof
-    ) public returns (bytes32, uint256, uint256, bool) {
-        // verify pubkey exists in PDA tree
+    ) public view returns (bytes32, uint256, uint256, bool) {
+        // Step-1 Prove that your public keys are available
+
+        // verify from account pubkey exists in PDA tree
+        // NOTE: We dont need to prove that to address has the pubkey available
         require(
             merkleUtils.verify(
                 _accountsRoot,
-                _pda_proof._pda.pubkey_leaf.pubkey,
-                _pda_proof._pda.pathToPubkey,
-                _pda_proof.siblings
+                _from_pda_proof._pda.pubkey_leaf.pubkey,
+                _from_pda_proof._pda.pathToPubkey,
+                _from_pda_proof.siblings
             ),
-            "The PDA proof is incorrect"
+            "From PDA proof is incorrect"
         );
 
         // convert pubkey path to ID
         uint256 computedID = merkleUtils.pathToIndex(
-            _pda_proof._pda.pathToPubkey,
+            _from_pda_proof._pda.pathToPubkey,
             governance.MAX_DEPTH()
         );
 
+        // make sure the ID in transaction is the same account for which account proof was provided
         require(
-            computedID == _tx.from.ID,
+            computedID == _tx.from,
             "Pubkey not related to the from account in the transaction"
         );
 
+        // verify that address has been signed by the from address
         require(
-            RollupUtils.calculateAddress(_pda_proof._pda.pubkey_leaf.pubkey) ==
-                RollupUtils.HashFromTx(_tx).ecrecovery(_tx.signature),
+            RollupUtils.calculateAddress(
+                _from_pda_proof._pda.pubkey_leaf.pubkey
+            ) == RollupUtils.HashFromTx(_tx).ecrecovery(_tx.signature),
             "Signature is incorrect"
         );
 
-        // check token type is registered
+        // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition
             // to be slashed because the submitted transaction
@@ -328,7 +336,9 @@ contract Rollup {
         require(
             merkleUtils.verify(
                 _balanceRoot,
-                RollupUtils.BytesFromAccount(_tx.from),
+                RollupUtils.BytesFromAccount(
+                    _from_merkle_proof.accountIP.account
+                ),
                 _from_merkle_proof.accountIP.pathToAccount,
                 _from_merkle_proof.siblings
             ),
@@ -377,7 +387,9 @@ contract Rollup {
         require(
             merkleUtils.verify(
                 newRoot,
-                RollupUtils.BytesFromAccount(_tx.to),
+                RollupUtils.BytesFromAccount(
+                    _to_merkle_proof.accountIP.account
+                ),
                 _to_merkle_proof.accountIP.pathToAccount,
                 _to_merkle_proof.siblings
             ),

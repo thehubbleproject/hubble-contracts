@@ -107,7 +107,7 @@ contract("DepositManager", async function(accounts) {
     console.log("User information", "Alice", Alice, "bob", Bob);
 
     // transfer funds from Alice to bob
-    await testTokenInstance.transfer(Alice.Address, 100);
+    await testTokenInstance.transfer(Bob.Address, 100);
     var BalanceOfAlice = await testTokenInstance.balanceOf(Alice.Address);
 
     // Deposit Alice
@@ -152,7 +152,6 @@ contract("DepositManager", async function(accounts) {
       Bob.TokenType,
       Bob.Pubkey
     );
-
     var BobAccountLeaf = await utils.CreateAccountLeaf(
       Bob.AccID,
       Bob.Amount,

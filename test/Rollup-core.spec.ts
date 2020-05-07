@@ -4,20 +4,22 @@ import * as walletHelper from "../scripts/helpers/wallet";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
+const IMT = artifacts.require("IncrementalTree");
 contract("RollupCore", async function(accounts) {
   var wallets: any;
+  let depositManagerInstance = await DepositManager.deployed();
+  var testTokenInstance = await TestToken.deployed();
+  let rollupCoreInstance = await RollupCore.deployed();
+  var MTutilsInstance = await utils.getMerkleTreeUtils();
+  let testToken = await TestToken.deployed();
+  let tokenRegistryInstance = await utils.getTokenRegistry();
+  let IMTInstance = await IMT.deployed();
   before(async function() {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
   });
 
   // test if we are able to create append a leaf
   it("make a deposit of 2 accounts", async function() {
-    let depositManagerInstance = await DepositManager.deployed();
-    var testTokenInstance = await TestToken.deployed();
-    let rollupCoreInstance = await RollupCore.deployed();
-    var MTutilsInstance = await utils.getMerkleTreeUtils();
-    let testToken = await TestToken.deployed();
-    let tokenRegistryInstance = await utils.getTokenRegistry();
     await tokenRegistryInstance.requestTokenRegistration(testToken.address, {
       from: wallets[0].getAddressString()
     });
@@ -51,6 +53,7 @@ contract("RollupCore", async function(accounts) {
     var coordinator =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
     var maxSize = 4;
+
     await testTokenInstance.transfer(Alice.Address, 100);
     var AliceAccountLeaf = utils.CreateAccountLeaf(
       Alice.AccID,
@@ -106,6 +109,7 @@ contract("RollupCore", async function(accounts) {
       utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf)
     );
 
+    // TODO make this 0
     var txs: string[] = [
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d"
     ];
@@ -119,12 +123,113 @@ contract("RollupCore", async function(accounts) {
   });
 
   it("submit new batch", async function() {
-    let rollupCoreInstance = await RollupCore.deployed();
-    var txs: string[] = [
-      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d"
-    ];
-    var newRoot =
+    var OriginalAlice = {
+      Address: wallets[0].getAddressString(),
+      Pubkey: wallets[0].getPublicKeyString(),
+      Amount: 10,
+      TokenType: 1,
+      AccID: 1,
+      Path: "2"
+    };
+    var OriginalBob = {
+      Address: wallets[1].getAddressString(),
+      Pubkey: wallets[1].getPublicKeyString(),
+      Amount: 10,
+      TokenType: 1,
+      AccID: 2,
+      Path: "3"
+    };
+    var coordinator =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
-    await rollupCoreInstance.submitBatch(txs, newRoot);
-  });
+    var coordinatorPubkey =
+      "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
+    var maxSize = 4;
+    var defaultHashes: any = utils.defaultHashes(4);
+    var AliceAccountLeaf = utils.CreateAccountLeaf(
+      OriginalAlice.AccID,
+      OriginalAlice.Amount,
+      0,
+      OriginalAlice.TokenType
+    );
+    var BobAccountLeaf = utils.CreateAccountLeaf(
+      OriginalBob.AccID,
+      OriginalBob.Amount,
+      0,
+      OriginalBob.TokenType
+    );
+
+    // make a transfer between alice and bob's account
+    var tranferAmount = 1;
+    var NewAliceAccountLeaf = utils.CreateAccountLeaf(
+      OriginalAlice.AccID,
+      OriginalAlice.Amount - tranferAmount,
+      1,
+      OriginalAlice.TokenType
+    );
+
+    var NewBobAccountLeaf = utils.CreateAccountLeaf(
+      OriginalBob.AccID,
+      OriginalBob.Amount + tranferAmount,
+      1,
+      OriginalBob.TokenType
+    );
+
+    // prepare data for process Tx
+    var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    var accountRoot = await IMTInstance.getTreeRoot();
+
+    var AlicePDAsiblings = [
+      coordinatorPubkey,
+      utils.getParentLeaf(OriginalBob.Pubkey, defaultHashes[0]),
+      defaultHashes[2],
+      defaultHashes[3]
+    ];
+
+    var BobPDAsiblings = [
+      defaultHashes[0],
+      utils.getParentLeaf(coordinatorPubkey, OriginalAlice.Pubkey),
+      defaultHashes[2],
+      defaultHashes[3]
+    ];
+
+    var alicePDAProof = {
+      _pda: {
+        pathToPubkey: "1",
+        pubkey_leaf: {pubkey: OriginalAlice.Pubkey}
+      },
+      siblings: AlicePDAsiblings
+    };
+
+    var bobPDAProof = {
+      _pda: {
+        pathToPubkey: "2",
+        pubkey_leaf: {pubkey: OriginalBob.Pubkey}
+      },
+      siblings: BobPDAsiblings
+    };
+
+
+    var tx = {
+      from: {
+        ID: ;
+        tokenType: ;
+        balance: ;
+        nonce: number | BigNumber | string;
+      };
+      to: {
+        ID: number | BigNumber | string;
+        tokenType: number | BigNumber | string;
+        balance: number | BigNumber | string;
+        nonce: number | BigNumber | string;
+      };
+      tokenType: number | BigNumber | string;
+      amount: number | BigNumber | string;
+      signature: string;
+    },
+
+    // process transaction validity with process tx
+    await rollupCoreInstance.processTx(currentRoot,accountRoot,);
+
+    // submit batch for that transactions
+  }); 
 });
