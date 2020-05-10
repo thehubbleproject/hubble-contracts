@@ -126,7 +126,6 @@ contract("Rollup", async function(accounts) {
       txs,
       newRoot
     );
-    console.log("await");
   });
 
   it("submit new batch", async function() {
