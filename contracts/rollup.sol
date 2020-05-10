@@ -322,24 +322,24 @@ contract Rollup {
         }
 
         // verify that address has been signed by the from address
-        // require(
-        //     RollupUtils.calculateAddress(
-        //         _from_pda_proof._pda.pubkey_leaf.pubkey
-        //     ) ==
-        //         RollupUtils
-        //             .getTxHash(
-        //             _tx
-        //                 .fromIndex,
-        //             _tx
-        //                 .toIndex,
-        //             _tx
-        //                 .tokenType,
-        //             _tx
-        //                 .amount
-        //         )
-        //             .ecrecovery(_tx.signature),
-        //     "Signature is incorrect"
-        // );
+        require(
+            RollupUtils.calculateAddress(
+                _from_pda_proof._pda.pubkey_leaf.pubkey
+            ) ==
+                RollupUtils
+                    .getTxHash(
+                    _tx
+                        .fromIndex,
+                    _tx
+                        .toIndex,
+                    _tx
+                        .tokenType,
+                    _tx
+                        .amount
+                )
+                    .ecrecovery(_tx.signature),
+            "Signature is incorrect"
+        );
         {
             // verify that tokens are registered
             if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {

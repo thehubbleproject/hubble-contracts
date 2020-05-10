@@ -6,6 +6,8 @@ const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
+const EcVerify = artifacts.require("ECVerify")
+import * as ethUtils from "ethereumjs-util"
 
 contract("Rollup", async function(accounts) {
   var wallets: any;
@@ -245,10 +247,19 @@ contract("Rollup", async function(accounts) {
       tx.tokenType,
       tx.amount
     );
-    // TODO sign transaction and update the tx with signature
-    let aliceWallet = new ethers.Wallet(wallets[0].getPrivateKey());
-    var flatSignature = await aliceWallet.signMessage(dataToSign);
+    const h = ethUtils.toBuffer(dataToSign)
 
+    var signature = ethUtils.ecsign(h,wallets[0].getPrivateKey())
+
+    // TODO sign transaction and update the tx with signature
+    // let aliceWallet = new ethers.Wallet(wallets[0].getPrivateKey());
+    // var flatSignature = await aliceWallet.signMessage(dataToSign);
+    // let sig = ethers.utils.splitSignature(flatSignature);
+    // var ec =await EcVerify.deployed() 
+    // var signerFromContract = await ec.ecrecovery(h,ethUtils.toRpcSig(signature.v, signature.r, signature.s))
+    // // var signerFromContract2 = await ec.ecverify()
+    // console.log("signer should be",wallets[0].getAddressString(),signerFromContract)
+    tx.signature =ethUtils.toRpcSig(signature.v, signature.r, signature.s)
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
