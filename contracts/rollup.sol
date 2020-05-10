@@ -290,13 +290,14 @@ contract Rollup {
         Types.AccountMerkleProof memory _from_merkle_proof,
         Types.AccountMerkleProof memory _to_merkle_proof
     ) public view returns (bytes32, uint256, uint256, bool) {
-        // Step-1 Prove that your public keys are available
+        // Step-1 Prove that from address's public keys are available
         {
             // verify from account pubkey exists in PDA tree
             // NOTE: We dont need to prove that to address has the pubkey available
             Types.PDALeaf memory fromPDA = Types.PDALeaf({
                 pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
             });
+            
             require(
                 merkleUtils.verifyLeaf(
                     _accountsRoot,
@@ -306,8 +307,8 @@ contract Rollup {
                 ),
                 "From PDA proof is incorrect"
             );
-        }
-        {
+        
+            
             // convert pubkey path to ID
             uint256 computedID = merkleUtils.pathToIndex(
                 _from_pda_proof._pda.pathToPubkey,
@@ -321,7 +322,7 @@ contract Rollup {
             );
         }
 
-        // verify that address has been signed by the from address
+        // STEP:2 Ensure the transaction has been signed using the from public key
         require(
             RollupUtils.calculateAddress(
                 _from_pda_proof._pda.pubkey_leaf.pubkey
@@ -340,6 +341,8 @@ contract Rollup {
                     .ecrecovery(_tx.signature),
             "Signature is incorrect"
         );
+
+        // STEP 3: Verify that the transaction interacts with a registered token
         {
             // verify that tokens are registered
             if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
@@ -413,20 +416,20 @@ contract Rollup {
         );
 
         // verify to leaf exists in the balance tree
-        // require(
-        //     merkleUtils.verifyLeaf(
-        //         newRoot,
-        //         RollupUtils.getAccountHash(
-        //             _to_merkle_proof.accountIP.account.ID,
-        //             _to_merkle_proof.accountIP.account.balance,
-        //             _to_merkle_proof.accountIP.account.nonce,
-        //             _to_merkle_proof.accountIP.account.tokenType
-        //         ),
-        //         _to_merkle_proof.accountIP.pathToAccount,
-        //         _to_merkle_proof.siblings
-        //     ),
-        //     "Merkle Proof for to leaf is incorrect"
-        // );
+        require(
+            merkleUtils.verifyLeaf(
+                newRoot,
+                RollupUtils.getAccountHash(
+                    _to_merkle_proof.accountIP.account.ID,
+                    _to_merkle_proof.accountIP.account.balance,
+                    _to_merkle_proof.accountIP.account.nonce,
+                    _to_merkle_proof.accountIP.account.tokenType
+                ),
+                _to_merkle_proof.accountIP.pathToAccount,
+                _to_merkle_proof.siblings
+            ),
+            "Merkle Proof for to leaf is incorrect"
+        );
 
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {

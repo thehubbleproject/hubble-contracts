@@ -192,7 +192,6 @@ contract("Rollup", async function(accounts) {
     var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
     var accountRoot = await IMTInstance.getTreeRoot();
     var zeroHashes: any = await utils.defaultHashes(maxSize);
-    // TODO we prob need to hash the pubkeys below
 
     var AlicePDAsiblings = [
       coordinatorPubkeyHash,
@@ -248,18 +247,9 @@ contract("Rollup", async function(accounts) {
       tx.amount
     );
     const h = ethUtils.toBuffer(dataToSign)
-
     var signature = ethUtils.ecsign(h,wallets[0].getPrivateKey())
-
-    // TODO sign transaction and update the tx with signature
-    // let aliceWallet = new ethers.Wallet(wallets[0].getPrivateKey());
-    // var flatSignature = await aliceWallet.signMessage(dataToSign);
-    // let sig = ethers.utils.splitSignature(flatSignature);
-    // var ec =await EcVerify.deployed() 
-    // var signerFromContract = await ec.ecrecovery(h,ethUtils.toRpcSig(signature.v, signature.r, signature.s))
-    // // var signerFromContract2 = await ec.ecverify()
-    // console.log("signer should be",wallets[0].getAddressString(),signerFromContract)
     tx.signature =ethUtils.toRpcSig(signature.v, signature.r, signature.s)
+
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
@@ -290,9 +280,16 @@ contract("Rollup", async function(accounts) {
       siblings: AliceAccountSiblings
     };
 
+    var UpdatedAliceAccountLeaf = utils.CreateAccountLeaf(
+      OriginalAlice.AccID,
+      OriginalAlice.Amount-tx.amount,
+      0,
+      OriginalAlice.TokenType
+    );
+
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
-      AliceAccountLeaf,
+      UpdatedAliceAccountLeaf,
       utils.getParentLeaf(coordinator, zeroHashes[0]),
       zeroHashes[2],
       zeroHashes[3]
@@ -305,7 +302,7 @@ contract("Rollup", async function(accounts) {
       BobAccountPath,
       BobAccountSiblings
     );
-    expect(isBobValid).to.be.deep.eq(true);
+    // expect(isBobValid).to.be.deep.eq(true);
 
     var BobAccountMP = {
       accountIP: {
