@@ -44,7 +44,10 @@ contract Rollup {
     // this variable will be greater than 0 if
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
-    uint256 invalidBatchMarker;
+    uint256  invalidBatchMarker;
+    function getInvalidBatchMarker() external view returns (uint256){
+        return invalidBatchMarker;
+    }
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -99,7 +102,7 @@ contract Rollup {
         );
         withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
 
-        validateAndAddNewBatch(ZERO_BYTES32, genesisStateRoot);
+        addNewBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
     /**
@@ -131,37 +134,26 @@ contract Rollup {
             "Batch contains more transations than the limit"
         );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
-        validateAndAddNewBatch(txRoot, _updatedRoot);
+        require(txRoot!=ZERO_BYTES32,"Cannot submit a transaction with no transactions");
+        addNewBatch(txRoot, _updatedRoot);
     }
 
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
-        Types.AccountMerkleProof calldata _zero_account_mp,
-        bytes[] calldata _txs,
-        bytes32 updatedRoot
+        Types.AccountMerkleProof calldata _zero_account_mp
     ) external payable onlyCoordinator isNotRollingBack {
-        depositManager.finaliseDeposits(
+        bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
             _zero_account_mp,
             getLatestBalanceTreeRoot()
         );
+       bytes32 updatedRoot =  merkleUtils.updateLeafWithSiblings(depositSubTreeRoot,_zero_account_mp.accountIP.pathToAccount,_zero_account_mp.siblings);
 
-        if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
-            // TODO
-        }
-
-        require(
-            _txs.length <= governance.MAX_TXS_PER_BATCH(),
-            "Batch contains more transations than the limit"
-        );
-
-        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
-
-        // validate and create new batch
-        validateAndAddNewBatch(txRoot, updatedRoot);
+        // add new batch
+        addNewBatchWithDeposit(updatedRoot,depositSubTreeRoot);
     }
 
-    function validateAndAddNewBatch(bytes32 txRoot, bytes32 _updatedRoot)
+    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot)
         internal
     {
         // TODO need to commit the depths of all trees as well, because they are variable depth
@@ -169,6 +161,7 @@ contract Rollup {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
+            depositTree: ZERO_BYTES32, 
             committer: msg.sender,
             txRoot: txRoot,
             stakeCommitted: msg.value,
@@ -180,6 +173,31 @@ contract Rollup {
         logger.logNewBatch(
             newBatch.committer,
             txRoot,
+            _updatedRoot,
+            batches.length - 1
+        );
+    }
+
+    function addNewBatchWithDeposit(bytes32 _updatedRoot,bytes32 depositRoot)
+        internal
+    {
+        // TODO need to commit the depths of all trees as well, because they are variable depth
+        // make merkel root of all txs
+        Types.Batch memory newBatch = Types.Batch({
+            stateRoot: _updatedRoot,
+            accountRoot: accountsTree.getTreeRoot(),
+            depositTree: depositRoot,
+            committer: msg.sender,
+            txRoot: ZERO_BYTES32,
+            stakeCommitted: msg.value,
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            timestamp: now
+        });
+
+        batches.push(newBatch);
+        logger.logNewBatch(
+            newBatch.committer,
+            ZERO_BYTES32,
             _updatedRoot,
             batches.length - 1
         );
@@ -215,7 +233,9 @@ contract Rollup {
                 _batch_id < invalidBatchMarker,
                 "Already successfully disputed. Roll back in process"
             );
-
+            
+            require(batches[_batch_id].txRoot!=ZERO_BYTES32,"Cannot dispute blocks with no transaction");
+            
             // generate merkle tree from the txs provided by user
             bytes[] memory txs;
             for (uint256 i = 0; i < _txs.length; i++) {

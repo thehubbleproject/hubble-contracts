@@ -15,6 +15,7 @@ library Types {
     struct Batch {
         bytes32 stateRoot;
         bytes32 accountRoot;
+        bytes32 depositTree;
         address committer;
         bytes32 txRoot;
         uint256 stakeCommitted;

@@ -215,9 +215,7 @@ contract("DepositManager", async function(accounts) {
     ];
     await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
-      _zero_account_mp,
-      txs,
-      newRoot
+      _zero_account_mp
     );
 
     //

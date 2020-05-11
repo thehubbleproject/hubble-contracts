@@ -13,7 +13,6 @@ import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
 import {Rollup} from "./Rollup.sol";
 
-
 contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
@@ -200,7 +199,7 @@ contract DepositManager {
         uint256 _subTreeDepth,
         Types.AccountMerkleProof memory _zero_account_mp,
         bytes32 latestBalanceTree
-    ) public onlyRollup {
+    ) public onlyRollup returns(bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
 
         // from mt proof we find the root of the tree
@@ -211,9 +210,12 @@ contract DepositManager {
             _zero_account_mp.accountIP.pathToAccount,
             _zero_account_mp.siblings
         );
+
         // bool isValid = true;
         require(isValid, "proof invalid");
 
+        bytes32 depositsSubTreeRoot = pendingDeposits[0];
+        
         // emit the event
         logger.logDepositFinalised(
             pendingDeposits[0],
@@ -227,7 +229,7 @@ contract DepositManager {
         queueNumber = queueNumber - 2**depositSubtreeHeight;
 
         // return the updated merkle tree root
-        return;
+        return (depositsSubTreeRoot);
     }
 
     /**
