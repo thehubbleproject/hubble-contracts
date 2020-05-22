@@ -44,8 +44,9 @@ contract Rollup {
     // this variable will be greater than 0 if
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
-    uint256  invalidBatchMarker;
-    function getInvalidBatchMarker() external view returns (uint256){
+    uint256 invalidBatchMarker;
+
+    function getInvalidBatchMarker() external view returns (uint256) {
         return invalidBatchMarker;
     }
 
@@ -134,7 +135,10 @@ contract Rollup {
             "Batch contains more transations than the limit"
         );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
-        require(txRoot!=ZERO_BYTES32,"Cannot submit a transaction with no transactions");
+        require(
+            txRoot != ZERO_BYTES32,
+            "Cannot submit a transaction with no transactions"
+        );
         addNewBatch(txRoot, _updatedRoot);
     }
 
@@ -147,21 +151,23 @@ contract Rollup {
             _zero_account_mp,
             getLatestBalanceTreeRoot()
         );
-       bytes32 updatedRoot =  merkleUtils.updateLeafWithSiblings(depositSubTreeRoot,_zero_account_mp.accountIP.pathToAccount,_zero_account_mp.siblings);
+        bytes32 updatedRoot = merkleUtils.updateLeafWithSiblings(
+            depositSubTreeRoot,
+            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.siblings
+        );
 
         // add new batch
-        addNewBatchWithDeposit(updatedRoot,depositSubTreeRoot);
+        addNewBatchWithDeposit(updatedRoot, depositSubTreeRoot);
     }
 
-    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot)
-        internal
-    {
+    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
         // TODO need to commit the depths of all trees as well, because they are variable depth
         // make merkel root of all txs
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
-            depositTree: ZERO_BYTES32, 
+            depositTree: ZERO_BYTES32,
             committer: msg.sender,
             txRoot: txRoot,
             stakeCommitted: msg.value,
@@ -178,7 +184,7 @@ contract Rollup {
         );
     }
 
-    function addNewBatchWithDeposit(bytes32 _updatedRoot,bytes32 depositRoot)
+    function addNewBatchWithDeposit(bytes32 _updatedRoot, bytes32 depositRoot)
         internal
     {
         // TODO need to commit the depths of all trees as well, because they are variable depth
@@ -233,13 +239,16 @@ contract Rollup {
                 _batch_id < invalidBatchMarker,
                 "Already successfully disputed. Roll back in process"
             );
-            
-            require(batches[_batch_id].txRoot!=ZERO_BYTES32,"Cannot dispute blocks with no transaction");
-            
+
+            require(
+                batches[_batch_id].txRoot != ZERO_BYTES32,
+                "Cannot dispute blocks with no transaction"
+            );
+
             // generate merkle tree from the txs provided by user
             bytes[] memory txs;
             for (uint256 i = 0; i < _txs.length; i++) {
-                txs[i] = RollupUtils.BytesFromTx(_txs[i]);
+                txs[i] = RollupUtils.CompressTx(_txs[i]);
             }
             bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
 
@@ -309,7 +318,16 @@ contract Rollup {
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _from_merkle_proof,
         Types.AccountMerkleProof memory _to_merkle_proof
-    ) public view returns (bytes32, uint256, uint256, bool) {
+    )
+        public
+        view
+        returns (
+            bytes32,
+            uint256,
+            uint256,
+            bool
+        )
+    {
         // Step-1 Prove that from address's public keys are available
         {
             // verify from account pubkey exists in PDA tree
@@ -317,7 +335,7 @@ contract Rollup {
             Types.PDALeaf memory fromPDA = Types.PDALeaf({
                 pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
             });
-            
+
             require(
                 merkleUtils.verifyLeaf(
                     _accountsRoot,
@@ -327,8 +345,7 @@ contract Rollup {
                 ),
                 "From PDA proof is incorrect"
             );
-        
-            
+
             // convert pubkey path to ID
             uint256 computedID = merkleUtils.pathToIndex(
                 _from_pda_proof._pda.pathToPubkey,

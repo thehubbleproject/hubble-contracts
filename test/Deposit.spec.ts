@@ -213,6 +213,8 @@ contract("DepositManager", async function(accounts) {
     var txs: string[] = [
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d"
     ];
+    console.log("expectedHash",defaultHashes[1])
+    console.log("data under consideration",subtreeDepth,_zero_account_mp)
     await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
       _zero_account_mp

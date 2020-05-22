@@ -11,19 +11,22 @@ const Rollup = artifacts.require("Rollup");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const TestToken = artifacts.require("TestToken");
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
+const CoordinatorProxy = artifacts.require("CoordinatorProxy");
 const POB = artifacts.require("POB");
 const utils = "../test/helpers/utils.ts";
+
 function writeContractAddresses(contractAddresses) {
   fs.writeFileSync(
     `${process.cwd()}/contractAddresses.json`,
     JSON.stringify(contractAddresses, null, 2) // Indent 2 spaces
   );
 }
+
 module.exports = async function(deployer) {
   // picked address from mnemoic
   var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
   var max_depth = 4;
-  var maxDepositSubtreeDepth = 2;
+  var maxDepositSubtreeDepth = 1;
 
   // deploy libs
   await deployer.deploy(ECVerify);
@@ -92,13 +95,14 @@ module.exports = async function(deployer) {
   var rollup = await deployer.deploy(Rollup, nameRegistry.address, root);
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistry.registerName(key, rollup.address);
+  await deployer.link(ParamManager, CoordinatorProxy);
+    var coordinatorProxy = await deployer.deploy(CoordinatorProxy,nameRegistry.address);
+
   const contractAddresses = {
-    // MerkleUtils: MTLib.address,
     AccountTree: accountsTree.address,
-    // ECVeridy: ECVerify.address,
-    // TokenRegistry: TokenRegistry.address,
-    // TestTokenContract: TestToken.address,
-    RollupContract: rollup.address
+    DepositManager: depositManager.address,
+    RollupContract: rollup.address,
+    CoordinatorProxy: coordinatorProxy.address
   };
   writeContractAddresses(contractAddresses);
 };

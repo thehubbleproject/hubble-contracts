@@ -1,4 +1,6 @@
 {
-  "AccountTree": "0xc78827eeeECfe7a2e27137b0cc237A435b894D22",
-  "RollupContract": "0x884a9fc8126ddD45d68F801911FDfe059A6C876A"
+  "AccountTree": "0x849eC868B8e63bc112eb47F5440945a587E99e29",
+  "DepositManager": "0xAf9D28638dB62a944FBaeDb8c2bc7C50D3254A77",
+  "RollupContract": "0xA44dd7c1debc7e69F9026d20032e5d19D94057c2",
+  "CoordinatorProxy": "0xDa880bd054deA4a5c866F7a919c8b8059DE6354f"
 }

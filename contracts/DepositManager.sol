@@ -13,6 +13,7 @@ import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
 import {Rollup} from "./Rollup.sol";
 
+
 contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
@@ -81,10 +82,11 @@ contract DepositManager {
      * @param _amount Number of tokens that user wants to deposit
      * @param _tokenType Type of token user is depositing
      */
-    function deposit(uint256 _amount, uint256 _tokenType, bytes memory _pubkey)
-        public
-        isNotWaitingForFinalisation
-    {
+    function deposit(
+        uint256 _amount,
+        uint256 _tokenType,
+        bytes memory _pubkey
+    ) public isNotWaitingForFinalisation {
         depositFor(msg.sender, _amount, _tokenType, _pubkey);
     }
 
@@ -199,7 +201,7 @@ contract DepositManager {
         uint256 _subTreeDepth,
         Types.AccountMerkleProof memory _zero_account_mp,
         bytes32 latestBalanceTree
-    ) public onlyRollup returns(bytes32) {
+    ) public onlyRollup returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
 
         // from mt proof we find the root of the tree
@@ -215,7 +217,7 @@ contract DepositManager {
         require(isValid, "proof invalid");
 
         bytes32 depositsSubTreeRoot = pendingDeposits[0];
-        
+
         // emit the event
         logger.logDepositFinalised(
             pendingDeposits[0],

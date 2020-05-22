@@ -104,9 +104,11 @@ contract Logger {
 
     event DepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot);
 
-    function logDepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot)
-        public
-    {
+    function logDepositLeafMerged(
+        bytes32 left,
+        bytes32 right,
+        bytes32 newRoot
+    ) public {
         emit DepositLeafMerged(left, right, newRoot);
     }
 

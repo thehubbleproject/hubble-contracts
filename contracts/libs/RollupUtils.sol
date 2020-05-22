@@ -76,7 +76,12 @@ library RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.amount);
+            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.amount,_tx.signature);
+    }
+    
+    function CompressTx(Types.Transaction memory _tx) public pure returns (bytes memory){
+        return
+            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.amount,_tx.signature);
     }
 
     function HashFromTx(Types.Transaction memory _tx)
