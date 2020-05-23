@@ -22,7 +22,7 @@ function writeContractAddresses(contractAddresses) {
   );
 }
 
-module.exports = async function(deployer) {
+module.exports = async function (deployer) {
   // picked address from mnemoic
   var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
   var max_depth = 4;
@@ -96,14 +96,22 @@ module.exports = async function(deployer) {
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistry.registerName(key, rollup.address);
   await deployer.link(ParamManager, CoordinatorProxy);
-    var coordinatorProxy = await deployer.deploy(CoordinatorProxy,nameRegistry.address);
+  var coordinatorProxy = await deployer.deploy(
+    CoordinatorProxy,
+    nameRegistry.address
+  );
 
   const contractAddresses = {
     AccountTree: accountsTree.address,
+    ParamManager: paramManagerInstance.address,
     DepositManager: depositManager.address,
     RollupContract: rollup.address,
-    CoordinatorProxy: coordinatorProxy.address
+    CoordinatorProxy: coordinatorProxy.address,
+    ProofOfBurnContract: pobContract.address,
+    RollupUtilities: RollupUtils.address,
+    NameRegistry: nameRegistry.address,
   };
+
   writeContractAddresses(contractAddresses);
 };
 
@@ -114,6 +122,7 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
   var dataLeaves = [];
   dataLeaves[0] = coordinator;
   var numberOfDataLeaves = 2 ** maxSize;
+
   // create empty leaves
   for (var i = 1; i < numberOfDataLeaves; i++) {
     dataLeaves[i] =
