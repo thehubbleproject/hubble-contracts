@@ -43,7 +43,7 @@ contract Governance {
         return _MAX_TXS_PER_BATCH;
     }
 
-    uint256 public _STAKE_AMOUNT = 32;
+    uint256 public _STAKE_AMOUNT = 32 ether;
 
     function STAKE_AMOUNT() public view returns (uint256) {
         return _STAKE_AMOUNT;

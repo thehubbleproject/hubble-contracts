@@ -51,6 +51,9 @@ module.exports = async function (deployer) {
 
   var paramManagerInstance = await ParamManager.deployed();
 
+  // get accounts tree key
+  var loggerKey = await paramManagerInstance.LOGGER();
+  var loggerAddress = await nameRegistry.getContractDetails(loggerKey);
   // deploy proof of burn contract
   var pobContract = await deployer.deploy(POB);
   var key = await paramManagerInstance.POB();
@@ -95,11 +98,14 @@ module.exports = async function (deployer) {
   var rollup = await deployer.deploy(Rollup, nameRegistry.address, root);
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistry.registerName(key, rollup.address);
+
   await deployer.link(ParamManager, CoordinatorProxy);
   var coordinatorProxy = await deployer.deploy(
     CoordinatorProxy,
     nameRegistry.address
   );
+
+  await rollup.setCoordinatorProxy(coordinatorProxy.address);
 
   const contractAddresses = {
     AccountTree: accountsTree.address,
@@ -110,6 +116,7 @@ module.exports = async function (deployer) {
     ProofOfBurnContract: pobContract.address,
     RollupUtilities: RollupUtils.address,
     NameRegistry: nameRegistry.address,
+    Logger: loggerAddress,
   };
 
   writeContractAddresses(contractAddresses);

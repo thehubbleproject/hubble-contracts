@@ -1,16 +1,11 @@
 import * as chai from "chai";
 import * as walletHelper from "../scripts/helpers/wallet";
 const TestToken = artifacts.require("TestToken");
-const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
-const Rollup = artifacts.require("Rollup");
-const TokenRegistry = artifacts.require("TokenRegistry");
-const nameRegistry = artifacts.require("NameRegistry");
-const ParamManager = artifacts.require("ParamManager");
-const IncrementalTree = artifacts.require("IncrementalTree");
-const Logger = artifacts.require("Logger");
+import {ethers} from "ethers";
 const RollupCore = artifacts.require("Rollup");
+const CoordinatorProxy = artifacts.require("CoordinatorProxy");
 import * as utils from "../scripts/helpers/utils";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
@@ -63,6 +58,7 @@ contract("DepositManager", async function(accounts) {
 
   it("should allow depositing 2 leaves in a subtree and merging it", async () => {
     let depositManagerInstance = await DepositManager.deployed();
+    var coordinatorProxy = await CoordinatorProxy.deployed();
     var testTokenInstance = await TestToken.deployed();
 
     let rollupCoreInstance = await RollupCore.deployed();
@@ -200,24 +196,13 @@ contract("DepositManager", async function(accounts) {
       siblings: siblingsInProof
     };
 
-    // await depositManagerInstance.finaliseDeposits(
-    //   subtreeDepth,
-    //   _zero_account_mp
-    // );
-    var newRoot = await utils.genMerkleRootFromSiblings(
-      siblingsInProof,
-      path,
-      utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf)
-    );
-
-    var txs: string[] = [
-      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d"
-    ];
-    console.log("expectedHash",defaultHashes[1])
-    console.log("data under consideration",subtreeDepth,_zero_account_mp)
-    await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
+    console.log("address for rollup", await coordinatorProxy.rollup());
+    console.log("data under consideration", subtreeDepth, _zero_account_mp);
+    console.log("value", ethers.utils.parseEther("32").toString());
+    await coordinatorProxy.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
-      _zero_account_mp
+      _zero_account_mp,
+      {value: ethers.utils.parseEther("32").toString()}
     );
 
     //

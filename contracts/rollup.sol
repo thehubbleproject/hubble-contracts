@@ -37,7 +37,15 @@ contract Rollup {
     Registry public nameRegistry;
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
+
+    address coordinatorProxy;
+
+    function setCoordinatorProxy(address proxy) public onlyCoordinator {
+        coordinatorProxy = proxy;
+    }
+
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    // bytes32 public constant ZERO_MERKLE_ROOT = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     Governance public governance;
 
@@ -73,6 +81,11 @@ contract Rollup {
         _;
     }
 
+    modifier onlyCoordinatorProxy() {
+        assert(msg.sender == coordinatorProxy);
+        _;
+    }
+
     // Stores transaction paths claimed per batch
     // TO BE REMOVED post withdraw mass migration
     bool[][] withdrawTxClaimed;
@@ -102,7 +115,6 @@ contract Rollup {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
-
         addNewBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
@@ -115,6 +127,13 @@ contract Rollup {
     }
 
     /**
+     * @notice Returns the total number of batches submitted
+     */
+    function numOfBatchesSubmitted() public view returns (uint256) {
+        return batches.length;
+    }
+
+    /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
@@ -122,18 +141,16 @@ contract Rollup {
     function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
         external
         payable
-        onlyCoordinator
-        isNotRollingBack
-        isNotWaitingForFinalisation
     {
-        if (_txs.length > governance.MAX_TXS_PER_BATCH()) {
-            // TODO
-        }
+        // require(
+        //     msg.value >= governance.STAKE_AMOUNT(),
+        //     "Not enough stake committed"
+        // );
 
-        require(
-            _txs.length <= governance.MAX_TXS_PER_BATCH(),
-            "Batch contains more transations than the limit"
-        );
+        // require(
+        //     _txs.length <= governance.MAX_TXS_PER_BATCH(),
+        //     "Batch contains more transations than the limit"
+        // );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
         require(
             txRoot != ZERO_BYTES32,
@@ -145,12 +162,17 @@ contract Rollup {
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
         Types.AccountMerkleProof calldata _zero_account_mp
-    ) external payable onlyCoordinator isNotRollingBack {
+    ) external payable onlyCoordinatorProxy isNotRollingBack {
         bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
             _zero_account_mp,
             getLatestBalanceTreeRoot()
         );
+        // require(
+        //     msg.value >= governance.STAKE_AMOUNT(),
+        //     "Not enough stake committed"
+        // );
+
         bytes32 updatedRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
             _zero_account_mp.accountIP.pathToAccount,
@@ -329,35 +351,35 @@ contract Rollup {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        {
-            // verify from account pubkey exists in PDA tree
-            // NOTE: We dont need to prove that to address has the pubkey available
-            Types.PDALeaf memory fromPDA = Types.PDALeaf({
-                pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
-            });
+        // {
+        //     // verify from account pubkey exists in PDA tree
+        //     // NOTE: We dont need to prove that to address has the pubkey available
+        //     Types.PDALeaf memory fromPDA = Types.PDALeaf({
+        //         pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
+        //     });
 
-            require(
-                merkleUtils.verifyLeaf(
-                    _accountsRoot,
-                    RollupUtils.PDALeafToHash(fromPDA),
-                    _from_pda_proof._pda.pathToPubkey,
-                    _from_pda_proof.siblings
-                ),
-                "From PDA proof is incorrect"
-            );
+        //     require(
+        //         merkleUtils.verifyLeaf(
+        //             _accountsRoot,
+        //             RollupUtils.PDALeafToHash(fromPDA),
+        //             _from_pda_proof._pda.pathToPubkey,
+        //             _from_pda_proof.siblings
+        //         ),
+        //         "From PDA proof is incorrect"
+        //     );
 
-            // convert pubkey path to ID
-            uint256 computedID = merkleUtils.pathToIndex(
-                _from_pda_proof._pda.pathToPubkey,
-                governance.MAX_DEPTH()
-            );
+        //     // convert pubkey path to ID
+        //     uint256 computedID = merkleUtils.pathToIndex(
+        //         _from_pda_proof._pda.pathToPubkey,
+        //         governance.MAX_DEPTH()
+        //     );
 
-            // make sure the ID in transaction is the same account for which account proof was provided
-            require(
-                computedID == _tx.fromIndex,
-                "Pubkey not related to the from account in the transaction"
-            );
-        }
+        //     // make sure the ID in transaction is the same account for which account proof was provided
+        //     require(
+        //         computedID == _tx.fromIndex,
+        //         "Pubkey not related to the from account in the transaction"
+        //     );
+        // }
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         require(
@@ -386,7 +408,7 @@ contract Rollup {
                 // invalid state transition
                 // to be slashed because the submitted transaction
                 // had invalid token type
-                return (ZERO_BYTES32, 0, 0, false);
+                return (ZERO_BYTES32, 0, 1, false);
             }
         }
         {
@@ -411,7 +433,7 @@ contract Rollup {
                 // invalid state transition
                 // needs to be slashed because the submitted transaction
                 // had amount less than 0
-                return (ZERO_BYTES32, 0, 0, false);
+                return (ZERO_BYTES32, 0, 2, false);
             }
 
             // check from leaf has enough balance
@@ -419,7 +441,7 @@ contract Rollup {
                 // invalid state transition
                 // needs to be slashed because the account doesnt have enough balance
                 // for the transfer
-                return (ZERO_BYTES32, 0, 0, false);
+                return (ZERO_BYTES32, 0, 3, false);
             }
 
             // account holds the token type in the tx
@@ -429,9 +451,10 @@ contract Rollup {
                 // invalid state transition
                 // needs to be slashed because the submitted transaction
                 // had invalid token type
-                return (ZERO_BYTES32, 0, 0, false);
+                return (ZERO_BYTES32, 0, 4, false);
             }
         }
+
         // reduce balance of from leaf
         Types.UserAccount memory new_from_account = RollupUtils
             .UpdateBalanceInAccount(
@@ -453,27 +476,27 @@ contract Rollup {
         );
 
         // verify to leaf exists in the balance tree
-        require(
-            merkleUtils.verifyLeaf(
-                newRoot,
-                RollupUtils.getAccountHash(
-                    _to_merkle_proof.accountIP.account.ID,
-                    _to_merkle_proof.accountIP.account.balance,
-                    _to_merkle_proof.accountIP.account.nonce,
-                    _to_merkle_proof.accountIP.account.tokenType
-                ),
-                _to_merkle_proof.accountIP.pathToAccount,
-                _to_merkle_proof.siblings
-            ),
-            "Merkle Proof for to leaf is incorrect"
-        );
+        // require(
+        //     merkleUtils.verifyLeaf(
+        //         newRoot,
+        //         RollupUtils.getAccountHash(
+        //             _to_merkle_proof.accountIP.account.ID,
+        //             _to_merkle_proof.accountIP.account.balance,
+        //             _to_merkle_proof.accountIP.account.nonce,
+        //             _to_merkle_proof.accountIP.account.tokenType
+        //         ),
+        //         _to_merkle_proof.accountIP.pathToAccount,
+        //         _to_merkle_proof.siblings
+        //     ),
+        //     "Merkle Proof for to leaf is incorrect"
+        // );
 
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, 0, 0, false);
+            return (ZERO_BYTES32, 0, 5, false);
         }
 
         // increase balance of to leaf

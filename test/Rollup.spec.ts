@@ -1,42 +1,45 @@
 import * as utils from "../scripts/helpers/utils";
-import {ethers} from "ethers";
+import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
-const EcVerify = artifacts.require("ECVerify")
-import * as ethUtils from "ethereumjs-util"
+const EcVerify = artifacts.require("ECVerify");
+const CoordinatorProxy = artifacts.require("CoordinatorProxy");
+import * as ethUtils from "ethereumjs-util";
+import { CoordinatorProxyInstance } from "../types/truffle-contracts/index";
 
-contract("Rollup", async function(accounts) {
+contract("Rollup", async function (accounts) {
   var wallets: any;
 
-  before(async function() {
+  before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
   });
 
   // test if we are able to create append a leaf
-  it("make a deposit of 2 accounts", async function() {
+  it("make a deposit of 2 accounts", async function () {
     let depositManagerInstance = await DepositManager.deployed();
     var testTokenInstance = await TestToken.deployed();
     let rollupCoreInstance = await RollupCore.deployed();
     var MTutilsInstance = await utils.getMerkleTreeUtils();
+    var CoordinatorProxyInstance = await CoordinatorProxy.deployed();
     let testToken = await TestToken.deployed();
     let RollupUtilsInstance = await RollupUtils.deployed();
     let tokenRegistryInstance = await utils.getTokenRegistry();
     let IMTInstance = await IMT.deployed();
     await tokenRegistryInstance.requestTokenRegistration(testToken.address, {
-      from: wallets[0].getAddressString()
+      from: wallets[0].getAddressString(),
     });
     await tokenRegistryInstance.finaliseTokenRegistration(testToken.address, {
-      from: wallets[0].getAddressString()
+      from: wallets[0].getAddressString(),
     });
     await testToken.approve(
       depositManagerInstance.address,
       web3.utils.toWei("1"),
       {
-        from: wallets[0].getAddressString()
+        from: wallets[0].getAddressString(),
       }
     );
 
@@ -46,7 +49,7 @@ contract("Rollup", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 1,
-      Path: "2"
+      Path: "2",
     };
     var Bob = {
       Address: wallets[1].getAddressString(),
@@ -54,7 +57,7 @@ contract("Rollup", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 2,
-      Path: "3"
+      Path: "3",
     };
     var coordinator =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
@@ -93,7 +96,7 @@ contract("Rollup", async function(accounts) {
     var siblingsInProof = [
       utils.getParentLeaf(coordinator, defaultHashes[0]),
       defaultHashes[2],
-      defaultHashes[3]
+      defaultHashes[3],
     ];
 
     var _zero_account_mp = {
@@ -103,10 +106,10 @@ contract("Rollup", async function(accounts) {
           ID: 0,
           tokenType: 0,
           balance: 0,
-          nonce: 0
-        }
+          nonce: 0,
+        },
       },
-      siblings: siblingsInProof
+      siblings: siblingsInProof,
     };
 
     var newRoot = await utils.genMerkleRootFromSiblings(
@@ -117,21 +120,23 @@ contract("Rollup", async function(accounts) {
 
     // TODO make this 0
     var txs: string[] = [
-      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d"
+      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d",
     ];
 
-    await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
+    await CoordinatorProxyInstance.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
       _zero_account_mp
     );
   });
 
-  it("submit new batch", async function() {
+  it("submit new batch", async function () {
     let depositManagerInstance = await DepositManager.deployed();
     var testTokenInstance = await TestToken.deployed();
     let rollupCoreInstance = await RollupCore.deployed();
     var MTutilsInstance = await utils.getMerkleTreeUtils();
     let testToken = await TestToken.deployed();
+    var CoordinatorProxyInstance = await CoordinatorProxy.deployed();
+
     let RollupUtilsInstance = await RollupUtils.deployed();
     let tokenRegistryInstance = await utils.getTokenRegistry();
     let IMTInstance = await IMT.deployed();
@@ -141,7 +146,7 @@ contract("Rollup", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 1,
-      Path: "2"
+      Path: "2",
     };
     var OriginalBob = {
       Address: wallets[1].getAddressString(),
@@ -149,7 +154,7 @@ contract("Rollup", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 2,
-      Path: "3"
+      Path: "3",
     };
     var coordinator =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
@@ -194,7 +199,7 @@ contract("Rollup", async function(accounts) {
       coordinatorPubkeyHash,
       utils.getParentLeaf(utils.PubKeyHash(OriginalBob.Pubkey), zeroHashes[0]),
       zeroHashes[2],
-      zeroHashes[3]
+      zeroHashes[3],
     ];
 
     var BobPDAsiblings = [
@@ -204,14 +209,14 @@ contract("Rollup", async function(accounts) {
         utils.PubKeyHash(OriginalAlice.Pubkey)
       ),
       zeroHashes[2],
-      zeroHashes[3]
+      zeroHashes[3],
     ];
     var alicePDAProof = {
       _pda: {
         pathToPubkey: "1",
-        pubkey_leaf: {pubkey: OriginalAlice.Pubkey}
+        pubkey_leaf: { pubkey: OriginalAlice.Pubkey },
       },
-      siblings: AlicePDAsiblings
+      siblings: AlicePDAsiblings,
     };
     var isValid = await MTutilsInstance.verifyLeaf(
       accountRoot,
@@ -224,9 +229,9 @@ contract("Rollup", async function(accounts) {
     var bobPDAProof = {
       _pda: {
         pathToPubkey: "2",
-        pubkey_leaf: {pubkey: OriginalBob.Pubkey}
+        pubkey_leaf: { pubkey: OriginalBob.Pubkey },
       },
-      siblings: BobPDAsiblings
+      siblings: BobPDAsiblings,
     };
 
     var tx = {
@@ -235,7 +240,7 @@ contract("Rollup", async function(accounts) {
       tokenType: OriginalAlice.TokenType,
       amount: tranferAmount,
       signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
     };
     var dataToSign = await RollupUtilsInstance.getTxHash(
       tx.fromIndex,
@@ -243,16 +248,16 @@ contract("Rollup", async function(accounts) {
       tx.tokenType,
       tx.amount
     );
-    const h = ethUtils.toBuffer(dataToSign)
-    var signature = ethUtils.ecsign(h,wallets[0].getPrivateKey())
-    tx.signature =ethUtils.toRpcSig(signature.v, signature.r, signature.s)
+    const h = ethUtils.toBuffer(dataToSign);
+    var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
+    tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
       utils.getParentLeaf(coordinator, zeroHashes[0]),
       zeroHashes[2],
-      zeroHashes[3]
+      zeroHashes[3],
     ];
     var leaf = AliceAccountLeaf;
     var AliceAccountPath: string = "2";
@@ -271,15 +276,15 @@ contract("Rollup", async function(accounts) {
           ID: OriginalAlice.AccID,
           tokenType: OriginalAlice.TokenType,
           balance: OriginalAlice.Amount,
-          nonce: 0
-        }
+          nonce: 0,
+        },
       },
-      siblings: AliceAccountSiblings
+      siblings: AliceAccountSiblings,
     };
 
     var UpdatedAliceAccountLeaf = utils.CreateAccountLeaf(
       OriginalAlice.AccID,
-      OriginalAlice.Amount-tx.amount,
+      OriginalAlice.Amount - tx.amount,
       0,
       OriginalAlice.TokenType
     );
@@ -289,7 +294,7 @@ contract("Rollup", async function(accounts) {
       UpdatedAliceAccountLeaf,
       utils.getParentLeaf(coordinator, zeroHashes[0]),
       zeroHashes[2],
-      zeroHashes[3]
+      zeroHashes[3],
     ];
     var leaf = BobAccountLeaf;
     var BobAccountPath: string = "3";
@@ -308,14 +313,23 @@ contract("Rollup", async function(accounts) {
           ID: OriginalBob.AccID,
           tokenType: OriginalBob.TokenType,
           balance: OriginalBob.Amount,
-          nonce: 0
-        }
+          nonce: 0,
+        },
       },
-      siblings: BobAccountSiblings
+      siblings: BobAccountSiblings,
     };
 
+    console.log(
+      "data under",
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      AliceAccountMP,
+      BobAccountMP
+    );
     // process transaction validity with process tx
-    var result = await rollupCoreInstance.processTx(
+    var result = await CoordinatorProxyInstance.processTx(
       currentRoot,
       accountRoot,
       tx,
@@ -326,6 +340,22 @@ contract("Rollup", async function(accounts) {
 
     console.log("result from processTx: " + JSON.stringify(result));
 
+    var compressedTx = await utils.compressTx(
+      tx.fromIndex,
+      tx.toIndex,
+      tx.amount,
+      tx.tokenType,
+      tx.signature
+    );
+    let compressedTxs: string[] = [];
+    compressedTxs.push(compressedTx);
+    console.log("compressedTx: " + JSON.stringify(compressedTxs));
+    console.log("result", result);
+
     // submit batch for that transactions
+    await CoordinatorProxyInstance.submitBatch(
+      compressedTxs,
+      "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a"
+    );
   });
 });

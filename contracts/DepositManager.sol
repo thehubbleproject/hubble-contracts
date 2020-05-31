@@ -230,6 +230,8 @@ contract DepositManager {
         // update the number of elements present in the queue
         queueNumber = queueNumber - 2**depositSubtreeHeight;
 
+        isPaused = false;
+
         // return the updated merkle tree root
         return (depositsSubTreeRoot);
     }

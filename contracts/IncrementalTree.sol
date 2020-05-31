@@ -11,6 +11,7 @@ contract IncrementalTree {
     MTUtils public merkleUtils;
     Governance public governance;
     MerkleTree public tree;
+
     // Merkle Tree to store the whole tree
     struct MerkleTree {
         // Root of the tree
@@ -38,7 +39,7 @@ contract IncrementalTree {
             merkleUtils.getZeroRoot(),
             merkleUtils.getMaxTreeDepth()
         );
-        bytes32 zero = merkleUtils.getRoot(0);
+        bytes32 zero = merkleUtils.getDefaultHashAtLevel(0);
         for (uint8 i = 1; i < governance.MAX_DEPTH(); i++) {
             tree.filledSubtrees[i] = zero;
         }

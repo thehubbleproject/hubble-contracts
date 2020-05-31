@@ -58,6 +58,14 @@ contract MerkleTreeUtils {
         return defaultHashes[index];
     }
 
+    function getDefaultHashAtLevel(uint256 index)
+        public
+        view
+        returns (bytes32)
+    {
+        return defaultHashes[index];
+    }
+
     function keecakHash(bytes memory data) public pure returns (bytes32) {
         return keccak256(data);
     }

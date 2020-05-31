@@ -187,3 +187,17 @@ export async function getTokenRegistry() {
   );
   return TokenRegistry.at(tokenRegistryAddress);
 }
+
+export async function compressTx(
+  from: any,
+  to: any,
+  amount: any,
+  token: any,
+  sig: any
+) {
+  var abiCoder = ethers.utils.defaultAbiCoder;
+  return abiCoder.encode(
+    ["uint256", "uint256", "uint256", "uint256", "bytes"],
+    [from, to, token, amount, sig]
+  );
+}
