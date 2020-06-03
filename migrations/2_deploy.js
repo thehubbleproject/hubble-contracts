@@ -101,20 +101,11 @@ module.exports = async function (deployer) {
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistry.registerName(key, rollup.address);
 
-  await deployer.link(ParamManager, CoordinatorProxy);
-  var coordinatorProxy = await deployer.deploy(
-    CoordinatorProxy,
-    nameRegistry.address
-  );
-
-  await rollup.setCoordinatorProxy(coordinatorProxy.address);
-
   const contractAddresses = {
     AccountTree: accountsTree.address,
     ParamManager: paramManagerInstance.address,
     DepositManager: depositManager.address,
     RollupContract: rollup.address,
-    CoordinatorProxy: coordinatorProxy.address,
     ProofOfBurnContract: pobContract.address,
     RollupUtilities: RollupUtils.address,
     NameRegistry: nameRegistry.address,

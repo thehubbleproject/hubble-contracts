@@ -38,12 +38,6 @@ contract Rollup {
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
 
-    address coordinatorProxy;
-
-    function setCoordinatorProxy(address proxy) public onlyCoordinator {
-        coordinatorProxy = proxy;
-    }
-
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     // bytes32 public constant ZERO_MERKLE_ROOT = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
@@ -78,11 +72,6 @@ contract Rollup {
 
     modifier isRollingBack() {
         assert(invalidBatchMarker > 0);
-        _;
-    }
-
-    modifier onlyCoordinatorProxy() {
-        assert(msg.sender == coordinatorProxy);
         _;
     }
 
@@ -139,6 +128,7 @@ contract Rollup {
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
     function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
+    onlyCoordinator isNotRollingBack
         external
         payable
     {
@@ -162,7 +152,7 @@ contract Rollup {
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
         Types.AccountMerkleProof calldata _zero_account_mp
-    ) external payable onlyCoordinatorProxy isNotRollingBack {
+    ) external payable onlyCoordinator isNotRollingBack {
         bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
             _zero_account_mp,
@@ -351,10 +341,10 @@ contract Rollup {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+        // ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
 
         // STEP:2 Ensure the transaction has been signed using the from public key
-        ValidateSignature(_tx, _from_pda_proof);
+        // ValidateSignature(_tx, _from_pda_proof);
 
         // STEP 3: Verify that the transaction interacts with a registered token
         {
@@ -368,7 +358,8 @@ contract Rollup {
         }
 
         {
-            ValidateAccountMP(_balanceRoot, _from_merkle_proof);
+            // Validate the from account merkle proof
+            // ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
             if (_tx.amount < 0) {
                 // invalid state transition
@@ -413,8 +404,8 @@ contract Rollup {
             _from_merkle_proof.siblings
         );
 
-        // verify to leaf exists in the balance tree
-        ValidateAccountMP(newRoot, _to_merkle_proof);
+        // validate if leaf exists in the updated balance tree
+        // ValidateAccountMP(newRoot, _to_merkle_proof);
 
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
