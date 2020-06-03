@@ -16,6 +16,8 @@ $ npm run compile
 $ npm run migrate
 ```
 
+Post running migrations you can see a `contractAddresses.json` file with all the addresses for all deployed contracts.
+
 ## Run tests
 
 ```bash
