@@ -145,7 +145,7 @@ contract("Rollup", async function (accounts) {
       Pubkey: wallets[0].getPublicKeyString(),
       Amount: 10,
       TokenType: 1,
-      AccID: 1,
+      AccID: 2,
       Path: "2",
     };
     var OriginalBob = {
@@ -153,7 +153,7 @@ contract("Rollup", async function (accounts) {
       Pubkey: wallets[1].getPublicKeyString(),
       Amount: 10,
       TokenType: 1,
-      AccID: 2,
+      AccID: 3,
       Path: "3",
     };
     var coordinator =
@@ -196,14 +196,14 @@ contract("Rollup", async function (accounts) {
     var zeroHashes: any = await utils.defaultHashes(maxSize);
 
     var AlicePDAsiblings = [
-      coordinatorPubkeyHash,
-      utils.getParentLeaf(utils.PubKeyHash(OriginalBob.Pubkey), zeroHashes[0]),
+      utils.PubKeyHash(OriginalBob.Pubkey),
+      utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
       zeroHashes[2],
       zeroHashes[3],
     ];
 
     var BobPDAsiblings = [
-      zeroHashes[0],
+      utils.PubKeyHash(OriginalAlice.Pubkey),
       utils.getParentLeaf(
         coordinatorPubkeyHash,
         utils.PubKeyHash(OriginalAlice.Pubkey)
@@ -211,17 +211,21 @@ contract("Rollup", async function (accounts) {
       zeroHashes[2],
       zeroHashes[3],
     ];
+
     var alicePDAProof = {
       _pda: {
-        pathToPubkey: "1",
+        pathToPubkey: "2",
         pubkey_leaf: { pubkey: OriginalAlice.Pubkey },
       },
       siblings: AlicePDAsiblings,
     };
+    console.log("ALICE PUBkEY HASH", utils.PubKeyHash(OriginalAlice.Pubkey));
+    console.log("account root", accountRoot);
+
     var isValid = await MTutilsInstance.verifyLeaf(
       accountRoot,
       utils.PubKeyHash(OriginalAlice.Pubkey),
-      "1",
+      "2",
       AlicePDAsiblings
     );
     assert.equal(isValid, true, "pda proof wrong");
@@ -268,7 +272,6 @@ contract("Rollup", async function (accounts) {
       AliceAccountSiblings
     );
     expect(isValid).to.be.deep.eq(true);
-
     var AliceAccountMP = {
       accountIP: {
         pathToAccount: AliceAccountPath,
@@ -304,7 +307,6 @@ contract("Rollup", async function (accounts) {
       BobAccountPath,
       BobAccountSiblings
     );
-    // expect(isBobValid).to.be.deep.eq(true);
 
     var BobAccountMP = {
       accountIP: {
@@ -319,15 +321,7 @@ contract("Rollup", async function (accounts) {
       siblings: BobAccountSiblings,
     };
 
-    console.log(
-      "data under",
-      currentRoot,
-      accountRoot,
-      tx,
-      alicePDAProof,
-      AliceAccountMP,
-      BobAccountMP
-    );
+    console.log("data under", alicePDAProof);
     // process transaction validity with process tx
     var result = await CoordinatorProxyInstance.processTx(
       currentRoot,

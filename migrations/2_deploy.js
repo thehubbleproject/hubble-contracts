@@ -51,9 +51,10 @@ module.exports = async function (deployer) {
 
   var paramManagerInstance = await ParamManager.deployed();
 
-  // get accounts tree key
   var loggerKey = await paramManagerInstance.LOGGER();
   var loggerAddress = await nameRegistry.getContractDetails(loggerKey);
+  var mtutilskey = await paramManagerInstance.MERKLE_UTILS();
+  var mtutils = await nameRegistry.getContractDetails(mtutilskey);
   // deploy proof of burn contract
   var pobContract = await deployer.deploy(POB);
   var key = await paramManagerInstance.POB();
@@ -91,6 +92,7 @@ module.exports = async function (deployer) {
     DepositManager,
     nameRegistry.address
   );
+
   var key = await paramManagerInstance.DEPOSIT_MANAGER();
   await nameRegistry.registerName(key, depositManager.address);
 
@@ -117,6 +119,7 @@ module.exports = async function (deployer) {
     RollupUtilities: RollupUtils.address,
     NameRegistry: nameRegistry.address,
     Logger: loggerAddress,
+    MerkleTreeUtils: mtutils,
   };
 
   writeContractAddresses(contractAddresses);
