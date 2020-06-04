@@ -1,14 +1,22 @@
+const fs = require("fs");
+// Libs
 const ECVerify = artifacts.require("ECVerify");
 const ParamManager = artifacts.require("ParamManager");
 const RollupUtils = artifacts.require("RollupUtils");
 const Types = artifacts.require("Types");
+
+// Contracts Deployer
+const governanceContract = artifacts.require("Governance");
+const MTUtilsContract = artifacts.require("MerkleTreeUtils");
+const loggerContract = artifacts.require("Logger");
+const tokenRegistryContract = artifacts.require("TokenRegistry");
+
+
 const NameRegistry = artifacts.require("NameRegistry");
 const deployerContract = artifacts.require("deployer");
-const fs = require("fs");
 const IncrementalTree = artifacts.require("IncrementalTree");
 const DepositManager = artifacts.require("DepositManager");
 const Rollup = artifacts.require("Rollup");
-const TokenRegistry = artifacts.require("TokenRegistry");
 const TestToken = artifacts.require("TestToken");
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const CoordinatorProxy = artifacts.require("CoordinatorProxy");
@@ -35,46 +43,47 @@ module.exports = async function (deployer) {
   await deployer.deploy(RollupUtils);
 
   // deploy name registry
-  var nameRegistry = await deployer.deploy(NameRegistry);
+  var nameRegistryInstance = await deployer.deploy(NameRegistry);
 
-  await deployer.link(ECVerify, deployerContract);
-  await deployer.link(Types, deployerContract);
-  await deployer.link(ParamManager, deployerContract);
-  await deployer.link(RollupUtils, deployerContract);
+  // await deployer.link(ECVerify, deployerContract);
+  // await deployer.link(Types, deployerContract);
+  // await deployer.link(ParamManager, deployerContract);
+  // await deployer.link(RollupUtils, deployerContract);
 
-  var deployerContractInstance = await deployer.deploy(
-    deployerContract,
-    nameRegistry.address,
-    max_depth,
-    maxDepositSubtreeDepth
-  );
-
+  // var deployerContractInstance = await deployer.deploy(
+  //   deployerContract,
+  //   nameRegistry.address,
+  //   max_depth,
+  //   maxDepositSubtreeDepth
+  // );
   var paramManagerInstance = await ParamManager.deployed();
 
+  await contractDeployer(deployer, nameRegistryInstance, paramManagerInstance, max_depth, maxDepositSubtreeDepth)
+  
   // get accounts tree key
   var loggerKey = await paramManagerInstance.LOGGER();
-  var loggerAddress = await nameRegistry.getContractDetails(loggerKey);
+  var loggerAddress = await nameRegistryInstance.getContractDetails(loggerKey);
   // deploy proof of burn contract
   var pobContract = await deployer.deploy(POB);
   var key = await paramManagerInstance.POB();
-  await nameRegistry.registerName(key, pobContract.address);
+  await nameRegistryInstance.registerName(key, pobContract.address);
 
   await deployer.link(ParamManager, IncrementalTree);
 
   // deploy accounts tree
   var accountsTree = await deployer.deploy(
     IncrementalTree,
-    nameRegistry.address
+    nameRegistryInstance.address
   );
 
   var key = await paramManagerInstance.ACCOUNTS_TREE();
-  await nameRegistry.registerName(key, accountsTree.address);
+  await nameRegistryInstance.registerName(key, accountsTree.address);
 
   // deploy test token
   var testTokenInstance = await deployer.deploy(TestToken);
 
   var key = await paramManagerInstance.TEST_TOKEN();
-  await nameRegistry.registerName(key, testTokenInstance.address);
+  await nameRegistryInstance.registerName(key, testTokenInstance.address);
 
   await deployer.link(ECVerify, Rollup);
   await deployer.link(Types, Rollup);
@@ -89,20 +98,20 @@ module.exports = async function (deployer) {
   // deploy deposit manager
   var depositManager = await deployer.deploy(
     DepositManager,
-    nameRegistry.address
+    nameRegistryInstance.address
   );
   var key = await paramManagerInstance.DEPOSIT_MANAGER();
-  await nameRegistry.registerName(key, depositManager.address);
+  await nameRegistryInstance.registerName(key, depositManager.address);
 
   // deploy rollup core
-  var rollup = await deployer.deploy(Rollup, nameRegistry.address, root);
+  var rollup = await deployer.deploy(Rollup, nameRegistryInstance.address, root);
   var key = await paramManagerInstance.ROLLUP_CORE();
-  await nameRegistry.registerName(key, rollup.address);
+  await nameRegistryInstance.registerName(key, rollup.address);
 
   await deployer.link(ParamManager, CoordinatorProxy);
   var coordinatorProxy = await deployer.deploy(
     CoordinatorProxy,
-    nameRegistry.address
+    nameRegistryInstance.address
   );
 
   await rollup.setCoordinatorProxy(coordinatorProxy.address);
@@ -115,7 +124,7 @@ module.exports = async function (deployer) {
     CoordinatorProxy: coordinatorProxy.address,
     ProofOfBurnContract: pobContract.address,
     RollupUtilities: RollupUtils.address,
-    NameRegistry: nameRegistry.address,
+    NameRegistry: nameRegistryInstance.address,
     Logger: loggerAddress,
   };
 
@@ -154,4 +163,30 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
   console.log("result", result);
 
   return result;
+}
+
+async function contractDeployer(deployer, nameRegistryInstance, paramManagerInstance, maxDepth, maxDepositSubTree) {
+  await deployer.link(ECVerify, MTUtilsContract);
+  await deployer.link(Types, MTUtilsContract);
+  await deployer.link(ParamManager, MTUtilsContract);
+  await deployer.link(RollupUtils, MTUtilsContract);
+
+  await deployer.link(ECVerify, tokenRegistryContract);
+  await deployer.link(Types, tokenRegistryContract);
+  await deployer.link(ParamManager, tokenRegistryContract);
+  await deployer.link(RollupUtils, tokenRegistryContract);
+
+  var governance = await deployer.deploy(governanceContract, maxDepth, maxDepositSubTree);
+  var governanceParam = await paramManagerInstance.Governance();
+  var x = await nameRegistryInstance.registerName(governanceParam, governance.address);
+  console.log(x)
+  var mtUtils = await deployer.deploy(MTUtilsContract, nameRegistryInstance.address);
+  await nameRegistryInstance.registerName(await paramManagerInstance.MERKLE_UTILS(), mtUtils.address);
+  throw new Error(":")
+  var logger = await deployer.deploy(loggerContract);
+  await nameRegistryInstance.registerName(await paramManagerInstance.LOGGER(), logger.address);
+  
+  var tokenRegistry = await deployer.deploy(tokenRegistryContract, nameRegistryInstance.address);
+  await nameRegistryInstance.registerName(await paramManagerInstance.TOKEN_REGISTRY(), tokenRegistry.address);
+
 }
