@@ -38,12 +38,6 @@ contract Rollup {
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
 
-    address coordinatorProxy;
-
-    function setCoordinatorProxy(address proxy) public onlyCoordinator {
-        coordinatorProxy = proxy;
-    }
-
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     // bytes32 public constant ZERO_MERKLE_ROOT = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
@@ -78,11 +72,6 @@ contract Rollup {
 
     modifier isRollingBack() {
         assert(invalidBatchMarker > 0);
-        _;
-    }
-
-    modifier onlyCoordinatorProxy() {
-        assert(msg.sender == coordinatorProxy);
         _;
     }
 
@@ -139,6 +128,7 @@ contract Rollup {
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
     function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
+    onlyCoordinator isNotRollingBack
         external
         payable
     {
@@ -162,7 +152,7 @@ contract Rollup {
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
         Types.AccountMerkleProof calldata _zero_account_mp
-    ) external payable onlyCoordinatorProxy isNotRollingBack {
+    ) external payable onlyCoordinator isNotRollingBack {
         bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
             _zero_account_mp,
@@ -351,55 +341,10 @@ contract Rollup {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        // {
-        //     // verify from account pubkey exists in PDA tree
-        //     // NOTE: We dont need to prove that to address has the pubkey available
-        //     Types.PDALeaf memory fromPDA = Types.PDALeaf({
-        //         pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
-        //     });
-
-        //     require(
-        //         merkleUtils.verifyLeaf(
-        //             _accountsRoot,
-        //             RollupUtils.PDALeafToHash(fromPDA),
-        //             _from_pda_proof._pda.pathToPubkey,
-        //             _from_pda_proof.siblings
-        //         ),
-        //         "From PDA proof is incorrect"
-        //     );
-
-        //     // convert pubkey path to ID
-        //     uint256 computedID = merkleUtils.pathToIndex(
-        //         _from_pda_proof._pda.pathToPubkey,
-        //         governance.MAX_DEPTH()
-        //     );
-
-        //     // make sure the ID in transaction is the same account for which account proof was provided
-        //     require(
-        //         computedID == _tx.fromIndex,
-        //         "Pubkey not related to the from account in the transaction"
-        //     );
-        // }
+        // ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
 
         // STEP:2 Ensure the transaction has been signed using the from public key
-        require(
-            RollupUtils.calculateAddress(
-                _from_pda_proof._pda.pubkey_leaf.pubkey
-            ) ==
-                RollupUtils
-                    .getTxHash(
-                    _tx
-                        .fromIndex,
-                    _tx
-                        .toIndex,
-                    _tx
-                        .tokenType,
-                    _tx
-                        .amount
-                )
-                    .ecrecovery(_tx.signature),
-            "Signature is incorrect"
-        );
+        // ValidateSignature(_tx, _from_pda_proof);
 
         // STEP 3: Verify that the transaction interacts with a registered token
         {
@@ -411,23 +356,10 @@ contract Rollup {
                 return (ZERO_BYTES32, 0, 1, false);
             }
         }
+
         {
-            bytes32 fromAccountLeaf = RollupUtils.getAccountHash(
-                _from_merkle_proof.accountIP.account.ID,
-                _from_merkle_proof.accountIP.account.balance,
-                _from_merkle_proof.accountIP.account.nonce,
-                _from_merkle_proof.accountIP.account.tokenType
-            );
-            // verify from leaf exists in the balance tree
-            require(
-                merkleUtils.verifyLeaf(
-                    _balanceRoot,
-                    fromAccountLeaf,
-                    _from_merkle_proof.accountIP.pathToAccount,
-                    _from_merkle_proof.siblings
-                ),
-                "Merkle Proof for from leaf is incorrect"
-            );
+            // Validate the from account merkle proof
+            // ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
             if (_tx.amount < 0) {
                 // invalid state transition
@@ -456,12 +388,9 @@ contract Rollup {
         }
 
         // reduce balance of from leaf
-        Types.UserAccount memory new_from_account = RollupUtils
-            .UpdateBalanceInAccount(
+        Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
             _from_merkle_proof.accountIP.account,
-            RollupUtils
-                .BalanceFromAccount(_from_merkle_proof.accountIP.account)
-                .sub(_tx.amount)
+            _tx.amount
         );
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
@@ -475,21 +404,8 @@ contract Rollup {
             _from_merkle_proof.siblings
         );
 
-        // verify to leaf exists in the balance tree
-        // require(
-        //     merkleUtils.verifyLeaf(
-        //         newRoot,
-        //         RollupUtils.getAccountHash(
-        //             _to_merkle_proof.accountIP.account.ID,
-        //             _to_merkle_proof.accountIP.account.balance,
-        //             _to_merkle_proof.accountIP.account.nonce,
-        //             _to_merkle_proof.accountIP.account.tokenType
-        //         ),
-        //         _to_merkle_proof.accountIP.pathToAccount,
-        //         _to_merkle_proof.siblings
-        //     ),
-        //     "Merkle Proof for to leaf is incorrect"
-        // );
+        // validate if leaf exists in the updated balance tree
+        // ValidateAccountMP(newRoot, _to_merkle_proof);
 
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
@@ -500,12 +416,9 @@ contract Rollup {
         }
 
         // increase balance of to leaf
-        Types.UserAccount memory new_to_account = RollupUtils
-            .UpdateBalanceInAccount(
+        Types.UserAccount memory new_to_account = AddTokensToAccount(
             _to_merkle_proof.accountIP.account,
-            RollupUtils
-                .BalanceFromAccount(_to_merkle_proof.accountIP.account)
-                .add(_tx.amount)
+            _tx.amount
         );
 
         // update the merkle tree
@@ -521,6 +434,109 @@ contract Rollup {
             RollupUtils.BalanceFromAccount(new_to_account),
             true
         );
+    }
+
+    function ValidatePubkeyAvailability(
+        bytes32 _accountsRoot,
+        Types.PDAMerkleProof memory _from_pda_proof,
+        uint256 from_index
+    ) public view {
+        // verify from account pubkey exists in PDA tree
+        // NOTE: We dont need to prove that to address has the pubkey available
+        Types.PDALeaf memory fromPDA = Types.PDALeaf({
+            pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
+        });
+
+        require(
+            merkleUtils.verifyLeaf(
+                _accountsRoot,
+                RollupUtils.PDALeafToHash(fromPDA),
+                _from_pda_proof._pda.pathToPubkey,
+                _from_pda_proof.siblings
+            ),
+            "From PDA proof is incorrect"
+        );
+
+        // convert pubkey path to ID
+        uint256 computedID = merkleUtils.pathToIndex(
+            _from_pda_proof._pda.pathToPubkey,
+            governance.MAX_DEPTH()
+        );
+
+        // make sure the ID in transaction is the same account for which account proof was provided
+        require(
+            computedID == from_index,
+            "Pubkey not related to the from account in the transaction"
+        );
+    }
+
+    function ValidateSignature(
+        Types.Transaction memory _tx,
+        Types.PDAMerkleProof memory _from_pda_proof
+    ) public view returns(bool) {
+        require(
+            RollupUtils.calculateAddress(
+                _from_pda_proof._pda.pubkey_leaf.pubkey
+            ) ==
+                RollupUtils
+                    .getTxHash(
+                    _tx
+                        .fromIndex,
+                    _tx
+                        .toIndex,
+                    _tx
+                        .tokenType,
+                    _tx
+                        .amount
+                )
+                    .ecrecovery(_tx.signature),
+            "Signature is incorrect"
+        );
+    }
+
+    function ValidateAccountMP(
+        bytes32 root,
+        Types.AccountMerkleProof memory merkle_proof
+    ) public view {
+        bytes32 accountLeaf = RollupUtils.getAccountHash(
+            merkle_proof.accountIP.account.ID,
+            merkle_proof.accountIP.account.balance,
+            merkle_proof.accountIP.account.nonce,
+            merkle_proof.accountIP.account.tokenType
+        );
+
+        // verify from leaf exists in the balance tree
+        require(
+            merkleUtils.verifyLeaf(
+                root,
+                accountLeaf,
+                merkle_proof.accountIP.pathToAccount,
+                merkle_proof.siblings
+            ),
+            "Merkle Proof is incorrect"
+        );
+    }
+
+    function RemoveTokensFromAccount(
+        Types.UserAccount memory account,
+        uint256 numOfTokens
+    ) public view returns (Types.UserAccount memory updatedAccount) {
+        return
+            RollupUtils.UpdateBalanceInAccount(
+                account,
+                RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+            );
+    }
+
+    function AddTokensToAccount(
+        Types.UserAccount memory account,
+        uint256 numOfTokens
+    ) public view returns (Types.UserAccount memory updatedAccount) {
+        return
+            RollupUtils.UpdateBalanceInAccount(
+                account,
+                RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+            );
     }
 
     /**

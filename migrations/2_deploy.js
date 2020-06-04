@@ -62,7 +62,10 @@ module.exports = async function (deployer) {
   
   // get accounts tree key
   var loggerKey = await paramManagerInstance.LOGGER();
-  var loggerAddress = await nameRegistryInstance.getContractDetails(loggerKey);
+  var loggerAddress = await nameRegistry.getContractDetails(loggerKey);
+  var mtutilskey = await paramManagerInstance.MERKLE_UTILS();
+  var mtutils = await nameRegistry.getContractDetails(mtutilskey);
+
   // deploy proof of burn contract
   var pobContract = await deployer.deploy(POB);
   var key = await paramManagerInstance.POB();
@@ -100,6 +103,7 @@ module.exports = async function (deployer) {
     DepositManager,
     nameRegistryInstance.address
   );
+
   var key = await paramManagerInstance.DEPOSIT_MANAGER();
   await nameRegistryInstance.registerName(key, depositManager.address);
 
@@ -108,24 +112,16 @@ module.exports = async function (deployer) {
   var key = await paramManagerInstance.ROLLUP_CORE();
   await nameRegistryInstance.registerName(key, rollup.address);
 
-  await deployer.link(ParamManager, CoordinatorProxy);
-  var coordinatorProxy = await deployer.deploy(
-    CoordinatorProxy,
-    nameRegistryInstance.address
-  );
-
-  await rollup.setCoordinatorProxy(coordinatorProxy.address);
-
   const contractAddresses = {
     AccountTree: accountsTree.address,
     ParamManager: paramManagerInstance.address,
     DepositManager: depositManager.address,
     RollupContract: rollup.address,
-    CoordinatorProxy: coordinatorProxy.address,
     ProofOfBurnContract: pobContract.address,
     RollupUtilities: RollupUtils.address,
     NameRegistry: nameRegistryInstance.address,
     Logger: loggerAddress,
+    MerkleTreeUtils: mtutils,
   };
 
   writeContractAddresses(contractAddresses);

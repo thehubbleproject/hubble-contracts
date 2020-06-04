@@ -69,11 +69,12 @@ contract DepositManager {
             nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
         );
 
-        AddCoordinatorLeaf();
+        AddCoordinatorLeaves();
     }
 
-    function AddCoordinatorLeaf() internal {
+    function AddCoordinatorLeaves() internal {
         // first leaf in the incremental tree belongs to the coordinator
+        accountsTree.appendLeaf(ZERO_BYTES32);
         accountsTree.appendLeaf(ZERO_BYTES32);
     }
 

@@ -5,8 +5,8 @@ const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
 import {ethers} from "ethers";
 const RollupCore = artifacts.require("Rollup");
-const CoordinatorProxy = artifacts.require("CoordinatorProxy");
 import * as utils from "../scripts/helpers/utils";
+import {RollupContract} from "../types/truffle-contracts/index";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
 chai.use(chaiAsPromised);
@@ -58,7 +58,7 @@ contract("DepositManager", async function(accounts) {
 
   it("should allow depositing 2 leaves in a subtree and merging it", async () => {
     let depositManagerInstance = await DepositManager.deployed();
-    var coordinatorProxy = await CoordinatorProxy.deployed();
+    var rollupContractInstance = await RollupCore.deployed();
     var testTokenInstance = await TestToken.deployed();
 
     let rollupCoreInstance = await RollupCore.deployed();
@@ -68,7 +68,7 @@ contract("DepositManager", async function(accounts) {
       Pubkey: wallets[0].getPublicKeyString(),
       Amount: 10,
       TokenType: 1,
-      AccID: 1,
+      AccID: 2,
       Path: "2"
     };
     var Bob = {
@@ -76,29 +76,12 @@ contract("DepositManager", async function(accounts) {
       Pubkey: wallets[1].getPublicKeyString(),
       Amount: 10,
       TokenType: 1,
-      AccID: 2,
-      Path: "3"
-    };
-
-    var charlie = {
-      Address: wallets[2].getAddressString(),
-      Pubkey: wallets[2].getPublicKeyString(),
-      Amount: 10,
-      TokenType: 1,
       AccID: 3,
       Path: "3"
     };
-
-    var charlie = {
-      Address: wallets[3].getAddressString(),
-      Pubkey: wallets[3].getPublicKeyString(),
-      Amount: 10,
-      TokenType: 1,
-      AccID: 4,
-      Path: "4"
-    };
     var coordinator =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
+
     var maxSize = 4;
     console.log("User information", "Alice", Alice, "bob", Bob);
 
@@ -196,10 +179,9 @@ contract("DepositManager", async function(accounts) {
       siblings: siblingsInProof
     };
 
-    console.log("address for rollup", await coordinatorProxy.rollup());
     console.log("data under consideration", subtreeDepth, _zero_account_mp);
     console.log("value", ethers.utils.parseEther("32").toString());
-    await coordinatorProxy.finaliseDepositsAndSubmitBatch(
+    await rollupContractInstance.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
       _zero_account_mp,
       {value: ethers.utils.parseEther("32").toString()}

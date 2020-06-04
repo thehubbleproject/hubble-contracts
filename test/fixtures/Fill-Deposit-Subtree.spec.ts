@@ -3,7 +3,6 @@ import * as walletHelper from "../../scripts/helpers/wallet";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
-const RollupCore = artifacts.require("Rollup");
 import * as utils from "../../scripts/helpers/utils";
 
 chai.use(chaiAsPromised);
