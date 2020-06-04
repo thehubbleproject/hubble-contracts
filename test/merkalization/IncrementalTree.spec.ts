@@ -61,11 +61,11 @@ contract("IncrementalTree", async function(accounts) {
 
     // validate if the leaf was inserted correctly
     var root = await IMTInstace.getTreeRoot();
-    var path = "0001";
+    var path = "2";
     var siblings = [coordinator, zeroLeaf1, zeroLeaf2, zeroLeaf3];
 
     // call stateless merkle tree utils
-    var isValid = await mtlibInstance.verifyLeaf(root, leaf, "1", siblings);
+    var isValid = await mtlibInstance.verifyLeaf(root, leaf, path, siblings);
     expect(isValid).to.be.deep.eq(true);
 
     // add another leaf to the tree
@@ -75,14 +75,19 @@ contract("IncrementalTree", async function(accounts) {
     // verify that the new leaf was inserted correctly
     var root1 = await IMTInstace.getTreeRoot();
 
-    var path1 = "0010";
+    var pathToSecondAccount = "3";
     var siblings2 = [
-      zeroLeaf,
-      utils.getParentLeaf(coordinator, dataLeaves[0]),
+      dataLeaves[0],
+      utils.getParentLeaf(coordinator, coordinator),
       zeroLeaf2,
       zeroLeaf3
     ];
-    isValid = await mtlibInstance.verifyLeaf(root1, leaf, "2", siblings2);
+    isValid = await mtlibInstance.verifyLeaf(
+      root1,
+      leaf,
+      pathToSecondAccount,
+      siblings2
+    );
     expect(isValid).to.be.deep.eq(true);
   });
 });
