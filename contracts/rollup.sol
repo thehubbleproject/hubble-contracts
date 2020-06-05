@@ -1,20 +1,22 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import {Logger} from "./logger.sol";
-import {POB} from "./POB.sol";
-
-import {IncrementalTree} from "./IncrementalTree.sol";
-import {ParamManager} from "./libs/ParamManager.sol";
-import {RollupUtils} from "./libs/RollupUtils.sol";
-import {Types} from "./libs/Types.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
+
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+
+import {ParamManager} from "./libs/ParamManager.sol";
+import {Types} from "./libs/Types.sol";
+import {RollupUtils} from "./libs/RollupUtils.sol";
 import {ECVerify} from "./libs/ECVerify.sol";
+
+import {IncrementalTree} from "./IncrementalTree.sol";
+import {Logger} from "./logger.sol";
+import {POB} from "./POB.sol";
+import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
+import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {Governance} from "./Governance.sol";
 import {DepositManager} from "./DepositManager.sol";
 
@@ -75,10 +77,6 @@ contract Rollup {
         _;
     }
 
-    // Stores transaction paths claimed per batch
-    // TO BE REMOVED post withdraw mass migration
-    bool[][] withdrawTxClaimed;
-
     /*********************
      * Constructor *
      ********************/
@@ -103,7 +101,6 @@ contract Rollup {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
-        withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
         addNewBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
@@ -120,6 +117,18 @@ contract Rollup {
      */
     function numOfBatchesSubmitted() public view returns (uint256) {
         return batches.length;
+    }
+
+    /**
+     * @notice Returns the batch
+     */
+
+    function getBatch(uint _batch_id) public view returns (Types.Batch memory batch) {
+        require(
+            batches.length - 1 >= _batch_id,
+            "Batch id greater than total number of batches, invalid batch id"
+        );
+        batch = batches[_batch_id];
     }
 
     /**
@@ -621,81 +630,4 @@ contract Rollup {
             batch_id
         );
     }
-
-    /**
-     * @notice Allows user to withdraw the balance in the leaf of the balances tree.
-     *        User has to do the following: Prove that a transfer of X tokens was made to the burn address or leaf 0
-     *        The batch we are allowing withdraws from should have been already finalised, so we can assume all data in the batch to be correct
-     * @param _batch_id Deposit tree depth or depth of subtree that is being deposited
-     * @param withdraw_tx_proof contains the siblints, txPath and the txData for the withdraw transaction
-     */
-    // function Withdraw(
-    //     uint256 _batch_id,
-    //     Types.PDAMerkleProof memory _pda_proof,
-    //     Types.TransactionMerkleProof memory withdraw_tx_proof
-    // ) public {
-    //     // make sure the batch id is valid
-    //     require(
-    //         batches.length - 1 >= _batch_id,
-    //         "Batch id greater than total number of batches, invalid batch id"
-    //     );
-
-    //     Types.Batch memory batch = batches[_batch_id];
-
-    //     // check if the batch is finalised
-    //     require(block.number > batch.finalisesOn, "Batch not finalised yt");
-    //     // verify transaction exists in the batch
-    //     merkleUtils.verify(
-    //         batch.txRoot,
-    //         RollupUtils.BytesFromTx(withdraw_tx_proof._tx.data),
-    //         withdraw_tx_proof._tx.pathToTx,
-    //         withdraw_tx_proof.siblings
-    //     );
-
-    //     // check if the transaction is withdraw transaction
-    //     // ensure the `to` leaf was the 0th leaf
-    //     require(
-    //         withdraw_tx_proof._tx.data.to.ID == 0,
-    //         "Not a withdraw transaction"
-    //     );
-
-    //     bool isClaimed = withdrawTxClaimed[_batch_id][withdraw_tx_proof
-    //         ._tx
-    //         .pathToTx];
-    //     require(!isClaimed, "Withdraw transaction already claimed");
-    //     withdrawTxClaimed[_batch_id][withdraw_tx_proof._tx.pathToTx] = true;
-
-    //     // withdraw checks out, transfer to the account in account tree
-    //     address tokenContractAddress = tokenRegistry.registeredTokens(
-    //         withdraw_tx_proof._tx.data.tokenType
-    //     );
-
-    //     // convert pubkey path to ID
-    //     // TODO replace MAX_DEPTH with the committed depth
-    //     uint256 computedID = merkleUtils.pathToIndex(
-    //         _pda_proof._pda.pathToPubkey,
-    //         ParamManager.MAX_DEPTH()
-    //     );
-
-    //     require(
-    //         computedID == withdraw_tx_proof._tx.data.from.ID,
-    //         "Pubkey not related to the from account in the transaction"
-    //     );
-
-    //     address receiver = RollupUtils.calculateAddress(
-    //         _pda_proof._pda.pubkey_leaf.pubkey
-    //     );
-    //     require(
-    //         receiver ==
-    //             RollupUtils.HashFromTx(withdraw_tx_proof._tx.data).ecrecovery(
-    //                 withdraw_tx_proof._tx.data.signature
-    //             ),
-    //         "Signature is incorrect"
-    //     );
-
-    //     uint256 amount = withdraw_tx_proof._tx.data.amount;
-
-    //     tokenContract = IERC20(tokenContractAddress);
-    //     require(tokenContract.transfer(receiver, amount), "Unable to trasnfer");
-    // }
 }
