@@ -529,7 +529,7 @@ contract Rollup {
     function RemoveTokensFromAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
-    ) public view returns (Types.UserAccount memory updatedAccount) {
+    ) public pure returns (Types.UserAccount memory updatedAccount) {
         return
             RollupUtils.UpdateBalanceInAccount(
                 account,
@@ -540,7 +540,7 @@ contract Rollup {
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
-    ) public view returns (Types.UserAccount memory updatedAccount) {
+    ) public pure returns (Types.UserAccount memory updatedAccount) {
         return
             RollupUtils.UpdateBalanceInAccount(
                 account,
