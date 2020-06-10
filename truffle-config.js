@@ -14,24 +14,24 @@ module.exports = {
       host: "127.0.0.1", // Localhost (default: none)
       port: 8545, // Standard Ethereum port (default: none)
       network_id: "*", // Any network (default: none),
-      gas: 8000000
+      gas: 8000000,
     },
     goerli: {
-      provider: function() {
+      provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
           `https://goerli.infura.io/v3/${API_KEY}`
         );
       },
       network_id: "*",
-      gas: 80000000
-    }
+      gas: 80000000,
+    },
   },
 
   // Set default mocha options here, use special reporters etc.
   mocha: {
     reporter: "eth-gas-reporter",
-    useColors: true
+    useColors: true,
   },
 
   // Configure your compilers
@@ -43,10 +43,10 @@ module.exports = {
         // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
           enabled: false,
-          runs: 200
+          runs: 200,
         },
-        evmVersion: "byzantium"
-      }
-    }
-  }
+        evmVersion: "byzantium",
+      },
+    },
+  },
 };

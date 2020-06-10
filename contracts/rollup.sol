@@ -350,7 +350,7 @@ contract Rollup {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        // ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         // ValidateSignature(_tx, _from_pda_proof);
@@ -368,7 +368,7 @@ contract Rollup {
 
         {
             // Validate the from account merkle proof
-            // ValidateAccountMP(_balanceRoot, _from_merkle_proof);
+             ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
             if (_tx.amount < 0) {
                 // invalid state transition
@@ -414,7 +414,7 @@ contract Rollup {
         );
 
         // validate if leaf exists in the updated balance tree
-        // ValidateAccountMP(newRoot, _to_merkle_proof);
+        ValidateAccountMP(newRoot, _to_merkle_proof);
 
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
