@@ -86,13 +86,6 @@ contract RollupSetup {
 
 contract RollupHelpers is RollupSetup {
     /**
-     * @notice Returns invalid batch marker
-     */
-    function getInvalidBatchMarker() external view returns (uint256) {
-        return invalidBatchMarker;
-    }
-
-    /**
      * @notice Returns the latest state root
      */
     function getLatestBalanceTreeRoot() public view returns (bytes32) {

@@ -17,7 +17,7 @@ contract CoordinatorProxy {
     Registry public nameRegistry;
 
     modifier isNotRollingBack() {
-        assert(rollup.getInvalidBatchMarker() == 0);
+        assert(rollup.invalidBatchMarker == 0);
         _;
     }
 
