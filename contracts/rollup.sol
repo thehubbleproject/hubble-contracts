@@ -42,7 +42,6 @@ contract RollupSetup {
 
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
-    // bytes32 public constant ZERO_MERKLE_ROOT = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     Governance public governance;
 
     // this variable will be greater than 0 if
