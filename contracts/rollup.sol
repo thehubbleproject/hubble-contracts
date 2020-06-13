@@ -48,7 +48,17 @@ contract RollupSetup {
     // this variable will be greater than 0 if
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
-    uint256 invalidBatchMarker;
+    uint256 public invalidBatchMarker;
+
+    /*********************
+     * Error Codes *
+    ********************/
+    uint public constant NO_ERR = 0;
+    uint public constant ERR_TOKEN_ADDR_INVAILD = 1;  // account doesnt hold token type in the tx
+    uint public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
+    uint public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
+    uint public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
+    uint public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -147,22 +157,41 @@ contract RollupHelpers is RollupSetup {
     function RemoveTokensFromAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
-    ) public pure returns (Types.UserAccount memory updatedAccount) {
+    ) public pure returns (Types.UserAccount memory updatedAccount, bool) {
+         // account holds the token type in the tx
+        if (_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (false, account);
+
         return
-            RollupUtils.UpdateBalanceInAccount(
-                account,
-                RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+           (
+               true,
+                RollupUtils.UpdateBalanceInAccount(
+                    account,
+                    RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+                )
             );
     }
 
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
-    ) public pure returns (Types.UserAccount memory updatedAccount) {
+    ) public pure returns (bool, Types.UserAccount memory updatedAccount) {
+          // account holds the token type in the tx
+        if (_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (false, account);
         return
-            RollupUtils.UpdateBalanceInAccount(
-                account,
-                RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+            (
+                true,
+                RollupUtils.UpdateBalanceInAccount(
+                    account,
+                    RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+                )
             );
     }
 
@@ -177,23 +206,13 @@ contract RollupHelpers is RollupSetup {
         batch = batches[_batch_id];
     }
 
-    function updateTokenAndUpdateSiblings(
-        bool isAddToken,
-        Types.Transaction memory _tx,
+    /**
+     * @notice Returns the updated root and balance
+     */
+    function UpdateSiblings(
+        Types.UserAccount memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
     ) public view returns(bytes32, uint) {
-         // account holds the token type in the tx
-        if (_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (ZERO_BYTES32, 0);
-
-         // reduce balance of from leaf
-        Types.UserAccount memory new_account = isAddToken ?
-            AddTokensToAccount(_merkle_proof.accountIP.account, _tx.amount) :
-            RemoveTokensFromAccount(_merkle_proof.accountIP.account, _tx.amount);
-
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             keccak256(RollupUtils.BytesFromAccount(new_account)),
             _merkle_proof.accountIP.pathToAccount,
@@ -206,32 +225,32 @@ contract RollupHelpers is RollupSetup {
 
     function validateProof(
         Types.Transaction memory _tx,
-        Types.AccountMerkleProof memory _from_merkle_proof
+        Types.AccountMerkleProof memory _merkle_proof
     ) public view returns(uint) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition
             // to be slashed because the submitted transaction
             // had invalid token type
-            return (1);
+            return ERR_TOKEN_ADDR_INVAILD;
         }
 
         if (_tx.amount < 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had amount less than 0
-            return (2);
+            return ERR_TOKEN_AMT_INVAILD;
         }
 
         // check from leaf has enough balance
-        if (_from_merkle_proof.accountIP.account.balance < _tx.amount) {
+        if (_merkle_proof.accountIP.account.balance < _tx.amount) {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer
-            return (3);
+            return ERR_TOKEN_NOT_ENOUGH_BAL;
         }
 
-        return (0);
+        return NO_ERR;
     }
 
     function ValidatePubkeyAvailability(
@@ -271,7 +290,7 @@ contract RollupHelpers is RollupSetup {
     function ValidateSignature(
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof
-    ) public view returns(bool) {
+    ) public pure returns(bool) {
         require(
             RollupUtils.calculateAddress(
                 _from_pda_proof._pda.pubkey_leaf.pubkey
@@ -591,24 +610,36 @@ contract Rollup is RollupHelpers {
         // Validate the from account merkle proof
         // ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
-        (uint err) = validateProof(_tx, _from_merkle_proof);
-        if(err != 0) return (ZERO_BYTES32, 0, err, false);
+        (uint err_code) = validateProof(_tx, _from_merkle_proof);
+        if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
 
-
-        (bytes32 newFromRoot, uint from_new_balance) = updateTokenAndUpdateSiblings(
-            false, _tx, _from_merkle_proof
+        (bool isFromTokenType, Types.UserAccount memory new_from_account) = RemoveTokensFromAccount(
+            _from_merkle_proof.accountIP.account,
+            _tx.amount
         );
-        if(newFromRoot == ZERO_BYTES32) return (newFromRoot, 0, 4, false);
+        // account holds the token type in the tx
+        if(!isFromTokenType) return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
+
+        (bytes32 newFromRoot, uint from_new_balance) = UpdateSiblings(
+            new_from_account,
+            _from_merkle_proof
+        );
 
         // validate if leaf exists in the updated balance tree
         // ValidateAccountMP(newFromRoot, _to_merkle_proof);
 
-        // account holds the token type in the tx
 
-        (bytes32 newToRoot, uint to_new_balance) = updateTokenAndUpdateSiblings(
-            true, _tx, _to_merkle_proof
+        (bool isToTokenType, Types.UserAccount memory new_to_account) = AddTokensToAccount(
+            _to_merkle_proof.accountIP.account,
+            _tx.amount
         );
-        if(newToRoot == ZERO_BYTES32) return (newToRoot, 0, 5, false);
+        // account holds the token type in the tx
+        if(!isToTokenType) return (ZERO_BYTES32, 0, ERR_TO_TOKEN_TYPE, false);
+
+        (bytes32 newToRoot, uint to_new_balance) = UpdateSiblings(
+            new_to_account,
+            _to_merkle_proof
+        );
 
         return (
             newToRoot,
