@@ -179,7 +179,7 @@ contract RollupHelpers is RollupSetup {
         require(
             batches.length - 1 >= _batch_id,
             "Batch id greater than total number of batches, invalid batch id"
-        );
+            );
         batch = batches[_batch_id];
     }
 
@@ -197,8 +197,6 @@ contract RollupHelpers is RollupSetup {
         );
         uint balance = RollupUtils.BalanceFromAccount(new_account);
         return (newRoot, balance);
-
-    }
 
     function validateProof(
         Types.Transaction memory _tx,
@@ -577,7 +575,7 @@ contract Rollup is RollupHelpers {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        // ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         // ValidateSignature(_tx, _from_pda_proof);
@@ -585,7 +583,7 @@ contract Rollup is RollupHelpers {
         // STEP 3: Verify that the transaction interacts with a registered token
 
         // Validate the from account merkle proof
-        // ValidateAccountMP(_balanceRoot, _from_merkle_proof);
+        ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
         (uint err_code) = validateProof(_tx, _from_merkle_proof);
         if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
@@ -607,7 +605,7 @@ contract Rollup is RollupHelpers {
         );
 
         // validate if leaf exists in the updated balance tree
-        // ValidateAccountMP(newFromRoot, _to_merkle_proof);
+        ValidateAccountMP(newFromRoot, _to_merkle_proof);
 
 
         Types.UserAccount memory new_to_account = AddTokensToAccount(
