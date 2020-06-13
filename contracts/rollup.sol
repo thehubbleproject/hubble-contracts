@@ -150,17 +150,9 @@ contract RollupHelpers is RollupSetup {
     function RemoveTokensFromAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
-    ) public pure returns (Types.UserAccount memory updatedAccount, bool) {
-         // account holds the token type in the tx
-        if (_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (false, account);
-
+    ) public pure returns (Types.UserAccount memory updatedAccount) {
         return
            (
-               true,
                 RollupUtils.UpdateBalanceInAccount(
                     account,
                     RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
@@ -171,16 +163,9 @@ contract RollupHelpers is RollupSetup {
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
-    ) public pure returns (bool, Types.UserAccount memory updatedAccount) {
-          // account holds the token type in the tx
-        if (_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (false, account);
+    ) public pure returns (Types.UserAccount memory updatedAccount) {
         return
             (
-                true,
                 RollupUtils.UpdateBalanceInAccount(
                     account,
                     RollupUtils.BalanceFromAccount(account).add(numOfTokens)
@@ -283,7 +268,7 @@ contract RollupHelpers is RollupSetup {
     function ValidateSignature(
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof
-    ) public pure returns(bool) {
+    ) public view returns(bool) {
         require(
             RollupUtils.calculateAddress(
                 _from_pda_proof._pda.pubkey_leaf.pubkey
@@ -606,12 +591,16 @@ contract Rollup is RollupHelpers {
         (uint err_code) = validateProof(_tx, _from_merkle_proof);
         if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
 
-        (bool isFromTokenType, Types.UserAccount memory new_from_account) = RemoveTokensFromAccount(
+        Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
             _from_merkle_proof.accountIP.account,
             _tx.amount
         );
         // account holds the token type in the tx
-        if(!isFromTokenType) return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
+        if (_from_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
         (bytes32 newFromRoot, uint from_new_balance) = UpdateSiblings(
             new_from_account,
@@ -622,12 +611,16 @@ contract Rollup is RollupHelpers {
         // ValidateAccountMP(newFromRoot, _to_merkle_proof);
 
 
-        (bool isToTokenType, Types.UserAccount memory new_to_account) = AddTokensToAccount(
+        Types.UserAccount memory new_to_account = AddTokensToAccount(
             _to_merkle_proof.accountIP.account,
             _tx.amount
         );
         // account holds the token type in the tx
-        if(!isToTokenType) return (ZERO_BYTES32, 0, ERR_TO_TOKEN_TYPE, false);
+        if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
         (bytes32 newToRoot, uint to_new_balance) = UpdateSiblings(
             new_to_account,
