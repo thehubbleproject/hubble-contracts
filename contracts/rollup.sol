@@ -197,6 +197,7 @@ contract RollupHelpers is RollupSetup {
         );
         uint balance = RollupUtils.BalanceFromAccount(new_account);
         return (newRoot, balance);
+    }
 
     function validateProof(
         Types.Transaction memory _tx,
