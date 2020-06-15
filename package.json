@@ -17,7 +17,10 @@
     "test-deposit": "truffle test test/deposit.ts",
     "generate": "truffle compile && typechain --target truffle './build/**/*.json'",
     "tsc": "tsc --noEmit",
-    "ganache": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 8000000 --gasPrice 0 -b 1"
+    "ganache": "ganache-cli --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 8000000 --gasPrice 0 -b 1",
+    "actions:network": "npm run ganache",
+    "actions:tests": "npm test",
+    "actions": "concurrently -r -s first -k npm:actions:*"
   },
   "repository": {
     "type": "git",
@@ -41,6 +44,7 @@
     "bn.js": "^5.1.1",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
+    "concurrently": "^5.2.0",
     "eth-gas-reporter": "^0.2.16",
     "ethereumjs-util": "^6.2.0",
     "ethereumjs-wallet": "0.6.2",
