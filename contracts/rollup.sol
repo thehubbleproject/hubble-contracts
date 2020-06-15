@@ -22,7 +22,7 @@ import {DepositManager} from "./DepositManager.sol";
 
 
 // Main rollup contract
-contract Rollup {
+contract RollupSetup {
     using SafeMath for uint256;
     using BytesLib for bytes;
     using ECVerify for bytes32;
@@ -41,18 +41,23 @@ contract Rollup {
     MTUtils public merkleUtils;
 
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    // bytes32 public constant ZERO_MERKLE_ROOT = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     Governance public governance;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
-    uint256 invalidBatchMarker;
+    uint256 public invalidBatchMarker;
 
-    function getInvalidBatchMarker() external view returns (uint256) {
-        return invalidBatchMarker;
-    }
+    /*********************
+     * Error Codes *
+    ********************/
+    uint public constant NO_ERR = 0;
+    uint public constant ERR_TOKEN_ADDR_INVAILD = 1;  // account doesnt hold token type in the tx
+    uint public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
+    uint public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
+    uint public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
+    uint public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -63,7 +68,7 @@ contract Rollup {
     }
 
     modifier isNotWaitingForFinalisation() {
-        assert(depositManager.isDepositPaused() == false);
+        assert(!depositManager.isDepositPaused());
         _;
     }
 
@@ -76,38 +81,12 @@ contract Rollup {
         assert(invalidBatchMarker > 0);
         _;
     }
+}
 
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr, bytes32 genesisStateRoot) public {
-        nameRegistry = Registry(_registryAddr);
-
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
-        depositManager = DepositManager(
-            nameRegistry.getContractDetails(ParamManager.DEPOSIT_MANAGER())
-        );
-
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
-        );
-
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot);
-    }
-
+contract RollupHelpers is RollupSetup {
     /**
      * @notice Returns the latest state root
      */
-
     function getLatestBalanceTreeRoot() public view returns (bytes32) {
         return batches[batches.length - 1].stateRoot;
     }
@@ -117,69 +96,6 @@ contract Rollup {
      */
     function numOfBatchesSubmitted() public view returns (uint256) {
         return batches.length;
-    }
-
-    /**
-     * @notice Returns the batch
-     */
-
-    function getBatch(uint _batch_id) public view returns (Types.Batch memory batch) {
-        require(
-            batches.length - 1 >= _batch_id,
-            "Batch id greater than total number of batches, invalid batch id"
-        );
-        batch = batches[_batch_id];
-    }
-
-    /**
-     * @notice Submits a new batch to batches
-     * @param _txs Compressed transactions .
-     * @param _updatedRoot New balance tree root after processing all the transactions
-     */
-    function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
-    onlyCoordinator isNotRollingBack
-        external
-        payable
-    {
-        // require(
-        //     msg.value >= governance.STAKE_AMOUNT(),
-        //     "Not enough stake committed"
-        // );
-
-        // require(
-        //     _txs.length <= governance.MAX_TXS_PER_BATCH(),
-        //     "Batch contains more transations than the limit"
-        // );
-        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
-        require(
-            txRoot != ZERO_BYTES32,
-            "Cannot submit a transaction with no transactions"
-        );
-        addNewBatch(txRoot, _updatedRoot);
-    }
-
-    function finaliseDepositsAndSubmitBatch(
-        uint256 _subTreeDepth,
-        Types.AccountMerkleProof calldata _zero_account_mp
-    ) external payable onlyCoordinator isNotRollingBack {
-        bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
-            _subTreeDepth,
-            _zero_account_mp,
-            getLatestBalanceTreeRoot()
-        );
-        // require(
-        //     msg.value >= governance.STAKE_AMOUNT(),
-        //     "Not enough stake committed"
-        // );
-
-        bytes32 updatedRoot = merkleUtils.updateLeafWithSiblings(
-            depositSubTreeRoot,
-            _zero_account_mp.accountIP.pathToAccount,
-            _zero_account_mp.siblings
-        );
-
-        // add new batch
-        addNewBatchWithDeposit(updatedRoot, depositSubTreeRoot);
     }
 
     function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
@@ -230,219 +146,87 @@ contract Rollup {
         );
     }
 
-    /**
-     *  disputeBatch processes a transactions and returns the updated balance tree
-     *  and the updated leaves.
-     * @notice Gives the number of batches submitted on-chain
-     * @return Total number of batches submitted onchain
-     */
-    function disputeBatch(
-        uint256 _batch_id,
-        Types.Transaction[] memory _txs,
-        Types.AccountMerkleProof[] memory _from_proofs,
-        Types.PDAMerkleProof[] memory _pda_proof,
-        Types.AccountMerkleProof[] memory _to_proofs
-    ) public {
-        {
-            // load batch
-            require(
-                batches[_batch_id].stakeCommitted != 0,
-                "Batch doesnt exist or is slashed already"
+    function RemoveTokensFromAccount(
+        Types.UserAccount memory account,
+        uint256 numOfTokens
+    ) public pure returns (Types.UserAccount memory updatedAccount) {
+        return
+           (
+                RollupUtils.UpdateBalanceInAccount(
+                    account,
+                    RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+                )
             );
+    }
 
-            // check if batch is disputable
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
+    function AddTokensToAccount(
+        Types.UserAccount memory account,
+        uint256 numOfTokens
+    ) public pure returns (Types.UserAccount memory updatedAccount) {
+        return
+            (
+                RollupUtils.UpdateBalanceInAccount(
+                    account,
+                    RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+                )
             );
-
-            require(
-                _batch_id < invalidBatchMarker,
-                "Already successfully disputed. Roll back in process"
-            );
-
-            require(
-                batches[_batch_id].txRoot != ZERO_BYTES32,
-                "Cannot dispute blocks with no transaction"
-            );
-
-            // generate merkle tree from the txs provided by user
-            bytes[] memory txs;
-            for (uint256 i = 0; i < _txs.length; i++) {
-                txs[i] = RollupUtils.CompressTx(_txs[i]);
-            }
-            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
-
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
-            require(
-                txRoot != batches[_batch_id].txRoot,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
-
-        // run every transaction through transaction evaluators
-        bytes32 newBalanceRoot;
-        uint256 fromBalance;
-        uint256 toBalance;
-        bool isTxValid;
-
-        // start with false state
-        bool isDisputeValid = false;
-
-        for (uint256 i = 0; i < _txs.length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
-            (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
-                batches[_batch_id - 1].stateRoot,
-                batches[_batch_id - 1].accountRoot,
-                _txs[i],
-                _pda_proof[i],
-                _from_proofs[i],
-                _to_proofs[i]
-            );
-            if (!isTxValid) {
-                isDisputeValid = true;
-                break;
-            }
-        }
-
-        // dispute is valid, we need to slash and rollback :(
-        if (isDisputeValid) {
-            // before rolling back mark the batch invalid
-            // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
-            return;
-        }
-
-        // if new root doesnt match what was submitted by coordinator
-        // slash and rollback
-        if (newBalanceRoot != batches[_batch_id].stateRoot) {
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
-            return;
-        }
     }
 
     /**
-     * @notice processTx processes a transactions and returns the updated balance tree
-     *  and the updated leaves
-     * conditions in require mean that the dispute be declared invalid
-     * if conditons evaluate if the coordinator was at fault
-     * @return Total number of batches submitted onchain
+     * @notice Returns the batch
      */
-    function processTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountMerkleProof memory _from_merkle_proof,
-        Types.AccountMerkleProof memory _to_merkle_proof
-    )
-        public
-        view
-        returns (
-            bytes32,
-            uint256,
-            uint256,
-            bool
-        )
-    {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+    function getBatch(uint _batch_id) public view returns (Types.Batch memory batch) {
+        require(
+            batches.length - 1 >= _batch_id,
+            "Batch id greater than total number of batches, invalid batch id"
+            );
+        batch = batches[_batch_id];
+    }
 
-        // STEP:2 Ensure the transaction has been signed using the from public key
-        // ValidateSignature(_tx, _from_pda_proof);
-
-        // STEP 3: Verify that the transaction interacts with a registered token
-        {
-            // verify that tokens are registered
-            if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
-                // invalid state transition
-                // to be slashed because the submitted transaction
-                // had invalid token type
-                return (ZERO_BYTES32, 0, 1, false);
-            }
-        }
-
-        {
-            // Validate the from account merkle proof
-             ValidateAccountMP(_balanceRoot, _from_merkle_proof);
-
-            if (_tx.amount < 0) {
-                // invalid state transition
-                // needs to be slashed because the submitted transaction
-                // had amount less than 0
-                return (ZERO_BYTES32, 0, 2, false);
-            }
-
-            // check from leaf has enough balance
-            if (_from_merkle_proof.accountIP.account.balance < _tx.amount) {
-                // invalid state transition
-                // needs to be slashed because the account doesnt have enough balance
-                // for the transfer
-                return (ZERO_BYTES32, 0, 3, false);
-            }
-
-            // account holds the token type in the tx
-            if (
-                _from_merkle_proof.accountIP.account.tokenType != _tx.tokenType
-            ) {
-                // invalid state transition
-                // needs to be slashed because the submitted transaction
-                // had invalid token type
-                return (ZERO_BYTES32, 0, 4, false);
-            }
-        }
-
-        // reduce balance of from leaf
-        Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
-            _from_merkle_proof.accountIP.account,
-            _tx.amount
-        );
-
+    /**
+     * @notice Returns the updated root and balance
+     */
+    function UpdateSiblings(
+        Types.UserAccount memory new_account,
+        Types.AccountMerkleProof memory _merkle_proof
+    ) public view returns(bytes32, uint) {
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
-            RollupUtils.getAccountHash(
-                new_from_account.ID,
-                new_from_account.balance,
-                new_from_account.nonce,
-                new_from_account.tokenType
-            ),
-            _from_merkle_proof.accountIP.pathToAccount,
-            _from_merkle_proof.siblings
+            keccak256(RollupUtils.BytesFromAccount(new_account)),
+            _merkle_proof.accountIP.pathToAccount,
+            _merkle_proof.siblings
         );
+        uint balance = RollupUtils.BalanceFromAccount(new_account);
+        return (newRoot, balance);
+    }
 
-        // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newRoot, _to_merkle_proof);
+    function validateProof(
+        Types.Transaction memory _tx,
+        Types.AccountMerkleProof memory _merkle_proof
+    ) public view returns(uint) {
+        // verify that tokens are registered
+        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
+            // invalid state transition
+            // to be slashed because the submitted transaction
+            // had invalid token type
+            return ERR_TOKEN_ADDR_INVAILD;
+        }
 
-        // account holds the token type in the tx
-        if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType) {
+        if (_tx.amount < 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (ZERO_BYTES32, 0, 5, false);
+            // had amount less than 0
+            return ERR_TOKEN_AMT_INVAILD;
         }
 
-        // increase balance of to leaf
-        Types.UserAccount memory new_to_account = AddTokensToAccount(
-            _to_merkle_proof.accountIP.account,
-            _tx.amount
-        );
+        // check from leaf has enough balance
+        if (_merkle_proof.accountIP.account.balance < _tx.amount) {
+            // invalid state transition
+            // needs to be slashed because the account doesnt have enough balance
+            // for the transfer
+            return ERR_TOKEN_NOT_ENOUGH_BAL;
+        }
 
-        // update the merkle tree
-        newRoot = merkleUtils.updateLeafWithSiblings(
-            keccak256(RollupUtils.BytesFromAccount(new_to_account)),
-            _to_merkle_proof.accountIP.pathToAccount,
-            _to_merkle_proof.siblings
-        );
-
-        return (
-            newRoot,
-            RollupUtils.BalanceFromAccount(new_from_account),
-            RollupUtils.BalanceFromAccount(new_to_account),
-            true
-        );
+        return NO_ERR;
     }
 
     function ValidatePubkeyAvailability(
@@ -526,29 +310,7 @@ contract Rollup {
         );
     }
 
-    function RemoveTokensFromAccount(
-        Types.UserAccount memory account,
-        uint256 numOfTokens
-    ) public view returns (Types.UserAccount memory updatedAccount) {
-        return
-            RollupUtils.UpdateBalanceInAccount(
-                account,
-                RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
-            );
-    }
-
-    function AddTokensToAccount(
-        Types.UserAccount memory account,
-        uint256 numOfTokens
-    ) public view returns (Types.UserAccount memory updatedAccount) {
-        return
-            RollupUtils.UpdateBalanceInAccount(
-                account,
-                RollupUtils.BalanceFromAccount(account).add(numOfTokens)
-            );
-    }
-
-    /**
+     /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challegers. Also deletes all the batches after invalid batch
      */
@@ -607,6 +369,268 @@ contract Rollup {
         batches.length = batches.length.sub(invalidBatchMarker.sub(1));
 
         logger.logRollbackFinalisation(totalSlashings);
+    }
+}
+
+
+contract Rollup is RollupHelpers {
+    /*********************
+     * Constructor *
+     ********************/
+    constructor(address _registryAddr, bytes32 genesisStateRoot) public {
+        nameRegistry = Registry(_registryAddr);
+
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        depositManager = DepositManager(
+            nameRegistry.getContractDetails(ParamManager.DEPOSIT_MANAGER())
+        );
+
+        governance = Governance(
+            nameRegistry.getContractDetails(ParamManager.Governance())
+        );
+        merkleUtils = MTUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
+        accountsTree = IncrementalTree(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        );
+
+        tokenRegistry = ITokenRegistry(
+            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+        );
+        addNewBatch(ZERO_BYTES32, genesisStateRoot);
+    }
+
+    /**
+     * @notice Submits a new batch to batches
+     * @param _txs Compressed transactions .
+     * @param _updatedRoot New balance tree root after processing all the transactions
+     */
+    function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
+        external
+        onlyCoordinator
+        isNotRollingBack
+        payable
+    {
+        // require(
+        //     msg.value >= governance.STAKE_AMOUNT(),
+        //     "Not enough stake committed"
+        // );
+
+        // require(
+        //     _txs.length <= governance.MAX_TXS_PER_BATCH(),
+        //     "Batch contains more transations than the limit"
+        // );
+        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
+        require(
+            txRoot != ZERO_BYTES32,
+            "Cannot submit a transaction with no transactions"
+        );
+        addNewBatch(txRoot, _updatedRoot);
+    }
+
+    /**
+     * @notice finalise deposits and submit batch
+     */
+    function finaliseDepositsAndSubmitBatch(
+        uint256 _subTreeDepth,
+        Types.AccountMerkleProof calldata _zero_account_mp
+    ) external payable onlyCoordinator isNotRollingBack {
+        bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
+            _subTreeDepth,
+            _zero_account_mp,
+            getLatestBalanceTreeRoot()
+        );
+        // require(
+        //     msg.value >= governance.STAKE_AMOUNT(),
+        //     "Not enough stake committed"
+        // );
+
+        bytes32 updatedRoot = merkleUtils.updateLeafWithSiblings(
+            depositSubTreeRoot,
+            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.siblings
+        );
+
+        // add new batch
+        addNewBatchWithDeposit(updatedRoot, depositSubTreeRoot);
+    }
+
+    /**
+     *  disputeBatch processes a transactions and returns the updated balance tree
+     *  and the updated leaves.
+     * @notice Gives the number of batches submitted on-chain
+     * @return Total number of batches submitted onchain
+     */
+    function disputeBatch(
+        uint256 _batch_id,
+        Types.Transaction[] memory _txs,
+        Types.AccountMerkleProof[] memory _from_proofs,
+        Types.PDAMerkleProof[] memory _pda_proof,
+        Types.AccountMerkleProof[] memory _to_proofs
+    ) public {
+        {
+        // load batch
+        require(
+            batches[_batch_id].stakeCommitted != 0,
+            "Batch doesnt exist or is slashed already"
+        );
+
+        // check if batch is disputable
+        require(
+            block.number < batches[_batch_id].finalisesOn,
+            "Batch already finalised"
+        );
+
+        require(
+            _batch_id < invalidBatchMarker,
+            "Already successfully disputed. Roll back in process"
+        );
+
+        require(
+            batches[_batch_id].txRoot != ZERO_BYTES32,
+            "Cannot dispute blocks with no transaction"
+        );
+
+        // generate merkle tree from the txs provided by user
+        bytes[] memory txs;
+        for (uint256 i = 0; i < _txs.length; i++) {
+            txs[i] = RollupUtils.CompressTx(_txs[i]);
+        }
+        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
+
+        // if tx root while submission doesnt match tx root of given txs
+        // dispute is unsuccessful
+        require(
+            txRoot != batches[_batch_id].txRoot,
+            "Invalid dispute, tx root doesn't match"
+        );
+        }
+
+        // run every transaction through transaction evaluators
+        bytes32 newBalanceRoot;
+        uint256 fromBalance;
+        uint256 toBalance;
+        bool isTxValid;
+
+        // start with false state
+        bool isDisputeValid = false;
+
+        for (uint256 i = 0; i < _txs.length; i++) {
+            // call process tx update for every transaction to check if any
+            // tx evaluates correctly
+            (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
+                batches[_batch_id - 1].stateRoot,
+                batches[_batch_id - 1].accountRoot,
+                _txs[i],
+                _pda_proof[i],
+                _from_proofs[i],
+                _to_proofs[i]
+            );
+            if (!isTxValid) {
+                isDisputeValid = true;
+                break;
+            }
+        }
+
+        // dispute is valid, we need to slash and rollback :(
+        if (isDisputeValid) {
+            // before rolling back mark the batch invalid
+            // so we can pause and unpause
+            invalidBatchMarker = _batch_id;
+            SlashAndRollback();
+            return;
+        }
+
+        // if new root doesnt match what was submitted by coordinator
+        // slash and rollback
+        if (newBalanceRoot != batches[_batch_id].stateRoot) {
+            invalidBatchMarker = _batch_id;
+            SlashAndRollback();
+            return;
+        }
+    }
+
+    /**
+     * @notice processTx processes a transactions and returns the updated balance tree
+     *  and the updated leaves
+     * conditions in require mean that the dispute be declared invalid
+     * if conditons evaluate if the coordinator was at fault
+     * @return Total number of batches submitted onchain
+     */
+    function processTx(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        Types.Transaction memory _tx,
+        Types.PDAMerkleProof memory _from_pda_proof,
+        Types.AccountMerkleProof memory _from_merkle_proof,
+        Types.AccountMerkleProof memory _to_merkle_proof
+    )
+        public
+        view
+        returns (
+            bytes32,
+            uint256,
+            uint256,
+            bool
+        )
+    {
+        // Step-1 Prove that from address's public keys are available
+        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+
+        // STEP:2 Ensure the transaction has been signed using the from public key
+        // ValidateSignature(_tx, _from_pda_proof);
+
+        // STEP 3: Verify that the transaction interacts with a registered token
+
+        // Validate the from account merkle proof
+        ValidateAccountMP(_balanceRoot, _from_merkle_proof);
+
+        (uint err_code) = validateProof(_tx, _from_merkle_proof);
+        if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
+
+        Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
+            _from_merkle_proof.accountIP.account,
+            _tx.amount
+        );
+        // account holds the token type in the tx
+        if (_from_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
+
+        (bytes32 newFromRoot, uint from_new_balance) = UpdateSiblings(
+            new_from_account,
+            _from_merkle_proof
+        );
+
+        // validate if leaf exists in the updated balance tree
+        ValidateAccountMP(newFromRoot, _to_merkle_proof);
+
+
+        Types.UserAccount memory new_to_account = AddTokensToAccount(
+            _to_merkle_proof.accountIP.account,
+            _tx.amount
+        );
+        // account holds the token type in the tx
+        if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
+
+        (bytes32 newToRoot, uint to_new_balance) = UpdateSiblings(
+            new_to_account,
+            _to_merkle_proof
+        );
+
+        return (
+            newToRoot,
+            from_new_balance,
+            to_new_balance,
+            true
+        );
     }
 
     /**

@@ -1,9 +1,11 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import {DepositManager} from "./DepositManager.sol";
+
 import {ParamManager} from "./libs/ParamManager.sol";
-import {Rollup} from "./Rollup.sol";
 import {Types} from "./libs/Types.sol";
+
+import {Rollup} from "./Rollup.sol";
+import {DepositManager} from "./DepositManager.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {POB} from "./POB.sol";
 
@@ -17,7 +19,7 @@ contract CoordinatorProxy {
     Registry public nameRegistry;
 
     modifier isNotRollingBack() {
-        assert(rollup.getInvalidBatchMarker() == 0);
+        assert(rollup.invalidBatchMarker() == 0);
         _;
     }
 
