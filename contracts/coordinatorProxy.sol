@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 
-import {Rollup} from "./Rollup.sol";
+import {Rollup} from "./rollup.sol";
 import {DepositManager} from "./DepositManager.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {POB} from "./POB.sol";

@@ -4,9 +4,9 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {IncrementalTree} from "./IncrementalTree.sol";
 import {DepositManager} from "./DepositManager.sol";
 import {TestToken} from "./TestToken.sol";
-import {Rollup} from "./Rollup.sol";
+import {Rollup} from "./rollup.sol";
 import {TokenRegistry} from "./TokenRegistry.sol";
-import {Logger} from "./Logger.sol";
+import {Logger} from "./logger.sol";
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {Governance} from "./Governance.sol";
 
