@@ -99,8 +99,6 @@ contract RollupHelpers is RollupSetup {
     }
 
     function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
-        // TODO need to commit the depths of all trees as well, because they are variable depth
-        // make merkel root of all txs
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
@@ -124,8 +122,6 @@ contract RollupHelpers is RollupSetup {
     function addNewBatchWithDeposit(bytes32 _updatedRoot, bytes32 depositRoot)
         internal
     {
-        // TODO need to commit the depths of all trees as well, because they are variable depth
-        // make merkel root of all txs
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
@@ -186,7 +182,7 @@ contract RollupHelpers is RollupSetup {
     /**
      * @notice Returns the updated root and balance
      */
-    function UpdateSiblings(
+    function UpdateAccountWithSiblings(
         Types.UserAccount memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
     ) public view returns(bytes32, uint) {
@@ -199,9 +195,9 @@ contract RollupHelpers is RollupSetup {
         return (newRoot, balance);
     }
 
-    function validateProof(
+    function validateTxBasic(
         Types.Transaction memory _tx,
-        Types.AccountMerkleProof memory _merkle_proof
+        Types.UserAccount memory _from_account 
     ) public view returns(uint) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
@@ -219,7 +215,7 @@ contract RollupHelpers is RollupSetup {
         }
 
         // check from leaf has enough balance
-        if (_merkle_proof.accountIP.account.balance < _tx.amount) {
+        if (_from_account.balance < _tx.amount) {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer
@@ -581,18 +577,18 @@ contract Rollup is RollupHelpers {
         // STEP:2 Ensure the transaction has been signed using the from public key
         // ValidateSignature(_tx, _from_pda_proof);
 
-        // STEP 3: Verify that the transaction interacts with a registered token
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
-        (uint err_code) = validateProof(_tx, _from_merkle_proof);
+        (uint err_code) = validateTxBasic(_tx,
+                                          _from_merkle_proof.accountIP.account);
         if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
 
         Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
             _from_merkle_proof.accountIP.account,
             _tx.amount
         );
+
         // account holds the token type in the tx
         if (_from_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
@@ -600,7 +596,7 @@ contract Rollup is RollupHelpers {
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newFromRoot, uint from_new_balance) = UpdateSiblings(
+        (bytes32 newFromRoot, uint from_new_balance) = UpdateAccountWithSiblings(
             new_from_account,
             _from_merkle_proof
         );
@@ -608,19 +604,20 @@ contract Rollup is RollupHelpers {
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newFromRoot, _to_merkle_proof);
 
-
         Types.UserAccount memory new_to_account = AddTokensToAccount(
             _to_merkle_proof.accountIP.account,
             _tx.amount
         );
+
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
+
             // needs to be slashed because the submitted transaction
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newToRoot, uint to_new_balance) = UpdateSiblings(
+        (bytes32 newToRoot, uint to_new_balance) = UpdateAccountWithSiblings(
             new_to_account,
             _to_merkle_proof
         );
