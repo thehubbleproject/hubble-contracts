@@ -16,15 +16,15 @@ module.exports = {
       network_id: "*", // Any network (default: none),
       gas: 8000000,
     },
-    goerli: {
+    ropsten: {
       provider: function () {
         return new HDWalletProvider(
           MNEMONIC,
-          `https://goerli.infura.io/v3/${API_KEY}`
+          `https://ropsten.infura.io/v3/${API_KEY}`
         );
       },
       network_id: "*",
-      gas: 80000000,
+      gas: 8000000,
     },
   },
 
