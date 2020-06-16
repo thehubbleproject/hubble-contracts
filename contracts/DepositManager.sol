@@ -28,7 +28,7 @@ contract DepositManager {
     bytes32 public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
     bool isPaused;
 
-    function isDepositPaused() external returns (bool) {
+    function isDepositPaused() external view returns (bool) {
         return isPaused;
     }
 

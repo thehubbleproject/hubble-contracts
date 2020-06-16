@@ -266,7 +266,7 @@ contract RollupHelpers is RollupSetup {
     function ValidateSignature(
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof
-    ) public view returns(bool) {
+    ) public pure returns(bool) {
         require(
             RollupUtils.calculateAddress(
                 _from_pda_proof._pda.pubkey_leaf.pubkey
