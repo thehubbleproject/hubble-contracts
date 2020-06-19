@@ -640,6 +640,10 @@ contract Rollup is RollupHelpers {
     function WithdrawStake(uint256 batch_id) public {
         Types.Batch memory committedBatch = batches[batch_id];
         require(
+            committedBatch.stakeCommitted != 0,
+            "Stake has been already withdrawn!!"
+        );
+        require(
             msg.sender == committedBatch.committer,
             "You are not the correct committer for this batch"
         );
@@ -647,6 +651,8 @@ contract Rollup is RollupHelpers {
             block.number > committedBatch.finalisesOn,
             "This batch is not yet finalised, check back soon!"
         );
+
+        committedBatch.stakeCommitted = 0;
         msg.sender.transfer(committedBatch.stakeCommitted);
         logger.logStakeWithdraw(
             msg.sender,
