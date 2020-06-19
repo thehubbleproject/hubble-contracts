@@ -211,10 +211,10 @@ contract RollupHelpers is RollupSetup {
             return ERR_TOKEN_ADDR_INVAILD;
         }
 
-        if (_tx.amount < 0) {
+        if (_tx.amount == 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
-            // had amount less than 0
+            // had 0 amount.
             return ERR_TOKEN_AMT_INVAILD;
         }
 
