@@ -3,15 +3,12 @@ pragma experimental ABIEncoderV2;
 
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
-
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
-
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
 import {ECVerify} from "./libs/ECVerify.sol";
-
 import {IncrementalTree} from "./IncrementalTree.sol";
 import {Logger} from "./logger.sol";
 import {POB} from "./POB.sol";
@@ -21,7 +18,6 @@ import {Governance} from "./Governance.sol";
 import {DepositManager} from "./DepositManager.sol";
 
 
-// Main rollup contract
 contract RollupSetup {
     using SafeMath for uint256;
     using BytesLib for bytes;
@@ -308,7 +304,7 @@ contract RollupHelpers is RollupSetup {
 
      /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
-     * and rewards challegers. Also deletes all the batches after invalid batch
+     * and rewards challengers. Also deletes all the batches after invalid batch
      */
     function SlashAndRollback() public isRollingBack {
         uint256 challengerRewards = 0;
@@ -408,15 +404,15 @@ contract Rollup is RollupHelpers {
         isNotRollingBack
         payable
     {
-        // require(
-        //     msg.value >= governance.STAKE_AMOUNT(),
-        //     "Not enough stake committed"
-        // );
+        require(
+            msg.value >= governance.STAKE_AMOUNT(),
+            "Not enough stake committed"
+        );
 
-        // require(
-        //     _txs.length <= governance.MAX_TXS_PER_BATCH(),
-        //     "Batch contains more transations than the limit"
-        // );
+        require(
+            _txs.length <= governance.MAX_TXS_PER_BATCH(),
+            "Batch contains more transations than the limit"
+        );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
         require(
             txRoot != ZERO_BYTES32,
@@ -612,7 +608,6 @@ contract Rollup is RollupHelpers {
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
-
             // needs to be slashed because the submitted transaction
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
@@ -634,21 +629,21 @@ contract Rollup is RollupHelpers {
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
      * @param batch_id Batch ID that the coordinator submitted
      */
-    function WithdrawStake(uint256 batch_id) public {
-        Types.Batch memory committedBatch = batches[batch_id];
-        require(
-            msg.sender == committedBatch.committer,
-            "You are not the correct committer for this batch"
-        );
-        require(
-            block.number > committedBatch.finalisesOn,
-            "This batch is not yet finalised, check back soon!"
-        );
-        msg.sender.transfer(committedBatch.stakeCommitted);
-        logger.logStakeWithdraw(
-            msg.sender,
-            committedBatch.stakeCommitted,
-            batch_id
-        );
-    }
+    // function WithdrawStake(uint256 batch_id) public {
+    //     Types.Batch memory committedBatch = batches[batch_id];
+    //     require(
+    //         msg.sender == committedBatch.committer,
+    //         "You are not the correct committer for this batch"
+    //     );
+    //     require(
+    //         block.number > committedBatch.finalisesOn,
+    //         "This batch is not yet finalised, check back soon!"
+    //     );
+    //     msg.sender.transfer(committedBatch.stakeCommitted);
+    //     logger.logStakeWithdraw(
+    //         msg.sender,
+    //         committedBatch.stakeCommitted,
+    //         batch_id
+    //     );
+    // }
 }
