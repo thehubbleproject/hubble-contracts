@@ -34,7 +34,7 @@ contract("Rollup", async function (accounts) {
     });
     await testToken.approve(
       depositManagerInstance.address,
-      web3.utils.toWei("1"),
+      ethers.utils.parseEther("1"),
       {
         from: wallets[0].getAddressString(),
       }
