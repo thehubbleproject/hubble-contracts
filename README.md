@@ -21,6 +21,7 @@ Post running migrations you can see a `contractAddresses.json` file with all the
 ## Run tests
 
 ```bash
+$ npm run generate
 $ npm run ganache
 $ npm run test
 ```
