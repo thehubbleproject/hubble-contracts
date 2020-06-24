@@ -18,6 +18,23 @@ contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
     bytes32[] public pendingDeposits;
+
+    mapping(uint256 => bytes32) pendingFilledSubtrees;
+    uint256 firstElement = 1;
+    uint256 lastElement = 0;
+
+    function enqueue(bytes32 newDepositSubtree) public {
+        lastElement += 1;
+        pendingFilledSubtrees[lastElement] = newDepositSubtree;
+    }
+
+    function dequeue() public returns (bytes32 depositSubtreeRoot) {
+        require(lastElement >= firstElement);  // non-empty queue
+        depositSubtreeRoot = pendingFilledSubtrees[firstElement];
+        delete pendingFilledSubtrees[firstElement];
+        firstElement += 1;
+    }
+
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
     Governance public governance;
@@ -186,8 +203,11 @@ contract DepositManager {
             depositSubtreeHeight = tmpDepositSubtreeHeight;
         }
         if (depositSubtreeHeight == governance.MAX_DEPOSIT_SUBTREE()) {
-            // pause and wait for finalisation
-            isPaused = true;
+            // TODO increment deposit subtree queue index
+            // start adding deposits to new queue
+            enqueue(pendingDeposits[0]);
+            // empty the pending deposits queue
+            removeDeposit(0);       
         }
     }
 
@@ -217,7 +237,7 @@ contract DepositManager {
         // bool isValid = true;
         require(isValid, "proof invalid");
 
-        bytes32 depositsSubTreeRoot = pendingDeposits[0];
+        bytes32 depositsSubTreeRoot = dequeue();
 
         // emit the event
         logger.logDepositFinalised(
