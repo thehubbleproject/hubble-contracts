@@ -13,7 +13,6 @@ import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
 import {Rollup} from "./rollup.sol";
 
-
 contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
@@ -29,7 +28,7 @@ contract DepositManager {
     }
 
     function dequeue() public returns (bytes32 depositSubtreeRoot) {
-        require(lastElement >= firstElement);  // non-empty queue
+        require(lastElement >= firstElement); // non-empty queue
         depositSubtreeRoot = pendingFilledSubtrees[firstElement];
         delete pendingFilledSubtrees[firstElement];
         firstElement += 1;
@@ -42,7 +41,9 @@ contract DepositManager {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
     IncrementalTree public accountsTree;
-    bytes32 public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+    bytes32
+        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+
     bool isPaused;
 
     function isDepositPaused() external returns (bool) {
@@ -207,7 +208,7 @@ contract DepositManager {
             // start adding deposits to new queue
             enqueue(pendingDeposits[0]);
             // empty the pending deposits queue
-            removeDeposit(0);       
+            removeDeposit(0);
         }
     }
 

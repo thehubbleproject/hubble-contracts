@@ -8,7 +8,7 @@ import * as utils from "../scripts/helpers/utils";
 import {RollupContract} from "../types/truffle-contracts/index";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 const RollupCore = artifacts.require("Rollup");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
@@ -42,7 +42,6 @@ contract("DepositManager", async function(accounts) {
       testToken.address,
       {from: wallets[0].getAddressString()}
     );
-
     assert(approveToken, "token registration failed");
   });
 
@@ -254,7 +253,7 @@ contract("DepositManager", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 2,
-      Path: "2",
+      Path: "2"
     };
     var OriginalBob = {
       Address: wallets[1].getAddressString(),
@@ -262,7 +261,7 @@ contract("DepositManager", async function(accounts) {
       Amount: 10,
       TokenType: 1,
       AccID: 3,
-      Path: "3",
+      Path: "3"
     };
     var coordinator =
       "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
@@ -306,7 +305,7 @@ contract("DepositManager", async function(accounts) {
       utils.PubKeyHash(OriginalBob.Pubkey),
       utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
       zeroHashes[2],
-      zeroHashes[3],
+      zeroHashes[3]
     ];
 
     var BobPDAsiblings = [
@@ -316,15 +315,15 @@ contract("DepositManager", async function(accounts) {
         utils.PubKeyHash(OriginalAlice.Pubkey)
       ),
       zeroHashes[2],
-      zeroHashes[3],
+      zeroHashes[3]
     ];
 
     var alicePDAProof = {
       _pda: {
         pathToPubkey: "2",
-        pubkey_leaf: { pubkey: OriginalAlice.Pubkey },
+        pubkey_leaf: {pubkey: OriginalAlice.Pubkey}
       },
-      siblings: AlicePDAsiblings,
+      siblings: AlicePDAsiblings
     };
 
     var isValid = await MTutilsInstance.verifyLeaf(
@@ -338,9 +337,9 @@ contract("DepositManager", async function(accounts) {
     var bobPDAProof = {
       _pda: {
         pathToPubkey: "2",
-        pubkey_leaf: { pubkey: OriginalBob.Pubkey },
+        pubkey_leaf: {pubkey: OriginalBob.Pubkey}
       },
-      siblings: BobPDAsiblings,
+      siblings: BobPDAsiblings
     };
 
     var tx = {
@@ -349,9 +348,9 @@ contract("DepositManager", async function(accounts) {
       tokenType: OriginalAlice.TokenType,
       amount: tranferAmount,
       signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
     };
-    
+
     var dataToSign = await RollupUtilsInstance.getTxHash(
       tx.fromIndex,
       tx.toIndex,
@@ -368,7 +367,7 @@ contract("DepositManager", async function(accounts) {
       BobAccountLeaf,
       utils.getParentLeaf(coordinator, zeroHashes[0]),
       zeroHashes[2],
-      zeroHashes[3],
+      zeroHashes[3]
     ];
     var leaf = AliceAccountLeaf;
     var AliceAccountPath: string = "2";
@@ -387,10 +386,10 @@ contract("DepositManager", async function(accounts) {
           ID: OriginalAlice.AccID,
           tokenType: OriginalAlice.TokenType,
           balance: OriginalAlice.Amount,
-          nonce: 0,
-        },
+          nonce: 0
+        }
       },
-      siblings: AliceAccountSiblings,
+      siblings: AliceAccountSiblings
     };
 
     var UpdatedAliceAccountLeaf = utils.CreateAccountLeaf(
@@ -405,11 +404,11 @@ contract("DepositManager", async function(accounts) {
       UpdatedAliceAccountLeaf,
       utils.getParentLeaf(coordinator, zeroHashes[0]),
       zeroHashes[2],
-      zeroHashes[3],
+      zeroHashes[3]
     ];
     var leaf = BobAccountLeaf;
     var BobAccountPath: string = "3";
-    
+
     var isBobValid = await MTutilsInstance.verifyLeaf(
       currentRoot,
       leaf,
@@ -424,10 +423,10 @@ contract("DepositManager", async function(accounts) {
           ID: OriginalBob.AccID,
           tokenType: OriginalBob.TokenType,
           balance: OriginalBob.Amount,
-          nonce: 0,
-        },
+          nonce: 0
+        }
       },
-      siblings: BobAccountSiblings,
+      siblings: BobAccountSiblings
     };
 
     // process transaction validity with process tx
@@ -439,7 +438,7 @@ contract("DepositManager", async function(accounts) {
       AliceAccountMP,
       BobAccountMP
     );
-    console.log("result of processTx",result)
+    console.log("result of processTx", result);
 
     // change the tokenType so that the batch is invalid
     var compressedTx = await utils.compressTx(
@@ -452,14 +451,12 @@ contract("DepositManager", async function(accounts) {
 
     let compressedTxs: string[] = [];
     compressedTxs.push(compressedTx);
-    
+
     // submit batch for that transactions
     await rollupCoreInstance.submitBatch(
       compressedTxs,
       "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
       {value: ethers.utils.parseEther("32").toString()}
     );
-
-
   });
 });
