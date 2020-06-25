@@ -258,7 +258,7 @@ contract DepositManager {
      * @param _index Index of the element to remove
      * @return Remaining elements of the array
      */
-    function removeDeposit(uint256 _index) public {
+    function removeDeposit(uint256 _index) internal {
         require(
             _index < pendingDeposits.length,
             "array index is out of bounds"
