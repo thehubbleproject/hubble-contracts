@@ -17,7 +17,6 @@ const depositManagerContract = artifacts.require("DepositManager");
 const rollupContract = artifacts.require("Rollup");
 const testTokenContract = artifacts.require("TestToken");
 const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
-const coordinatorProxyContract = artifacts.require("CoordinatorProxy");
 const POBContract = artifacts.require("POB");
 const utils = "../test/helpers/utils.ts";
 
@@ -28,7 +27,7 @@ function writeContractAddresses(contractAddresses) {
   );
 }
 
-module.exports = async function (deployer) {
+module.exports = async function(deployer) {
   // picked address from mnemoic
   var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
   var max_depth = 4;
@@ -48,28 +47,18 @@ module.exports = async function (deployer) {
     deployer,
     governanceContract,
     [],
-    [
-      max_depth,
-      maxDepositSubtreeDepth
-    ],
+    [max_depth, maxDepositSubtreeDepth],
     "Governance"
-  )
+  );
 
   // deploy MTUtils
   const mtUtilsInstance = await deployAndRegister(
     deployer,
     MTUtilsContract,
-    [ 
-      ECVerifyLib,
-      Types,
-      paramManagerLib,
-      rollupUtilsLib
-    ],
-    [
-      nameRegistryInstance.address
-    ],
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
     "MERKLE_UTILS"
-  )
+  );
 
   // deploy logger
   const loggerInstance = await deployAndRegister(
@@ -78,27 +67,26 @@ module.exports = async function (deployer) {
     [],
     [],
     "LOGGER"
-  )
-  
+  );
+
   // deploy Token registry contract
   const tokenRegistryInstance = await deployAndRegister(
     deployer,
     tokenRegistryContract,
-    [ 
-      ECVerifyLib,
-      Types,
-      paramManagerLib,
-      rollupUtilsLib
-    ],
-    [
-      nameRegistryInstance.address
-    ],
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
     "TOKEN_REGISTRY"
-  )
+  );
 
   // deploy POB contract
-  const pobInstance = await deployAndRegister(deployer, POBContract, [], [], "POB")
-  
+  const pobInstance = await deployAndRegister(
+    deployer,
+    POBContract,
+    [],
+    [],
+    "POB"
+  );
+
   // deploy account tree contract
   const accountsTreeInstance = await deployAndRegister(
     deployer,
@@ -106,8 +94,8 @@ module.exports = async function (deployer) {
     [paramManagerLib],
     [nameRegistryInstance.address],
     "ACCOUNTS_TREE"
-  )
-  
+  );
+
   // deploy test token
   const testTokenInstance = await deployAndRegister(
     deployer,
@@ -115,41 +103,27 @@ module.exports = async function (deployer) {
     [],
     [],
     "TEST_TOKEN"
-  )
-  
+  );
+
   const root = await getMerkleRootWithCoordinatorAccount(max_depth);
 
   // deploy deposit manager
   const depositManagerInstance = await deployAndRegister(
     deployer,
     depositManagerContract,
-    [
-      Types,
-      paramManagerLib,
-      rollupUtilsLib
-    ],
-    [
-      nameRegistryInstance.address
-    ],
+    [Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
     "DEPOSIT_MANAGER"
-  )
+  );
 
   // deploy Rollup core
   const rollupInstance = await deployAndRegister(
     deployer,
     rollupContract,
-    [ 
-      ECVerifyLib,
-      Types,
-      paramManagerLib,
-      rollupUtilsLib
-    ],
-    [
-      nameRegistryInstance.address,
-      root
-    ],
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address, root],
     "ROLLUP_CORE"
-  )
+  );
 
   const contractAddresses = {
     AccountTree: accountsTreeInstance.address,
@@ -160,7 +134,7 @@ module.exports = async function (deployer) {
     RollupUtilities: rollupUtilsLib.address,
     NameRegistry: nameRegistryInstance.address,
     Logger: loggerInstance.address,
-    MerkleTreeUtils: mtUtilsInstance.address,
+    MerkleTreeUtils: mtUtilsInstance.address
   };
 
   writeContractAddresses(contractAddresses);
@@ -172,10 +146,13 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
     "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
   var dataLeaves = [];
   dataLeaves[0] = coordinator;
+  dataLeaves[1] = coordinator;
+
+  var numOfAccsForCoord = 2
   var numberOfDataLeaves = 2 ** maxSize;
 
   // create empty leaves
-  for (var i = 1; i < numberOfDataLeaves; i++) {
+  for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
     dataLeaves[i] =
       "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
   }
@@ -196,7 +173,7 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
   MTUtilsInstance = await merkleTreeUtilsContract.at(merkleTreeUtilsAddr);
   var result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
   console.log("result", result);
-  
+
   return result;
 }
 
@@ -208,6 +185,9 @@ async function deployAndRegister(deployer, contract, libs, args, name) {
     await deployer.link(libs[i], contract);
   }
   var contractInstance = await deployer.deploy(contract, ...args);
-  await nameRegistryInstance.registerName(await paramManagerInstance[name](), contractInstance.address);
+  await nameRegistryInstance.registerName(
+    await paramManagerInstance[name](),
+    contractInstance.address
+  );
   return contractInstance;
 }

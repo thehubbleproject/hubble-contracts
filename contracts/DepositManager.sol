@@ -17,14 +17,17 @@ contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
     bytes32[] public pendingDeposits;
-
     mapping(uint256 => bytes32) pendingFilledSubtrees;
-    uint256 firstElement = 1;
-    uint256 lastElement = 0;
+    uint256 public firstElement = 1;
+    uint256 public lastElement = 0;
+
+    uint256 public depositSubTreesPackaged = 0;
 
     function enqueue(bytes32 newDepositSubtree) public {
+
         lastElement += 1;
         pendingFilledSubtrees[lastElement] = newDepositSubtree;
+        depositSubTreesPackaged++;
     }
 
     function dequeue() public returns (bytes32 depositSubtreeRoot) {
@@ -32,6 +35,7 @@ contract DepositManager {
         depositSubtreeRoot = pendingFilledSubtrees[firstElement];
         delete pendingFilledSubtrees[firstElement];
         firstElement += 1;
+        depositSubTreesPackaged--;
     }
 
     uint256 public queueNumber;
@@ -41,19 +45,9 @@ contract DepositManager {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
     IncrementalTree public accountsTree;
+
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
-
-    bool isPaused;
-
-    function isDepositPaused() external returns (bool) {
-        return isPaused;
-    }
-
-    modifier isNotWaitingForFinalisation() {
-        assert(isPaused == false);
-        _;
-    }
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -105,7 +99,7 @@ contract DepositManager {
         uint256 _amount,
         uint256 _tokenType,
         bytes memory _pubkey
-    ) public isNotWaitingForFinalisation {
+    ) public {
         depositFor(msg.sender, _amount, _tokenType, _pubkey);
     }
 
@@ -120,7 +114,7 @@ contract DepositManager {
         uint256 _amount,
         uint256 _tokenType,
         bytes memory _pubkey
-    ) public isNotWaitingForFinalisation {
+    ) public {
         // check amount is greater than 0
         require(_amount > 0, "token deposit must be greater than 0");
 
@@ -163,6 +157,7 @@ contract DepositManager {
 
         // queue the deposit
         pendingDeposits.push(accountHash);
+
         // emit the event
         logger.logDepositQueued(
             accID,
@@ -200,15 +195,23 @@ contract DepositManager {
                 pendingDeposits[0]
             );
         }
+
         if (tmpDepositSubtreeHeight > depositSubtreeHeight) {
             depositSubtreeHeight = tmpDepositSubtreeHeight;
         }
+
         if (depositSubtreeHeight == governance.MAX_DEPOSIT_SUBTREE()) {
-            // TODO increment deposit subtree queue index
-            // start adding deposits to new queue
+            // start adding deposits to prepackaged deposit subtree root queue
             enqueue(pendingDeposits[0]);
+
+            // update the number of items in pendingDeposits
+            queueNumber = queueNumber - 2**depositSubtreeHeight;
+
             // empty the pending deposits queue
             removeDeposit(0);
+
+            // reset deposit subtree height
+            depositSubtreeHeight = 0;
         }
     }
 
@@ -235,24 +238,16 @@ contract DepositManager {
             _zero_account_mp.siblings
         );
 
-        // bool isValid = true;
         require(isValid, "proof invalid");
 
+        // just dequeue from the pre package deposit subtrees
         bytes32 depositsSubTreeRoot = dequeue();
 
         // emit the event
         logger.logDepositFinalised(
-            pendingDeposits[0],
+            depositsSubTreeRoot,
             _zero_account_mp.accountIP.pathToAccount
         );
-
-        // empty the pending deposits queue
-        removeDeposit(0);
-
-        // update the number of elements present in the queue
-        queueNumber = queueNumber - 2**depositSubtreeHeight;
-
-        isPaused = false;
 
         // return the updated merkle tree root
         return (depositsSubTreeRoot);
@@ -263,7 +258,7 @@ contract DepositManager {
      * @param _index Index of the element to remove
      * @return Remaining elements of the array
      */
-    function removeDeposit(uint256 _index) internal {
+    function removeDeposit(uint256 _index) public {
         require(
             _index < pendingDeposits.length,
             "array index is out of bounds"
@@ -271,11 +266,11 @@ contract DepositManager {
 
         // if we want to nuke the queue
         if (_index == 0) {
-            for (uint256 i = 0; i < pendingDeposits.length - 1; i++) {
+            uint256 numberOfDeposits = pendingDeposits.length;
+            for (uint256 i = 0; i < numberOfDeposits; i++) {
                 delete pendingDeposits[i];
-
-                pendingDeposits.length--;
             }
+            pendingDeposits.length = 0;
             return;
         }
 

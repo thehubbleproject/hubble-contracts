@@ -1,6 +1,5 @@
 pragma solidity ^0.5.15;
 
-
 /*
 Governance contract handles all the proof of burn related functionality
 */
