@@ -1,0 +1,4 @@
+vendor
+logs
+build
+config.toml

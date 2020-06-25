@@ -1,0 +1,77 @@
+{
+  "name": "bopr-contracts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "rebuild": "npm run clean && npm run generate",
+    "solc": "solc",
+    "create-docs": "solidity-docgen",
+    "clean": "rm -rf build types",
+    "truffle:coverage": "truffle run coverage",
+    "test": "truffle test",
+    "lint": "prettier --list-different **/*.sol",
+    "prettier": "prettier --write **/*.sol",
+    "truffle": "truffle",
+    "compile": "truffle compile",
+    "migrate": "truffle migrate",
+    "test-deposit": "truffle test test/deposit.ts",
+    "generate": "truffle compile && typechain --target truffle './build/**/*.json'",
+    "tsc": "tsc --noEmit",
+    "ganache": "ganache-cli -q --mnemonic 'clock radar mass judge dismiss just intact mind resemble fringe diary casino' --gasLimit 8000000 --gasPrice 0 -b 1",
+    "actions:network": "npm run ganache",
+    "actions:tests": "npm test",
+    "actions": "concurrently -r -s first -k npm:actions:*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vaibhavchellani/BOPR-contracts.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vaibhavchellani/BOPR-contracts/issues"
+  },
+  "config": {
+    "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
+  },
+  "homepage": "https://github.com/vaibhavchellani/BOPR-contracts#readme",
+  "dependencies": {
+    "@types/bignumber.js": "^5.0.0",
+    "@types/chai-as-promised": "^7.1.2",
+    "abi-decoder": "^2.3.0",
+    "big-number": "^2.0.0",
+    "bip39": "^2.5.0",
+    "bn.js": "^5.1.1",
+    "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
+    "concurrently": "^5.2.0",
+    "solidity-coverage": "^0.7.4",
+    "eth-gas-reporter": "^0.2.16",
+    "ethereumjs-util": "^6.2.0",
+    "ethereumjs-wallet": "0.6.2",
+    "ethers": "^4.0.46",
+    "ganache-cli": "^6.9.1",
+    "merkletreejs": "^0.1.7",
+    "node-gyp": "^3.7.0",
+    "solc": "^0.5.15",
+    "solidity-bytes-utils": "0.0.8",
+    "solidity-docgen": "^0.5.3",
+    "truffle": "^5.0.44",
+    "truffle-assertions": "^0.9.2",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "truffle-typings": "^1.0.8",
+    "ts-node": "^8.8.1",
+    "typechain-target-truffle": "^1.0.2",
+    "typescript": "^3.8.3",
+    "zeppelin-solidity": "^1.12.0"
+  },
+  "devDependencies": {
+    "@openzeppelin/contracts": "^2.4.0",
+    "prettier": "^1.19.1",
+    "prettier-plugin-solidity": "^1.0.0-alpha.51",
+    "ts-node": "^8.8.1",
+    "typechain": "^1.0.5",
+    "typings": "^2.1.1"
+  }
+}

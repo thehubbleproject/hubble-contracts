@@ -1,0 +1,30 @@
+# This is a TOML config file.
+
+##### RPC configrations #####
+# RPC endpoint for ethereum chain
+eth_RPC_URL = "http://localhost:8545"
+
+##### DB configrations #####
+db_type = "mysql"
+db_url = "mysql://<MYSQL_USERNAME>:<MYSQL_PASSWORD>@(<MYSQL_RUNNING_AT>)/BOPR?charset=utf8&parseTime=True&loc=Local"
+trace = "false"
+db_log_mode = "false"
+
+##### Server configrations #####
+server_port = "8080"
+polling_interval = "5s"
+
+#### Keystore #####
+operator_key = "aef4803cb6eb1b514d7f953c167776706984c101899009df31112e8b1de2262"
+operator_address = "0x0000000000000000000000000000000000000000"
+
+#### Syncer settings #####
+last_recorded_block = "100"
+confirmation_blocks = "5"
+
+##### Contract Addresses #####
+rollup_address = "0x0000000000000000000000000000000000000000"
+balance_tree_address = "0x0000000000000000000000000000000000000000"
+account_tree_address = "0x0000000000000000000000000000000000000000"
+merkle_lib_address = "0x0000000000000000000000000000000000000000"
+token_registry_address = "0x0000000000000000000000000000000000000000"
