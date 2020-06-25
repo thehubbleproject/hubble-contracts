@@ -112,6 +112,15 @@ contract Logger {
         emit DepositLeafMerged(left, right, newRoot);
     }
 
+
+    event DepositSubTreeReady(bytes32 newRoot);
+
+    function logDepositSubTreeReady(
+        bytes32 root 
+    ) public {
+        emit DepositSubTreeReady(newRoot);
+    }
+
     event DepositsFinalised(bytes32 depositSubTreeRoot, uint256 pathToSubTree);
 
     function logDepositFinalised(

@@ -73,6 +73,19 @@ async function stake() {
     Bob.TokenType,
     Bob.Pubkey
   );
+
+  // await depositManagerInstance.depositFor(
+  //   Bob.Address,
+  //   Bob.Amount,
+  //   Bob.TokenType,
+  //   Bob.Pubkey
+  // );
+  // await depositManagerInstance.depositFor(
+  //   Bob.Address,
+  //   Bob.Amount,
+  //   Bob.TokenType,
+  //   Bob.Pubkey
+  // );
 }
 
 stake();

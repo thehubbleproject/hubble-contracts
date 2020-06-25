@@ -204,6 +204,10 @@ contract DepositManager {
             // start adding deposits to prepackaged deposit subtree root queue
             enqueue(pendingDeposits[0]);
 
+            // emit an event to signal that a package is ready 
+            // isnt really important for anyone tho
+            logger.logDepositSubTreeReady(pendingDeposits[0]);
+
             // update the number of items in pendingDeposits
             queueNumber = queueNumber - 2**depositSubtreeHeight;
 
