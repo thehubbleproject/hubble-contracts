@@ -20,7 +20,6 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {Governance} from "./Governance.sol";
 import {DepositManager} from "./DepositManager.sol";
 
-
 // Main rollup contract
 contract RollupSetup {
     using SafeMath for uint256;
@@ -40,7 +39,8 @@ contract RollupSetup {
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
 
-    bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    bytes32
+        public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     Governance public governance;
 
@@ -51,13 +51,13 @@ contract RollupSetup {
 
     /*********************
      * Error Codes *
-    ********************/
-    uint public constant NO_ERR = 0;
-    uint public constant ERR_TOKEN_ADDR_INVAILD = 1;  // account doesnt hold token type in the tx
-    uint public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    uint public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    uint public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    uint public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
+     ********************/
+    uint256 public constant NO_ERR = 0;
+    uint256 public constant ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
+    uint256 public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
+    uint256 public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
+    uint256 public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
+    uint256 public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -146,36 +146,38 @@ contract RollupHelpers is RollupSetup {
         Types.UserAccount memory account,
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
-        return
-           (
-                RollupUtils.UpdateBalanceInAccount(
-                    account,
-                    RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
-                )
-            );
+        return (
+            RollupUtils.UpdateBalanceInAccount(
+                account,
+                RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+            )
+        );
     }
 
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
-        return
-            (
-                RollupUtils.UpdateBalanceInAccount(
-                    account,
-                    RollupUtils.BalanceFromAccount(account).add(numOfTokens)
-                )
-            );
+        return (
+            RollupUtils.UpdateBalanceInAccount(
+                account,
+                RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+            )
+        );
     }
 
     /**
      * @notice Returns the batch
      */
-    function getBatch(uint _batch_id) public view returns (Types.Batch memory batch) {
+    function getBatch(uint256 _batch_id)
+        public
+        view
+        returns (Types.Batch memory batch)
+    {
         require(
             batches.length - 1 >= _batch_id,
             "Batch id greater than total number of batches, invalid batch id"
-            );
+        );
         batch = batches[_batch_id];
     }
 
@@ -185,20 +187,20 @@ contract RollupHelpers is RollupSetup {
     function UpdateAccountWithSiblings(
         Types.UserAccount memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
-    ) public view returns(bytes32, uint) {
+    ) public view returns (bytes32, uint256) {
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             keccak256(RollupUtils.BytesFromAccount(new_account)),
             _merkle_proof.accountIP.pathToAccount,
             _merkle_proof.siblings
         );
-        uint balance = RollupUtils.BalanceFromAccount(new_account);
+        uint256 balance = RollupUtils.BalanceFromAccount(new_account);
         return (newRoot, balance);
     }
 
     function validateTxBasic(
         Types.Transaction memory _tx,
-        Types.UserAccount memory _from_account 
-    ) public view returns(uint) {
+        Types.UserAccount memory _from_account
+    ) public view returns (uint256) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition
@@ -262,7 +264,7 @@ contract RollupHelpers is RollupSetup {
     function ValidateSignature(
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof
-    ) public view returns(bool) {
+    ) public view returns (bool) {
         require(
             RollupUtils.calculateAddress(
                 _from_pda_proof._pda.pubkey_leaf.pubkey
@@ -306,7 +308,7 @@ contract RollupHelpers is RollupSetup {
         );
     }
 
-     /**
+    /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challegers. Also deletes all the batches after invalid batch
      */
@@ -368,7 +370,6 @@ contract RollupHelpers is RollupSetup {
     }
 }
 
-
 contract Rollup is RollupHelpers {
     /*********************
      * Constructor *
@@ -404,9 +405,9 @@ contract Rollup is RollupHelpers {
      */
     function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
         external
+        payable
         onlyCoordinator
         isNotRollingBack
-        payable
     {
         // require(
         //     msg.value >= governance.STAKE_AMOUNT(),
@@ -465,7 +466,6 @@ contract Rollup is RollupHelpers {
         Types.PDAMerkleProof[] memory _pda_proof,
         Types.AccountMerkleProof[] memory _to_proofs
     ) public {
-        {
         // load batch
         require(
             batches[_batch_id].stakeCommitted != 0,
@@ -501,7 +501,6 @@ contract Rollup is RollupHelpers {
             txRoot != batches[_batch_id].txRoot,
             "Invalid dispute, tx root doesn't match"
         );
-        }
 
         // run every transaction through transaction evaluators
         bytes32 newBalanceRoot;
@@ -572,7 +571,11 @@ contract Rollup is RollupHelpers {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+        ValidatePubkeyAvailability(
+            _accountsRoot,
+            _from_pda_proof,
+            _tx.fromIndex
+        );
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         // ValidateSignature(_tx, _from_pda_proof);
@@ -580,9 +583,11 @@ contract Rollup is RollupHelpers {
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
-        (uint err_code) = validateTxBasic(_tx,
-                                          _from_merkle_proof.accountIP.account);
-        if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
+        uint256 err_code = validateTxBasic(
+            _tx,
+            _from_merkle_proof.accountIP.account
+        );
+        if (err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
 
         Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
             _from_merkle_proof.accountIP.account,
@@ -596,10 +601,10 @@ contract Rollup is RollupHelpers {
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newFromRoot, uint from_new_balance) = UpdateAccountWithSiblings(
-            new_from_account,
-            _from_merkle_proof
-        );
+        (
+            bytes32 newFromRoot,
+            uint256 from_new_balance
+        ) = UpdateAccountWithSiblings(new_from_account, _from_merkle_proof);
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newFromRoot, _to_merkle_proof);
@@ -617,17 +622,12 @@ contract Rollup is RollupHelpers {
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newToRoot, uint to_new_balance) = UpdateAccountWithSiblings(
+        (bytes32 newToRoot, uint256 to_new_balance) = UpdateAccountWithSiblings(
             new_to_account,
             _to_merkle_proof
         );
 
-        return (
-            newToRoot,
-            from_new_balance,
-            to_new_balance,
-            true
-        );
+        return (newToRoot, from_new_balance, to_new_balance, true);
     }
 
     /**
