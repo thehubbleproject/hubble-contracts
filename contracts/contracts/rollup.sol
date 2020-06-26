@@ -398,6 +398,30 @@ contract Rollup is RollupHelpers {
         addNewBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
+    function commitAirdrop(
+        bytes32 sigature,
+        Types.Airdrop[] drops,
+        bytes32 _updatedRoot,
+        uint256 tokenType
+    ) external {
+        bytes[] memory message = "";
+
+        for (uint256 i = 0; i < drops.length; i++) {
+            message = keccak256(
+                abi.encode(drops[i].to, drops[i].amount, message)
+            );
+        }
+        dropsRoot = merkleUtils.getMerkleRoot(drops);
+
+        addNewBatch(dropsRoot, _updatedRoot);
+    }
+
+    function disputeAirdrop(
+        uint256 _batch_id,
+        Types.Airdrop[] drops,
+        Types.AccountMerkleProof[] memory _to_proofs
+    ) external {}
+
     /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .

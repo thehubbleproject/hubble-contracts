@@ -74,4 +74,9 @@ library Types {
         PDAInclusionProof _pda;
         bytes32[] siblings;
     }
+
+    struct Airdrop {
+        uint256 to;
+        uint256 amount;
+    }
 }
