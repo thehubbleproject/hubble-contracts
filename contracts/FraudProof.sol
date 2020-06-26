@@ -25,10 +25,9 @@ contract FraudProofSetup {
     Registry public nameRegistry;
 
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-    address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     Governance public governance;
 
-    /*********************
+    /********************
      * Error Codes *
     ********************/
     uint public constant NO_ERR = 0;
@@ -40,7 +39,7 @@ contract FraudProofSetup {
 
 }
 
-contract FraudProofHelpers is FraudProofSetup{
+contract FraudProofHelpers is FraudProofSetup {
     function ValidatePubkeyAvailability(
         bytes32 _accountsRoot,
         Types.PDAMerkleProof memory _from_pda_proof,
@@ -100,7 +99,7 @@ contract FraudProofHelpers is FraudProofSetup{
 
     function validateTxBasic(
         Types.Transaction memory _tx,
-        Types.UserAccount memory _from_account 
+        Types.UserAccount memory _from_account
     ) public view returns(uint) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
@@ -132,26 +131,24 @@ contract FraudProofHelpers is FraudProofSetup{
         Types.UserAccount memory account,
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
-        return
-           (
-                RollupUtils.UpdateBalanceInAccount(
-                    account,
-                    RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
-                )
-            );
+        return(
+            RollupUtils.UpdateBalanceInAccount(
+                account,
+                RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+            )
+        );
     }
 
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
-        return
-            (
-                RollupUtils.UpdateBalanceInAccount(
-                    account,
-                    RollupUtils.BalanceFromAccount(account).add(numOfTokens)
-                )
-            );
+        return(
+            RollupUtils.UpdateBalanceInAccount(
+                account,
+                RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+            )
+        );
     }
 
     /**
