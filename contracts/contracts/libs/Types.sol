@@ -1,10 +1,11 @@
 pragma solidity ^0.5.15;
 
-
 /**
  * @title DataTypes
  */
 library Types {
+    enum BatchType {Transfer, Airdrop}
+
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
@@ -21,6 +22,9 @@ library Types {
         uint256 stakeCommitted;
         uint256 finalisesOn;
         uint256 timestamp;
+        BatchType batchType;
+        bytes32 signature;
+        uint256 dropTokenType;
     }
 
     // Transaction represents how each transaction looks like for

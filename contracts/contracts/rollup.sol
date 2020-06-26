@@ -98,7 +98,17 @@ contract RollupHelpers is RollupSetup {
         return batches.length;
     }
 
-    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
+    function addNewNormalBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
+        addNewBatch(txRoot, _updatedRoot, Types.BatchType.Transfer, "", 0);
+    }
+
+    function addNewBatch(
+        bytes32 txRoot,
+        bytes32 _updatedRoot,
+        Types.BatchType batchType,
+        bytes32 signature,
+        uint256 dropTokenType
+    ) internal {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
@@ -107,7 +117,10 @@ contract RollupHelpers is RollupSetup {
             txRoot: txRoot,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            timestamp: now
+            timestamp: now,
+            batchType: batchType,
+            signature: signature,
+            dropTokenType: dropTokenType
         });
 
         batches.push(newBatch);
@@ -395,15 +408,14 @@ contract Rollup is RollupHelpers {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot);
+        addNewNormalBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
-    function commitAirdrop(
-        bytes32 sigature,
-        Types.Airdrop[] drops,
-        bytes32 _updatedRoot,
-        uint256 tokenType
-    ) external {
+    function dropHashchains(Types.Airdrop[] drops)
+        external
+        pure
+        returns (bytes32)
+    {
         bytes[] memory message = "";
 
         for (uint256 i = 0; i < drops.length; i++) {
@@ -411,9 +423,31 @@ contract Rollup is RollupHelpers {
                 abi.encode(drops[i].to, drops[i].amount, message)
             );
         }
-        dropsRoot = merkleUtils.getMerkleRoot(drops);
+        return message;
+    }
 
-        addNewBatch(dropsRoot, _updatedRoot);
+    // This run offchain
+    function processAirdropBatch(Types.Airdrop[] drops) pure returns (bytes32) {
+        bytes32 new_root = "";
+        for (uint256 i = 0; i < drops.length; i++) {
+            // loop through drops and change the balance
+        }
+        return new_root;
+    }
+
+    function addAirdropBatch(
+        bytes32 dropsRoot,
+        bytes32 _updatedRoot,
+        bytes32 sigature,
+        uint256 tokenType
+    ) external {
+        addNewBatch(
+            dropsRoot,
+            _updatedRoot,
+            Types.BatchType.Airdrop,
+            signature,
+            tokenType
+        );
     }
 
     function disputeAirdrop(
@@ -447,7 +481,7 @@ contract Rollup is RollupHelpers {
             txRoot != ZERO_BYTES32,
             "Cannot submit a transaction with no transactions"
         );
-        addNewBatch(txRoot, _updatedRoot);
+        addNewNormalBatch(txRoot, _updatedRoot);
     }
 
     /**
