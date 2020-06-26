@@ -10,6 +10,7 @@ const governanceContract = artifacts.require("Governance");
 const MTUtilsContract = artifacts.require("MerkleTreeUtils");
 const loggerContract = artifacts.require("Logger");
 const tokenRegistryContract = artifacts.require("TokenRegistry");
+const fraudProofContract = artifacts.require("FraudProof");
 
 const nameRegistryContract = artifacts.require("NameRegistry");
 const incrementalTreeContract = artifacts.require("IncrementalTree");
@@ -96,6 +97,22 @@ module.exports = async function (deployer) {
     "TOKEN_REGISTRY"
   )
 
+  // deploy Token registry contract
+  const fraudProofInstance = await deployAndRegister(
+    deployer,
+    fraudProofContract,
+    [ 
+      ECVerifyLib,
+      Types,
+      paramManagerLib,
+      rollupUtilsLib
+    ],
+    [
+      nameRegistryInstance.address
+    ],
+    "FRAUD_PROOF"
+  )
+
   // deploy POB contract
   const pobInstance = await deployAndRegister(deployer, POBContract, [], [], "POB")
   
@@ -161,6 +178,7 @@ module.exports = async function (deployer) {
     NameRegistry: nameRegistryInstance.address,
     Logger: loggerInstance.address,
     MerkleTreeUtils: mtUtilsInstance.address,
+    FraudProof: fraudProofInstance.address
   };
 
   writeContractAddresses(contractAddresses);
