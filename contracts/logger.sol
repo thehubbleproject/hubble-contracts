@@ -113,12 +113,12 @@ contract Logger {
     }
 
 
-    event DepositSubTreeReady(bytes32 newRoot);
+    event DepositSubTreeReady(bytes32 root);
 
     function logDepositSubTreeReady(
         bytes32 root 
     ) public {
-        emit DepositSubTreeReady(newRoot);
+        emit DepositSubTreeReady(root);
     }
 
     event DepositsFinalised(bytes32 depositSubTreeRoot, uint256 pathToSubTree);
