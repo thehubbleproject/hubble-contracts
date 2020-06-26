@@ -454,7 +454,12 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.Airdrop[] drops,
         Types.AccountMerkleProof[] memory _to_proofs
-    ) external {}
+    ) external {
+        require(
+            batches[_batch_id].batchType == Types.BatchType.Airdrop,
+            "Not a transfer type batch"
+        );
+    }
 
     /**
      * @notice Submits a new batch to batches
@@ -547,20 +552,24 @@ contract Rollup is RollupHelpers {
                 "Cannot dispute blocks with no transaction"
             );
 
-            // generate merkle tree from the txs provided by user
-            bytes[] memory txs;
-            for (uint256 i = 0; i < _txs.length; i++) {
-                txs[i] = RollupUtils.CompressTx(_txs[i]);
-            }
-            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
-
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
             require(
-                txRoot != batches[_batch_id].txRoot,
-                "Invalid dispute, tx root doesn't match"
+                batches[_batch_id].batchType == Types.BatchType.Transfer,
+                "Not a transfer type batch"
             );
         }
+        // generate merkle tree from the txs provided by user
+        bytes[] memory txs;
+        for (uint256 i = 0; i < _txs.length; i++) {
+            txs[i] = RollupUtils.CompressTx(_txs[i]);
+        }
+        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
+
+        // if tx root while submission doesnt match tx root of given txs
+        // dispute is unsuccessful
+        require(
+            txRoot != batches[_batch_id].txRoot,
+            "Invalid dispute, tx root doesn't match"
+        );
 
         // run every transaction through transaction evaluators
         bytes32 newBalanceRoot;
