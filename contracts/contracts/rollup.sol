@@ -143,7 +143,10 @@ contract RollupHelpers is RollupSetup {
             txRoot: ZERO_BYTES32,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            timestamp: now
+            timestamp: now,
+            batchType: Types.BatchType.Transfer,
+            signature: ZERO_BYTES32,
+            dropTokenType: 0
         });
 
         batches.push(newBatch);
@@ -411,34 +414,45 @@ contract Rollup is RollupHelpers {
         addNewNormalBatch(ZERO_BYTES32, genesisStateRoot);
     }
 
-    function dropHashchains(Types.Airdrop[] drops)
-        external
+    function dropHashchains(Types.Airdrop[] memory drops)
+        public
         pure
         returns (bytes32)
     {
-        bytes[] memory message = "";
+        bytes32 message = ZERO_BYTES32;
 
         for (uint256 i = 0; i < drops.length; i++) {
             message = keccak256(
-                abi.encode(drops[i].to, drops[i].amount, message)
+                abi.encode(drops[i].toIndex, drops[i].amount, message)
             );
         }
         return message;
     }
 
     // This run offchain
-    function processAirdropBatch(Types.Airdrop[] drops) pure returns (bytes32) {
-        bytes32 new_root = "";
+    function processAirdropBatch(
+        uint256 tokenType,
+        Types.Airdrop[] memory drops,
+        Types.AccountMerkleProof[] memory _to_merkle_proofs
+    ) public view returns (bytes32) {
+        bytes32 newRoot;
+        uint256 toBalance;
+        bool isTxValid;
+
         for (uint256 i = 0; i < drops.length; i++) {
-            // loop through drops and change the balance
+            (newRoot, toBalance, isTxValid) = processDrop(
+                tokenType,
+                drops[i],
+                _to_merkle_proofs[i]
+            );
         }
-        return new_root;
+        return newRoot;
     }
 
     function addAirdropBatch(
         bytes32 dropsRoot,
         bytes32 _updatedRoot,
-        bytes32 sigature,
+        bytes32 signature,
         uint256 tokenType
     ) external {
         addNewBatch(
@@ -452,9 +466,9 @@ contract Rollup is RollupHelpers {
 
     function disputeAirdrop(
         uint256 _batch_id,
-        Types.Airdrop[] drops,
+        Types.Airdrop[] memory drops,
         Types.AccountMerkleProof[] memory _to_proofs
-    ) external {
+    ) public {
         require(
             batches[_batch_id].batchType == Types.BatchType.Airdrop,
             "Not a transfer type batch"
@@ -556,20 +570,21 @@ contract Rollup is RollupHelpers {
                 batches[_batch_id].batchType == Types.BatchType.Transfer,
                 "Not a transfer type batch"
             );
-        }
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs;
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
-        }
-        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
 
-        // if tx root while submission doesnt match tx root of given txs
-        // dispute is unsuccessful
-        require(
-            txRoot != batches[_batch_id].txRoot,
-            "Invalid dispute, tx root doesn't match"
-        );
+            // generate merkle tree from the txs provided by user
+            bytes[] memory txs;
+            for (uint256 i = 0; i < _txs.length; i++) {
+                txs[i] = RollupUtils.CompressTx(_txs[i]);
+            }
+            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
+
+            // if tx root while submission doesnt match tx root of given txs
+            // dispute is unsuccessful
+            require(
+                txRoot != batches[_batch_id].txRoot,
+                "Invalid dispute, tx root doesn't match"
+            );
+        }
 
         // run every transaction through transaction evaluators
         bytes32 newBalanceRoot;
@@ -613,6 +628,47 @@ contract Rollup is RollupHelpers {
             SlashAndRollback();
             return;
         }
+    }
+
+    function processDrop(
+        uint256 tokenType,
+        Types.Airdrop memory drop,
+        Types.AccountMerkleProof memory _to_merkle_proof
+    )
+        public
+        view
+        returns (
+            bytes32,
+            uint256,
+            bool
+        )
+    {
+        if (drop.amount < 0) {
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had amount less than 0
+            return (ZERO_BYTES32, ERR_TOKEN_AMT_INVAILD, false);
+        }
+
+        Types.UserAccount memory new_to_account = AddTokensToAccount(
+            _to_merkle_proof.accountIP.account,
+            drop.amount
+        );
+
+        // account holds the token type in the tx
+        if (_to_merkle_proof.accountIP.account.tokenType != tokenType)
+            // invalid state transition
+
+            // needs to be slashed because the submitted transaction
+            // had invalid token type
+            return (ZERO_BYTES32, ERR_FROM_TOKEN_TYPE, false);
+
+        (bytes32 newRoot, uint256 to_new_balance) = UpdateAccountWithSiblings(
+            new_to_account,
+            _to_merkle_proof
+        );
+
+        return (newRoot, to_new_balance, true);
     }
 
     /**

@@ -37,6 +37,11 @@ library Types {
         bytes signature;
     }
 
+    struct Airdrop {
+        uint256 toIndex;
+        uint256 amount;
+    }
+
     // AccountInclusionProof consists of the following fields
     // 1. Path to the account leaf from root in the balances tree
     // 2. Actual data stored in the leaf
@@ -77,10 +82,5 @@ library Types {
     struct PDAMerkleProof {
         PDAInclusionProof _pda;
         bytes32[] siblings;
-    }
-
-    struct Airdrop {
-        uint256 to;
-        uint256 amount;
     }
 }
