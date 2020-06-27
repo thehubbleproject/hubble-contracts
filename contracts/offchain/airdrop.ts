@@ -1,7 +1,7 @@
 import * as ethUtils from "ethereumjs-util";
 
 
-async function createAirdropBatch(drops, dropTokenType, rollupInstance, coordinator_wallet) {
+export async function createAirdropBatch(drops, dropTokenType, rollupInstance, coordinator_wallet) {
 
     const newRoot = await rollupInstance.processAirdropBatch(drops)
     const dropsRoot = await rollupInstance.dropHashchains(drops)
