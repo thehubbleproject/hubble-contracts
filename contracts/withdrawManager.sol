@@ -15,7 +15,6 @@ import {POB} from "./POB.sol";
 import {Governance} from "./Governance.sol";
 import {Rollup} from "./rollup.sol";
 
-
 contract WithdrawManager {
     using ECVerify for bytes32;
 
@@ -31,7 +30,7 @@ contract WithdrawManager {
     /*********************
      * Constructor *
      ********************/
-    constructor(address _registryAddr, bytes32 genesisStateRoot) public {
+    constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
 
         governance = Governance(

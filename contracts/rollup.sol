@@ -3,16 +3,13 @@ pragma experimental ABIEncoderV2;
 
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
-
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IFraudProof} from "./interfaces/IFraudProof.sol";
-
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
 import {ECVerify} from "./libs/ECVerify.sol";
-
 import {IncrementalTree} from "./IncrementalTree.sol";
 import {Logger} from "./logger.sol";
 import {POB} from "./POB.sol";
@@ -21,8 +18,6 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {Governance} from "./Governance.sol";
 import {DepositManager} from "./DepositManager.sol";
 
-
-// Main rollup contract
 contract RollupSetup {
     using SafeMath for uint256;
     using BytesLib for bytes;
@@ -54,24 +49,19 @@ contract RollupSetup {
 
     /*********************
      * Error Codes *
-    ********************/
-    uint public constant NO_ERR = 0;
-    uint public constant ERR_TOKEN_ADDR_INVAILD = 1;  // account doesnt hold token type in the tx
-    uint public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    uint public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    uint public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    uint public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
+     ********************/
+    uint256 public constant NO_ERR = 0;
+    uint256 public constant ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
+    uint256 public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
+    uint256 public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
+    uint256 public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
+    uint256 public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.POB())
         );
         assert(msg.sender == pobContract.getCoordinator());
-        _;
-    }
-
-    modifier isNotWaitingForFinalisation() {
-        assert(!depositManager.isDepositPaused());
         _;
     }
 
@@ -148,17 +138,21 @@ contract RollupHelpers is RollupSetup {
     /**
      * @notice Returns the batch
      */
-    function getBatch(uint _batch_id) public view returns (Types.Batch memory batch) {
+    function getBatch(uint256 _batch_id)
+        public
+        view
+        returns (Types.Batch memory batch)
+    {
         require(
             batches.length - 1 >= _batch_id,
             "Batch id greater than total number of batches, invalid batch id"
-            );
+        );
         batch = batches[_batch_id];
     }
 
     /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
-     * and rewards challegers. Also deletes all the batches after invalid batch
+     * and rewards challengers. Also deletes all the batches after invalid batch
      */
     function SlashAndRollback() public isRollingBack {
         uint256 challengerRewards = 0;
@@ -192,8 +186,12 @@ contract RollupHelpers is RollupSetup {
 
             // delete batch
             delete batches[i];
-
+            
+            // queue deposits again
+            depositManager.enqueue(batch.depositTree);
+            
             totalSlashings++;
+            
             logger.logBatchRollback(
                 i,
                 batch.committer,
@@ -202,8 +200,6 @@ contract RollupHelpers is RollupSetup {
                 batch.stakeCommitted
             );
         }
-
-        // TODO add deposit rollback
 
         // transfer reward to challenger
         (msg.sender).transfer(challengerRewards);
@@ -217,7 +213,6 @@ contract RollupHelpers is RollupSetup {
         logger.logRollbackFinalisation(totalSlashings);
     }
 }
-
 
 contract Rollup is RollupHelpers {
     /*********************
@@ -258,19 +253,19 @@ contract Rollup is RollupHelpers {
      */
     function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
         external
+        payable
         onlyCoordinator
         isNotRollingBack
-        payable
     {
-        // require(
-        //     msg.value >= governance.STAKE_AMOUNT(),
-        //     "Not enough stake committed"
-        // );
+        require(
+            msg.value >= governance.STAKE_AMOUNT(),
+            "Not enough stake committed"
+        );
 
-        // require(
-        //     _txs.length <= governance.MAX_TXS_PER_BATCH(),
-        //     "Batch contains more transations than the limit"
-        // );
+        require(
+            _txs.length <= governance.MAX_TXS_PER_BATCH(),
+            "Batch contains more transations than the limit"
+        );
         bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
         require(
             txRoot != ZERO_BYTES32,
@@ -320,41 +315,41 @@ contract Rollup is RollupHelpers {
         Types.AccountMerkleProof[] memory _to_proofs
     ) public {
         {
-        // load batch
-        require(
-            batches[_batch_id].stakeCommitted != 0,
-            "Batch doesnt exist or is slashed already"
-        );
+            // load batch
+            require(
+                batches[_batch_id].stakeCommitted != 0,
+                "Batch doesnt exist or is slashed already"
+            );
 
-        // check if batch is disputable
-        require(
-            block.number < batches[_batch_id].finalisesOn,
-            "Batch already finalised"
-        );
+            // check if batch is disputable
+            require(
+                block.number < batches[_batch_id].finalisesOn,
+                "Batch already finalised"
+            );
 
-        require(
-            _batch_id < invalidBatchMarker,
-            "Already successfully disputed. Roll back in process"
-        );
+            require(
+                _batch_id < invalidBatchMarker,
+                "Already successfully disputed. Roll back in process"
+            );
 
-        require(
-            batches[_batch_id].txRoot != ZERO_BYTES32,
-            "Cannot dispute blocks with no transaction"
-        );
+            require(
+                batches[_batch_id].txRoot != ZERO_BYTES32,
+                "Cannot dispute blocks with no transaction"
+            );
 
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs;
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
-        }
-        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
+            // generate merkle tree from the txs provided by user
+            bytes[] memory txs;
+            for (uint256 i = 0; i < _txs.length; i++) {
+                txs[i] = RollupUtils.CompressTx(_txs[i]);
+            }
+            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
 
-        // if tx root while submission doesnt match tx root of given txs
-        // dispute is unsuccessful
-        require(
-            txRoot != batches[_batch_id].txRoot,
-            "Invalid dispute, tx root doesn't match"
-        );
+            // if tx root while submission doesnt match tx root of given txs
+            // dispute is unsuccessful
+            require(
+                txRoot != batches[_batch_id].txRoot,
+                "Invalid dispute, tx root doesn't match"
+            );
         }
 
         // run every transaction through transaction evaluators
