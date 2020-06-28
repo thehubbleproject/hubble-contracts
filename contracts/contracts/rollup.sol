@@ -7,6 +7,8 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 
+import {IAirdrop} from "./interfaces/IAirdrop.sol";
+
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
@@ -38,6 +40,7 @@ contract RollupSetup {
     Registry public nameRegistry;
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
+    IAirdrop public airdrop;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -411,42 +414,11 @@ contract Rollup is RollupHelpers {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
+        airdrop = IAirdrop(
+            nameRegistry.getContractDetails(ParamManager.AIRDROP())
+        );
+
         addNewNormalBatch(ZERO_BYTES32, genesisStateRoot);
-    }
-
-    function dropHashchains(Types.Airdrop[] memory drops)
-        public
-        pure
-        returns (bytes32)
-    {
-        bytes32 message = ZERO_BYTES32;
-
-        for (uint256 i = 0; i < drops.length; i++) {
-            message = keccak256(
-                abi.encode(drops[i].toIndex, drops[i].amount, message)
-            );
-        }
-        return message;
-    }
-
-    // This run offchain
-    function processAirdropBatch(
-        uint256 tokenType,
-        Types.Airdrop[] memory drops,
-        Types.AccountMerkleProof[] memory _to_merkle_proofs
-    ) public view returns (bytes32) {
-        bytes32 newRoot;
-        uint256 toBalance;
-        bool isTxValid;
-
-        for (uint256 i = 0; i < drops.length; i++) {
-            (newRoot, toBalance, isTxValid) = processDrop(
-                tokenType,
-                drops[i],
-                _to_merkle_proofs[i]
-            );
-        }
-        return newRoot;
     }
 
     function addAirdropBatch(
@@ -643,32 +615,7 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        if (drop.amount < 0) {
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had amount less than 0
-            return (ZERO_BYTES32, ERR_TOKEN_AMT_INVAILD, false);
-        }
-
-        Types.UserAccount memory new_to_account = AddTokensToAccount(
-            _to_merkle_proof.accountIP.account,
-            drop.amount
-        );
-
-        // account holds the token type in the tx
-        if (_to_merkle_proof.accountIP.account.tokenType != tokenType)
-            // invalid state transition
-
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (ZERO_BYTES32, ERR_FROM_TOKEN_TYPE, false);
-
-        (bytes32 newRoot, uint256 to_new_balance) = UpdateAccountWithSiblings(
-            new_to_account,
-            _to_merkle_proof
-        );
-
-        return (newRoot, to_new_balance, true);
+        airdrop.processDrop(tokenType, drop, _to_merkle_proof);
     }
 
     /**

@@ -51,4 +51,8 @@ library ParamManager {
     function CHAIN_ID() public pure returns (bytes32) {
         return _CHAIN_ID;
     }
+
+    function AIRDROP() public pure returns (bytes32) {
+        return keccak256("airdrop");
+    }
 }

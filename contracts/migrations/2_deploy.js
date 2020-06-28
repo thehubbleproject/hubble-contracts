@@ -19,6 +19,7 @@ const testTokenContract = artifacts.require("TestToken");
 const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
 const coordinatorProxyContract = artifacts.require("CoordinatorProxy");
 const POBContract = artifacts.require("POB");
+const airdropContract = artifacts.require("Airdrop")
 const utils = "../test/helpers/utils.ts";
 
 function writeContractAddresses(contractAddresses) {
@@ -134,6 +135,21 @@ module.exports = async function (deployer) {
     "DEPOSIT_MANAGER"
   )
 
+
+  const airdropInstance = await deployAndRegister(
+    deployer,
+    airdropContract,
+    [
+      Types,
+      paramManagerLib,
+      rollupUtilsLib
+    ],
+    [
+      nameRegistryInstance.address
+    ],
+    "AIRDROP"
+  )
+
   // deploy Rollup core
   const rollupInstance = await deployAndRegister(
     deployer,
@@ -161,6 +177,7 @@ module.exports = async function (deployer) {
     NameRegistry: nameRegistryInstance.address,
     Logger: loggerInstance.address,
     MerkleTreeUtils: mtUtilsInstance.address,
+    Airdrop: airdropInstance.address,
   };
 
   writeContractAddresses(contractAddresses);
