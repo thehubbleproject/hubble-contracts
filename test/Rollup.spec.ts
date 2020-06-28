@@ -144,7 +144,7 @@ contract("Rollup", async function (accounts) {
     );
   });
 
-  it("submit new batch", async function () {
+  it("submit new 1st batch", async function () {
     var MTutilsInstance = await utils.getMerkleTreeUtils();
     var Alice = {
       Address: wallets[0].getAddressString(),
@@ -366,7 +366,7 @@ contract("Rollup", async function (accounts) {
     );
   });
 
-  it("submit new batch", async function () {
+  it("submit new 2nd batch", async function () {
     var MTutilsInstance = await utils.getMerkleTreeUtils();
     var Alice = {
       Address: wallets[0].getAddressString(),
