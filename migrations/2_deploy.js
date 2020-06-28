@@ -10,6 +10,7 @@ const governanceContract = artifacts.require("Governance");
 const MTUtilsContract = artifacts.require("MerkleTreeUtils");
 const loggerContract = artifacts.require("Logger");
 const tokenRegistryContract = artifacts.require("TokenRegistry");
+const fraudProofContract = artifacts.require("FraudProof");
 
 const nameRegistryContract = artifacts.require("NameRegistry");
 const incrementalTreeContract = artifacts.require("IncrementalTree");
@@ -27,7 +28,7 @@ function writeContractAddresses(contractAddresses) {
   );
 }
 
-module.exports = async function(deployer) {
+module.exports = async function (deployer) {
   // picked address from mnemoic
   var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
   var max_depth = 4;
@@ -76,6 +77,15 @@ module.exports = async function(deployer) {
     [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
     [nameRegistryInstance.address],
     "TOKEN_REGISTRY"
+  );
+
+  // deploy Token registry contract
+  const fraudProofInstance = await deployAndRegister(
+    deployer,
+    fraudProofContract,
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
+    "FRAUD_PROOF"
   );
 
   // deploy POB contract
@@ -134,7 +144,8 @@ module.exports = async function(deployer) {
     RollupUtilities: rollupUtilsLib.address,
     NameRegistry: nameRegistryInstance.address,
     Logger: loggerInstance.address,
-    MerkleTreeUtils: mtUtilsInstance.address
+    MerkleTreeUtils: mtUtilsInstance.address,
+    FraudProof: fraudProofInstance.address,
   };
 
   writeContractAddresses(contractAddresses);
@@ -148,7 +159,7 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
   dataLeaves[0] = coordinator;
   dataLeaves[1] = coordinator;
 
-  var numOfAccsForCoord = 2
+  var numOfAccsForCoord = 2;
   var numberOfDataLeaves = 2 ** maxSize;
 
   // create empty leaves

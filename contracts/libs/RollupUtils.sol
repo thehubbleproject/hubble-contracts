@@ -58,7 +58,7 @@ library RollupUtils {
         uint256 balance,
         uint256 nonce,
         uint256 tokenType
-    ) public view returns (bytes32) {
+    ) public pure returns (bytes32) {
         Types.UserAccount memory userAccount = Types.UserAccount({
             ID: id,
             tokenType: tokenType,
@@ -97,7 +97,7 @@ library RollupUtils {
         uint256 toIndex,
         uint256 tokenType,
         uint256 amount
-    ) public view returns (bytes32) {
+    ) public pure returns (bytes32) {
         bytes memory data = abi.encode(fromIndex, toIndex, tokenType, amount);
         return keccak256(data);
     }
