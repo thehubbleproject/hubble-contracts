@@ -1,29 +1,3 @@
-# Hubble-Project
+# Reddit Optimistic Rollup
 
-> Watch your assets move at light speed!
-
-The hubble project is a framework to create programmable rollups with mass migration capabilities.
-
-## Compile
-
-```bash
-$ npm run compile
-```
-
-## Migrate
-
-```bash
-$ npm run migrate
-```
-
-Post running migrations you can see a `contractAddresses.json` file with all the addresses for all deployed contracts.
-
-## Run tests
-
-```bash
-$ npm run generate
-$ npm run ganache
-$ npm run test
-```
-
-NOTE: Please use node v10.13.0
+https://hackmd.io/8mS3DL2QR9mcl31YCjJtdg?view
