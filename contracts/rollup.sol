@@ -332,10 +332,10 @@ contract Rollup is RollupHelpers {
             "Batch already finalised"
         );
 
-        // require( //Thrilok - is this correct?
-        //     _batch_id < invalidBatchMarker,
-        //     "Already successfully disputed. Roll back in process"
-        // );
+        require(
+            (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+            "Already successfully disputed. Roll back in process"
+        );
 
         require(
             batches[_batch_id].txRoot != ZERO_BYTES32,
