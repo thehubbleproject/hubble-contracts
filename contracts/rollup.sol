@@ -316,47 +316,46 @@ contract Rollup is RollupHelpers {
         Types.AccountMerkleProof[] memory _to_proofs
     ) public {
         {
-        // load batch
-        require(
-            batches[_batch_id].stakeCommitted != 0,
-            "Batch doesnt exist or is slashed already"
-        );
+            // load batch
+            require(
+                batches[_batch_id].stakeCommitted != 0,
+                "Batch doesnt exist or is slashed already"
+            );
 
-        // check if batch is disputable
-        require(
-            block.number < batches[_batch_id].finalisesOn,
-            "Batch already finalised"
-        );
+            // check if batch is disputable
+            require(
+                block.number < batches[_batch_id].finalisesOn,
+                "Batch already finalised"
+            );
 
-        require(
-            (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-            "Already successfully disputed. Roll back in process"
-        );
+            require(
+                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+                "Already successfully disputed. Roll back in process"
+            );
 
-        require(
-            batches[_batch_id].txRoot != ZERO_BYTES32,
-            "Cannot dispute blocks with no transaction"
-        );
+            require(
+                batches[_batch_id].txRoot != ZERO_BYTES32,
+                "Cannot dispute blocks with no transaction"
+            );
 
+            // generate merkle tree from the txs provided by user
+            bytes[] memory txs = new bytes[](_txs.length);
+            for (uint256 i = 0; i < _txs.length; i++) {
+                txs[i] = RollupUtils.CompressTx(_txs[i]);
+            }
+            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
 
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
-        }
-        bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
-
-        // if tx root while submission doesnt match tx root of given txs
-        // dispute is unsuccessful
-        require(
-            txRoot == batches[_batch_id].txRoot,
-            "Invalid dispute, tx root doesn't match"
-        );
+            // if tx root while submission doesnt match tx root of given txs
+            // dispute is unsuccessful
+            require(
+                txRoot == batches[_batch_id].txRoot,
+                "Invalid dispute, tx root doesn't match"
+            );
         }
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        (updatedBalanceRoot,isDisputeValid) = processBatch(
+        (updatedBalanceRoot, isDisputeValid) = processBatch(
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id - 1].accountRoot,
             _txs,
@@ -418,7 +417,6 @@ contract Rollup is RollupHelpers {
             );
     }
 
-
     /**
      * @notice processBatch processes a batch and returns the updated balance tree
      *  and the updated leaves
@@ -433,22 +431,15 @@ contract Rollup is RollupHelpers {
         Types.AccountMerkleProof[] memory _from_proofs,
         Types.PDAMerkleProof[] memory _pda_proof,
         Types.AccountMerkleProof[] memory _to_proofs
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bool
-        )
-    {
+    ) public view returns (bytes32, bool) {
         return
             fraudProof.processBatch(
                 initialStateRoot,
                 accountsRoot,
-              _txs,
+                _txs,
                 _from_proofs,
                 _pda_proof,
-               _to_proofs 
+                _to_proofs
             );
     }
 

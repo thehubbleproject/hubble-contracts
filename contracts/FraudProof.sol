@@ -25,6 +25,7 @@ contract FraudProofSetup {
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+
     Governance public governance;
 
     /********************
@@ -138,6 +139,29 @@ contract FraudProofHelpers is FraudProofSetup {
         );
     }
 
+    function ApplyTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        Types.Transaction memory transaction
+    )
+        public
+        view
+        returns (Types.UserAccount memory updatedAccount, bytes32 newRoot)
+    {
+        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        if (transaction.fromIndex == account.ID) {
+            account = RemoveTokensFromAccount(account, transaction.amount);
+        }
+
+        if (transaction.toIndex == account.ID) {
+            account = AddTokensToAccount(account, transaction.amount);
+        }
+        account.nonce++;
+
+        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
+
+        return (account, newRoot);
+    }
+
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
@@ -156,14 +180,13 @@ contract FraudProofHelpers is FraudProofSetup {
     function UpdateAccountWithSiblings(
         Types.UserAccount memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
-    ) public view returns (bytes32, uint256) {
+    ) public view returns (bytes32) {
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             keccak256(RollupUtils.BytesFromAccount(new_account)),
             _merkle_proof.accountIP.pathToAccount,
             _merkle_proof.siblings
         );
-        uint256 balance = RollupUtils.BalanceFromAccount(new_account);
-        return (newRoot, balance);
+        return (newRoot);
     }
 
     function ValidateSignature(
@@ -221,14 +244,21 @@ contract FraudProof is FraudProofHelpers {
     ) public view returns (bytes32 newBalanceRoot, bool isDisputeValid) {
         // run every transaction through transaction evaluators
         newBalanceRoot = initialStateRoot;
-        uint256 fromBalance;
-        uint256 toBalance;
+        bytes memory fromBalance;
+        bytes memory toBalance;
         bool isTxValid;
+        uint256 err_code;
 
         for (uint256 i = 0; i < _txs.length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
-            (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
+            (
+                newBalanceRoot,
+                fromBalance,
+                toBalance,
+                err_code,
+                isTxValid
+            ) = processTx(
                 newBalanceRoot,
                 accountsRoot,
                 _txs[i],
@@ -265,7 +295,8 @@ contract FraudProof is FraudProofHelpers {
         view
         returns (
             bytes32,
-            uint256,
+            bytes memory,
+            bytes memory,
             uint256,
             bool
         )
@@ -287,45 +318,39 @@ contract FraudProof is FraudProofHelpers {
             _tx,
             _from_merkle_proof.accountIP.account
         );
-        if (err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
-
-        Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
-            _from_merkle_proof.accountIP.account,
-            _tx.amount
-        );
+        if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
         if (_from_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
+            return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
 
-        (
-            bytes32 newFromRoot,
-            uint256 from_new_balance
-        ) = UpdateAccountWithSiblings(new_from_account, _from_merkle_proof);
+        bytes32 newRoot;
+        Types.UserAccount memory new_from_account;
+        Types.UserAccount memory new_to_account;
+
+        (new_from_account, newRoot) = ApplyTx(_from_merkle_proof, _tx);
 
         // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newFromRoot, _to_merkle_proof);
-
-        Types.UserAccount memory new_to_account = AddTokensToAccount(
-            _to_merkle_proof.accountIP.account,
-            _tx.amount
-        );
+        ValidateAccountMP(newRoot, _to_merkle_proof);
 
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
+            return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newToRoot, uint256 to_new_balance) = UpdateAccountWithSiblings(
-            new_to_account,
-            _to_merkle_proof
+        (new_to_account, newRoot) = ApplyTx(_to_merkle_proof, _tx);
+
+        return (
+            newRoot,
+            RollupUtils.BytesFromAccount(new_from_account),
+            RollupUtils.BytesFromAccount(new_to_account),
+            0,
+            true
         );
-
-        return (newToRoot, from_new_balance, to_new_balance, true);
     }
 }
