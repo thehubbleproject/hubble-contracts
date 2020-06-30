@@ -59,20 +59,6 @@ contract AirdropHelpers is AirdropSetup {
 }
 
 contract Airdrop is AirdropHelpers {
-    function dropHashchains(Types.Transaction[] memory drops)
-        public
-        pure
-        returns (bytes32)
-    {
-        bytes32 message = ZERO_BYTES32;
-
-        for (uint256 i = 0; i < drops.length; i++) {
-            message = keccak256(
-                abi.encode(drops[i].toIndex, drops[i].amount, message)
-            );
-        }
-        return message;
-    }
 
     function processDrop(
         Types.Transaction memory drop,

@@ -15,10 +15,4 @@ interface IAirdrop {
             uint256,
             bool
         );
-
-    function disputeAirdrop(
-        uint256 _batch_id,
-        Types.Transaction[] calldata drops,
-        Types.AccountMerkleProof[] calldata _to_proofs
-    ) external;
 }
