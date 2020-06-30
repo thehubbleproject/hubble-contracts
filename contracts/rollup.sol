@@ -6,6 +6,7 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IFraudProof} from "./interfaces/IFraudProof.sol";
+import {IAirdrop} from "./interfaces/IAirdrop.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
@@ -37,6 +38,7 @@ contract RollupSetup {
     MTUtils public merkleUtils;
 
     IFraudProof public fraudProof;
+    IAirdrop public airdrop;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -245,6 +247,9 @@ contract Rollup is RollupHelpers {
 
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
+        );
+        airdrop = IAirdrop(
+            nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Transfer);
     }

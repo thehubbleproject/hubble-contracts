@@ -49,6 +49,9 @@ library ParamManager {
     function FRAUD_PROOF() public pure returns (bytes32) {
         return keccak256("fraud_proof");
     }
+    function AIRDROP() public pure returns (bytes32) {
+        return keccak256("airdrop");
+    }
 
     bytes32 public constant _CHAIN_ID = keccak256("opru-123");
 
