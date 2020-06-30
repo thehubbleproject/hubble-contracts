@@ -201,3 +201,7 @@ export async function compressTx(
     [from, to, token, amount, sig]
   );
 }
+
+export enum BatchType {
+  Transfer, Airdrop
+}
