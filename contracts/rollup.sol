@@ -38,7 +38,8 @@ contract RollupSetup {
 
     IFraudProof public fraudProof;
 
-    bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    bytes32
+        public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     Governance public governance;
 
@@ -186,12 +187,12 @@ contract RollupHelpers is RollupSetup {
 
             // delete batch
             delete batches[i];
-            
+
             // queue deposits again
             depositManager.enqueue(batch.depositTree);
-            
+
             totalSlashings++;
-            
+
             logger.logBatchRollback(
                 i,
                 batch.committer,
@@ -352,31 +353,16 @@ contract Rollup is RollupHelpers {
             );
         }
 
-        // run every transaction through transaction evaluators
-        bytes32 newBalanceRoot;
-        uint256 fromBalance;
-        uint256 toBalance;
-        bool isTxValid;
-
-        // start with false state
-        bool isDisputeValid = false;
-
-        for (uint256 i = 0; i < _txs.length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
-            (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
-                batches[_batch_id - 1].stateRoot,
-                batches[_batch_id - 1].accountRoot,
-                _txs[i],
-                _pda_proof[i],
-                _from_proofs[i],
-                _to_proofs[i]
-            );
-            if (!isTxValid) {
-                isDisputeValid = true;
-                break;
-            }
-        }
+        bytes32 updatedBalanceRoot;
+        bool isDisputeValid;
+        (updatedBalanceRoot,isDisputeValid) = processBatch(
+            batches[_batch_id - 1].stateRoot,
+            batches[_batch_id - 1].accountRoot,
+            _txs,
+            _from_proofs,
+            _pda_proof,
+            _to_proofs
+        );
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {
@@ -389,7 +375,7 @@ contract Rollup is RollupHelpers {
 
         // if new root doesnt match what was submitted by coordinator
         // slash and rollback
-        if (newBalanceRoot != batches[_batch_id].stateRoot) {
+        if (updatedBalanceRoot != batches[_batch_id].stateRoot) {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;
@@ -420,14 +406,49 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        return fraudProof.processTx(
-            _balanceRoot,
-            _accountsRoot,
-            _tx,
-            _from_pda_proof,
-            _from_merkle_proof,
-            _to_merkle_proof
-        );
+        return
+            fraudProof.processTx(
+                _balanceRoot,
+                _accountsRoot,
+                _tx,
+                _from_pda_proof,
+                _from_merkle_proof,
+                _to_merkle_proof
+            );
+    }
+
+
+    /**
+     * @notice processBatch processes a batch and returns the updated balance tree
+     *  and the updated leaves
+     * conditions in require mean that the dispute be declared invalid
+     * if conditons evaluate if the coordinator was at fault
+     * @return Total number of batches submitted onchain
+     */
+    function processBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        Types.Transaction[] memory _txs,
+        Types.AccountMerkleProof[] memory _from_proofs,
+        Types.PDAMerkleProof[] memory _pda_proof,
+        Types.AccountMerkleProof[] memory _to_proofs
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bool
+        )
+    {
+        return
+            fraudProof.processBatch(
+                initialStateRoot,
+                accountsRoot,
+              _txs,
+                _from_proofs,
+                _pda_proof,
+               _to_proofs 
+            );
     }
 
     /**

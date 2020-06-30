@@ -24,7 +24,6 @@ contract DepositManager {
     uint256 public depositSubTreesPackaged = 0;
 
     function enqueue(bytes32 newDepositSubtree) public {
-
         lastElement += 1;
         pendingFilledSubtrees[lastElement] = newDepositSubtree;
         depositSubTreesPackaged++;
@@ -204,7 +203,7 @@ contract DepositManager {
             // start adding deposits to prepackaged deposit subtree root queue
             enqueue(pendingDeposits[0]);
 
-            // emit an event to signal that a package is ready 
+            // emit an event to signal that a package is ready
             // isnt really important for anyone tho
             logger.logDepositSubTreeReady(pendingDeposits[0]);
 

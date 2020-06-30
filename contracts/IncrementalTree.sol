@@ -5,7 +5,6 @@ import {ParamManager} from "./libs/ParamManager.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {Governance} from "./Governance.sol";
 
-
 contract IncrementalTree {
     Registry public nameRegistry;
     MTUtils public merkleUtils;

@@ -20,4 +20,13 @@ interface IFraudProof {
         uint256,
         bool
     );
+
+    function processBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        Types.Transaction[] calldata _txs,
+        Types.AccountMerkleProof[] calldata _from_proofs,
+        Types.PDAMerkleProof[] calldata  _pda_proof,
+        Types.AccountMerkleProof[] calldata _to_proofs
+    ) external view returns (bytes32, bool);
 }

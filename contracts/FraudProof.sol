@@ -15,7 +15,6 @@ import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 
-
 contract FraudProofSetup {
     using SafeMath for uint256;
     using ECVerify for bytes32;
@@ -24,19 +23,19 @@ contract FraudProofSetup {
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
 
-    bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
+    bytes32
+        public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     Governance public governance;
 
     /********************
      * Error Codes *
-    ********************/
-    uint public constant NO_ERR = 0;
-    uint public constant ERR_TOKEN_ADDR_INVAILD = 1;  // account doesnt hold token type in the tx
-    uint public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    uint public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    uint public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    uint public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
-
+     ********************/
+    uint256 public constant NO_ERR = 0;
+    uint256 public constant ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
+    uint256 public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
+    uint256 public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
+    uint256 public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
+    uint256 public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 }
 
 contract FraudProofHelpers is FraudProofSetup {
@@ -100,7 +99,7 @@ contract FraudProofHelpers is FraudProofSetup {
     function validateTxBasic(
         Types.Transaction memory _tx,
         Types.UserAccount memory _from_account
-    ) public view returns(uint) {
+    ) public view returns (uint256) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition
@@ -131,7 +130,7 @@ contract FraudProofHelpers is FraudProofSetup {
         Types.UserAccount memory account,
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
-        return(
+        return (
             RollupUtils.UpdateBalanceInAccount(
                 account,
                 RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
@@ -143,7 +142,7 @@ contract FraudProofHelpers is FraudProofSetup {
         Types.UserAccount memory account,
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
-        return(
+        return (
             RollupUtils.UpdateBalanceInAccount(
                 account,
                 RollupUtils.BalanceFromAccount(account).add(numOfTokens)
@@ -157,20 +156,20 @@ contract FraudProofHelpers is FraudProofSetup {
     function UpdateAccountWithSiblings(
         Types.UserAccount memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
-    ) public view returns(bytes32, uint) {
+    ) public view returns (bytes32, uint256) {
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             keccak256(RollupUtils.BytesFromAccount(new_account)),
             _merkle_proof.accountIP.pathToAccount,
             _merkle_proof.siblings
         );
-        uint balance = RollupUtils.BalanceFromAccount(new_account);
+        uint256 balance = RollupUtils.BalanceFromAccount(new_account);
         return (newRoot, balance);
     }
 
     function ValidateSignature(
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof
-    ) public pure returns(bool) {
+    ) public pure returns (bool) {
         require(
             RollupUtils.calculateAddress(
                 _from_pda_proof._pda.pubkey_leaf.pubkey
@@ -210,7 +209,41 @@ contract FraudProof is FraudProofHelpers {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
+    }
 
+    function processBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        Types.Transaction[] memory _txs,
+        Types.AccountMerkleProof[] memory _from_proofs,
+        Types.PDAMerkleProof[] memory _pda_proof,
+        Types.AccountMerkleProof[] memory _to_proofs
+    ) public view returns (bytes32 newBalanceRoot, bool isDisputeValid) {
+        // run every transaction through transaction evaluators
+        newBalanceRoot = initialStateRoot;
+        uint256 fromBalance;
+        uint256 toBalance;
+        bool isTxValid;
+
+        for (uint256 i = 0; i < _txs.length; i++) {
+            // call process tx update for every transaction to check if any
+            // tx evaluates correctly
+            (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
+                newBalanceRoot,
+                accountsRoot,
+                _txs[i],
+                _pda_proof[i],
+                _from_proofs[i],
+                _to_proofs[i]
+            );
+
+            if (!isTxValid) {
+                isDisputeValid = true;
+                break;
+            }
+        }
+
+        return (newBalanceRoot, isDisputeValid);
     }
 
     /**
@@ -238,7 +271,11 @@ contract FraudProof is FraudProofHelpers {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(_accountsRoot, _from_pda_proof, _tx.fromIndex);
+        ValidatePubkeyAvailability(
+            _accountsRoot,
+            _from_pda_proof,
+            _tx.fromIndex
+        );
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         // ValidateSignature(_tx, _from_pda_proof);
@@ -246,9 +283,11 @@ contract FraudProof is FraudProofHelpers {
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, _from_merkle_proof);
 
-        (uint err_code) = validateTxBasic(_tx,
-                                          _from_merkle_proof.accountIP.account);
-        if(err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
+        uint256 err_code = validateTxBasic(
+            _tx,
+            _from_merkle_proof.accountIP.account
+        );
+        if (err_code != NO_ERR) return (ZERO_BYTES32, 0, err_code, false);
 
         Types.UserAccount memory new_from_account = RemoveTokensFromAccount(
             _from_merkle_proof.accountIP.account,
@@ -262,10 +301,10 @@ contract FraudProof is FraudProofHelpers {
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newFromRoot, uint from_new_balance) = UpdateAccountWithSiblings(
-            new_from_account,
-            _from_merkle_proof
-        );
+        (
+            bytes32 newFromRoot,
+            uint256 from_new_balance
+        ) = UpdateAccountWithSiblings(new_from_account, _from_merkle_proof);
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newFromRoot, _to_merkle_proof);
@@ -278,21 +317,15 @@ contract FraudProof is FraudProofHelpers {
         // account holds the token type in the tx
         if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
-
             // needs to be slashed because the submitted transaction
             // had invalid token type
             return (ZERO_BYTES32, 0, ERR_FROM_TOKEN_TYPE, false);
 
-        (bytes32 newToRoot, uint to_new_balance) = UpdateAccountWithSiblings(
+        (bytes32 newToRoot, uint256 to_new_balance) = UpdateAccountWithSiblings(
             new_to_account,
             _to_merkle_proof
         );
 
-        return (
-            newToRoot,
-            from_new_balance,
-            to_new_balance,
-            true
-        );
+        return (newToRoot, from_new_balance, to_new_balance, true);
     }
 }

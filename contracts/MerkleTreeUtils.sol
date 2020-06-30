@@ -4,7 +4,6 @@ import {ParamManager} from "./libs/ParamManager.sol";
 import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 
-
 contract MerkleTreeUtils {
     // The default hashes
     bytes32[] public defaultHashes;
