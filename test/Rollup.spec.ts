@@ -245,7 +245,7 @@ contract("Rollup", async function (accounts) {
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
-      utils.getParentLeaf(coordinator,coordinator),
+      utils.getParentLeaf(coordinator, coordinator),
       zeroHashes[2],
       zeroHashes[3],
     ];
@@ -335,7 +335,8 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.submitBatch(
       compressedTxs,
       "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
-      { value: ethers.utils.parseEther("32").toString() }
+      0,
+      { value: ethers.utils.parseEther("32").toString() },
     );
   });
 });

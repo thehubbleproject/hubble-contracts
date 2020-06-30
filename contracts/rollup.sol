@@ -91,7 +91,7 @@ contract RollupHelpers is RollupSetup {
         return batches.length;
     }
 
-    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
+    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot, Types.BatchType batchType) internal {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
@@ -101,7 +101,7 @@ contract RollupHelpers is RollupSetup {
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             timestamp: now,
-            batchType: Types.BatchType.Transfer
+            batchType: batchType
         });
 
         batches.push(newBatch);
@@ -245,7 +245,7 @@ contract Rollup is RollupHelpers {
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
         );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot);
+        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Transfer);
     }
 
     /**
@@ -253,7 +253,7 @@ contract Rollup is RollupHelpers {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
+    function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot, Types.BatchType batchType)
         external
         payable
         onlyCoordinator
@@ -273,7 +273,7 @@ contract Rollup is RollupHelpers {
             txRoot != ZERO_BYTES32,
             "Cannot submit a transaction with no transactions"
         );
-        addNewBatch(txRoot, _updatedRoot);
+        addNewBatch(txRoot, _updatedRoot, batchType);
     }
 
     /**
