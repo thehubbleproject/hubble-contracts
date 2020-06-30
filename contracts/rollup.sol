@@ -174,12 +174,6 @@ contract RollupHelpers is RollupSetup {
                 break;
             }
 
-            if (i == invalidBatchMarker) {
-                // we have completed rollback
-                // update the marker
-                invalidBatchMarker = 0;
-            }
-
             // load batch
             Types.Batch memory batch = batches[i];
 
@@ -201,6 +195,12 @@ contract RollupHelpers is RollupSetup {
                 batch.txRoot,
                 batch.stakeCommitted
             );
+            if (i == invalidBatchMarker) {
+                // we have completed rollback
+                // update the marker
+                invalidBatchMarker = 0;
+                break;
+            }
         }
 
         // TODO add deposit rollback
@@ -212,7 +212,7 @@ contract RollupHelpers is RollupSetup {
         (BURN_ADDRESS).transfer(burnedAmount);
 
         // resize batches length
-        batches.length = batches.length.sub(invalidBatchMarker.sub(1));
+        batches.length = batches.length.sub(totalSlashings);
 
         logger.logRollbackFinalisation(totalSlashings);
     }
@@ -332,10 +332,10 @@ contract Rollup is RollupHelpers {
             "Batch already finalised"
         );
 
-        require(
-            _batch_id < invalidBatchMarker,
-            "Already successfully disputed. Roll back in process"
-        );
+        // require( //Thrilok - is this correct?
+        //     _batch_id < invalidBatchMarker,
+        //     "Already successfully disputed. Roll back in process"
+        // );
 
         require(
             batches[_batch_id].txRoot != ZERO_BYTES32,
@@ -343,7 +343,7 @@ contract Rollup is RollupHelpers {
         );
 
         // generate merkle tree from the txs provided by user
-        bytes[] memory txs;
+        bytes[] memory txs = new bytes[](_txs.length);
         for (uint256 i = 0; i < _txs.length; i++) {
             txs[i] = RollupUtils.CompressTx(_txs[i]);
         }
@@ -352,7 +352,7 @@ contract Rollup is RollupHelpers {
         // if tx root while submission doesnt match tx root of given txs
         // dispute is unsuccessful
         require(
-            txRoot != batches[_batch_id].txRoot,
+            txRoot == batches[_batch_id].txRoot,
             "Invalid dispute, tx root doesn't match"
         );
         }
