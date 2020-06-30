@@ -6,6 +6,7 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IFraudProof} from "./interfaces/IFraudProof.sol";
+import {IAirdrop} from "./interfaces/IAirdrop.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
@@ -37,6 +38,7 @@ contract RollupSetup {
     MTUtils public merkleUtils;
 
     IFraudProof public fraudProof;
+    IAirdrop public airdrop;
 
     bytes32 public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
@@ -245,6 +247,9 @@ contract Rollup is RollupHelpers {
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
         );
+        airdrop = IAirdrop(
+            nameRegistry.getContractDetails(ParamManager.AIRDROP())
+        );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Transfer);
     }
 
@@ -363,17 +368,28 @@ contract Rollup is RollupHelpers {
         // start with false state
         bool isDisputeValid = false;
 
+        if (batches[_batch_id - 1].batchType == Types.BatchType.Airdrop) {
+            // Validate Reddit signature and sub reddit approval
+        }
+
         for (uint256 i = 0; i < _txs.length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
-            (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
-                batches[_batch_id - 1].stateRoot,
-                batches[_batch_id - 1].accountRoot,
-                _txs[i],
-                _pda_proof[i],
-                _from_proofs[i],
-                _to_proofs[i]
-            );
+            if (batches[_batch_id - 1].batchType == Types.BatchType.Transfer){
+                (newBalanceRoot, fromBalance, toBalance, isTxValid) = processTx(
+                    batches[_batch_id - 1].stateRoot,
+                    batches[_batch_id - 1].accountRoot,
+                    _txs[i],
+                    _pda_proof[i],
+                    _from_proofs[i],
+                    _to_proofs[i]
+                );
+            } else {
+                (newBalanceRoot, toBalance, isTxValid) = airdrop.processDrop(
+                    _txs[i],
+                    _to_proofs[i]
+                );
+            }
             if (!isTxValid) {
                 isDisputeValid = true;
                 break;

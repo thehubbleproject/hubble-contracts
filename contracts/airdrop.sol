@@ -75,7 +75,6 @@ contract Airdrop is AirdropHelpers {
     }
 
     function processDrop(
-        uint256 tokenType,
         Types.Transaction memory drop,
         Types.AccountMerkleProof memory _to_merkle_proof
     )
@@ -100,7 +99,7 @@ contract Airdrop is AirdropHelpers {
         );
 
         // account holds the token type in the tx
-        if (_to_merkle_proof.accountIP.account.tokenType != tokenType)
+        if (_to_merkle_proof.accountIP.account.tokenType != drop.tokenType)
             // invalid state transition
 
             // needs to be slashed because the submitted transaction

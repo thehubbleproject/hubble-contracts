@@ -5,7 +5,6 @@ import {Types} from "../libs/Types.sol";
 
 interface IAirdrop {
     function processDrop(
-        uint256 tokenType,
         Types.Transaction calldata drop,
         Types.AccountMerkleProof calldata _to_merkle_proof
     )
