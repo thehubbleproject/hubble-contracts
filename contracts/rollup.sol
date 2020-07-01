@@ -250,7 +250,7 @@ contract Rollup is RollupHelpers {
         airdrop = IAirdrop(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Transfer);
+        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Genesis);
     }
 
     /**

@@ -4,7 +4,7 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
-    enum BatchType {Transfer, Airdrop}
+    enum BatchType {Genesis, Transfer, Airdrop}
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
