@@ -155,6 +155,7 @@ contract FraudProofHelpers is FraudProofSetup {
         if (transaction.toIndex == account.ID) {
             account = AddTokensToAccount(account, transaction.amount);
         }
+
         account.nonce++;
 
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
@@ -240,22 +241,50 @@ contract FraudProof is FraudProofHelpers {
         Types.Transaction[] memory _txs,
         Types.AccountMerkleProof[] memory _from_proofs,
         Types.PDAMerkleProof[] memory _pda_proof,
-        Types.AccountMerkleProof[] memory _to_proofs
-    ) public view returns (bytes32 newBalanceRoot, bool isDisputeValid) {
+        Types.AccountMerkleProof[] memory _to_proofs,
+        bytes32 expectedTxRoot
+    )
+        public
+        view
+        returns (
+            bytes32 newBalanceRoot,
+            bytes32 actualTxRoot,
+            bool isDisputeValid
+        )
+    {
         // run every transaction through transaction evaluators
         newBalanceRoot = initialStateRoot;
-        bytes memory fromBalance;
-        bytes memory toBalance;
+        bytes memory fromAccount;
+        bytes memory toAccount;
         bool isTxValid;
         uint256 err_code;
+        bytes32 txRoot;
+        {
+            // generate merkle tree from the txs provided by user
+            bytes[] memory txs = new bytes[](_txs.length);
+            for (uint256 i = 0; i < _txs.length; i++) {
+                txs[i] = RollupUtils.CompressTx(_txs[i]);
+            }
+            txRoot = merkleUtils.getMerkleRoot(txs);
+
+            // if there is an expectation set, revert if it's not met
+            if (expectedTxRoot == ZERO_BYTES32) {
+                // if tx root while submission doesnt match tx root of given txs
+                // dispute is unsuccessful
+                require(
+                    txRoot == expectedTxRoot,
+                    "Invalid dispute, tx root doesn't match"
+                );
+            }
+        }
 
         for (uint256 i = 0; i < _txs.length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
             (
                 newBalanceRoot,
-                fromBalance,
-                toBalance,
+                fromAccount,
+                toAccount,
                 err_code,
                 isTxValid
             ) = processTx(
@@ -273,7 +302,7 @@ contract FraudProof is FraudProofHelpers {
             }
         }
 
-        return (newBalanceRoot, isDisputeValid);
+        return (newBalanceRoot, txRoot, isDisputeValid);
     }
 
     /**

@@ -337,31 +337,19 @@ contract Rollup is RollupHelpers {
                 batches[_batch_id].txRoot != ZERO_BYTES32,
                 "Cannot dispute blocks with no transaction"
             );
-
-            // generate merkle tree from the txs provided by user
-            bytes[] memory txs = new bytes[](_txs.length);
-            for (uint256 i = 0; i < _txs.length; i++) {
-                txs[i] = RollupUtils.CompressTx(_txs[i]);
-            }
-            bytes32 txRoot = merkleUtils.getMerkleRoot(txs);
-
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
-            require(
-                txRoot == batches[_batch_id].txRoot,
-                "Invalid dispute, tx root doesn't match"
-            );
         }
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = processBatch(
+        bytes32 txRoot;
+        (updatedBalanceRoot, txRoot, isDisputeValid) = processBatch(
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id - 1].accountRoot,
             _txs,
             _from_proofs,
             _pda_proof,
-            _to_proofs
+            _to_proofs,
+            batches[_batch_id].txRoot
         );
 
         // dispute is valid, we need to slash and rollback :(
