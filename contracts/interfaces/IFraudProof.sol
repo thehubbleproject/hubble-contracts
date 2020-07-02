@@ -27,4 +27,13 @@ interface IFraudProof {
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     ) external view returns (bytes32,bytes32, bool);
+
+
+    function ApplyTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.Transaction calldata transaction
+    )
+       external 
+        view
+        returns (Types.UserAccount memory updatedAccount, bytes32 newRoot);
 }

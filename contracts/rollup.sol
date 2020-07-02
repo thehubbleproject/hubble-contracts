@@ -373,6 +373,25 @@ contract Rollup is RollupHelpers {
      * if conditons evaluate if the coordinator was at fault
      * @return Total number of batches submitted onchain
      */
+
+    function ApplyTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        Types.Transaction memory transaction
+    )
+        public
+        view
+        returns (Types.UserAccount memory updatedAccount, bytes32 newRoot)
+    {
+        return fraudProof.ApplyTx(_merkle_proof, transaction);
+    }
+
+    /**
+     * @notice processTx processes a transactions and returns the updated balance tree
+     *  and the updated leaves
+     * conditions in require mean that the dispute be declared invalid
+     * if conditons evaluate if the coordinator was at fault
+     * @return Total number of batches submitted onchain
+     */
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
