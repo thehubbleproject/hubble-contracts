@@ -274,7 +274,7 @@ contract("Rollup", async function (accounts) {
     var UpdatedAliceAccountLeaf = utils.CreateAccountLeaf(
       OriginalAlice.AccID,
       OriginalAlice.Amount - tx.amount,
-      0,
+      1,
       OriginalAlice.TokenType
     );
 
