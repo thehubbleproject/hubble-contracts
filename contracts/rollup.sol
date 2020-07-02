@@ -6,7 +6,6 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IFraudProof} from "./interfaces/IFraudProof.sol";
-import {IAirdrop} from "./interfaces/IAirdrop.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
@@ -38,7 +37,7 @@ contract RollupSetup {
     MTUtils public merkleUtils;
 
     IFraudProof public fraudProof;
-    IAirdrop public airdrop;
+    IFraudProof public airdrop;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -94,7 +93,11 @@ contract RollupHelpers is RollupSetup {
         return batches.length;
     }
 
-    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot, Types.BatchType batchType) internal {
+    function addNewBatch(
+        bytes32 txRoot,
+        bytes32 _updatedRoot,
+        Types.BatchType batchType
+    ) internal {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
@@ -248,7 +251,7 @@ contract Rollup is RollupHelpers {
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
         );
-        airdrop = IAirdrop(
+        airdrop = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Genesis);
@@ -259,12 +262,11 @@ contract Rollup is RollupHelpers {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot, Types.BatchType batchType)
-        external
-        payable
-        onlyCoordinator
-        isNotRollingBack
-    {
+    function submitBatch(
+        bytes[] calldata _txs,
+        bytes32 _updatedRoot,
+        Types.BatchType batchType
+    ) external payable onlyCoordinator isNotRollingBack {
         require(
             msg.value >= governance.STAKE_AMOUNT(),
             "Not enough stake committed"
@@ -352,7 +354,8 @@ contract Rollup is RollupHelpers {
             batches[_batch_id - 1].accountRoot,
             _txs,
             batchProofs,
-            batches[_batch_id].txRoot
+            batches[_batch_id].txRoot,
+            batches[_batch_id].batchType
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -437,7 +440,8 @@ contract Rollup is RollupHelpers {
         bytes32 accountsRoot,
         Types.Transaction[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        bytes32 expectedTxRoot,
+        Types.BatchType batchType
     )
         public
         view
@@ -447,14 +451,26 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        return
-            fraudProof.processBatch(
-                initialStateRoot,
-                accountsRoot,
-                _txs,
-                batchProofs,
-                expectedTxRoot
-            );
+        if (batchType == Types.BatchType.Transfer) {
+            return
+                fraudProof.processBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        }
+        if (batchType == Types.BatchType.Airdrop) {
+            return
+                airdrop.processBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        }
     }
 
     /**
