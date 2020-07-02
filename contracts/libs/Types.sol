@@ -65,6 +65,16 @@ library Types {
         bytes32[] siblings;
     }
 
+    struct AccountProofs {
+      AccountMerkleProof from;
+      AccountMerkleProof to;
+    }
+
+    struct BatchValidationProofs{
+      AccountProofs[] accountProofs;
+      PDAMerkleProof[] pdaProof;
+    }
+
     struct TransactionMerkleProof {
         TranasctionInclusionProof _tx;
         bytes32[] siblings;

@@ -9,8 +9,7 @@ interface IFraudProof {
         bytes32 _accountsRoot,
         Types.Transaction calldata _tx,
         Types.PDAMerkleProof calldata _from_pda_proof,
-        Types.AccountMerkleProof calldata _from_merkle_proof,
-        Types.AccountMerkleProof calldata _to_merkle_proof
+        Types.AccountProofs calldata accountProofs
     )
     external
     view
@@ -20,4 +19,12 @@ interface IFraudProof {
         uint256,
         bool
     );
+
+    function processBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        Types.Transaction[] calldata _txs,
+        Types.BatchValidationProofs calldata batchProofs,
+        bytes32 expectedTxRoot
+    ) external view returns (bytes32,bytes32, bool);
 }

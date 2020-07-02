@@ -10,7 +10,6 @@ import {Logger} from "./logger.sol";
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {Governance} from "./Governance.sol";
 
-
 // Deployer is supposed to deploy new set of contracts while setting up all the utilities
 // libraries and other auxiallry contracts like registry
 contract Deployer {
