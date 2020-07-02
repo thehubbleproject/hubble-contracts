@@ -311,9 +311,7 @@ contract Rollup is RollupHelpers {
     function disputeBatch(
         uint256 _batch_id,
         Types.Transaction[] memory _txs,
-        Types.AccountMerkleProof[] memory _from_proofs,
-        Types.PDAMerkleProof[] memory _pda_proof,
-        Types.AccountMerkleProof[] memory _to_proofs
+        Types.BatchValidationProofs memory batchProofs
     ) public {
         {
             // load batch
@@ -346,9 +344,7 @@ contract Rollup is RollupHelpers {
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id - 1].accountRoot,
             _txs,
-            _from_proofs,
-            _pda_proof,
-            _to_proofs,
+            batchProofs,
             batches[_batch_id].txRoot
         );
 
@@ -382,8 +378,7 @@ contract Rollup is RollupHelpers {
         bytes32 _accountsRoot,
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountMerkleProof memory _from_merkle_proof,
-        Types.AccountMerkleProof memory _to_merkle_proof
+        Types.AccountProofs memory accountProofs
     )
         public
         view
@@ -400,8 +395,7 @@ contract Rollup is RollupHelpers {
                 _accountsRoot,
                 _tx,
                 _from_pda_proof,
-                _from_merkle_proof,
-                _to_merkle_proof
+                accountProofs
             );
     }
 
@@ -416,18 +410,24 @@ contract Rollup is RollupHelpers {
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         Types.Transaction[] memory _txs,
-        Types.AccountMerkleProof[] memory _from_proofs,
-        Types.PDAMerkleProof[] memory _pda_proof,
-        Types.AccountMerkleProof[] memory _to_proofs
-    ) public view returns (bytes32, bool) {
+        Types.BatchValidationProofs memory batchProofs,
+        bytes32 expectedTxRoot
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        )
+    {
         return
             fraudProof.processBatch(
                 initialStateRoot,
                 accountsRoot,
                 _txs,
-                _from_proofs,
-                _pda_proof,
-                _to_proofs
+                batchProofs,
+                expectedTxRoot
             );
     }
 

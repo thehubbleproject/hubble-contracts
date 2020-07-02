@@ -235,74 +235,71 @@ contract FraudProof is FraudProofHelpers {
         );
     }
 
+    function generateTxRoot(Types.Transaction[] memory _txs)
+        public
+        view
+        returns (bytes32 txRoot)
+    {
+        // generate merkle tree from the txs provided by user
+        bytes[] memory txs = new bytes[](_txs.length);
+        for (uint256 i = 0; i < _txs.length; i++) {
+            txs[i] = RollupUtils.CompressTx(_txs[i]);
+        }
+        txRoot = merkleUtils.getMerkleRoot(txs);
+        return txRoot;
+    }
+
     function processBatch(
-        bytes32 initialStateRoot,
+        bytes32 stateRoot,
         bytes32 accountsRoot,
         Types.Transaction[] memory _txs,
-        Types.AccountMerkleProof[] memory _from_proofs,
-        Types.PDAMerkleProof[] memory _pda_proof,
-        Types.AccountMerkleProof[] memory _to_proofs,
+        Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
         public
         view
         returns (
-            bytes32 newBalanceRoot,
-            bytes32 actualTxRoot,
-            bool isDisputeValid
+            bytes32,
+            bytes32,
+            bool
         )
     {
-        // run every transaction through transaction evaluators
-        newBalanceRoot = initialStateRoot;
-        bytes memory fromAccount;
-        bytes memory toAccount;
-        bool isTxValid;
-        uint256 err_code;
-        bytes32 txRoot;
-        {
-            // generate merkle tree from the txs provided by user
-            bytes[] memory txs = new bytes[](_txs.length);
-            for (uint256 i = 0; i < _txs.length; i++) {
-                txs[i] = RollupUtils.CompressTx(_txs[i]);
-            }
-            txRoot = merkleUtils.getMerkleRoot(txs);
-
-            // if there is an expectation set, revert if it's not met
-            if (expectedTxRoot == ZERO_BYTES32) {
-                // if tx root while submission doesnt match tx root of given txs
-                // dispute is unsuccessful
-                require(
-                    txRoot == expectedTxRoot,
-                    "Invalid dispute, tx root doesn't match"
-                );
-            }
-        }
-
-        for (uint256 i = 0; i < _txs.length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
-            (
-                newBalanceRoot,
-                fromAccount,
-                toAccount,
-                err_code,
-                isTxValid
-            ) = processTx(
-                newBalanceRoot,
-                accountsRoot,
-                _txs[i],
-                _pda_proof[i],
-                _from_proofs[i],
-                _to_proofs[i]
+        bytes32 actualTxRoot = generateTxRoot(_txs);
+        // if there is an expectation set, revert if it's not met
+        if (expectedTxRoot == ZERO_BYTES32) {
+            // if tx root while submission doesnt match tx root of given txs
+            // dispute is unsuccessful
+            require(
+                actualTxRoot == expectedTxRoot,
+                "Invalid dispute, tx root doesn't match"
             );
-
-            if (!isTxValid) {
-                isDisputeValid = true;
-                break;
-            }
         }
 
-        return (newBalanceRoot, txRoot, isDisputeValid);
+        bool isTxValid;
+        {
+            for (uint256 i = 0; i < _txs.length; i++) {
+                // call process tx update for every transaction to check if any
+                // tx evaluates correctly
+                (
+                    stateRoot,
+                    ,
+                    ,
+                    ,
+                    isTxValid
+                ) = processTx(
+                    stateRoot,
+                    accountsRoot,
+                    _txs[i],
+                    batchProofs.pdaProof[i],
+                    batchProofs.accountProofs[i]
+                );
+
+                if (!isTxValid) {
+                    break;
+                }
+            }
+        }
+        return (stateRoot, actualTxRoot, !isTxValid);
     }
 
     /**
@@ -317,8 +314,7 @@ contract FraudProof is FraudProofHelpers {
         bytes32 _accountsRoot,
         Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountMerkleProof memory _from_merkle_proof,
-        Types.AccountMerkleProof memory _to_merkle_proof
+        Types.AccountProofs memory accountProofs
     )
         public
         view
@@ -341,16 +337,16 @@ contract FraudProof is FraudProofHelpers {
         // ValidateSignature(_tx, _from_pda_proof);
 
         // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, _from_merkle_proof);
+        ValidateAccountMP(_balanceRoot, accountProofs.from);
 
         uint256 err_code = validateTxBasic(
             _tx,
-            _from_merkle_proof.accountIP.account
+            accountProofs.from.accountIP.account
         );
         if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
-        if (_from_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+        if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
@@ -360,19 +356,19 @@ contract FraudProof is FraudProofHelpers {
         Types.UserAccount memory new_from_account;
         Types.UserAccount memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyTx(_from_merkle_proof, _tx);
+        (new_from_account, newRoot) = ApplyTx(accountProofs.from, _tx);
 
         // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newRoot, _to_merkle_proof);
+        ValidateAccountMP(newRoot, accountProofs.to);
 
         // account holds the token type in the tx
-        if (_to_merkle_proof.accountIP.account.tokenType != _tx.tokenType)
+        if (accountProofs.to.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
             return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
 
-        (new_to_account, newRoot) = ApplyTx(_to_merkle_proof, _tx);
+        (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
 
         return (
             newRoot,
