@@ -142,10 +142,10 @@ contract FraudProofHelpers is FraudProofSetup {
     /**
      * @notice ApplyTx applies the transaction on the account. This is where
      * people need to define the logic for the application
-     * @param _merkle_proof contains the siblings and path to the account 
-     * @param transaction is the transaction that needs to be applied 
+     * @param _merkle_proof contains the siblings and path to the account
+     * @param transaction is the transaction that needs to be applied
      * @return returns updated account and updated state root
-    * */
+     * */
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
         Types.Transaction memory transaction
@@ -157,13 +157,12 @@ contract FraudProofHelpers is FraudProofSetup {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         if (transaction.fromIndex == account.ID) {
             account = RemoveTokensFromAccount(account, transaction.amount);
+            account.nonce++;
         }
 
         if (transaction.toIndex == account.ID) {
             account = AddTokensToAccount(account, transaction.amount);
         }
-
-        account.nonce++;
 
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
 
@@ -256,11 +255,10 @@ contract FraudProof is FraudProofHelpers {
         return txRoot;
     }
 
-
     /**
-     * @notice processBatch processes a whole batch 
-     * @return returns updatedRoot, txRoot and if the batch is valid or not  
-    * */
+     * @notice processBatch processes a whole batch
+     * @return returns updatedRoot, txRoot and if the batch is valid or not
+     * */
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
@@ -292,13 +290,7 @@ contract FraudProof is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (
-                    stateRoot,
-                    ,
-                    ,
-                    ,
-                    isTxValid
-                ) = processTx(
+                (stateRoot, , , , isTxValid) = processTx(
                     stateRoot,
                     accountsRoot,
                     _txs[i],

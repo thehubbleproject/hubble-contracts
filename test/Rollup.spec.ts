@@ -245,7 +245,7 @@ contract("Rollup", async function (accounts) {
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
-      utils.getParentLeaf(coordinator,coordinator),
+      utils.getParentLeaf(coordinator, coordinator),
       zeroHashes[2],
       zeroHashes[3],
     ];
@@ -307,14 +307,18 @@ contract("Rollup", async function (accounts) {
       siblings: BobAccountSiblings,
     };
 
+    var accountProofs = {
+      from: AliceAccountMP,
+      to: BobAccountMP,
+    };
+
     // process transaction validity with process tx
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
       tx,
       alicePDAProof,
-      AliceAccountMP,
-      BobAccountMP
+      accountProofs
     );
 
     console.log("result from processTx: " + JSON.stringify(result));
