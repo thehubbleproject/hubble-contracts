@@ -5,7 +5,6 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {POB} from "./POB.sol";
 
-
 contract TokenRegistry {
     address public rollupNC;
     Logger public logger;

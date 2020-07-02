@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import {Types} from "./Types.sol";
 
-
 library RollupUtils {
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
@@ -44,13 +43,28 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return
-            abi.encode(
+        bytes memory data= abi.encode(
                 account.ID,
                 account.balance,
                 account.nonce,
                 account.tokenType
             );
+
+            return data;
+    }
+
+    // NOTE: Not to be used from contracts, its a temp hack
+    function BytesFromAccountDeconstructed(uint256 ID, uint32 balance, uint32 nonce, uint32 tokenType) public pure returns (bytes memory) {
+        return abi.encode(ID, balance, nonce, tokenType);
+    }
+
+    function AccountFromBytes(bytes memory accountBytes)
+        public
+        pure
+        returns (uint256 ID, uint256 balance, uint256 nonce, uint256 tokenType)
+    {
+        return abi
+            .decode(accountBytes, (uint256, uint256, uint256, uint256));
     }
 
     function getAccountHash(
@@ -76,12 +90,38 @@ library RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.amount,_tx.signature);
+            abi.encode(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.amount,
+                _tx.signature
+            );
     }
-    
-    function CompressTx(Types.Transaction memory _tx) public pure returns (bytes memory){
+
+    function CompressTx(Types.Transaction memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
         return
-            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.amount,_tx.signature);
+            abi.encode(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.amount,
+                _tx.signature
+            );
+    }
+
+    // NOTE: Not to be used from contracts, its a temp hack
+    function BytesFromTxDeconstructed(uint256 from, uint256 to, uint256 tokenType, uint256 amount) pure public returns(bytes memory){
+        return abi.encode(from,to,tokenType,amount);
+    }
+
+    function TxFromBytes(bytes memory txBytes) pure public returns(uint256 from, uint256 to, uint256 tokenType, uint256 amount) {
+        return abi
+            .decode(txBytes, (uint256, uint256, uint256, uint256));
     }
 
     function HashFromTx(Types.Transaction memory _tx)
@@ -98,9 +138,12 @@ library RollupUtils {
         uint256 tokenType,
         uint256 amount
     ) public pure returns (bytes32) {
-        bytes memory data = abi.encode(fromIndex, toIndex, tokenType, amount);
+                bytes memory data = abi.encode(fromIndex, toIndex, tokenType, amount);
+
         return keccak256(data);
     }
+
+
 
     /**
      * @notice Calculates the address from the pubkey

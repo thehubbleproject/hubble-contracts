@@ -1,6 +1,5 @@
 pragma solidity ^0.5.15;
 
-
 contract Logger {
     /*********************
      * Rollup Contract *
@@ -112,12 +111,9 @@ contract Logger {
         emit DepositLeafMerged(left, right, newRoot);
     }
 
-
     event DepositSubTreeReady(bytes32 root);
 
-    function logDepositSubTreeReady(
-        bytes32 root 
-    ) public {
+    function logDepositSubTreeReady(bytes32 root) public {
         emit DepositSubTreeReady(root);
     }
 
