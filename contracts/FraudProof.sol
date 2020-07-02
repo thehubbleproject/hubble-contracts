@@ -152,7 +152,7 @@ contract FraudProofHelpers is FraudProofSetup {
     )
         public
         view
-        returns (Types.UserAccount memory updatedAccount, bytes32 newRoot)
+        returns (bytes memory updatedAccount, bytes32 newRoot)
     {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         if (transaction.fromIndex == account.ID) {
@@ -166,7 +166,7 @@ contract FraudProofHelpers is FraudProofSetup {
 
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
 
-        return (account, newRoot);
+        return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 
     function AddTokensToAccount(
@@ -357,8 +357,8 @@ contract FraudProof is FraudProofHelpers {
             return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
 
         bytes32 newRoot;
-        Types.UserAccount memory new_from_account;
-        Types.UserAccount memory new_to_account;
+        bytes memory new_from_account;
+        bytes memory new_to_account;
 
         (new_from_account, newRoot) = ApplyTx(accountProofs.from, _tx);
 
@@ -376,8 +376,8 @@ contract FraudProof is FraudProofHelpers {
 
         return (
             newRoot,
-            RollupUtils.BytesFromAccount(new_from_account),
-            RollupUtils.BytesFromAccount(new_to_account),
+            new_from_account,
+            new_to_account,
             0,
             true
         );

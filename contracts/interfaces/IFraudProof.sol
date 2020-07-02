@@ -14,10 +14,11 @@ interface IFraudProof {
     external
     view
     returns (
-        bytes32,
-        uint256,
-        uint256,
-        bool
+      bytes32,
+            bytes memory,
+            bytes memory,
+            uint256,
+            bool
     );
 
     function processBatch(
@@ -35,5 +36,5 @@ interface IFraudProof {
     )
        external 
         view
-        returns (Types.UserAccount memory updatedAccount, bytes32 newRoot);
+        returns (bytes memory, bytes32 newRoot);
 }
