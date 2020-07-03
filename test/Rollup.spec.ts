@@ -228,13 +228,17 @@ contract("Rollup", async function (accounts) {
       toIndex: OriginalBob.AccID,
       tokenType: OriginalAlice.TokenType,
       amount: tranferAmount,
+      txType: 1,
+      nonce: 1,
       signature:
         "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
     };
-    var dataToSign = await RollupUtilsInstance.getTxHash(
+    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
       tx.fromIndex,
       tx.toIndex,
       tx.tokenType,
+      tx.txType,
+      tx.nonce,
       tx.amount
     );
 
