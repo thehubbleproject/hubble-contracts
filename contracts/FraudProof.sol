@@ -149,11 +149,7 @@ contract FraudProofHelpers is FraudProofSetup {
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
         Types.Transaction memory transaction
-    )
-        public
-        view
-        returns (bytes memory updatedAccount, bytes32 newRoot)
-    {
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         if (transaction.fromIndex == account.ID) {
             account = RemoveTokensFromAccount(account, transaction.amount);
@@ -205,13 +201,17 @@ contract FraudProofHelpers is FraudProofSetup {
                 _from_pda_proof._pda.pubkey_leaf.pubkey
             ) ==
                 RollupUtils
-                    .getTxHash(
+                    .getTxSignBytes(
                     _tx
                         .fromIndex,
                     _tx
                         .toIndex,
                     _tx
                         .tokenType,
+                    _tx
+                        .txType,
+                    _tx
+                        .nonce,
                     _tx
                         .amount
                 )
@@ -374,12 +374,6 @@ contract FraudProof is FraudProofHelpers {
 
         (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
 
-        return (
-            newRoot,
-            new_from_account,
-            new_to_account,
-            0,
-            true
-        );
+        return (newRoot, new_from_account, new_to_account, 0, true);
     }
 }

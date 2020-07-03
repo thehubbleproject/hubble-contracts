@@ -77,31 +77,34 @@ contract("RollupUtils", async function (accounts) {
       balance: 3,
       nonce: 4,
     };
-    
-    var accountBytes = await
-    rollupUtils.BytesFromAccountDeconstructed(account.ID, account.balance,
-                                              account.nonce, account.tokenType)
+
+    var accountBytes = await rollupUtils.BytesFromAccountDeconstructed(
+      account.ID,
+      account.balance,
+      account.nonce,
+      account.tokenType
+    );
     console.log("accountBytes", accountBytes);
 
     var regeneratedAccount = await rollupUtils.AccountFromBytes(accountBytes);
     console.log("regeneratedAccount", regeneratedAccount);
-    
+
     var tx = {
       fromIndex: 1,
       toIndex: 1,
-      tokenType: 1, 
+      tokenType: 1,
       amount: 1,
       signature:
         "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
     };
-    
-    var txBytes = await rollupUtils.BytesFromTxDeconstructed(tx.fromIndex,
-                                                               tx.toIndex,tx.tokenType,
-    tx.amount)
-    console.log("txBytes", txBytes)
 
-    var txData = await rollupUtils.TxFromBytes(txBytes)
-    console.log("tx data",txData)
+    // var txBytes = await rollupUtils.BytesFromTxDeconstructed(tx.fromIndex,
+    //                                                            tx.toIndex,tx.tokenType,
+    // tx.amount)
+    // console.log("txBytes", txBytes);
+
+    // var txData = await rollupUtils.TxFromBytes(txBytes);
+    // console.log("tx data", txData);
     // assert.equal(expectedResult, result, "Account hash mismatch");
   });
 });
