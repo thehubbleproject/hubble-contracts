@@ -29,7 +29,9 @@ library Types {
         uint256 fromIndex;
         uint256 toIndex;
         uint256 tokenType;
-        uint32 amount;
+        uint256 nonce;
+        uint256 txType;
+        uint256 amount;
         bytes signature;
     }
 
@@ -70,7 +72,7 @@ library Types {
       AccountMerkleProof to;
     }
 
-    struct BatchValidationProofs{
+    struct BatchValidationProofs {
       AccountProofs[] accountProofs;
       PDAMerkleProof[] pdaProof;
     }
