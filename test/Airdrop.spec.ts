@@ -2,7 +2,7 @@ import { ethers } from "ethers";
 import * as utils from '../scripts/helpers/utils'
 const RollupCore = artifacts.require("Rollup");
 
-describe("Rollup Airdrop", async function () {
+contract("airdrop", async function () {
 
     it("lets coordinator submit a batch", async function () {
         const rollupCoreInstance = await RollupCore.deployed()
