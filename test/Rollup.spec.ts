@@ -339,7 +339,8 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.submitBatch(
       compressedTxs,
       "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
-      { value: ethers.utils.parseEther("32").toString() }
+      utils.BatchType.Transfer,
+      { value: ethers.utils.parseEther("32").toString() },
     );
   });
 });

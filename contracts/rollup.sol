@@ -37,6 +37,7 @@ contract RollupSetup {
     MTUtils public merkleUtils;
 
     IFraudProof public fraudProof;
+    IFraudProof public airdrop;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -92,7 +93,11 @@ contract RollupHelpers is RollupSetup {
         return batches.length;
     }
 
-    function addNewBatch(bytes32 txRoot, bytes32 _updatedRoot) internal {
+    function addNewBatch(
+        bytes32 txRoot,
+        bytes32 _updatedRoot,
+        Types.BatchType batchType
+    ) internal {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
@@ -101,7 +106,8 @@ contract RollupHelpers is RollupSetup {
             txRoot: txRoot,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            timestamp: now
+            timestamp: now,
+            batchType: batchType
         });
 
         batches.push(newBatch);
@@ -124,7 +130,8 @@ contract RollupHelpers is RollupSetup {
             txRoot: ZERO_BYTES32,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            timestamp: now
+            timestamp: now,
+            batchType: Types.BatchType.Transfer
         });
 
         batches.push(newBatch);
@@ -244,7 +251,10 @@ contract Rollup is RollupHelpers {
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
         );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot);
+        airdrop = IFraudProof(
+            nameRegistry.getContractDetails(ParamManager.AIRDROP())
+        );
+        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Genesis);
     }
 
     /**
@@ -252,12 +262,11 @@ contract Rollup is RollupHelpers {
      * @param _txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
-    function submitBatch(bytes[] calldata _txs, bytes32 _updatedRoot)
-        external
-        payable
-        onlyCoordinator
-        isNotRollingBack
-    {
+    function submitBatch(
+        bytes[] calldata _txs,
+        bytes32 _updatedRoot,
+        Types.BatchType batchType
+    ) external payable onlyCoordinator isNotRollingBack {
         require(
             msg.value >= governance.STAKE_AMOUNT(),
             "Not enough stake committed"
@@ -272,7 +281,7 @@ contract Rollup is RollupHelpers {
             txRoot != ZERO_BYTES32,
             "Cannot submit a transaction with no transactions"
         );
-        addNewBatch(txRoot, _updatedRoot);
+        addNewBatch(txRoot, _updatedRoot, batchType);
     }
 
     /**
@@ -345,7 +354,8 @@ contract Rollup is RollupHelpers {
             batches[_batch_id - 1].accountRoot,
             _txs,
             batchProofs,
-            batches[_batch_id].txRoot
+            batches[_batch_id].txRoot,
+            batches[_batch_id].batchType
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -430,7 +440,8 @@ contract Rollup is RollupHelpers {
         bytes32 accountsRoot,
         Types.Transaction[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        bytes32 expectedTxRoot,
+        Types.BatchType batchType
     )
         public
         view
@@ -440,14 +451,26 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        return
-            fraudProof.processBatch(
-                initialStateRoot,
-                accountsRoot,
-                _txs,
-                batchProofs,
-                expectedTxRoot
-            );
+        if (batchType == Types.BatchType.Transfer) {
+            return
+                fraudProof.processBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        }
+        if (batchType == Types.BatchType.Airdrop) {
+            return
+                airdrop.processBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        }
     }
 
     /**
