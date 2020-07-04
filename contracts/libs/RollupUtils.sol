@@ -30,20 +30,25 @@ library RollupUtils {
         return account.balance;
     }
 
-    function HashFromAccount(Types.UserAccount memory account)
+    // AccountFromBytes decodes the bytes to account
+    function AccountFromBytes(bytes memory accountBytes)
         public
         pure
-        returns (bytes32)
+        returns (uint256 ID, uint256 balance, uint256 nonce, uint256 tokenType)
     {
-        return keccak256(BytesFromAccount(account));
+        return abi
+            .decode(accountBytes, (uint256, uint256, uint256, uint256));
     }
-
+    
+    // 
+    // BytesFromAccount and BytesFromAccountDeconstructed do the same thing i.e encode account to bytes
+    // 
     function BytesFromAccount(Types.UserAccount memory account)
         public
         pure
         returns (bytes memory)
     {
-        bytes memory data= abi.encode(
+        bytes memory data= abi.encodePacked(
                 account.ID,
                 account.balance,
                 account.nonce,
@@ -53,51 +58,36 @@ library RollupUtils {
             return data;
     }
 
-    // NOTE: Not to be used from contracts, its a temp hack
-    function BytesFromAccountDeconstructed(uint256 ID, uint32 balance, uint32 nonce, uint32 tokenType) public pure returns (bytes memory) {
-        return abi.encode(ID, balance, nonce, tokenType);
+    function BytesFromAccountDeconstructed(uint256 ID, uint256 balance, uint256 nonce, uint256 tokenType) public pure returns (bytes memory) {
+        return abi.encodePacked(ID, balance, nonce, tokenType);
     }
 
-    function AccountFromBytes(bytes memory accountBytes)
-        public
-        pure
-        returns (uint256 ID, uint256 balance, uint256 nonce, uint256 tokenType)
-    {
-        return abi
-            .decode(accountBytes, (uint256, uint256, uint256, uint256));
-    }
-
+    // 
+    // HashFromAccount and getAccountHash do the same thing i.e hash account 
+    // 
     function getAccountHash(
         uint256 id,
         uint256 balance,
         uint256 nonce,
         uint256 tokenType
     ) public pure returns (bytes32) {
-        Types.UserAccount memory userAccount = Types.UserAccount({
-            ID: id,
-            tokenType: tokenType,
-            balance: balance,
-            nonce: nonce
-        });
-        return HashFromAccount(userAccount);
+        return keccak256(BytesFromAccountDeconstructed(id,balance,nonce,tokenType));
     }
 
-    // ---------- Tx Related Utils -------------------
-
-    function BytesFromTx(Types.Transaction memory _tx)
+    function HashFromAccount(Types.UserAccount memory account)
         public
         pure
-        returns (bytes memory)
+        returns (bytes32)
     {
-        return
-            abi.encode(
-                _tx.fromIndex,
-                _tx.toIndex,
-                _tx.tokenType,
-                _tx.amount,
-                _tx.signature
-            );
+        return keccak256(BytesFromAccountDeconstructed(
+                account.ID, 
+                account.balance,
+                account.nonce,
+                account.tokenType
+                ));
     }
+    // ---------- Tx Related Utils -------------------
+
 
     function CompressTx(Types.Transaction memory _tx)
         public
@@ -105,7 +95,7 @@ library RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encode(
+            abi.encodePacked(
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
@@ -114,36 +104,55 @@ library RollupUtils {
             );
     }
 
-    // NOTE: Not to be used from contracts, its a temp hack
-    function BytesFromTxDeconstructed(uint256 from, uint256 to, uint256 tokenType, uint256 amount) pure public returns(bytes memory){
-        return abi.encode(from,to,tokenType,amount);
-    }
-
-    function TxFromBytes(bytes memory txBytes) pure public returns(uint256 from, uint256 to, uint256 tokenType, uint256 amount) {
+    // Decoding transaction from bytes
+    function TxFromBytes(bytes memory txBytes) pure public returns(uint256 from, uint256 to, uint256 tokenType, uint256 nonce, uint256 txType,uint256 amount) {
         return abi
-            .decode(txBytes, (uint256, uint256, uint256, uint256));
+            .decode(txBytes, (uint256, uint256, uint256,uint256,uint256, uint256));
     }
 
+    // 
+    // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
+    // 
+    function BytesFromTx(Types.Transaction memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.amount,
+                _tx.signature
+            );
+    }
+    
+    function BytesFromTxDeconstructed(uint256 from, uint256 to, uint256 tokenType, uint256 nonce,uint256 txType,uint256 amount) pure public returns(bytes memory){
+        return abi.encodePacked(from,to,tokenType,nonce,txType,amount);
+    }
+    
+    // 
+    // HashFromTx and getTxSignBytes do the same thing i.e get the tx data to be signed 
+    //  
     function HashFromTx(Types.Transaction memory _tx)
         public
         pure
         returns (bytes32)
     {
-        return keccak256(BytesFromTx(_tx));
+        return keccak256(BytesFromTxDeconstructed(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.nonce,_tx.txType,_tx.amount));
     }
 
-    function getTxHash(
+    function getTxSignBytes(
         uint256 fromIndex,
         uint256 toIndex,
         uint256 tokenType,
+        uint256 txType,
+        uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-                bytes memory data = abi.encode(fromIndex, toIndex, tokenType, amount);
-
-        return keccak256(data);
+        return keccak256(BytesFromTxDeconstructed(fromIndex, toIndex, tokenType, nonce,txType,amount));
     }
-
-
 
     /**
      * @notice Calculates the address from the pubkey

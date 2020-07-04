@@ -10,7 +10,6 @@ import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 
-
 contract Airdrop is FraudProofHelpers {
     /*********************
      * Constructor *
@@ -124,7 +123,7 @@ contract Airdrop is FraudProofHelpers {
         }
 
         bytes32 newRoot;
-        Types.UserAccount memory new_to_account;
+        bytes memory new_to_account;
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
@@ -138,12 +137,6 @@ contract Airdrop is FraudProofHelpers {
 
         (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
 
-        return (
-            newRoot,
-            "",
-            RollupUtils.BytesFromAccount(new_to_account),
-            0,
-            true
-        );
+        return (newRoot, "", new_to_account, 0, true);
     }
 }
