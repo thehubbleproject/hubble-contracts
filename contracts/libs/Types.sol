@@ -4,7 +4,7 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
-    enum BatchType {Genesis, Transfer, Airdrop}
+    enum BatchType {Genesis, Transfer, Airdrop, BurnConsent, BurnExecution}
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
@@ -69,13 +69,13 @@ library Types {
     }
 
     struct AccountProofs {
-      AccountMerkleProof from;
-      AccountMerkleProof to;
+        AccountMerkleProof from;
+        AccountMerkleProof to;
     }
 
     struct BatchValidationProofs {
-      AccountProofs[] accountProofs;
-      PDAMerkleProof[] pdaProof;
+        AccountProofs[] accountProofs;
+        PDAMerkleProof[] pdaProof;
     }
 
     struct TransactionMerkleProof {
