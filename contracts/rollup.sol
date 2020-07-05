@@ -38,6 +38,8 @@ contract RollupSetup {
 
     IFraudProof public fraudProof;
     IFraudProof public airdrop;
+    IFraudProof public burnConsent;
+    IFraudProof public burnExecution;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -254,6 +256,12 @@ contract Rollup is RollupHelpers {
         airdrop = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
+        burnConsent = IFraudProof(
+            nameRegistry.getContractDetails(ParamManager.BURN_CONSENT())
+        );
+        burnExecution = IFraudProof(
+            nameRegistry.getContractDetails(ParamManager.BURN_EXECUTION())
+        );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Genesis);
     }
 
@@ -449,10 +457,27 @@ contract Rollup is RollupHelpers {
                     batchProofs,
                     expectedTxRoot
                 );
-        }
-        if (batchType == Types.BatchType.Airdrop) {
+        } else if (batchType == Types.BatchType.Airdrop) {
             return
                 airdrop.processBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else if (batchType == Types.BatchType.BurnConsent) {
+            return
+                burnConsent.processBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else if (batchType == Types.BatchType.BurnExecution) {
+            return
+                burnExecution.processBatch(
                     initialStateRoot,
                     accountsRoot,
                     _txs,

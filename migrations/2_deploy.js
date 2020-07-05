@@ -12,6 +12,8 @@ const loggerContract = artifacts.require("Logger");
 const tokenRegistryContract = artifacts.require("TokenRegistry");
 const fraudProofContract = artifacts.require("FraudProof");
 const airdropContract = artifacts.require("Airdrop");
+const burnConsentContract = artifacts.require("BurnConsent");
+const burnExecutionContract = artifacts.require("BurnExecution");
 
 const nameRegistryContract = artifacts.require("NameRegistry");
 const incrementalTreeContract = artifacts.require("IncrementalTree");
@@ -95,6 +97,21 @@ module.exports = async function (deployer) {
     [nameRegistryInstance.address],
     "AIRDROP"
   )
+  const burnConsentInstance = await deployAndRegister(
+    deployer,
+    burnConsentContract,
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
+    "BURN_CONSENT"
+  )
+  const burnExecutionInstance = await deployAndRegister(
+    deployer,
+    burnExecutionContract,
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
+    "BURN_EXECUTION"
+  )
+
 
   // deploy POB contract
   const pobInstance = await deployAndRegister(
@@ -155,6 +172,8 @@ module.exports = async function (deployer) {
     MerkleTreeUtils: mtUtilsInstance.address,
     FraudProof: fraudProofInstance.address,
     Airdrop: airdropInstance.address,
+    BurnConsent: burnConsentInstance.address,
+    BurnExecution: burnExecutionInstance.address,
   };
 
   writeContractAddresses(contractAddresses);

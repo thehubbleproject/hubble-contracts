@@ -1,6 +1,5 @@
 pragma solidity ^0.5.15;
 
-
 library ParamManager {
     function DEPOSIT_MANAGER() public pure returns (bytes32) {
         return keccak256("deposit_manager");
@@ -49,8 +48,17 @@ library ParamManager {
     function FRAUD_PROOF() public pure returns (bytes32) {
         return keccak256("fraud_proof");
     }
+
     function AIRDROP() public pure returns (bytes32) {
         return keccak256("airdrop");
+    }
+
+    function BURN_CONSENT() public pure returns (bytes32) {
+        return keccak256("burn_consent");
+    }
+
+    function BURN_EXECUTION() public pure returns (bytes32) {
+        return keccak256("burn_execution");
     }
 
     bytes32 public constant _CHAIN_ID = keccak256("opru-123");

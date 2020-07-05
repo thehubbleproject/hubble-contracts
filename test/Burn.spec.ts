@@ -1,10 +1,14 @@
 import { ethers } from "ethers";
 import * as utils from '../scripts/helpers/utils'
 const RollupCore = artifacts.require("Rollup");
+const burnConsent = artifacts.require("BurnConsent");
+const burnExecution = artifacts.require("BurnExecution");
 
 contract("Burn", async function () {
 
     const rollupCoreInstance = await RollupCore.deployed()
+    const burnConsentInstance = await burnConsent.deployed()
+    const burnExecutionInstance = await burnExecution.deployed()
 
     it("lets coordinator submit a batch of burn consent", async function () {
         await rollupCoreInstance.submitBatch(
