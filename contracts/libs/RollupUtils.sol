@@ -34,44 +34,56 @@ library RollupUtils {
     function AccountFromBytes(bytes memory accountBytes)
         public
         pure
-        returns (uint256 ID, uint256 balance, uint256 nonce, uint256 tokenType)
+        returns (
+            uint256 ID,
+            uint256 balance,
+            uint256 nonce,
+            uint256 tokenType
+        )
     {
-        return abi
-            .decode(accountBytes, (uint256, uint256, uint256, uint256));
+        return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
     }
-    
-    // 
+
+    //
     // BytesFromAccount and BytesFromAccountDeconstructed do the same thing i.e encode account to bytes
-    // 
+    //
     function BytesFromAccount(Types.UserAccount memory account)
         public
         pure
         returns (bytes memory)
     {
-        bytes memory data= abi.encodePacked(
-                account.ID,
-                account.balance,
-                account.nonce,
-                account.tokenType
-            );
+        bytes memory data = abi.encodePacked(
+            account.ID,
+            account.balance,
+            account.nonce,
+            account.tokenType
+        );
 
-            return data;
+        return data;
     }
 
-    function BytesFromAccountDeconstructed(uint256 ID, uint256 balance, uint256 nonce, uint256 tokenType) public pure returns (bytes memory) {
+    function BytesFromAccountDeconstructed(
+        uint256 ID,
+        uint256 balance,
+        uint256 nonce,
+        uint256 tokenType
+    ) public pure returns (bytes memory) {
         return abi.encodePacked(ID, balance, nonce, tokenType);
     }
 
-    // 
-    // HashFromAccount and getAccountHash do the same thing i.e hash account 
-    // 
+    //
+    // HashFromAccount and getAccountHash do the same thing i.e hash account
+    //
     function getAccountHash(
         uint256 id,
         uint256 balance,
         uint256 nonce,
         uint256 tokenType
     ) public pure returns (bytes32) {
-        return keccak256(BytesFromAccountDeconstructed(id,balance,nonce,tokenType));
+        return
+            keccak256(
+                BytesFromAccountDeconstructed(id, balance, nonce, tokenType)
+            );
     }
 
     function HashFromAccount(Types.UserAccount memory account)
@@ -79,13 +91,17 @@ library RollupUtils {
         pure
         returns (bytes32)
     {
-        return keccak256(BytesFromAccountDeconstructed(
-                account.ID, 
-                account.balance,
-                account.nonce,
-                account.tokenType
-                ));
+        return
+            keccak256(
+                BytesFromAccountDeconstructed(
+                    account.ID,
+                    account.balance,
+                    account.nonce,
+                    account.tokenType
+                )
+            );
     }
+
     // ---------- Tx Related Utils -------------------
     function CompressTx(Types.Transaction memory _tx)
         public
@@ -102,7 +118,7 @@ library RollupUtils {
             );
     }
 
-     function CompressTxWithMessage(bytes memory message, bytes memory sig)
+    function CompressTxWithMessage(bytes memory message, bytes memory sig)
         public
         pure
         returns (bytes memory)
@@ -119,21 +135,48 @@ library RollupUtils {
     }
 
     // Decoding transaction from bytes
-    function TxFromBytesDeconstructed(bytes memory txBytes) pure public returns(uint256 from, uint256 to, uint256 tokenType, uint256 nonce, uint256 txType,uint256 amount) {
-        return abi
-            .decode(txBytes, (uint256, uint256, uint256,uint256,uint256, uint256));
+    function TxFromBytesDeconstructed(bytes memory txBytes)
+        public
+        pure
+        returns (
+            uint256 from,
+            uint256 to,
+            uint256 tokenType,
+            uint256 nonce,
+            uint256 txType,
+            uint256 amount
+        )
+    {
+        return
+            abi.decode(
+                txBytes,
+                (uint256, uint256, uint256, uint256, uint256, uint256)
+            );
     }
 
-    function TxFromBytes(bytes memory txBytes) pure public returns(Types.Transaction memory) {
-        Types.Transaction memory transaction; 
-        (transaction.fromIndex,  transaction.toIndex, transaction.tokenType, transaction.nonce, transaction.txType, transaction.amount) = abi
-            .decode(txBytes, (uint256, uint256, uint256,uint256,uint256, uint256));
+    function TxFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.Transaction memory)
+    {
+        Types.Transaction memory transaction;
+        (
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.tokenType,
+            transaction.nonce,
+            transaction.txType,
+            transaction.amount
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256)
+        );
         return transaction;
     }
 
-    // 
+    //
     // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
-    // 
+    //
     function BytesFromTx(Types.Transaction memory _tx)
         public
         pure
@@ -149,20 +192,37 @@ library RollupUtils {
                 _tx.amount
             );
     }
-    
-    function BytesFromTxDeconstructed(uint256 from, uint256 to, uint256 tokenType, uint256 nonce,uint256 txType,uint256 amount) pure public returns(bytes memory){
-        return abi.encodePacked(from,to,tokenType,nonce,txType,amount);
+
+    function BytesFromTxDeconstructed(
+        uint256 from,
+        uint256 to,
+        uint256 tokenType,
+        uint256 nonce,
+        uint256 txType,
+        uint256 amount
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
     }
-    
-    // 
-    // HashFromTx and getTxSignBytes do the same thing i.e get the tx data to be signed 
-    //  
+
+    //
+    // HashFromTx and getTxSignBytes do the same thing i.e get the tx data to be signed
+    //
     function HashFromTx(Types.Transaction memory _tx)
         public
         pure
         returns (bytes32)
     {
-        return keccak256(BytesFromTxDeconstructed(_tx.fromIndex, _tx.toIndex, _tx.tokenType, _tx.nonce,_tx.txType,_tx.amount));
+        return
+            keccak256(
+                BytesFromTxDeconstructed(
+                    _tx.fromIndex,
+                    _tx.toIndex,
+                    _tx.tokenType,
+                    _tx.nonce,
+                    _tx.txType,
+                    _tx.amount
+                )
+            );
     }
 
     function getTxSignBytes(
@@ -173,7 +233,17 @@ library RollupUtils {
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-        return keccak256(BytesFromTxDeconstructed(fromIndex, toIndex, tokenType, nonce,txType,amount));
+        return
+            keccak256(
+                BytesFromTxDeconstructed(
+                    fromIndex,
+                    toIndex,
+                    tokenType,
+                    nonce,
+                    txType,
+                    amount
+                )
+            );
     }
 
     /**
@@ -190,20 +260,44 @@ library RollupUtils {
         assembly {
             mstore(0, hash)
             addr := mload(0)
-            
         }
     }
 
-    function GetGenesisLeaves() public view returns(bytes32[2] memory leaves){
-       Types.UserAccount memory account1 = Types.UserAccount({ID: 0, tokenType:0, balance:0, nonce:0});
-       Types.UserAccount memory account2 = Types.UserAccount({ID:1, tokenType:0, balance:0, nonce:0});
-      leaves[0]= HashFromAccount(account1);
-      leaves[1] = HashFromAccount(account2);
+    function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
+        Types.UserAccount memory account1 = Types.UserAccount({
+            ID: 0,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0
+        });
+        Types.UserAccount memory account2 = Types.UserAccount({
+            ID: 1,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0
+        });
+        leaves[0] = HashFromAccount(account1);
+        leaves[1] = HashFromAccount(account2);
     }
-      function GetGenesisDataBlocks() public view returns(bytes[2] memory dataBlocks){
-       Types.UserAccount memory account1 = Types.UserAccount({ID: 0, tokenType:0, balance:0, nonce:0});
-       Types.UserAccount memory account2 = Types.UserAccount({ID:1, tokenType:0, balance:0, nonce:0});
-      dataBlocks[0]= BytesFromAccount(account1);
-      dataBlocks[1] = BytesFromAccount(account2);
+
+    function GetGenesisDataBlocks()
+        public
+        pure
+        returns (bytes[2] memory dataBlocks)
+    {
+        Types.UserAccount memory account1 = Types.UserAccount({
+            ID: 0,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0
+        });
+        Types.UserAccount memory account2 = Types.UserAccount({
+            ID: 1,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0
+        });
+        dataBlocks[0] = BytesFromAccount(account1);
+        dataBlocks[1] = BytesFromAccount(account2);
     }
 }

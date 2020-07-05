@@ -50,12 +50,6 @@ export async function CreateAccountLeaf(
   token: number
 ) {
   var rollupUtils = await RollupUtils.deployed();
-  // var account = {
-  //   ID: ID,
-  //   tokenType: token,
-  //   balance: balance,
-  //   nonce: nonce,
-  // };
   var result = await rollupUtils.getAccountHash(ID, balance, nonce, token);
   return result;
 }
