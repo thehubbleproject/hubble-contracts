@@ -216,5 +216,5 @@ export async function compressTx(
 }
 
 export enum BatchType {
-  Genesis, Transfer, Airdrop
+  Genesis, Transfer, Airdrop, BurnConsent, BurnExecution
 }
