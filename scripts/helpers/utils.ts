@@ -3,6 +3,7 @@ const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
+const RollupUtils = artifacts.require("RollupUtils");
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
   var abiCoder = ethers.utils.defaultAbiCoder;
@@ -26,51 +27,64 @@ export function StringToBytes32(data: string) {
   return ethers.utils.formatBytes32String(data);
 }
 
-export function BytesFromAccountData(
+export async function BytesFromAccountData(
   ID: number,
   balance: number,
   nonce: number,
   token: number
 ) {
-  var abiCoder = ethers.utils.defaultAbiCoder;
-
-  return abiCoder.encode(
-    ["uint256", "uint256", "uint256", "uint256"],
-    [ID, balance, nonce, token]
-  );
+  var rollupUtils = await RollupUtils.deployed();
+  var account = {
+    ID: ID,
+    tokenType: token,
+    balance: balance,
+    nonce: nonce,
+  };
+  return rollupUtils.BytesFromAccount(account);
 }
 
-export function CreateAccountLeaf(
+export async function CreateAccountLeaf(
   ID: number,
   balance: number,
   nonce: number,
   token: number
 ) {
-  var data = BytesFromAccountData(ID, balance, nonce, token);
-  return Hash(data);
+  var rollupUtils = await RollupUtils.deployed();
+  var result = await rollupUtils.getAccountHash(ID, balance, nonce, token);
+  return result;
 }
 
-export function BytesFromTx(
+export async function BytesFromTx(
   from: number,
   to: number,
   token: number,
-  amount: number
+  amount: number,
+  type: number,
+  nonce: number
 ) {
-  var abiCoder = ethers.utils.defaultAbiCoder;
-
-  return abiCoder.encode(
-    ["uint256", "uint256", "uint256", "uint256"],
-    [from, to, token, amount]
-  );
+  var rollupUtils = await RollupUtils.deployed();
+  var tx = {
+    fromIndex: from,
+    toIndex: to,
+    tokenType: token,
+    nonce: nonce,
+    txType: type,
+    amount: amount,
+    signature: "",
+  };
+  var result = await rollupUtils.BytesFromTx(tx);
+  return result;
 }
 
-export function HashFromTx(
+export async function HashFromTx(
   from: number,
   to: number,
   token: number,
-  amount: number
+  amount: number,
+  type: number,
+  nonce: number
 ) {
-  var data = BytesFromTx(from, to, token, amount);
+  var data = await BytesFromTx(from, to, token, amount, type, nonce);
   return Hash(data);
 }
 
@@ -101,20 +115,6 @@ export async function getZeroHash(zeroValue: any) {
   return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
 }
 
-export async function getMerkleRootWithCoordinatorAccount(maxSize: any) {
-  // coordinator account
-  var coordinator = CreateAccountLeaf(0, 0, 0, 0);
-  var dataLeaves = [];
-  dataLeaves[0] = coordinator;
-  console.log("hered");
-  // create empty leaves
-  for (var i = 1; i < maxSize; i++) {
-    dataLeaves[i] = getZeroHash(0);
-  }
-
-  var merkleTree = getMerkleTreeUtils();
-}
-
 export async function getMerkleTreeUtils() {
   // get deployed name registry instance
   var nameRegistryInstance = await nameRegistry.deployed();
@@ -131,6 +131,11 @@ export async function getMerkleTreeUtils() {
   return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
 
+export async function getRollupUtils() {
+  var rollupUtils: any = await rollupUtils.deployed();
+  return rollupUtils;
+}
+
 export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
   var nextLevelLength = dataLeaves.length;
   var currentLevel = 0;
@@ -139,10 +144,10 @@ export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
   // create a merkle root to see if this is valid
   while (nextLevelLength > 1) {
     currentLevel += 1;
+
     // Calculate the nodes for the currentLevel
     for (var i = 0; i < nextLevelLength / 2; i++) {
       nodes[i] = getParentLeaf(nodes[i * 2], nodes[i * 2 + 1]);
-      console.log("root", nodes[i]);
     }
     nextLevelLength = nextLevelLength / 2;
     // Check if we will need to add an extra node
@@ -173,33 +178,41 @@ export async function genMerkleRootFromSiblings(
 }
 
 export async function getTokenRegistry() {
-  // get deployed name registry instance
-  var nameRegistryInstance = await nameRegistry.deployed();
-
-  // get deployed parama manager instance
-  var paramManager = await ParamManager.deployed();
-
-  // get accounts tree key
-  var tokenRegistryKey = await paramManager.TOKEN_REGISTRY();
-
-  var tokenRegistryAddress = await nameRegistryInstance.getContractDetails(
-    tokenRegistryKey
-  );
-  return TokenRegistry.at(tokenRegistryAddress);
+  return TokenRegistry.deployed();
 }
 
 export async function compressTx(
-  from: any,
-  to: any,
-  amount: any,
-  token: any,
+  from: number,
+  to: number,
+  nonce: number,
+  amount: number,
+  token: number,
   sig: any
 ) {
-  var abiCoder = ethers.utils.defaultAbiCoder;
-  return abiCoder.encode(
-    ["uint256", "uint256", "uint256", "uint256", "bytes"],
-    [from, to, token, amount, sig]
+  var rollupUtils = await RollupUtils.deployed();
+  var tx = {
+    fromIndex: from,
+    toIndex: to,
+    tokenType: token,
+    nonce: nonce,
+    txType: 1,
+    amount: amount,
+    signature: sig,
+  };
+
+  // TODO find out why this fails
+  // await rollupUtils.CompressTx(tx);
+
+  var message = await rollupUtils.BytesFromTxDeconstructed(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.tokenType,
+    tx.nonce,
+    tx.txType,
+    tx.amount
   );
+  var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
+  return result;
 }
 
 export enum BatchType {
