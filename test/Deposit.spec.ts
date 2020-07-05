@@ -62,6 +62,7 @@ contract("DepositManager", async function (accounts) {
     var rollupContractInstance = await RollupCore.deployed();
     var testTokenInstance = await TestToken.deployed();
     let rollupCoreInstance = await RollupCore.deployed();
+    var rollupUtilsInstance = await RollupUtils.deployed();
     var MTutilsInstance = await utils.getMerkleTreeUtils();
 
     var Alice = {
@@ -80,8 +81,7 @@ contract("DepositManager", async function (accounts) {
       AccID: 3,
       Path: "3",
     };
-    var coordinator_leaf =
-      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
+    var coordinator_leaves = await rollupUtilsInstance.GetGenesisLeaves();
 
     var maxSize = 4;
     console.log("User information", "Alice", Alice, "bob", Bob);
@@ -94,8 +94,7 @@ contract("DepositManager", async function (accounts) {
       Alice.TokenType,
       Alice.Pubkey
     );
-
-    var AliceAccountLeaf = utils.CreateAccountLeaf(
+    var AliceAccountLeaf = await utils.CreateAccountLeaf(
       Alice.AccID,
       Alice.Amount,
       0,
@@ -111,10 +110,6 @@ contract("DepositManager", async function (accounts) {
       BalanceOfAlice - Alice.Amount,
       "User balance did not reduce after deposit"
     );
-
-    // verify pending deposits
-    var pendingDeposits0 = await depositManagerInstance.pendingDeposits(0);
-    assert.equal(pendingDeposits0, AliceAccountLeaf, "Account hash mismatch");
 
     //
     // do second deposit
@@ -135,7 +130,7 @@ contract("DepositManager", async function (accounts) {
       Bob.TokenType
     );
 
-    pendingDeposits0 = await depositManagerInstance.dequeue.call();
+    var pendingDeposits0 = await depositManagerInstance.dequeue.call();
 
     assert.equal(
       pendingDeposits0,
@@ -154,7 +149,6 @@ contract("DepositManager", async function (accounts) {
       Bob.Pubkey
     );
 
-
     // do a deposit for bob
     await depositManagerInstance.depositFor(
       Bob.Address,
@@ -163,7 +157,6 @@ contract("DepositManager", async function (accounts) {
       Bob.Pubkey
     );
 
-
     // finalise the deposit back to the state tree
     var path = "001";
 
@@ -171,7 +164,7 @@ contract("DepositManager", async function (accounts) {
     var defaultHashes = await utils.defaultHashes(4);
 
     var siblingsInProof = [
-      utils.getParentLeaf(coordinator_leaf, coordinator_leaf),
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
       defaultHashes[2],
       defaultHashes[3],
     ];
@@ -243,227 +236,4 @@ contract("DepositManager", async function (accounts) {
     );
     expect(isValid).to.be.deep.eq(true);
   });
-
-  // it("submit a new batch", async function() {
-  //   let depositManagerInstance = await DepositManager.deployed();
-  //   var testTokenInstance = await TestToken.deployed();
-  //   let rollupCoreInstance = await RollupCore.deployed();
-  //   var MTutilsInstance = await utils.getMerkleTreeUtils();
-  //   let testToken = await TestToken.deployed();
-  //   let RollupUtilsInstance = await RollupUtils.deployed();
-  //   let tokenRegistryInstance = await utils.getTokenRegistry();
-  //   let IMTInstance = await IMT.deployed();
-
-  //   var OriginalAlice = {
-  //     Address: wallets[0].getAddressString(),
-  //     Pubkey: wallets[0].getPublicKeyString(),
-  //     Amount: 10,
-  //     TokenType: 1,
-  //     AccID: 2,
-  //     Path: "2"
-  //   };
-  //   var OriginalBob = {
-  //     Address: wallets[1].getAddressString(),
-  //     Pubkey: wallets[1].getPublicKeyString(),
-  //     Amount: 10,
-  //     TokenType: 1,
-  //     AccID: 3,
-  //     Path: "3"
-  //   };
-  //   var coordinator_leaf =
-  //     "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
-  //   var coordinatorPubkeyHash =
-  //     "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
-  //   var maxSize = 4;
-  //   var AliceAccountLeaf = utils.CreateAccountLeaf(
-  //     OriginalAlice.AccID,
-  //     OriginalAlice.Amount,
-  //     0,
-  //     OriginalAlice.TokenType
-  //   );
-  //   var BobAccountLeaf = utils.CreateAccountLeaf(
-  //     OriginalBob.AccID,
-  //     OriginalBob.Amount,
-  //     0,
-  //     OriginalBob.TokenType
-  //   );
-
-  //   // make a transfer between alice and bob's account
-  //   var tranferAmount = 1;
-  //   var NewAliceAccountLeaf = utils.CreateAccountLeaf(
-  //     OriginalAlice.AccID,
-  //     OriginalAlice.Amount - tranferAmount,
-  //     1,
-  //     OriginalAlice.TokenType
-  //   );
-
-  //   var NewBobAccountLeaf = utils.CreateAccountLeaf(
-  //     OriginalBob.AccID,
-  //     OriginalBob.Amount + tranferAmount,
-  //     1,
-  //     OriginalBob.TokenType
-  //   );
-
-  //   // prepare data for process Tx
-  //   var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-  //   var accountRoot = await IMTInstance.getTreeRoot();
-  //   var zeroHashes: any = await utils.defaultHashes(maxSize);
-  //   var AlicePDAsiblings = [
-  //     utils.PubKeyHash(OriginalBob.Pubkey),
-  //     utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
-  //     zeroHashes[2],
-  //     zeroHashes[3]
-  //   ];
-
-  //   var BobPDAsiblings = [
-  //     utils.PubKeyHash(OriginalAlice.Pubkey),
-  //     utils.getParentLeaf(
-  //       coordinatorPubkeyHash,
-  //       utils.PubKeyHash(OriginalAlice.Pubkey)
-  //     ),
-  //     zeroHashes[2],
-  //     zeroHashes[3]
-  //   ];
-
-  //   var alicePDAProof = {
-  //     _pda: {
-  //       pathToPubkey: "2",
-  //       pubkey_leaf: {pubkey: OriginalAlice.Pubkey}
-  //     },
-  //     siblings: AlicePDAsiblings
-  //   };
-
-  //   var isValid = await MTutilsInstance.verifyLeaf(
-  //     accountRoot,
-  //     utils.PubKeyHash(OriginalAlice.Pubkey),
-  //     "2",
-  //     AlicePDAsiblings
-  //   );
-  //   assert.equal(isValid, true, "pda proof wrong");
-
-  //   var bobPDAProof = {
-  //     _pda: {
-  //       pathToPubkey: "2",
-  //       pubkey_leaf: {pubkey: OriginalBob.Pubkey}
-  //     },
-  //     siblings: BobPDAsiblings
-  //   };
-
-  //   var tx = {
-  //     fromIndex: OriginalAlice.AccID,
-  //     toIndex: OriginalBob.AccID,
-  //     tokenType: OriginalAlice.TokenType,
-  //     amount: tranferAmount,
-  //     signature:
-  //       "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
-  //   };
-
-  //   var dataToSign = await RollupUtilsInstance.getTxHash(
-  //     tx.fromIndex,
-  //     tx.toIndex,
-  //     tx.tokenType,
-  //     tx.amount
-  //   );
-
-  //   const h = ethUtils.toBuffer(dataToSign);
-  //   var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
-  //   tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-
-  //   // alice balance tree merkle proof
-  //   var AliceAccountSiblings: Array<string> = [
-  //     BobAccountLeaf,
-  //     utils.getParentLeaf(coordinator_leaf, zeroHashes[0]),
-  //     zeroHashes[2],
-  //     zeroHashes[3]
-  //   ];
-  //   var leaf = AliceAccountLeaf;
-  //   var AliceAccountPath: string = "2";
-  //   var isValid = await MTutilsInstance.verifyLeaf(
-  //     currentRoot,
-  //     leaf,
-  //     AliceAccountPath,
-  //     AliceAccountSiblings
-  //   );
-  //   expect(isValid).to.be.deep.eq(true);
-
-  //   var AliceAccountMP = {
-  //     accountIP: {
-  //       pathToAccount: AliceAccountPath,
-  //       account: {
-  //         ID: OriginalAlice.AccID,
-  //         tokenType: OriginalAlice.TokenType,
-  //         balance: OriginalAlice.Amount,
-  //         nonce: 0
-  //       }
-  //     },
-  //     siblings: AliceAccountSiblings
-  //   };
-
-  //   var UpdatedAliceAccountLeaf = utils.CreateAccountLeaf(
-  //     OriginalAlice.AccID,
-  //     OriginalAlice.Amount - tx.amount,
-  //     0,
-  //     OriginalAlice.TokenType
-  //   );
-
-  //   // bob balance tree merkle proof
-  //   var BobAccountSiblings: Array<string> = [
-  //     UpdatedAliceAccountLeaf,
-  //     utils.getParentLeaf(coordinator_leaf, zeroHashes[0]),
-  //     zeroHashes[2],
-  //     zeroHashes[3]
-  //   ];
-  //   var leaf = BobAccountLeaf;
-  //   var BobAccountPath: string = "3";
-
-  //   var isBobValid = await MTutilsInstance.verifyLeaf(
-  //     currentRoot,
-  //     leaf,
-  //     BobAccountPath,
-  //     BobAccountSiblings
-  //   );
-
-  //   var BobAccountMP = {
-  //     accountIP: {
-  //       pathToAccount: BobAccountPath,
-  //       account: {
-  //         ID: OriginalBob.AccID,
-  //         tokenType: OriginalBob.TokenType,
-  //         balance: OriginalBob.Amount,
-  //         nonce: 0
-  //       }
-  //     },
-  //     siblings: BobAccountSiblings
-  //   };
-
-  //   // process transaction validity with process tx
-  //   var result = await rollupCoreInstance.processTx(
-  //     currentRoot,
-  //     accountRoot,
-  //     tx,
-  //     alicePDAProof,
-  //     AliceAccountMP,
-  //     BobAccountMP
-  //   );
-  //   console.log("result of processTx", result);
-
-  //   // change the tokenType so that the batch is invalid
-  //   var compressedTx = await utils.compressTx(
-  //     tx.fromIndex,
-  //     tx.toIndex,
-  //     tx.amount,
-  //     2,
-  //     tx.signature
-  //   );
-
-  //   let compressedTxs: string[] = [];
-  //   compressedTxs.push(compressedTx);
-
-  //   // submit batch for that transactions
-  //   await rollupCoreInstance.submitBatch(
-  //     compressedTxs,
-  //     "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
-  //     {value: ethers.utils.parseEther("32").toString()}
-  //   );
-  // });
 });
