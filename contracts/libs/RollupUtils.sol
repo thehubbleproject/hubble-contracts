@@ -87,8 +87,6 @@ library RollupUtils {
                 ));
     }
     // ---------- Tx Related Utils -------------------
-
-
     function CompressTx(Types.Transaction memory _tx)
         public
         pure
@@ -104,10 +102,33 @@ library RollupUtils {
             );
     }
 
+     function CompressTxWithMessage(bytes memory message, bytes memory sig)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.Transaction memory _tx = TxFromBytes(message);
+        return
+            abi.encodePacked(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.amount,
+                sig
+            );
+    }
+
     // Decoding transaction from bytes
-    function TxFromBytes(bytes memory txBytes) pure public returns(uint256 from, uint256 to, uint256 tokenType, uint256 nonce, uint256 txType,uint256 amount) {
+    function TxFromBytesDeconstructed(bytes memory txBytes) pure public returns(uint256 from, uint256 to, uint256 tokenType, uint256 nonce, uint256 txType,uint256 amount) {
         return abi
             .decode(txBytes, (uint256, uint256, uint256,uint256,uint256, uint256));
+    }
+
+    function TxFromBytes(bytes memory txBytes) pure public returns(Types.Transaction memory) {
+        Types.Transaction memory transaction; 
+        (transaction.fromIndex,  transaction.toIndex, transaction.tokenType, transaction.nonce, transaction.txType, transaction.amount) = abi
+            .decode(txBytes, (uint256, uint256, uint256,uint256,uint256, uint256));
+        return transaction;
     }
 
     // 
@@ -123,8 +144,9 @@ library RollupUtils {
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
-                _tx.amount,
-                _tx.signature
+                _tx.nonce,
+                _tx.txType,
+                _tx.amount
             );
     }
     
@@ -168,6 +190,20 @@ library RollupUtils {
         assembly {
             mstore(0, hash)
             addr := mload(0)
+            
         }
+    }
+
+    function GetGenesisLeaves() public view returns(bytes32[2] memory leaves){
+       Types.UserAccount memory account1 = Types.UserAccount({ID: 0, tokenType:0, balance:0, nonce:0});
+       Types.UserAccount memory account2 = Types.UserAccount({ID:1, tokenType:0, balance:0, nonce:0});
+      leaves[0]= HashFromAccount(account1);
+      leaves[1] = HashFromAccount(account2);
+    }
+      function GetGenesisDataBlocks() public view returns(bytes[2] memory dataBlocks){
+       Types.UserAccount memory account1 = Types.UserAccount({ID: 0, tokenType:0, balance:0, nonce:0});
+       Types.UserAccount memory account2 = Types.UserAccount({ID:1, tokenType:0, balance:0, nonce:0});
+      dataBlocks[0]= BytesFromAccount(account1);
+      dataBlocks[1] = BytesFromAccount(account2);
     }
 }

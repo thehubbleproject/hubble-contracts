@@ -161,39 +161,26 @@ module.exports = async function (deployer) {
 };
 
 async function getMerkleRootWithCoordinatorAccount(maxSize) {
-  // coordinator account
-  var coordinator =
-    "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
   var dataLeaves = [];
-  dataLeaves[0] = coordinator;
-  dataLeaves[1] = coordinator;
-
-  var numOfAccsForCoord = 2;
+  var rollupUtils = await rollupUtilsLib.deployed();
+  dataLeaves = await rollupUtils.GetGenesisLeaves();
+  var ZERO_BYTES32 =
+    "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
+  var numOfAccsForCoord = dataLeaves.length;
+  console.log(
+    "Data leaves fetched from contract",
+    dataLeaves,
+    "count",
+    dataLeaves.length
+  );
   var numberOfDataLeaves = 2 ** maxSize;
-
   // create empty leaves
   for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
-    dataLeaves[i] =
-      "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
+    dataLeaves[i] = ZERO_BYTES32;
   }
-
-  // get deployed name registry instance
-  var nameRegistryInstance = await nameRegistryContract.deployed();
-
-  // get deployed parama manager instance
-  var paramManagerInstance = await paramManagerLib.deployed();
-
-  // get accounts tree key
-  var merkleTreeUtilKey = await paramManagerInstance.MERKLE_UTILS();
-
-  var merkleTreeUtilsAddr = await nameRegistryInstance.getContractDetails(
-    merkleTreeUtilKey
-  );
-
-  MTUtilsInstance = await merkleTreeUtilsContract.at(merkleTreeUtilsAddr);
+  MTUtilsInstance = await merkleTreeUtilsContract.deployed();
   var result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
   console.log("result", result);
-
   return result;
 }
 
