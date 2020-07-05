@@ -32,6 +32,7 @@ contract("Rollup", async function (accounts) {
     await tokenRegistryInstance.finaliseTokenRegistration(testToken.address, {
       from: wallets[0].getAddressString(),
     });
+    var coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
     await testToken.approve(
       depositManagerInstance.address,
       web3.utils.toWei("1"),
@@ -56,12 +57,10 @@ contract("Rollup", async function (accounts) {
       AccID: 2,
       Path: "3",
     };
-    var coordinator =
-      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
     var maxSize = 4;
 
     await testTokenInstance.transfer(Alice.Address, 100);
-    var AliceAccountLeaf = utils.CreateAccountLeaf(
+    var AliceAccountLeaf = await utils.CreateAccountLeaf(
       Alice.AccID,
       Alice.Amount,
       0,
@@ -72,7 +71,7 @@ contract("Rollup", async function (accounts) {
       Alice.TokenType,
       Alice.Pubkey
     );
-    var BobAccountLeaf = utils.CreateAccountLeaf(
+    var BobAccountLeaf = await utils.CreateAccountLeaf(
       Bob.AccID,
       Bob.Amount,
       0,
@@ -92,7 +91,7 @@ contract("Rollup", async function (accounts) {
     var path = "001";
     var defaultHashes = await utils.defaultHashes(4);
     var siblingsInProof = [
-      utils.getParentLeaf(coordinator, coordinator),
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
       defaultHashes[2],
       defaultHashes[3],
     ];
@@ -118,14 +117,10 @@ contract("Rollup", async function (accounts) {
   });
 
   it("submit new batch", async function () {
-    let depositManagerInstance = await DepositManager.deployed();
-    var testTokenInstance = await TestToken.deployed();
     let rollupCoreInstance = await RollupCore.deployed();
     var MTutilsInstance = await utils.getMerkleTreeUtils();
-    let testToken = await TestToken.deployed();
-
+    var rollupUtilsInstance = await RollupUtils.deployed();
     let RollupUtilsInstance = await RollupUtils.deployed();
-    let tokenRegistryInstance = await utils.getTokenRegistry();
     let IMTInstance = await IMT.deployed();
     var OriginalAlice = {
       Address: wallets[0].getAddressString(),
@@ -143,18 +138,17 @@ contract("Rollup", async function (accounts) {
       AccID: 3,
       Path: "3",
     };
-    var coordinator =
-      "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
+    var coordinator_leaves = await rollupUtilsInstance.GetGenesisLeaves();
     var coordinatorPubkeyHash =
       "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
     var maxSize = 4;
-    var AliceAccountLeaf = utils.CreateAccountLeaf(
+    var AliceAccountLeaf = await utils.CreateAccountLeaf(
       OriginalAlice.AccID,
       OriginalAlice.Amount,
       0,
       OriginalAlice.TokenType
     );
-    var BobAccountLeaf = utils.CreateAccountLeaf(
+    var BobAccountLeaf = await utils.CreateAccountLeaf(
       OriginalBob.AccID,
       OriginalBob.Amount,
       0,
@@ -163,14 +157,14 @@ contract("Rollup", async function (accounts) {
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
-    var NewAliceAccountLeaf = utils.CreateAccountLeaf(
+    var NewAliceAccountLeaf = await utils.CreateAccountLeaf(
       OriginalAlice.AccID,
       OriginalAlice.Amount - tranferAmount,
       1,
       OriginalAlice.TokenType
     );
 
-    var NewBobAccountLeaf = utils.CreateAccountLeaf(
+    var NewBobAccountLeaf = await utils.CreateAccountLeaf(
       OriginalBob.AccID,
       OriginalBob.Amount + tranferAmount,
       1,
@@ -249,7 +243,7 @@ contract("Rollup", async function (accounts) {
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
-      utils.getParentLeaf(coordinator, coordinator),
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
       zeroHashes[2],
       zeroHashes[3],
     ];
@@ -275,7 +269,7 @@ contract("Rollup", async function (accounts) {
       siblings: AliceAccountSiblings,
     };
 
-    var UpdatedAliceAccountLeaf = utils.CreateAccountLeaf(
+    var UpdatedAliceAccountLeaf = await utils.CreateAccountLeaf(
       OriginalAlice.AccID,
       OriginalAlice.Amount - tx.amount,
       1,
@@ -285,7 +279,7 @@ contract("Rollup", async function (accounts) {
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
       UpdatedAliceAccountLeaf,
-      utils.getParentLeaf(coordinator, coordinator),
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
       zeroHashes[2],
       zeroHashes[3],
     ];
@@ -330,19 +324,20 @@ contract("Rollup", async function (accounts) {
     var compressedTx = await utils.compressTx(
       tx.fromIndex,
       tx.toIndex,
+      tx.nonce,
       tx.amount,
       tx.tokenType,
       tx.signature
     );
+
     let compressedTxs: string[] = [];
     compressedTxs.push(compressedTx);
     console.log("compressedTx: " + JSON.stringify(compressedTxs));
-    console.log("result", result);
 
     // submit batch for that transactions
     await rollupCoreInstance.submitBatch(
       compressedTxs,
-      "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
+      "0x38835227026a5b5d2021c1d2ed89ebdef013a00ad3da63ed8b79f1823f8fabe6",
       { value: ethers.utils.parseEther("32").toString() }
     );
   });

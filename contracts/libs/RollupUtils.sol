@@ -87,8 +87,6 @@ library RollupUtils {
                 ));
     }
     // ---------- Tx Related Utils -------------------
-
-
     function CompressTx(Types.Transaction memory _tx)
         public
         pure
@@ -104,7 +102,7 @@ library RollupUtils {
             );
     }
 
-     function CompressTxWithMessage(bytes memory message)
+     function CompressTxWithMessage(bytes memory message, bytes memory sig)
         public
         pure
         returns (bytes memory)
@@ -116,7 +114,7 @@ library RollupUtils {
                 _tx.toIndex,
                 _tx.tokenType,
                 _tx.amount,
-                _tx.signature
+                sig
             );
     }
 
@@ -192,6 +190,20 @@ library RollupUtils {
         assembly {
             mstore(0, hash)
             addr := mload(0)
+            
         }
+    }
+
+    function GetGenesisLeaves() public view returns(bytes32[2] memory leaves){
+       Types.UserAccount memory account1 = Types.UserAccount({ID: 0, tokenType:0, balance:0, nonce:0});
+       Types.UserAccount memory account2 = Types.UserAccount({ID:1, tokenType:0, balance:0, nonce:0});
+      leaves[0]= HashFromAccount(account1);
+      leaves[1] = HashFromAccount(account2);
+    }
+      function GetGenesisDataBlocks() public view returns(bytes[2] memory dataBlocks){
+       Types.UserAccount memory account1 = Types.UserAccount({ID: 0, tokenType:0, balance:0, nonce:0});
+       Types.UserAccount memory account2 = Types.UserAccount({ID:1, tokenType:0, balance:0, nonce:0});
+      dataBlocks[0]= BytesFromAccount(account1);
+      dataBlocks[1] = BytesFromAccount(account2);
     }
 }
