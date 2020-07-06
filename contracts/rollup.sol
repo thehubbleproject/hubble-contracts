@@ -327,7 +327,7 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs
     ) public {
         {
@@ -401,7 +401,7 @@ contract Rollup is RollupHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -435,7 +435,7 @@ contract Rollup is RollupHelpers {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot,
         Types.BatchType batchType

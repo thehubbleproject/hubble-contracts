@@ -174,6 +174,43 @@ library RollupUtils {
         return transaction;
     }
 
+    function TxFromBytesWithSig(bytes memory txBytes)
+        public
+        pure
+        returns (Types.Transaction memory)
+    {
+        Types.Transaction memory transaction;
+        (
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.tokenType,
+            transaction.nonce,
+            transaction.txType,
+            transaction.amount,
+            transaction.signature
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256, bytes)
+        );
+        return transaction;
+    }
+
+    function DropFromBytesWithSig(bytes memory dropBytes)
+        public
+        pure
+        returns (Types.Drop memory)
+    {
+        Types.Drop memory drop;
+        (
+            drop.toIndex,
+            drop.tokenType,
+            drop.epoch,
+            drop.amount,
+            drop.signature
+        ) = abi.decode(dropBytes, (uint256, uint256, uint256, uint256, bytes));
+        return drop;
+    }
+
     //
     // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
     //
