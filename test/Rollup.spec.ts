@@ -333,6 +333,7 @@ contract("Rollup", async function (accounts) {
     let compressedTxs: string[] = [];
     compressedTxs.push(compressedTx);
     console.log("compressedTx: " + JSON.stringify(compressedTxs));
+    
 
     // submit batch for that transactions
     await rollupCoreInstance.submitBatch(
