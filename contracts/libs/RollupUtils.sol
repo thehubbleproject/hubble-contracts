@@ -109,7 +109,7 @@ library RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encodePacked(
+            abi.encode(
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
@@ -125,7 +125,7 @@ library RollupUtils {
     {
         Types.Transaction memory _tx = TxFromBytes(message);
         return
-            abi.encodePacked(
+            abi.encode(
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
@@ -184,13 +184,11 @@ library RollupUtils {
             transaction.fromIndex,
             transaction.toIndex,
             transaction.tokenType,
-            transaction.nonce,
-            transaction.txType,
             transaction.amount,
             transaction.signature
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256, bytes)
+            (uint256, uint256, uint256, uint256, bytes)
         );
         return transaction;
     }
