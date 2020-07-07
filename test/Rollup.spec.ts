@@ -324,7 +324,8 @@ contract("Rollup", async function (accounts) {
       accountRoot,
       compressedTx,
       alicePDAProof,
-      accountProofs
+      accountProofs,
+      utils.Usage.Transfer
     );
 
     let compressedTxs: string[] = [];
@@ -335,7 +336,7 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.submitBatch(
       compressedTxs,
       "0x38835227026a5b5d2021c1d2ed89ebdef013a00ad3da63ed8b79f1823f8fabe6",
-      utils.BatchType.Transfer,
+      utils.Usage.Transfer,
       { value: ethers.utils.parseEther("32").toString() }
     );
   });

@@ -4,7 +4,7 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
-    enum BatchType {Genesis, Transfer, Airdrop, BurnConsent, BurnExecution}
+    enum Usage {Genesis, Transfer, Airdrop, BurnConsent, BurnExecution}
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
@@ -21,7 +21,7 @@ library Types {
         uint256 stakeCommitted;
         uint256 finalisesOn;
         uint256 timestamp;
-        BatchType batchType;
+        Usage batchType;
     }
 
     // Transaction represents how each transaction looks like for

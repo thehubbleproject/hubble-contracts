@@ -98,7 +98,7 @@ contract RollupHelpers is RollupSetup {
     function addNewBatch(
         bytes32 txRoot,
         bytes32 _updatedRoot,
-        Types.BatchType batchType
+        Types.Usage batchType
     ) internal {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
@@ -133,7 +133,7 @@ contract RollupHelpers is RollupSetup {
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             timestamp: now,
-            batchType: Types.BatchType.Transfer
+            batchType: Types.Usage.Transfer
         });
 
         batches.push(newBatch);
@@ -262,7 +262,7 @@ contract Rollup is RollupHelpers {
         burnExecution = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.BURN_EXECUTION())
         );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.BatchType.Genesis);
+        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }
 
     /**
@@ -273,7 +273,7 @@ contract Rollup is RollupHelpers {
     function submitBatch(
         bytes[] calldata _txs,
         bytes32 _updatedRoot,
-        Types.BatchType batchType
+        Types.Usage batchType
     ) external payable onlyCoordinator isNotRollingBack {
         require(
             msg.value >= governance.STAKE_AMOUNT(),
@@ -403,7 +403,8 @@ contract Rollup is RollupHelpers {
         bytes32 _accountsRoot,
         bytes memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountProofs memory accountProofs,
+        Types.Usage memory txType
     )
         public
         view
@@ -415,14 +416,25 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        return
-            fraudProof.processTx(
-                _balanceRoot,
-                _accountsRoot,
-                _tx,
-                _from_pda_proof,
-                accountProofs
-            );
+        if (txType == Types.Usage.Transfer) {
+            return
+                fraudProof.processTx(
+                    _balanceRoot,
+                    _accountsRoot,
+                    _tx,
+                    _from_pda_proof,
+                    accountProofs
+                );
+        } else if (txType == Types.Usage.Airdrop) {
+            return
+                airdrop.processTx(
+                    _balanceRoot,
+                    _accountsRoot,
+                    _tx,
+                    _from_pda_proof,
+                    accountProofs
+                );
+        }
     }
 
     /**
@@ -438,7 +450,7 @@ contract Rollup is RollupHelpers {
         bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot,
-        Types.BatchType batchType
+        Types.Usage batchType
     )
         public
         view
@@ -448,7 +460,7 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        if (batchType == Types.BatchType.Transfer) {
+        if (batchType == Types.Usage.Transfer) {
             return
                 fraudProof.processBatch(
                     initialStateRoot,
@@ -457,7 +469,7 @@ contract Rollup is RollupHelpers {
                     batchProofs,
                     expectedTxRoot
                 );
-        } else if (batchType == Types.BatchType.Airdrop) {
+        } else if (batchType == Types.Usage.Airdrop) {
             return
                 airdrop.processBatch(
                     initialStateRoot,
@@ -466,7 +478,7 @@ contract Rollup is RollupHelpers {
                     batchProofs,
                     expectedTxRoot
                 );
-        } else if (batchType == Types.BatchType.BurnConsent) {
+        } else if (batchType == Types.Usage.BurnConsent) {
             return
                 burnConsent.processBatch(
                     initialStateRoot,
@@ -475,7 +487,7 @@ contract Rollup is RollupHelpers {
                     batchProofs,
                     expectedTxRoot
                 );
-        } else if (batchType == Types.BatchType.BurnExecution) {
+        } else if (batchType == Types.Usage.BurnExecution) {
             return
                 burnExecution.processBatch(
                     initialStateRoot,
