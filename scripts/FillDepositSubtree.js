@@ -7,6 +7,7 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const RollupCore = artifacts.require("Rollup");
+const { ethers } = require("ethers");
 
 async function stake() {
   // get deployed name registry instance
@@ -38,7 +39,7 @@ async function stake() {
 
   await testToken.approve(
     depositManagerInstance.address,
-    web3.utils.toWei("1"),
+    ethers.utils.parseEther("1"),
     {
       from: wallets[0].getAddressString(),
     }
