@@ -36,6 +36,14 @@ library Types {
         bytes signature;
     }
 
+    struct Drop {
+        uint256 toIndex;
+        uint256 tokenType;
+        uint256 epoch;
+        uint256 amount;
+        bytes signature;
+    }
+
     // AccountInclusionProof consists of the following fields
     // 1. Path to the account leaf from root in the balances tree
     // 2. Actual data stored in the leaf

@@ -109,7 +109,7 @@ library RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encodePacked(
+            abi.encode(
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
@@ -125,7 +125,7 @@ library RollupUtils {
     {
         Types.Transaction memory _tx = TxFromBytes(message);
         return
-            abi.encodePacked(
+            abi.encode(
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
@@ -172,6 +172,41 @@ library RollupUtils {
             (uint256, uint256, uint256, uint256, uint256, uint256)
         );
         return transaction;
+    }
+
+    function DecompressTx(bytes memory txBytes)
+        public
+        pure
+        returns (Types.Transaction memory)
+    {
+        Types.Transaction memory transaction;
+        (
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.tokenType,
+            transaction.amount,
+            transaction.signature
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, bytes)
+        );
+        return transaction;
+    }
+
+    function DecompressDrop(bytes memory dropBytes)
+        public
+        pure
+        returns (Types.Drop memory)
+    {
+        Types.Drop memory drop;
+        (
+            drop.toIndex,
+            drop.tokenType,
+            drop.epoch,
+            drop.amount,
+            drop.signature
+        ) = abi.decode(dropBytes, (uint256, uint256, uint256, uint256, bytes));
+        return drop;
     }
 
     //

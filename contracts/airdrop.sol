@@ -30,20 +30,6 @@ contract Airdrop is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.Transaction[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -51,7 +37,7 @@ contract Airdrop is FraudProofHelpers {
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -63,7 +49,7 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        bytes32 actualTxRoot = generateTxRoot(_txs);
+        bytes32 actualTxRoot = merkleUtils.getMerkleRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
             // if tx root while submission doesnt match tx root of given txs
@@ -101,7 +87,7 @@ contract Airdrop is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory _tx_raw,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -115,6 +101,7 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
+        Types.Drop memory _tx = RollupUtils.DecompressDrop(_tx_raw);
         if (_tx.amount <= 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
@@ -122,11 +109,8 @@ contract Airdrop is FraudProofHelpers {
             return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
         }
 
-        bytes32 newRoot;
-        bytes memory new_to_account;
-
         // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newRoot, accountProofs.to);
+        ValidateAccountMP(_balanceRoot, accountProofs.to);
 
         // account holds the token type in the tx
         if (accountProofs.to.accountIP.account.tokenType != _tx.tokenType)
@@ -134,8 +118,11 @@ contract Airdrop is FraudProofHelpers {
             // needs to be slashed because the submitted transaction
             // had invalid token type
             return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
-
-        (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
+        
+        Types.UserAccount memory account = accountProofs.to.accountIP.account;
+        account = AddTokensToAccount(account, _tx.amount);
+        bytes32 newRoot = UpdateAccountWithSiblings(account, accountProofs.to);
+        bytes memory new_to_account = RollupUtils.BytesFromAccount(account);
 
         return (newRoot, "", new_to_account, 0, true);
     }

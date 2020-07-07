@@ -241,7 +241,7 @@ contract FraudProof is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.Transaction[] memory _txs)
+    function generateTxRoot(bytes[] memory _txs)
         public
         view
         returns (bytes32 txRoot)
@@ -249,7 +249,9 @@ contract FraudProof is FraudProofHelpers {
         // generate merkle tree from the txs provided by user
         bytes[] memory txs = new bytes[](_txs.length);
         for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
+            txs[i] = RollupUtils.CompressTx(
+                RollupUtils.DecompressTx(_txs[i])
+            );
         }
         txRoot = merkleUtils.getMerkleRoot(txs);
         return txRoot;
@@ -262,7 +264,7 @@ contract FraudProof is FraudProofHelpers {
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -316,7 +318,7 @@ contract FraudProof is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory _tx_raw,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -330,6 +332,7 @@ contract FraudProof is FraudProofHelpers {
             bool
         )
     {
+        Types.Transaction memory _tx = RollupUtils.DecompressTx(_tx_raw);
         // Step-1 Prove that from address's public keys are available
         ValidatePubkeyAvailability(
             _accountsRoot,
