@@ -102,6 +102,16 @@ library RollupUtils {
             );
     }
 
+     function DecompressTx(bytes memory txBytes)
+        public
+        pure
+        returns (Types.Transaction memory)
+    {
+        return 
+        abi
+            .decode(txBytes, (uint256, uint256, uint256,uint256, bytes));
+    }
+
      function CompressTxWithMessage(bytes memory message, bytes memory sig)
         public
         pure
