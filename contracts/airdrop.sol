@@ -101,7 +101,7 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        Types.Drop memory _tx = RollupUtils.DropFromBytesWithSig(_tx_raw);
+        Types.Drop memory _tx = RollupUtils.DecompressDrop(_tx_raw);
         if (_tx.amount <= 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction

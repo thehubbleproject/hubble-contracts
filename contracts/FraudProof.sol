@@ -250,7 +250,7 @@ contract FraudProof is FraudProofHelpers {
         bytes[] memory txs = new bytes[](_txs.length);
         for (uint256 i = 0; i < _txs.length; i++) {
             txs[i] = RollupUtils.CompressTx(
-                RollupUtils.TxFromBytesWithSig(_txs[i])
+                RollupUtils.DecompressTx(_txs[i])
             );
         }
         txRoot = merkleUtils.getMerkleRoot(txs);
@@ -332,7 +332,7 @@ contract FraudProof is FraudProofHelpers {
             bool
         )
     {
-        Types.Transaction memory _tx = RollupUtils.TxFromBytesWithSig(_tx_raw);
+        Types.Transaction memory _tx = RollupUtils.DecompressTx(_tx_raw);
         // Step-1 Prove that from address's public keys are available
         ValidatePubkeyAvailability(
             _accountsRoot,

@@ -174,7 +174,7 @@ library RollupUtils {
         return transaction;
     }
 
-    function TxFromBytesWithSig(bytes memory txBytes)
+    function DecompressTx(bytes memory txBytes)
         public
         pure
         returns (Types.Transaction memory)
@@ -193,7 +193,7 @@ library RollupUtils {
         return transaction;
     }
 
-    function DropFromBytesWithSig(bytes memory dropBytes)
+    function DecompressDrop(bytes memory dropBytes)
         public
         pure
         returns (Types.Drop memory)
