@@ -65,10 +65,11 @@ contract BurnConsent is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
+                Types.BurnConsent memory _tx = RollupUtils.DecompressConsent(_txs[i]);
                 (stateRoot, , , , isTxValid) = processTx(
                     stateRoot,
                     accountsRoot,
-                    _txs[i],
+                    _tx,
                     batchProofs.pdaProof[i],
                     batchProofs.accountProofs[i]
                 );
@@ -87,7 +88,7 @@ contract BurnConsent is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        bytes memory _tx_raw,
+        Types.BurnConsent memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -101,7 +102,6 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
-        Types.BurnConsent memory _tx = RollupUtils.DecompressConsent(_tx_raw);
         // Step-1 Prove that from address's public keys are available
         ValidatePubkeyAvailability(
             _accountsRoot,
