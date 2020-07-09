@@ -97,7 +97,7 @@ contract("RollupUtils", async function (accounts) {
       tokenType: 1,
       amount: 10,
       signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+        "0x1ad4773ace8ee65b8f1d94a3ca7adba51ee2ca0bdb550907715b3b65f1e3ad9f69e610383dc9ceb8a50c882da4b1b98b96500bdf308c1bdce2187cb23b7d736f1b",
       txType: 1,
       nonce: 0,
     };
