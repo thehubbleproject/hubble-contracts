@@ -43,6 +43,18 @@ library Types {
         uint256 amount;
     }
 
+    struct BurnConsent {
+        uint256 from;
+        uint256 amount;
+        bool cancel;
+        bytes32 signature;
+    }
+
+    struct BurnExecution {
+        uint256 from;
+        bytes32 signature;
+    }
+
     // AccountInclusionProof consists of the following fields
     // 1. Path to the account leaf from root in the balances tree
     // 2. Actual data stored in the leaf

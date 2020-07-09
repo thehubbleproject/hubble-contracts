@@ -198,6 +198,22 @@ library RollupUtils {
         return abi.encode(drop);
     }
 
+    function CompressConsent(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(_tx);
+    }
+
+    function CompressExecution(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(_tx);
+    }
+
     function CompressDropNoStruct(
         uint256 toIndex,
         uint256 tokenType,
@@ -283,6 +299,22 @@ library RollupUtils {
                     _tx.amount
                 )
             );
+    }
+
+    function HashFromConsent(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(CompressConsent(_tx));
+    }
+
+    function HashFromExecution(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(CompressExecution(_tx));
     }
 
     function getTxSignBytes(
