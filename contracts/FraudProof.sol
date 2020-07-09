@@ -241,22 +241,6 @@ contract FraudProof is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(bytes[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(
-                RollupUtils.DecompressTx(_txs[i])
-            );
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -276,7 +260,7 @@ contract FraudProof is FraudProofHelpers {
             bool
         )
     {
-        bytes32 actualTxRoot = generateTxRoot(_txs);
+        bytes32 actualTxRoot = merkleUtils.getMerkleRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
             // if tx root while submission doesnt match tx root of given txs
