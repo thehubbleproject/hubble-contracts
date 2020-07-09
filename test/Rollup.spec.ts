@@ -310,6 +310,15 @@ contract("Rollup", async function (accounts) {
       to: BobAccountMP,
     };
 
+    // process transaction validity with process tx
+    await rollupCoreInstance.processTx(
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs,
+    );
+
     var compressedTx = await utils.compressTx(
       tx.fromIndex,
       tx.toIndex,
@@ -318,20 +327,11 @@ contract("Rollup", async function (accounts) {
       tx.tokenType,
       tx.signature
     );
-    // process transaction validity with process tx
-    await rollupCoreInstance.processTx(
-      currentRoot,
-      accountRoot,
-      compressedTx,
-      alicePDAProof,
-      accountProofs,
-      utils.Usage.Transfer
-    );
 
     let compressedTxs: string[] = [];
     compressedTxs.push(compressedTx);
     console.log("compressedTx: " + JSON.stringify(compressedTxs));
-    
+
 
     // submit batch for that transactions
     await rollupCoreInstance.submitBatch(

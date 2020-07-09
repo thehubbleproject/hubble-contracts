@@ -401,10 +401,9 @@ contract Rollup is RollupHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        bytes memory _tx,
+        Types.Transaction memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs,
-        Types.Usage txType
+        Types.AccountProofs memory accountProofs
     )
         public
         view
@@ -416,25 +415,14 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        if (txType == Types.Usage.Transfer) {
-            return
-                fraudProof.processTx(
-                    _balanceRoot,
-                    _accountsRoot,
-                    _tx,
-                    _from_pda_proof,
-                    accountProofs
-                );
-        } else if (txType == Types.Usage.Airdrop) {
-            return
-                airdrop.processTx(
-                    _balanceRoot,
-                    _accountsRoot,
-                    _tx,
-                    _from_pda_proof,
-                    accountProofs
-                );
-        }
+        return
+            fraudProof.processTx(
+                _balanceRoot,
+                _accountsRoot,
+                _tx,
+                _from_pda_proof,
+                accountProofs
+            );
     }
 
     /**
