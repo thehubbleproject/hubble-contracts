@@ -404,7 +404,7 @@ contract Rollup is RollupHelpers {
         bytes memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs,
-        Types.Usage memory txType
+        Types.Usage txType
     )
         public
         view

@@ -41,7 +41,6 @@ library Types {
         uint256 tokenType;
         uint256 epoch;
         uint256 amount;
-        bytes signature;
     }
 
     // AccountInclusionProof consists of the following fields
