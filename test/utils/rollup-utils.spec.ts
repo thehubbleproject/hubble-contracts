@@ -1,5 +1,6 @@
 import * as utils from "../../scripts/helpers/utils";
 import * as walletHelper from "../..//scripts/helpers/wallet";
+import { assert } from "chai";
 
 const RollupUtils = artifacts.require("RollupUtils");
 
@@ -84,18 +85,50 @@ contract("RollupUtils", async function (accounts) {
       account.nonce,
       account.tokenType
     );
-    console.log("accountBytes", accountBytes);
-
     var regeneratedAccount = await rollupUtils.AccountFromBytes(accountBytes);
-    console.log("regeneratedAccount", regeneratedAccount);
+    assert.equal(regeneratedAccount["0"].toNumber(), account.ID);
+    assert.equal(regeneratedAccount["1"].toNumber(), account.balance);
+    assert.equal(regeneratedAccount["2"].toNumber(), account.nonce);
+    assert.equal(regeneratedAccount["3"].toNumber(), account.tokenType);
 
     var tx = {
       fromIndex: 1,
-      toIndex: 1,
+      toIndex: 2,
       tokenType: 1,
-      amount: 1,
+      amount: 10,
       signature:
         "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      txType: 1,
+      nonce: 0,
     };
+
+    var txBytes = await rollupUtils.BytesFromTxDeconstructed(
+      tx.fromIndex,
+      tx.toIndex,
+      tx.tokenType,
+      tx.nonce,
+      tx.txType,
+      tx.amount
+    );
+
+    var txData = await rollupUtils.TxFromBytes(txBytes);
+    assert.equal(txData.fromIndex.toString(), tx.fromIndex.toString());
+    assert.equal(txData.toIndex.toString(), tx.toIndex.toString());
+    assert.equal(txData.tokenType.toString(), tx.tokenType.toString());
+    assert.equal(txData.nonce.toString(), tx.nonce.toString());
+    assert.equal(txData.txType.toString(), tx.txType.toString());
+    assert.equal(txData.amount.toString(), tx.amount.toString());
+
+    var compressedTx = await rollupUtils.CompressTxWithMessage(
+      txBytes,
+      tx.signature
+    );
+
+    var decompressedTx = await rollupUtils.DecompressTx(compressedTx);
+    assert.equal(decompressedTx[0].toNumber(), tx.fromIndex);
+    assert.equal(decompressedTx[1].toNumber(), tx.toIndex);
+    assert.equal(decompressedTx[2].toNumber(), tx.tokenType);
+    assert.equal(decompressedTx[3].toNumber(), tx.amount);
+    assert.equal(decompressedTx[4].toString(), tx.signature);
   });
 });

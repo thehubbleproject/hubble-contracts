@@ -4,6 +4,7 @@ const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
 import * as utils from "../../scripts/helpers/utils";
+import { ethers } from "ethers";
 
 chai.use(chaiAsPromised);
 
@@ -41,7 +42,7 @@ contract("DepositManager", async function (accounts) {
     let depositManagerInstance = await DepositManager.deployed();
     let approveToken = await testToken.approve(
       depositManagerInstance.address,
-      web3.utils.toWei("1"),
+      ethers.utils.parseEther("1"),
       {
         from: wallets[0].getAddressString(),
       }
