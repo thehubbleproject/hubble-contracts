@@ -30,6 +30,20 @@ contract BurnExecution is FraudProofHelpers {
         );
     }
 
+    function generateTxRoot(Types.BurnExecution[] memory _txs)
+        public
+        view
+        returns (bytes32 txRoot)
+    {
+        // generate merkle tree from the txs provided by user
+        bytes[] memory txs = new bytes[](_txs.length);
+        for (uint256 i = 0; i < _txs.length; i++) {
+            txs[i] = RollupUtils.CompressExecution(_txs[i]);
+        }
+        txRoot = merkleUtils.getMerkleRoot(txs);
+        return txRoot;
+    }
+
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -37,7 +51,7 @@ contract BurnExecution is FraudProofHelpers {
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txs,
+        Types.BurnExecution[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -49,7 +63,7 @@ contract BurnExecution is FraudProofHelpers {
             bool
         )
     {
-        bytes32 actualTxRoot = merkleUtils.getMerkleRoot(_txs);
+        bytes32 actualTxRoot = generateTxRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
             // if tx root while submission doesnt match tx root of given txs
@@ -63,14 +77,12 @@ contract BurnExecution is FraudProofHelpers {
         bool isTxValid;
         {
             for (uint256 i = 0; i < _txs.length; i++) {
-                Types.BurnExecution memory _tx = RollupUtils
-                    .DecompressExecution(_txs[i]);
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
                 (stateRoot, , , , isTxValid) = processTx(
                     stateRoot,
                     accountsRoot,
-                    _tx,
+                    _txs[i],
                     batchProofs.pdaProof[i],
                     batchProofs.accountProofs[i]
                 );
