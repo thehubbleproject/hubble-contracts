@@ -190,6 +190,29 @@ library RollupUtils {
         return transaction;
     }
 
+    function DecompressConsent(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnConsent memory)
+    {
+        Types.BurnConsent memory _tx;
+        (_tx.fromIndex, _tx.amount, _tx.cancel, _tx.signature) = abi.decode(
+            txBytes,
+            (uint256, uint256, bool, bytes)
+        );
+        return _tx;
+    }
+
+    function DecompressExecution(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnExecution memory)
+    {
+        Types.BurnExecution memory _tx;
+        (_tx.fromIndex, _tx.signature) = abi.decode(txBytes, (uint256, bytes));
+        return _tx;
+    }
+
     function CompressDrop(Types.Drop memory drop)
         public
         pure

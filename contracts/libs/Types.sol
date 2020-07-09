@@ -44,15 +44,15 @@ library Types {
     }
 
     struct BurnConsent {
-        uint256 from;
+        uint256 fromIndex;
         uint256 amount;
         bool cancel;
-        bytes32 signature;
+        bytes signature;
     }
 
     struct BurnExecution {
-        uint256 from;
-        bytes32 signature;
+        uint256 fromIndex;
+        bytes signature;
     }
 
     // AccountInclusionProof consists of the following fields
