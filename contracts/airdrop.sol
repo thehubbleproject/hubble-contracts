@@ -63,12 +63,13 @@ contract Airdrop is FraudProofHelpers {
         bool isTxValid;
         {
             for (uint256 i = 0; i < _txs.length; i++) {
+                Types.Drop memory _tx = RollupUtils.DecompressDrop(_txs[i]);
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
                 (stateRoot, , , , isTxValid) = processTx(
                     stateRoot,
                     accountsRoot,
-                    _txs[i],
+                    _tx,
                     batchProofs.pdaProof[i],
                     batchProofs.accountProofs[i]
                 );
@@ -87,7 +88,7 @@ contract Airdrop is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        bytes memory _tx_raw,
+        Types.Drop memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -101,7 +102,6 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        Types.Drop memory _tx = RollupUtils.DecompressDrop(_tx_raw);
         if (_tx.amount <= 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction

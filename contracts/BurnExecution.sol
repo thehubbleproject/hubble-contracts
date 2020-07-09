@@ -63,12 +63,14 @@ contract BurnExecution is FraudProofHelpers {
         bool isTxValid;
         {
             for (uint256 i = 0; i < _txs.length; i++) {
+                Types.BurnExecution memory _tx = RollupUtils
+                    .DecompressExecution(_txs[i]);
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
                 (stateRoot, , , , isTxValid) = processTx(
                     stateRoot,
                     accountsRoot,
-                    _txs[i],
+                    _tx,
                     batchProofs.pdaProof[i],
                     batchProofs.accountProofs[i]
                 );
@@ -87,7 +89,7 @@ contract BurnExecution is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        bytes memory _tx_raw,
+        Types.BurnExecution memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -101,8 +103,6 @@ contract BurnExecution is FraudProofHelpers {
             bool
         )
     {
-        Types.BurnExecution memory _tx = RollupUtils.DecompressExecution(
-            _tx_raw
-        );
+        // TODO
     }
 }
