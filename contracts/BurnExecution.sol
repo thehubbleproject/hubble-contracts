@@ -87,7 +87,7 @@ contract BurnExecution is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        bytes[] memory _tx_raw,
+        bytes memory _tx_raw,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )

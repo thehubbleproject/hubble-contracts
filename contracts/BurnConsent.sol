@@ -115,8 +115,10 @@ contract BurnConsent is FraudProofHelpers {
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
-        uint256 err_code = validateTxBasic(
-            _tx,
+        // Validate only certain token is allow to burn
+
+        uint256 err_code = _validateTxBasic(
+            _tx.amount,
             accountProofs.from.accountIP.account
         );
         if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
@@ -124,7 +126,12 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 newRoot;
         bytes memory new_from_account;
 
-        (new_from_account, newRoot) = ApplyTx(accountProofs.from, _tx);
+        (new_from_account, newRoot) = _ApplyTx(
+            accountProofs.from,
+            _tx.fromIndex,
+            0,
+            _tx.amount
+        );
 
         return (newRoot, new_from_account, "", 0, true);
     }
