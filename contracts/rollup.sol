@@ -174,8 +174,9 @@ contract RollupHelpers is RollupSetup {
 
             // TODO use safe math
             // calculate challeger's reward
-            challengerRewards += (batch.stakeCommitted * 2) / 3;
-            burnedAmount += batch.stakeCommitted.sub(challengerRewards);
+            uint _challengerReward = (batch.stakeCommitted * 2) / 3;
+            challengerRewards += _challengerReward;
+            burnedAmount += batch.stakeCommitted.sub(_challengerReward);
 
             batches[i].stakeCommitted = 0;
 
