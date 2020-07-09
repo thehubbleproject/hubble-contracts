@@ -76,28 +76,19 @@ contract Logger {
 
     event DepositQueued(
         uint256 AccountID,
-        address destination,
-        uint256 amount,
-        uint256 token,
-        bytes32 accountHash,
-        bytes pubkey
+        bytes pubkey,
+        bytes data
     );
 
     function logDepositQueued(
         uint256 accountID,
-        address destination,
-        uint256 amount,
-        uint256 token,
-        bytes32 accountHash,
-        bytes memory pubkey
+        bytes memory pubkey,
+        bytes memory data
     ) public {
         emit DepositQueued(
             accountID,
-            destination,
-            amount,
-            token,
-            accountHash,
-            pubkey
+            pubkey, 
+            data
         );
     }
 
