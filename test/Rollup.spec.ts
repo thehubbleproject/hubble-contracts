@@ -225,7 +225,7 @@ contract("Rollup", async function (accounts) {
       txType: 1,
       nonce: 1,
       signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+        "0x1ad4773ace8ee65b8f1d94a3ca7adba51ee2ca0bdb550907715b3b65f1e3ad9f69e610383dc9ceb8a50c882da4b1b98b96500bdf308c1bdce2187cb23b7d736f1b",
     };
     var dataToSign = await RollupUtilsInstance.getTxSignBytes(
       tx.fromIndex,
@@ -239,7 +239,7 @@ contract("Rollup", async function (accounts) {
     const h = ethUtils.toBuffer(dataToSign);
     var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
     tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-
+    console.log("Signature", tx.signature);
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
@@ -333,7 +333,6 @@ contract("Rollup", async function (accounts) {
     let compressedTxs: string[] = [];
     compressedTxs.push(compressedTx);
     console.log("compressedTx: " + JSON.stringify(compressedTxs));
-    
 
     // submit batch for that transactions
     await rollupCoreInstance.submitBatch(
