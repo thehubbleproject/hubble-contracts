@@ -100,7 +100,7 @@ contract FraudProofHelpers is FraudProofSetup {
     function _validateTxBasic(
         uint256 amount,
         Types.UserAccount memory _from_account
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         if (amount == 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
