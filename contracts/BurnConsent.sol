@@ -30,20 +30,6 @@ contract BurnConsent is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.Transaction[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -51,7 +37,7 @@ contract BurnConsent is FraudProofHelpers {
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -63,7 +49,7 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
-        bytes32 actualTxRoot = generateTxRoot(_txs);
+        bytes32 actualTxRoot = merkleUtils.getMerkleRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
             // if tx root while submission doesnt match tx root of given txs
@@ -101,7 +87,7 @@ contract BurnConsent is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory _tx_raw,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -115,6 +101,7 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
+        Types.BurnConsent memory _tx = RollupUtils.DecompressConsent(_tx_raw);
         // Step-1 Prove that from address's public keys are available
         ValidatePubkeyAvailability(
             _accountsRoot,
@@ -128,8 +115,10 @@ contract BurnConsent is FraudProofHelpers {
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
-        uint256 err_code = validateTxBasic(
-            _tx,
+        // Validate only certain token is allow to burn
+
+        uint256 err_code = _validateTxBasic(
+            _tx.amount,
             accountProofs.from.accountIP.account
         );
         if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
@@ -137,7 +126,12 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 newRoot;
         bytes memory new_from_account;
 
-        (new_from_account, newRoot) = ApplyTx(accountProofs.from, _tx);
+        (new_from_account, newRoot) = _ApplyTx(
+            accountProofs.from,
+            _tx.fromIndex,
+            0,
+            _tx.amount
+        );
 
         return (newRoot, new_from_account, "", 0, true);
     }

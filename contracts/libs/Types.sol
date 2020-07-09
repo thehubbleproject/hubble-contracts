@@ -4,7 +4,15 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
-    enum Usage {Genesis, Transfer, Airdrop, BurnConsent, BurnExecution}
+    // We define Usage for a batch or for a tx
+    // to check if the usage of a batch and all txs in it are the same
+    enum Usage {
+        Genesis, // The Genesis type is only applicable to batch but not tx
+        Transfer,
+        Airdrop,
+        BurnConsent,
+        BurnExecution
+    }
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
@@ -41,6 +49,18 @@ library Types {
         uint256 tokenType;
         uint256 epoch;
         uint256 amount;
+    }
+
+    struct BurnConsent {
+        uint256 fromIndex;
+        uint256 amount;
+        bool cancel;
+        bytes signature;
+    }
+
+    struct BurnExecution {
+        uint256 fromIndex;
+        bytes signature;
     }
 
     // AccountInclusionProof consists of the following fields

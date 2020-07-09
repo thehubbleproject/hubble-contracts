@@ -97,6 +97,28 @@ contract FraudProofHelpers is FraudProofSetup {
         );
     }
 
+    function _validateTxBasic(
+        uint256 amount,
+        Types.UserAccount memory _from_account
+    ) public view returns (uint256) {
+        if (amount == 0) {
+            // invalid state transition
+            // needs to be slashed because the submitted transaction
+            // had 0 amount.
+            return ERR_TOKEN_AMT_INVAILD;
+        }
+
+        // check from leaf has enough balance
+        if (_from_account.balance < amount) {
+            // invalid state transition
+            // needs to be slashed because the account doesnt have enough balance
+            // for the transfer
+            return ERR_TOKEN_NOT_ENOUGH_BAL;
+        }
+
+        return NO_ERR;
+    }
+
     function validateTxBasic(
         Types.Transaction memory _tx,
         Types.UserAccount memory _from_account
@@ -109,22 +131,7 @@ contract FraudProofHelpers is FraudProofSetup {
             return ERR_TOKEN_ADDR_INVAILD;
         }
 
-        if (_tx.amount == 0) {
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had 0 amount.
-            return ERR_TOKEN_AMT_INVAILD;
-        }
-
-        // check from leaf has enough balance
-        if (_from_account.balance < _tx.amount) {
-            // invalid state transition
-            // needs to be slashed because the account doesnt have enough balance
-            // for the transfer
-            return ERR_TOKEN_NOT_ENOUGH_BAL;
-        }
-
-        return NO_ERR;
+        return _validateTxBasic(_tx.amount, _from_account);
     }
 
     function RemoveTokensFromAccount(
@@ -139,6 +146,27 @@ contract FraudProofHelpers is FraudProofSetup {
         );
     }
 
+    function _ApplyTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        uint256 fromIndex,
+        uint256 toIndex,
+        uint256 amount
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        if (fromIndex == account.ID) {
+            account = RemoveTokensFromAccount(account, amount);
+            account.nonce++;
+        }
+
+        if (toIndex == account.ID) {
+            account = AddTokensToAccount(account, amount);
+        }
+
+        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
+
+        return (RollupUtils.BytesFromAccount(account), newRoot);
+    }
+
     /**
      * @notice ApplyTx applies the transaction on the account. This is where
      * people need to define the logic for the application
@@ -150,19 +178,13 @@ contract FraudProofHelpers is FraudProofSetup {
         Types.AccountMerkleProof memory _merkle_proof,
         Types.Transaction memory transaction
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
-        if (transaction.fromIndex == account.ID) {
-            account = RemoveTokensFromAccount(account, transaction.amount);
-            account.nonce++;
-        }
-
-        if (transaction.toIndex == account.ID) {
-            account = AddTokensToAccount(account, transaction.amount);
-        }
-
-        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
-
-        return (RollupUtils.BytesFromAccount(account), newRoot);
+        return
+            _ApplyTx(
+                _merkle_proof,
+                transaction.fromIndex,
+                transaction.toIndex,
+                transaction.amount
+            );
     }
 
     function AddTokensToAccount(
@@ -241,22 +263,6 @@ contract FraudProof is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(bytes[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(
-                RollupUtils.DecompressTx(_txs[i])
-            );
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -276,7 +282,7 @@ contract FraudProof is FraudProofHelpers {
             bool
         )
     {
-        bytes32 actualTxRoot = generateTxRoot(_txs);
+        bytes32 actualTxRoot = merkleUtils.getMerkleRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
             // if tx root while submission doesnt match tx root of given txs
