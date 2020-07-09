@@ -121,10 +121,15 @@ library RollupUtils {
     function DecompressTx(bytes memory txBytes)
         public
         pure
-        returns (uint256 from, uint256 to, uint256 tokenType, uint256 nonce,bytes memory sig)
+        returns (
+            uint256 from,
+            uint256 to,
+            uint256 tokenType,
+            uint256 nonce,
+            bytes memory sig
+        )
     {
-        return abi
-            .decode(txBytes, (uint256, uint256, uint256,uint256, bytes));
+        return abi.decode(txBytes, (uint256, uint256, uint256, uint256, bytes));
     }
 
     function CompressTxWithMessage(bytes memory message, bytes memory sig)
@@ -180,22 +185,6 @@ library RollupUtils {
             txBytes,
             (uint256, uint256, uint256, uint256, uint256, uint256)
         );
-        return transaction;
-    }
-
-    function DecompressTx(bytes memory txBytes)
-        public
-        pure
-        returns (Types.Transaction memory)
-    {
-        Types.Transaction memory transaction;
-        (
-            transaction.fromIndex,
-            transaction.toIndex,
-            transaction.tokenType,
-            transaction.amount,
-            transaction.signature
-        ) = abi.decode(txBytes, (uint256, uint256, uint256, uint256, bytes));
         return transaction;
     }
 

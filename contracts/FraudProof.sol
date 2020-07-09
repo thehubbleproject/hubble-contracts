@@ -338,7 +338,14 @@ contract FraudProof is FraudProofHelpers {
             bool
         )
     {
-        Types.Transaction memory _tx = RollupUtils.DecompressTx(_tx_raw);
+        Types.Transaction memory _tx;
+        (
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.tokenType,
+            _tx.amount,
+            _tx.signature
+        ) = RollupUtils.DecompressTx(_tx_raw);
         // Step-1 Prove that from address's public keys are available
         ValidatePubkeyAvailability(
             _accountsRoot,
