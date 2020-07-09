@@ -14,7 +14,7 @@ contract("Burn", async function () {
         await rollupCoreInstance.submitBatch(
             ["0xabc", "0xabc"],
             "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
-            utils.BatchType.BurnConsent,
+            utils.Usage.BurnConsent,
             { value: ethers.utils.parseEther("32").toString() },
         )
     })
@@ -23,7 +23,7 @@ contract("Burn", async function () {
         await rollupCoreInstance.submitBatch(
             ["0xabc", "0xabc"],
             "0xb6b4b5c6cb43071b3913b1d500b33c52392f7aa85f8a451448e20c3967f2b21a",
-            utils.BatchType.BurnExecution,
+            utils.Usage.BurnExecution,
             { value: ethers.utils.parseEther("32").toString() },
         )
     })

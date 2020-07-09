@@ -186,11 +186,25 @@ library RollupUtils {
             transaction.tokenType,
             transaction.amount,
             transaction.signature
-        ) = abi.decode(
-            txBytes,
-            (uint256, uint256, uint256, uint256, bytes)
-        );
+        ) = abi.decode(txBytes, (uint256, uint256, uint256, uint256, bytes));
         return transaction;
+    }
+
+    function CompressDrop(Types.Drop memory drop)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(drop);
+    }
+
+    function CompressDropNoStruct(
+        uint256 toIndex,
+        uint256 tokenType,
+        uint256 epoch,
+        uint256 amount
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(toIndex, tokenType, epoch, amount);
     }
 
     function DecompressDrop(bytes memory dropBytes)
@@ -204,7 +218,8 @@ library RollupUtils {
             drop.tokenType,
             drop.epoch,
             drop.amount,
-            drop.signature
+            // drop.signature
+
         ) = abi.decode(dropBytes, (uint256, uint256, uint256, uint256, bytes));
         return drop;
     }
@@ -226,6 +241,16 @@ library RollupUtils {
                 _tx.txType,
                 _tx.amount
             );
+    }
+
+    function getDropSignBytes(
+        uint256 toIndex,
+        uint256 tokenType,
+        uint256 epoch,
+        uint256 amount
+    ) public pure returns (bytes32) {
+        return
+            keccak256(CompressDropNoStruct(toIndex, tokenType, epoch, amount));
     }
 
     function BytesFromTxDeconstructed(
