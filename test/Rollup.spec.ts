@@ -26,16 +26,31 @@ contract("Rollup", async function (accounts) {
   let Alice: any;
   let Bob: any;
 
-  let aa: any;
-  let bb: any;
-  let cc: any;
-  let dd: any;
-
   let coordinator_leaves: any;
   let coordinatorPubkeyHash: any;
   let maxSize: any;
+  var zeroHashes: any;
 
+  let falseBatchZero: any;
   let falseBatchOne: any;
+  let falseBatchTwo: any;
+  let falseBatchThree: any;
+  let falseBatchFour: any;
+  let falseBatchFive: any;
+  let falseBatchComb: any;
+
+  let AlicePDAsiblings: any;
+
+  let BobPDAsiblings: any;
+
+  let alicePDAProof: any;
+
+    let NO_ERR = 0;
+    let ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
+    let ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
+    let ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
+    let ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
+    let ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 
   before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
@@ -73,6 +88,33 @@ contract("Rollup", async function (accounts) {
     coordinatorPubkeyHash =
       "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
     maxSize = 4;
+    zeroHashes = await utils.defaultHashes(maxSize);
+
+    AlicePDAsiblings = [
+      utils.PubKeyHash(Bob.Pubkey),
+      utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+
+    BobPDAsiblings = [
+      utils.PubKeyHash(Alice.Pubkey),
+      utils.getParentLeaf(
+        coordinatorPubkeyHash,
+        utils.PubKeyHash(Alice.Pubkey)
+      ),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+
+    alicePDAProof = {
+      _pda: {
+        pathToPubkey: "2",
+        pubkey_leaf: { pubkey: Alice.Pubkey },
+      },
+      siblings: AlicePDAsiblings,
+    };
+
   });
 
   // test if we are able to create append a leaf
@@ -83,7 +125,6 @@ contract("Rollup", async function (accounts) {
     await tokenRegistryInstance.finaliseTokenRegistration(testToken.address, {
       from: wallets[0].getAddressString(),
     });
-    var coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
     await testToken.approve(
       depositManagerInstance.address,
       web3.utils.toWei("1"),
@@ -91,9 +132,6 @@ contract("Rollup", async function (accounts) {
         from: wallets[0].getAddressString(),
       }
     );
-
-    
-    // var maxSize = 4;
 
     await testTokenInstance.transfer(Alice.Address, 100);
     await depositManagerInstance.deposit(
@@ -140,46 +178,15 @@ contract("Rollup", async function (accounts) {
   });
 
   it("submit new batch 1st", async function () {
-    console.log("Alice: ", Alice)
-    console.log("Bob: ", Bob)
     var AliceAccountLeaf = await createLeaf(Alice);
     var BobAccountLeaf = await createLeaf(Bob);
-
-    aa = AliceAccountLeaf;
-    bb = BobAccountLeaf;
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
     // prepare data for process Tx
     var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
     var accountRoot = await IMTInstance.getTreeRoot();
-    var zeroHashes: any = await utils.defaultHashes(maxSize);
-
-    var AlicePDAsiblings = [
-      utils.PubKeyHash(Bob.Pubkey),
-      utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
-      zeroHashes[2],
-      zeroHashes[3],
-    ];
-
-    var BobPDAsiblings = [
-      utils.PubKeyHash(Alice.Pubkey),
-      utils.getParentLeaf(
-        coordinatorPubkeyHash,
-        utils.PubKeyHash(Alice.Pubkey)
-      ),
-      zeroHashes[2],
-      zeroHashes[3],
-    ];
-
-    var alicePDAProof = {
-      _pda: {
-        pathToPubkey: "2",
-        pubkey_leaf: { pubkey: Alice.Pubkey },
-      },
-      siblings: AlicePDAsiblings,
-    };
-
+    
     var isValid = await MTutilsInstance.verifyLeaf(
       accountRoot,
       utils.PubKeyHash(Alice.Pubkey),
@@ -187,14 +194,6 @@ contract("Rollup", async function (accounts) {
       AlicePDAsiblings
     );
     assert.equal(isValid, true, "pda proof wrong");
-
-    var bobPDAProof = {
-      _pda: {
-        pathToPubkey: "2",
-        pubkey_leaf: { pubkey: Bob.Pubkey },
-      },
-      siblings: BobPDAsiblings,
-    };
 
     var tx = {
       fromIndex: Alice.AccID,
@@ -206,18 +205,8 @@ contract("Rollup", async function (accounts) {
       signature:
         "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
     };
-    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.tokenType,
-      tx.txType,
-      tx.nonce,
-      tx.amount
-    );
 
-    const h = ethUtils.toBuffer(dataToSign);
-    var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
-    tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+    tx.signature = await signTx(tx, wallets);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -254,7 +243,6 @@ contract("Rollup", async function (accounts) {
     Alice.nonce++;
 
     var UpdatedAliceAccountLeaf = await createLeaf(Alice);
-    cc = UpdatedAliceAccountLeaf;
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
       UpdatedAliceAccountLeaf,
@@ -264,12 +252,6 @@ contract("Rollup", async function (accounts) {
     ];
     var leaf = BobAccountLeaf;
     var BobAccountPath: string = "3";
-    var isBobValid = await MTutilsInstance.verifyLeaf(
-      currentRoot,
-      leaf,
-      BobAccountPath,
-      BobAccountSiblings
-    );
 
     var BobAccountMP = {
       accountIP: {
@@ -301,75 +283,746 @@ contract("Rollup", async function (accounts) {
     );
 
     console.log("result from processTx: " + JSON.stringify(result));
+    await compressAndSubmitBatch(tx, result[0])
 
-    var compressedTx = await utils.compressTx(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.nonce,
-      tx.amount,
-      tx.tokenType,
-      tx.signature
-    );
-
-    let compressedTxs: string[] = [];
-    compressedTxs.push(compressedTx);
-    console.log("compressedTx: " + JSON.stringify(compressedTxs));
-
-    // submit batch for that transactions
-    await rollupCoreInstance.submitBatch(
-      compressedTxs,
-      result[0],
-      { value: ethers.utils.parseEther("32").toString() }
-    );
-    console.log("result[0]: ", result[0])
+    falseBatchZero = {
+      batchId: 0,
+      txs: [tx],
+      batchProofs: {
+        accountProofs: [accountProofs],
+        pdaProof: [alicePDAProof]
+      }
+    }
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    falseBatchZero.batchId = Number(batchId) - 1;
   });
 
-  it("submit new batch 2nd", async function () {
-    console.log("Alice: ", Alice)
-    console.log("Bob: ", Bob)
+  it("dispute batch correct 1th batch(no error)", async function () {
+    await rollupCoreInstance.disputeBatch(
+      falseBatchZero.batchId,
+      falseBatchZero.txs,
+      falseBatchZero.batchProofs,
+    );
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    let batchMarker = await rollupCoreInstance.invalidBatchMarker();
+    assert.equal(batchMarker, "0", "batchMarker is not zero");
+    assert.equal(batchId -1 , falseBatchZero.batchId, "dispute shouldnt happen");
+  })
 
+  it("submit new batch 2nd(False Batch)", async function () {
     var AliceAccountLeaf = await createLeaf(Alice);
     var BobAccountLeaf = await createLeaf(Bob);
 
-    console.log(cc == AliceAccountLeaf)
-    console.log(cc)
-    console.log(AliceAccountLeaf)
-
-    console.log(bb == BobAccountLeaf)
-    console.log(bb)
-    console.log(BobAccountLeaf)
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
     // prepare data for process Tx
     var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-    console.log("currentRoot: ", currentRoot)
     var accountRoot = await IMTInstance.getTreeRoot();
-    var zeroHashes: any = await utils.defaultHashes(maxSize);
 
-    var AlicePDAsiblings = [
-      utils.PubKeyHash(Bob.Pubkey),
-      utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
-      zeroHashes[2],
-      zeroHashes[3],
-    ];
-
-    var BobPDAsiblings = [
+    var isValid = await MTutilsInstance.verifyLeaf(
+      accountRoot,
       utils.PubKeyHash(Alice.Pubkey),
-      utils.getParentLeaf(
-        coordinatorPubkeyHash,
-        utils.PubKeyHash(Alice.Pubkey)
-      ),
+      "2",
+      AlicePDAsiblings
+    );
+    assert.equal(isValid, true, "pda proof wrong");
+
+    var tx = {
+      fromIndex: Alice.AccID,
+      toIndex: Bob.AccID,
+      // tokenType: Alice.TokenType,
+      tokenType: 2, // false token type (Token not valid)
+      amount: tranferAmount,
+      txType: 1,
+      nonce: 2,
+      signature:
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+    };
+    tx.signature = await signTx(tx, wallets);
+
+    // alice balance tree merkle proof
+    var AliceAccountSiblings: Array<string> = [
+      BobAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
       zeroHashes[2],
       zeroHashes[3],
     ];
-
-    var alicePDAProof = {
-      _pda: {
-        pathToPubkey: "2",
-        pubkey_leaf: { pubkey: Alice.Pubkey },
+    var leaf = AliceAccountLeaf;
+    var AliceAccountPath: string = "2";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      AliceAccountPath,
+      AliceAccountSiblings
+    );
+    expect(isValid).to.be.deep.eq(true);
+    var AliceAccountMP = {
+      accountIP: {
+        pathToAccount: AliceAccountPath,
+        account: {
+          ID: Alice.AccID,
+          tokenType: Alice.TokenType,
+          balance: Alice.Amount,
+          nonce: Alice.nonce,
+        },
       },
-      siblings: AlicePDAsiblings,
+      siblings: AliceAccountSiblings,
     };
+
+    Alice.Amount -= Number(tx.amount);
+    Alice.nonce++;
+
+    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+
+    // bob balance tree merkle proof
+    var BobAccountSiblings: Array<string> = [
+      UpdatedAliceAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = BobAccountLeaf;
+    var BobAccountPath: string = "3";
+
+    var BobAccountMP = {
+      accountIP: {
+        pathToAccount: BobAccountPath,
+        account: {
+          ID: Bob.AccID,
+          tokenType: Bob.TokenType,
+          balance: Bob.Amount,
+          nonce: Bob.nonce,
+        },
+      },
+      siblings: BobAccountSiblings,
+    };
+
+    Bob.Amount += Number(tx.amount);
+    var accountProofs = {
+      from: AliceAccountMP,
+      to: BobAccountMP,
+    };
+
+    // process transaction validity with process tx
+    var result = await rollupCoreInstance.processTx(
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+
+    var falseResult = await falseProcessTx(
+      fraudProofInstance,
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+    console.log("result from falseProcessTx: " + falseResult);
+    console.log("result from processTx: " + JSON.stringify(result));
+
+    assert.equal(result[3], ERR_TOKEN_ADDR_INVAILD, "False error ID. It should be `1`")
+    await compressAndSubmitBatch(tx, falseResult)
+
+    falseBatchOne = {
+      batchId: 0,
+      txs: [tx],
+      batchProofs: {
+        accountProofs: [accountProofs],
+        pdaProof: [alicePDAProof]
+      }
+    }
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    falseBatchOne.batchId = Number(batchId) - 1;
+    // console.log(falseBatchOne)
+  });
+  it("dispute batch false 2nd batch(Tx Token Type not valid)", async function () {
+    await rollupCoreInstance.disputeBatch(
+      falseBatchOne.batchId,
+      falseBatchOne.txs,
+      falseBatchOne.batchProofs,
+    );
+    
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    let batchMarker = await rollupCoreInstance.invalidBatchMarker();
+    assert.equal(batchMarker, "0", "invalidBatchMarker is not zero");
+    assert.equal(batchId -1 , falseBatchOne.batchId - 1, "batchId doesnt match");
+    Alice.Amount += falseBatchOne.txs[0].amount;
+    Bob.Amount -= falseBatchOne.txs[0].amount;
+    Alice.nonce--;
+  })
+
+
+  it("submit new batch 3rd", async function () {
+    var AliceAccountLeaf = await createLeaf(Alice);
+    var BobAccountLeaf = await createLeaf(Bob);
+
+    // make a transfer between alice and bob's account
+    var tranferAmount = 1;
+    // prepare data for process Tx
+    var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    var accountRoot = await IMTInstance.getTreeRoot();
+
+    var isValid = await MTutilsInstance.verifyLeaf(
+      accountRoot,
+      utils.PubKeyHash(Alice.Pubkey),
+      "2",
+      AlicePDAsiblings
+    );
+    assert.equal(isValid, true, "pda proof wrong");
+
+    var tx = {
+      fromIndex: Alice.AccID,
+      toIndex: Bob.AccID,
+      tokenType: Alice.TokenType,
+      amount: 0, // Error
+      txType: 1,
+      nonce: 2,
+      signature:
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+    };
+    tx.signature = await signTx(tx, wallets);
+
+    // alice balance tree merkle proof
+    var AliceAccountSiblings: Array<string> = [
+      BobAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = AliceAccountLeaf;
+    var AliceAccountPath: string = "2";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      AliceAccountPath,
+      AliceAccountSiblings
+    );
+    expect(isValid).to.be.deep.eq(true);
+    var AliceAccountMP = {
+      accountIP: {
+        pathToAccount: AliceAccountPath,
+        account: {
+          ID: Alice.AccID,
+          tokenType: Alice.TokenType,
+          balance: Alice.Amount,
+          nonce: Alice.nonce,
+        },
+      },
+      siblings: AliceAccountSiblings,
+    };
+
+    Alice.Amount -= Number(tx.amount);
+    Alice.nonce++;
+
+    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+
+    // bob balance tree merkle proof
+    var BobAccountSiblings: Array<string> = [
+      UpdatedAliceAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = BobAccountLeaf;
+    var BobAccountPath: string = "3";
+    var isBobValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      BobAccountPath,
+      BobAccountSiblings
+    );
+
+    var BobAccountMP = {
+      accountIP: {
+        pathToAccount: BobAccountPath,
+        account: {
+          ID: Bob.AccID,
+          tokenType: Bob.TokenType,
+          balance: Bob.Amount,
+          nonce: Bob.nonce,
+        },
+      },
+      siblings: BobAccountSiblings,
+    };
+
+    Bob.Amount += Number(tx.amount);
+    var accountProofs = {
+      from: AliceAccountMP,
+      to: BobAccountMP,
+    };
+
+    // process transaction validity with process tx
+    var result = await rollupCoreInstance.processTx(
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+
+    var falseResult = await falseProcessTx(
+      fraudProofInstance,
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+    console.log("result from falseProcessTx: " + falseResult);
+    console.log("result from processTx: " + JSON.stringify(result));
+    
+    assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false Error Id. It should be `2`.");
+
+    await compressAndSubmitBatch(tx, falseResult)
+
+    falseBatchTwo = {
+      batchId: 0,
+      txs: [tx],
+      batchProofs: {
+        accountProofs: [accountProofs],
+        pdaProof: [alicePDAProof]
+      }
+    }
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    falseBatchTwo.batchId = Number(batchId) - 1;
+  });
+
+  it("dispute batch false 3rd batch(Tx amount 0)", async function () {
+    await rollupCoreInstance.disputeBatch(
+      falseBatchTwo.batchId,
+      falseBatchTwo.txs,
+      falseBatchTwo.batchProofs,
+    );
+    
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    let batchMarker = await rollupCoreInstance.invalidBatchMarker();
+    assert.equal(batchMarker, "0", "batchMarker is not zero");
+    assert.equal(batchId -1 , falseBatchTwo.batchId - 1, "batchId doesnt match");
+    Alice.Amount += falseBatchTwo.txs[0].amount;
+    Bob.Amount -= falseBatchTwo.txs[0].amount;
+    Alice.nonce--;
+  })
+
+  // it("submit new batch 4nd", async function () {
+  //   console.log("Alice: ", Alice)
+  //   console.log("Bob: ", Bob)
+
+  //   var AliceAccountLeaf = await createLeaf(Alice);
+  //   var BobAccountLeaf = await createLeaf(Bob);
+
+  //   console.log(cc == AliceAccountLeaf)
+  //   // console.log(cc)
+  //   // console.log(AliceAccountLeaf)
+
+  //   // console.log(bb == BobAccountLeaf)
+  //   // console.log(bb)
+  //   // console.log(BobAccountLeaf)
+  //   // make a transfer between alice and bob's account
+  //   var tranferAmount = Alice.Amount + 1;
+  //   // prepare data for process Tx
+  //   var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+  //   // console.log("currentRoot: ", currentRoot)
+  //   var accountRoot = await IMTInstance.getTreeRoot();
+  //   var zeroHashes: any = await utils.defaultHashes(maxSize);
+
+  //   var AlicePDAsiblings = [
+  //     utils.PubKeyHash(Bob.Pubkey),
+  //     utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
+  //     zeroHashes[2],
+  //     zeroHashes[3],
+  //   ];
+
+  //   var BobPDAsiblings = [
+  //     utils.PubKeyHash(Alice.Pubkey),
+  //     utils.getParentLeaf(
+  //       coordinatorPubkeyHash,
+  //       utils.PubKeyHash(Alice.Pubkey)
+  //     ),
+  //     zeroHashes[2],
+  //     zeroHashes[3],
+  //   ];
+
+  //   var alicePDAProof = {
+  //     _pda: {
+  //       pathToPubkey: "2",
+  //       pubkey_leaf: { pubkey: Alice.Pubkey },
+  //     },
+  //     siblings: AlicePDAsiblings,
+  //   };
+
+  //   var isValid = await MTutilsInstance.verifyLeaf(
+  //     accountRoot,
+  //     utils.PubKeyHash(Alice.Pubkey),
+  //     "2",
+  //     AlicePDAsiblings
+  //   );
+  //   assert.equal(isValid, true, "pda proof wrong");
+
+  //   var bobPDAProof = {
+  //     _pda: {
+  //       pathToPubkey: "2",
+  //       pubkey_leaf: { pubkey: Bob.Pubkey },
+  //     },
+  //     siblings: BobPDAsiblings,
+  //   };
+
+  //   var tx = {
+  //     fromIndex: Alice.AccID,
+  //     toIndex: Bob.AccID,
+  //     tokenType: Alice.TokenType,
+  //     amount: tranferAmount,
+  //     txType: 1,
+  //     nonce: 2,
+  //     signature:
+  //       "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+  //   };
+  //   console.log(tx)
+  //   var dataToSign = await RollupUtilsInstance.getTxSignBytes(
+  //     tx.fromIndex,
+  //     tx.toIndex,
+  //     tx.tokenType,
+  //     tx.txType,
+  //     tx.nonce,
+  //     tx.amount
+  //   );
+
+  //   const h = ethUtils.toBuffer(dataToSign);
+  //   var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
+  //   tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+
+  //   // alice balance tree merkle proof
+  //   var AliceAccountSiblings: Array<string> = [
+  //     BobAccountLeaf,
+  //     utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+  //     zeroHashes[2],
+  //     zeroHashes[3],
+  //   ];
+  //   var leaf = AliceAccountLeaf;
+  //   var AliceAccountPath: string = "2";
+  //   var isValid = await MTutilsInstance.verifyLeaf(
+  //     currentRoot,
+  //     leaf,
+  //     AliceAccountPath,
+  //     AliceAccountSiblings
+  //   );
+  //   expect(isValid).to.be.deep.eq(true);
+  //   var AliceAccountMP = {
+  //     accountIP: {
+  //       pathToAccount: AliceAccountPath,
+  //       account: {
+  //         ID: Alice.AccID,
+  //         tokenType: Alice.TokenType,
+  //         balance: Alice.Amount,
+  //         nonce: Alice.nonce,
+  //       },
+  //     },
+  //     siblings: AliceAccountSiblings,
+  //   };
+
+  //   Alice.Amount -= Number(1);
+  //   Alice.nonce++;
+
+  //   var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+
+  //   // bob balance tree merkle proof
+  //   var BobAccountSiblings: Array<string> = [
+  //     UpdatedAliceAccountLeaf,
+  //     utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+  //     zeroHashes[2],
+  //     zeroHashes[3],
+  //   ];
+  //   var leaf = BobAccountLeaf;
+  //   var BobAccountPath: string = "3";
+  //   var isBobValid = await MTutilsInstance.verifyLeaf(
+  //     currentRoot,
+  //     leaf,
+  //     BobAccountPath,
+  //     BobAccountSiblings
+  //   );
+
+  //   var BobAccountMP = {
+  //     accountIP: {
+  //       pathToAccount: BobAccountPath,
+  //       account: {
+  //         ID: Bob.AccID,
+  //         tokenType: Bob.TokenType,
+  //         balance: Bob.Amount,
+  //         nonce: Bob.nonce,
+  //       },
+  //     },
+  //     siblings: BobAccountSiblings,
+  //   };
+
+  //   Bob.Amount += Number(tx.amount);
+  //   var accountProofs = {
+  //     from: AliceAccountMP,
+  //     to: BobAccountMP,
+  //   };
+
+  //   // process transaction validity with process tx
+  //   var result = await rollupCoreInstance.processTx(
+  //     currentRoot,
+  //     accountRoot,
+  //     tx,
+  //     alicePDAProof,
+  //     accountProofs
+  //   );
+
+  //   var falseResult = await falseProcessTx(
+  //     fraudProofInstance,
+  //     currentRoot,
+  //     accountRoot,
+  //     tx,
+  //     alicePDAProof,
+  //     accountProofs
+  //   );
+  //   console.log("result from falseProcessTx: " + falseResult);
+
+  //   console.log("result from processTx: " + JSON.stringify(result));
+
+  //   var compressedTx = await utils.compressTx(
+  //     tx.fromIndex,
+  //     tx.toIndex,
+  //     tx.nonce,
+  //     tx.amount,
+  //     tx.tokenType,
+  //     tx.signature
+  //   );
+
+  //   let compressedTxs: string[] = [];
+  //   compressedTxs.push(compressedTx);
+  //   console.log("compressedTx: " + JSON.stringify(compressedTxs));
+
+  //   // submit batch for that transactions
+  //   await rollupCoreInstance.submitBatch(
+  //     compressedTxs,
+  //     falseResult,
+  //     { value: ethers.utils.parseEther("32").toString() }
+  //   );
+
+  //   falseBatchThree = {
+  //     batchId: 0,
+  //     txs: [tx],
+  //     batchProofs: {
+  //       accountProofs: [accountProofs],
+  //       pdaProof: [alicePDAProof]
+  //     }
+  //   }
+    
+  //   let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+  //   falseBatchThree.batchId = Number(batchId) - 1;
+  //   console.log(falseBatchThree)
+  // });
+  // it("dispute batch false batch(Tx amount 0)", async function () {
+  //   await rollupCoreInstance.disputeBatch(
+  //     falseBatchThree.batchId,
+  //     falseBatchThree.txs,
+  //     falseBatchThree.batchProofs,
+  //   );
+    
+    
+  //   let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+  //   let batchMarker = await rollupCoreInstance.invalidBatchMarker();
+  //   assert.equal(batchMarker, "0", "batchMarker is not zero");
+  //   assert.equal(batchId -1 , falseBatchThree.batchId - 1, "batchId doesnt match");
+  //   Alice.Amount += 1;
+  //   Bob.Amount -= falseBatchOne.txs[0].amount;
+  //   Alice.nonce--;
+  // })
+  it("Registring new token", async function () {
+    await TestToken.new().then(async (instance: any) => {
+      let testToken2Instance = instance;
+      console.log("testToken2Instance.address: ", testToken2Instance.address)
+      await tokenRegistryInstance.requestTokenRegistration(testToken2Instance.address, {
+        from: wallets[0].getAddressString(),
+      });
+      await tokenRegistryInstance.finaliseTokenRegistration(testToken2Instance.address, {
+        from: wallets[0].getAddressString(),
+      });
+    });
+    var tokenAddress = await tokenRegistryInstance.registeredTokens(2);
+    // TODO
+  })
+
+  it("submit new batch 5nd", async function () {
+    var AliceAccountLeaf = await createLeaf(Alice);
+    var BobAccountLeaf = await createLeaf(Bob);
+
+    // make a transfer between alice and bob's account
+    var tranferAmount = 1;
+    // prepare data for process Tx
+    var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    var accountRoot = await IMTInstance.getTreeRoot();
+
+    var isValid = await MTutilsInstance.verifyLeaf(
+      accountRoot,
+      utils.PubKeyHash(Alice.Pubkey),
+      "2",
+      AlicePDAsiblings
+    );
+    assert.equal(isValid, true, "pda proof wrong");
+
+    var tx = {
+      fromIndex: Alice.AccID,
+      toIndex: Bob.AccID,
+      tokenType: 2, // error
+      amount: tranferAmount,
+      txType: 1,
+      nonce: 2,
+      signature:
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+    };
+    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
+      tx.fromIndex,
+      tx.toIndex,
+      tx.tokenType,
+      tx.txType,
+      tx.nonce,
+      tx.amount
+    );
+
+    tx.signature = await signTx(tx, wallets);
+
+    // alice balance tree merkle proof
+    var AliceAccountSiblings: Array<string> = [
+      BobAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = AliceAccountLeaf;
+    var AliceAccountPath: string = "2";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      AliceAccountPath,
+      AliceAccountSiblings
+    );
+    expect(isValid).to.be.deep.eq(true);
+    var AliceAccountMP = {
+      accountIP: {
+        pathToAccount: AliceAccountPath,
+        account: {
+          ID: Alice.AccID,
+          tokenType: Alice.TokenType,
+          balance: Alice.Amount,
+          nonce: Alice.nonce,
+        },
+      },
+      siblings: AliceAccountSiblings,
+    };
+
+    Alice.Amount -= Number(tx.amount);
+    Alice.nonce++;
+
+    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+
+    // bob balance tree merkle proof
+    var BobAccountSiblings: Array<string> = [
+      UpdatedAliceAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = BobAccountLeaf;
+    var BobAccountPath: string = "3";
+    var isBobValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      BobAccountPath,
+      BobAccountSiblings
+    );
+
+    var BobAccountMP = {
+      accountIP: {
+        pathToAccount: BobAccountPath,
+        account: {
+          ID: Bob.AccID,
+          tokenType: Bob.TokenType,
+          balance: Bob.Amount,
+          nonce: Bob.nonce,
+        },
+      },
+      siblings: BobAccountSiblings,
+    };
+
+    Bob.Amount += Number(tx.amount);
+    var accountProofs = {
+      from: AliceAccountMP,
+      to: BobAccountMP,
+    };
+
+    // process transaction validity with process tx
+    var result = await rollupCoreInstance.processTx(
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+
+    var falseResult = await falseProcessTx(
+      fraudProofInstance,
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+    console.log("result from falseProcessTx: " + falseResult);
+    console.log("result from processTx: " + JSON.stringify(result));
+    
+    assert.equal(result[3], ERR_FROM_TOKEN_TYPE, "False ErrorId. It should be `4`")
+    await compressAndSubmitBatch(tx, falseResult)
+
+    falseBatchFive = {
+      batchId: 0,
+      txs: [tx],
+      batchProofs: {
+        accountProofs: [accountProofs],
+        pdaProof: [alicePDAProof]
+      }
+    }
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    falseBatchFive.batchId = Number(batchId) - 1;
+  });
+  it("dispute batch false 5th batch(From Token Type)", async function () {
+    await rollupCoreInstance.disputeBatch(
+      falseBatchFive.batchId,
+      falseBatchFive.txs,
+      falseBatchFive.batchProofs,
+    );
+    
+    
+    let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
+    let batchMarker = await rollupCoreInstance.invalidBatchMarker();
+    assert.equal(batchMarker, "0", "batchMarker is not zero");
+    assert.equal(batchId -1 , falseBatchFive.batchId - 1, "batchId doesnt match");
+    Alice.Amount += falseBatchFive.txs[0].amount;
+    Bob.Amount -= falseBatchFive.txs[0].amount;
+    Alice.nonce--;
+  })
+
+
+  it("submit new batch 6nd(False Batch)", async function () {
+    var AliceAccountLeaf = await createLeaf(Alice);
+    var BobAccountLeaf = await createLeaf(Bob);
+
+    // make a transfer between alice and bob's account
+    var tranferAmount = 1;
+    // prepare data for process Tx
+    var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    var accountRoot = await IMTInstance.getTreeRoot();
 
     var isValid = await MTutilsInstance.verifyLeaf(
       accountRoot,
@@ -391,14 +1044,13 @@ contract("Rollup", async function (accounts) {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       // tokenType: Alice.TokenType,
-      tokenType: 2,
+      tokenType: 3, // false type
       amount: tranferAmount,
       txType: 1,
       nonce: 2,
       signature:
         "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
     };
-    console.log(tx)
     var dataToSign = await RollupUtilsInstance.getTxSignBytes(
       tx.fromIndex,
       tx.toIndex,
@@ -499,9 +1151,9 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
     console.log("result from falseProcessTx: " + falseResult);
-
     console.log("result from processTx: " + JSON.stringify(result));
 
+    assert.equal(result[3], 1, "Wrong ErrorId")
     var compressedTx = await utils.compressTx(
       tx.fromIndex,
       tx.toIndex,
@@ -522,7 +1174,7 @@ contract("Rollup", async function (accounts) {
       { value: ethers.utils.parseEther("32").toString() }
     );
 
-    falseBatchOne = {
+    falseBatchComb = {
       batchId: 0,
       txs: [tx],
       batchProofs: {
@@ -532,41 +1184,155 @@ contract("Rollup", async function (accounts) {
     }
     
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
-    falseBatchOne.batchId = Number(batchId) - 1;
-    console.log(falseBatchOne)
-    // console.log("Alice: ",Alice)
-    // console.log("Bob: ", Bob)
+    falseBatchComb.batchId = Number(batchId) - 1;
   });
-  it("dispute batch false batch(Token Type)", async function () {
-    let rollupCoreInstance = await RollupCore.deployed();
-    // console.log("falseBatchOne.batchId: ", falseBatchOne.batchId)
-    // console.log("falseBatchOne.txs: ", falseBatchOne.txs)
-    // console.log("falseBatchOne.accountProofs: ", falseBatchOne.batchProofs.accountProofs)
-    // console.log("falseBatchOne.pdaProof: ", falseBatchOne.batchProofs.pdaProof)
 
-    let x = await rollupCoreInstance.batches(falseBatchOne.batchId)
-    // console.log(x)
-    await rollupCoreInstance.disputeBatch(
-      falseBatchOne.batchId,
-      falseBatchOne.txs,
-      falseBatchOne.batchProofs,
+  it("submit new batch 7th(false batch)", async function () {
+    var AliceAccountLeaf = await createLeaf(Alice);
+    var BobAccountLeaf = await createLeaf(Bob);
+
+    // make a transfer between alice and bob's account
+    var tranferAmount = 1;
+    // prepare data for process Tx
+    var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    var accountRoot = await IMTInstance.getTreeRoot();
+
+    var isValid = await MTutilsInstance.verifyLeaf(
+      accountRoot,
+      utils.PubKeyHash(Alice.Pubkey),
+      "2",
+      AlicePDAsiblings
     );
-    // falseBatchOne = {
-    //   batchId: 0,
-    //   txs: [tx],
-    //   from_proofs: [AliceAccountMP],
-    //   to_proofs: [BobAccountMP],
-    //   _pda_proof: [alicePDAProof]
-    // }
+    assert.equal(isValid, true, "pda proof wrong");
+
+    var tx = {
+      fromIndex: Alice.AccID,
+      toIndex: Bob.AccID,
+      tokenType: Alice.TokenType,
+      amount: 0, // Error
+      txType: 1,
+      nonce: 2,
+      signature:
+        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+    };
+    tx.signature = await signTx(tx, wallets);
+
+    // alice balance tree merkle proof
+    var AliceAccountSiblings: Array<string> = [
+      BobAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = AliceAccountLeaf;
+    var AliceAccountPath: string = "2";
+    var isValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      AliceAccountPath,
+      AliceAccountSiblings
+    );
+    expect(isValid).to.be.deep.eq(true);
+    var AliceAccountMP = {
+      accountIP: {
+        pathToAccount: AliceAccountPath,
+        account: {
+          ID: Alice.AccID,
+          tokenType: Alice.TokenType,
+          balance: Alice.Amount,
+          nonce: Alice.nonce,
+        },
+      },
+      siblings: AliceAccountSiblings,
+    };
+
+    Alice.Amount -= Number(tx.amount);
+    Alice.nonce++;
+
+    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+
+    // bob balance tree merkle proof
+    var BobAccountSiblings: Array<string> = [
+      UpdatedAliceAccountLeaf,
+      utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+      zeroHashes[2],
+      zeroHashes[3],
+    ];
+    var leaf = BobAccountLeaf;
+    var BobAccountPath: string = "3";
+    var isBobValid = await MTutilsInstance.verifyLeaf(
+      currentRoot,
+      leaf,
+      BobAccountPath,
+      BobAccountSiblings
+    );
+
+    var BobAccountMP = {
+      accountIP: {
+        pathToAccount: BobAccountPath,
+        account: {
+          ID: Bob.AccID,
+          tokenType: Bob.TokenType,
+          balance: Bob.Amount,
+          nonce: Bob.nonce,
+        },
+      },
+      siblings: BobAccountSiblings,
+    };
+
+    Bob.Amount += Number(tx.amount);
+    var accountProofs = {
+      from: AliceAccountMP,
+      to: BobAccountMP,
+    };
+
+    // process transaction validity with process tx
+    var result = await rollupCoreInstance.processTx(
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+
+    var falseResult = await falseProcessTx(
+      fraudProofInstance,
+      currentRoot,
+      accountRoot,
+      tx,
+      alicePDAProof,
+      accountProofs
+    );
+    console.log("result from falseProcessTx: " + falseResult);
+    console.log("result from processTx: " + JSON.stringify(result));
     
+    assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false ErrorId. it should be `2`");
+    await compressAndSubmitBatch(tx, falseResult)
+
+    falseBatchComb.txs.push(tx);
+    falseBatchComb.batchProofs.accountProofs.push(accountProofs);
+    falseBatchComb.batchProofs.pdaProof.push(alicePDAProof);
+  });
+
+  it("dispute batch false Combo batch", async function () {
+    await rollupCoreInstance.disputeBatch(
+      falseBatchComb.batchId,
+      falseBatchComb.txs,
+      falseBatchComb.batchProofs,
+    );
     
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     let batchMarker = await rollupCoreInstance.invalidBatchMarker();
-    // console.log("batchId: ", Number(batchId))
-    // console.log("batchMarker: ", Number(batchMarker))
-    let y = await rollupCoreInstance.batches(Number(batchId) - 1)
-    // console.log(y)
+    assert.equal(batchMarker, "0", "batchMarker is not zero");
+    assert.equal(batchId -1 , falseBatchComb.batchId - 1, "batchId doesnt match");
+    Alice.Amount += falseBatchComb.txs[0].amount;
+    Alice.Amount += falseBatchComb.txs[1].amount;
+    Bob.Amount -= falseBatchComb.txs[0].amount;
+    Bob.Amount -= falseBatchComb.txs[1].amount;
+    Alice.nonce--;
+    Alice.nonce--;
   })
+
 });
 
 async function falseProcessTx(
@@ -597,5 +1363,44 @@ async function createLeaf(account: any) {
     account.Amount,
     account.nonce,
     account.TokenType
+  );
+}
+
+async function signTx(tx: any, wallets: any) {
+  let RollupUtilsInstance = await RollupUtils.deployed()
+  var dataToSign = await RollupUtilsInstance.getTxSignBytes(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.tokenType,
+    tx.txType,
+    tx.nonce,
+    tx.amount
+  );
+
+  const h = ethUtils.toBuffer(dataToSign);
+  var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
+  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+}
+
+async function compressAndSubmitBatch(tx: any, newRoot: any) {
+  let rollupCoreInstance = await RollupCore.deployed()
+  var compressedTx = await utils.compressTx(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.nonce,
+    tx.amount,
+    tx.tokenType,
+    tx.signature
+  );
+
+  let compressedTxs: string[] = [];
+  compressedTxs.push(compressedTx);
+  console.log("compressedTx: " + JSON.stringify(compressedTxs));
+
+  // submit batch for that transactions
+  await rollupCoreInstance.submitBatch(
+    compressedTxs,
+    newRoot,
+    { value: ethers.utils.parseEther("32").toString() }
   );
 }
