@@ -30,6 +30,20 @@ contract BurnConsent is FraudProofHelpers {
         );
     }
 
+    function generateTxRoot(Types.BurnConsent[] memory _txs)
+        public
+        view
+        returns (bytes32 txRoot)
+    {
+        // generate merkle tree from the txs provided by user
+        bytes[] memory txs = new bytes[](_txs.length);
+        for (uint256 i = 0; i < _txs.length; i++) {
+            txs[i] = RollupUtils.CompressConsent(_txs[i]);
+        }
+        txRoot = merkleUtils.getMerkleRoot(txs);
+        return txRoot;
+    }
+
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -37,7 +51,7 @@ contract BurnConsent is FraudProofHelpers {
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txs,
+        Types.BurnConsent[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -49,7 +63,7 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
-        bytes32 actualTxRoot = merkleUtils.getMerkleRoot(_txs);
+        bytes32 actualTxRoot = generateTxRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
             // if tx root while submission doesnt match tx root of given txs
@@ -65,11 +79,10 @@ contract BurnConsent is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                Types.BurnConsent memory _tx = RollupUtils.DecompressConsent(_txs[i]);
                 (stateRoot, , , , isTxValid) = processTx(
                     stateRoot,
                     accountsRoot,
-                    _tx,
+                    _txs[i],
                     batchProofs.pdaProof[i],
                     batchProofs.accountProofs[i]
                 );
