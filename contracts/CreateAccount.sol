@@ -107,9 +107,6 @@ contract CreateAccount is FraudProofHelpers {
             account.nonce == 0;
     }
 
-    /**
-     * @notice Overrides processTx in FraudProof
-     */
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
