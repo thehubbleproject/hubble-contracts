@@ -127,8 +127,16 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        Types.UserAccount expectedZeroAccount = accountProofs.to.accountIP.account;
+        Types.UserAccount expectedZeroAccount = accountProofs
+            .to
+            .accountIP
+            .account;
         Types.UserAccount createdAccount;
+        createdAccount.ID = _tx.toIndex;
+        createdAccount.tokenType = 1; // Arbitrary assign a default token
+        createdAccount.balance = 0;
+        createdAccount.nonce = 0;
+
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
         bool result = ValidateZeroAccount(expectedZeroAccount);
