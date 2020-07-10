@@ -247,6 +247,16 @@ library RollupUtils {
         return _tx;
     }
 
+    function DecompressCreateAccount(bytes memory txBytes)
+        public
+        pure
+        returns (Types.CreateAccount memory)
+    {
+        Types.CreateAccount memory _tx;
+        _tx.toIndex = abi.decode(txBytes, (uint256));
+        return _tx;
+    }
+
     function CompressDrop(Types.Drop memory drop)
         public
         pure
