@@ -44,6 +44,11 @@ library Types {
         bytes signature;
     }
 
+    struct CreateAccount {
+        uint256 toIndex;
+        bytes signature;
+    }
+
     struct Drop {
         uint256 toIndex;
         uint256 tokenType;

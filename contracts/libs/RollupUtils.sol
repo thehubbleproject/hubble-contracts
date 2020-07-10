@@ -271,6 +271,14 @@ library RollupUtils {
         return abi.encode(_tx);
     }
 
+    function CompressCreateAccount(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(_tx);
+    }
+
     function CompressDropNoStruct(
         uint256 toIndex,
         uint256 tokenType,
