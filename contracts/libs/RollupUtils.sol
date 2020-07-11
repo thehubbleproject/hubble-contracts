@@ -362,6 +362,31 @@ library RollupUtils {
         return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
     }
 
+    function BytesFromTxAirdropDeconstructed(
+        uint256 to,
+        uint256 tokenType,
+        uint256 epoch,
+        uint256 amount
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(to, tokenType, epoch, amount);
+    }
+
+    function BytesFromTxBurnConsentDeconstructed(
+        uint256 from,
+        uint256 amount,
+        bool cancel
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(from, amount, cancel);
+    }
+
+    function BytesFromTxBurnExecutionDeconstructed(uint256 from)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(from);
+    }
+
     //
     // HashFromTx and getTxSignBytes do the same thing i.e get the tx data to be signed
     //
