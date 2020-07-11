@@ -316,6 +316,31 @@ library RollupUtils {
             );
     }
 
+    function BytesFromAirdrop(Types.Drop memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(_tx.toIndex, _tx.tokenType, _tx.epoch, _tx.amount);
+    }
+
+    function BytesFromBurnConsent(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.cancel);
+    }
+
+    function BytesFromBurnExecution(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.fromIndex);
+    }
+
     function getDropSignBytes(
         uint256 toIndex,
         uint256 tokenType,
