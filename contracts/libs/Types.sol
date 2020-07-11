@@ -60,7 +60,6 @@ library Types {
 
     struct BurnExecution {
         uint256 fromIndex;
-        bytes signature;
     }
 
     // AccountInclusionProof consists of the following fields

@@ -207,7 +207,7 @@ library RollupUtils {
         returns (Types.BurnExecution memory)
     {
         Types.BurnExecution memory _tx;
-        (_tx.fromIndex, _tx.signature) = abi.decode(txBytes, (uint256, bytes));
+        _tx.fromIndex = abi.decode(txBytes, (uint256));
         return _tx;
     }
 
