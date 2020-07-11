@@ -6,6 +6,7 @@ import "solidity-bytes-utils/contracts/BytesLib.sol";
 import {IERC20} from "./interfaces/IERC20.sol";
 import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {IFraudProof} from "./interfaces/IFraudProof.sol";
+import {IReddit} from "./interfaces/IReddit.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
@@ -37,9 +38,9 @@ contract RollupSetup {
     MTUtils public merkleUtils;
 
     IFraudProof public fraudProof;
-    IFraudProof public airdrop;
-    IFraudProof public burnConsent;
-    IFraudProof public burnExecution;
+    IReddit public airdrop;
+    IReddit public burnConsent;
+    IReddit public burnExecution;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -253,13 +254,13 @@ contract Rollup is RollupHelpers {
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
         );
-        airdrop = IFraudProof(
+        airdrop = IReddit(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
-        burnConsent = IFraudProof(
+        burnConsent = IReddit(
             nameRegistry.getContractDetails(ParamManager.BURN_CONSENT())
         );
-        burnExecution = IFraudProof(
+        burnExecution = IReddit(
             nameRegistry.getContractDetails(ParamManager.BURN_EXECUTION())
         );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
@@ -417,6 +418,87 @@ contract Rollup is RollupHelpers {
     {
         return
             fraudProof.processTx(
+                _balanceRoot,
+                _accountsRoot,
+                _tx,
+                _from_pda_proof,
+                accountProofs
+            );
+    }
+
+    function processTxAirdrop(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        Types.Drop memory _tx,
+        Types.PDAMerkleProof memory _from_pda_proof,
+        Types.AccountProofs memory accountProofs
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes memory,
+            bytes memory,
+            uint256,
+            bool
+        )
+    {
+        return
+            airdrop.processTxAirdrop(
+                _balanceRoot,
+                _accountsRoot,
+                _tx,
+                _from_pda_proof,
+                accountProofs
+            );
+    }
+
+    function processTxBurnConsent(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        Types.BurnConsent memory _tx,
+        Types.PDAMerkleProof memory _from_pda_proof,
+        Types.AccountProofs memory accountProofs
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes memory,
+            bytes memory,
+            uint256,
+            bool
+        )
+    {
+        return
+            burnConsent.processTxBurnConsent(
+                _balanceRoot,
+                _accountsRoot,
+                _tx,
+                _from_pda_proof,
+                accountProofs
+            );
+    }
+
+    function processTxBurnExecution(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        Types.BurnExecution memory _tx,
+        Types.PDAMerkleProof memory _from_pda_proof,
+        Types.AccountProofs memory accountProofs
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes memory,
+            bytes memory,
+            uint256,
+            bool
+        )
+    {
+        return
+            burnExecution.processTxBurnExecution(
                 _balanceRoot,
                 _accountsRoot,
                 _tx,
