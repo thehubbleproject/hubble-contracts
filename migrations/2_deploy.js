@@ -19,6 +19,7 @@ const nameRegistryContract = artifacts.require("NameRegistry");
 const incrementalTreeContract = artifacts.require("IncrementalTree");
 const depositManagerContract = artifacts.require("DepositManager");
 const rollupContract = artifacts.require("Rollup");
+const rollupRedditContract = artifacts.require("RollupReddit");
 const testTokenContract = artifacts.require("TestToken");
 const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
 const POBContract = artifacts.require("POB");
@@ -160,6 +161,14 @@ module.exports = async function (deployer) {
     "ROLLUP_CORE"
   );
 
+  const rollupRedditInstance = await deployAndRegister(
+    deployer,
+    rollupRedditContract,
+    [ Types, paramManagerLib],
+    [nameRegistryInstance.address],
+    "ROLLUP_REDDIT"
+  );
+
   const contractAddresses = {
     AccountTree: accountsTreeInstance.address,
     ParamManager: paramManagerInstance.address,
@@ -174,6 +183,7 @@ module.exports = async function (deployer) {
     Airdrop: airdropInstance.address,
     BurnConsent: burnConsentInstance.address,
     BurnExecution: burnExecutionInstance.address,
+    RollupReddit: rollupRedditInstance.address,
   };
 
   writeContractAddresses(contractAddresses);

@@ -188,6 +188,42 @@ library RollupUtils {
         return transaction;
     }
 
+    function TxFromBytesAirdrop(bytes memory txBytes)
+        public
+        pure
+        returns (Types.Drop memory)
+    {
+        Types.Drop memory _tx;
+        (_tx.toIndex, _tx.tokenType, _tx.epoch, _tx.amount) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256)
+        );
+        return _tx;
+    }
+
+    function TxFromBytesBurnConsent(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnConsent memory)
+    {
+        Types.BurnConsent memory _tx;
+        (_tx.fromIndex, _tx.amount, _tx.cancel, _tx.signature) = abi.decode(
+            txBytes,
+            (uint256, uint256, bool, bytes)
+        );
+        return _tx;
+    }
+
+    function TxFromBytesBurnExecution(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnExecution memory)
+    {
+        Types.BurnExecution memory _tx;
+        _tx.fromIndex = abi.decode(txBytes, (uint256));
+        return _tx;
+    }
+
     function DecompressConsent(bytes memory txBytes)
         public
         pure
@@ -207,7 +243,7 @@ library RollupUtils {
         returns (Types.BurnExecution memory)
     {
         Types.BurnExecution memory _tx;
-        (_tx.fromIndex, _tx.signature) = abi.decode(txBytes, (uint256, bytes));
+        _tx.fromIndex = abi.decode(txBytes, (uint256));
         return _tx;
     }
 
@@ -280,6 +316,31 @@ library RollupUtils {
             );
     }
 
+    function BytesFromAirdrop(Types.Drop memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(_tx.toIndex, _tx.tokenType, _tx.epoch, _tx.amount);
+    }
+
+    function BytesFromBurnConsent(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.cancel);
+    }
+
+    function BytesFromBurnExecution(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.fromIndex);
+    }
+
     function getDropSignBytes(
         uint256 toIndex,
         uint256 tokenType,
@@ -299,6 +360,31 @@ library RollupUtils {
         uint256 amount
     ) public pure returns (bytes memory) {
         return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
+    }
+
+    function BytesFromTxAirdropDeconstructed(
+        uint256 to,
+        uint256 tokenType,
+        uint256 epoch,
+        uint256 amount
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(to, tokenType, epoch, amount);
+    }
+
+    function BytesFromTxBurnConsentDeconstructed(
+        uint256 from,
+        uint256 amount,
+        bool cancel
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(from, amount, cancel);
+    }
+
+    function BytesFromTxBurnExecutionDeconstructed(uint256 from)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(from);
     }
 
     //
