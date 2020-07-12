@@ -866,25 +866,7 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
     assert.equal(result[3], 1, "Wrong ErrorId")
-    var compressedTx = await utils.compressTx(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.nonce,
-      tx.amount,
-      tx.tokenType,
-      tx.signature
-    );
-
-    let compressedTxs: string[] = [];
-    compressedTxs.push(compressedTx);
-    console.log("compressedTx: " + JSON.stringify(compressedTxs));
-
-    // submit batch for that transactions
-    await rollupCoreInstance.submitBatch(
-      compressedTxs,
-      falseResult,
-      { value: ethers.utils.parseEther("32").toString() }
-    );
+    await utils.compressAndSubmitBatch(tx, falseResult);
 
     falseBatchComb = {
       batchId: 0,
