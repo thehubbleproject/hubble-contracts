@@ -266,6 +266,22 @@ contract Rollup is RollupHelpers {
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }
 
+    function createPublickeys(bytes[] calldata publicKeys)
+        external
+        onlyCoordinator
+        returns (uint256[] memory)
+    {
+        uint256[] memory accountIDs = new uint256[](publicKeys.length);
+        for (uint256 i = 0; i < publicKeys.length; i++) {
+            Types.PDALeaf memory newPDALeaf;
+            newPDALeaf.pubkey = publicKeys[i];
+            accountIDs[i] = accountsTree.appendLeaf(
+                RollupUtils.PDALeafToHash(newPDALeaf)
+            );
+        }
+        return accountIDs;
+    }
+
     /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .

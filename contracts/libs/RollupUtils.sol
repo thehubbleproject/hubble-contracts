@@ -247,6 +247,16 @@ library RollupUtils {
         return _tx;
     }
 
+    function DecompressCreateAccount(bytes memory txBytes)
+        public
+        pure
+        returns (Types.CreateAccount memory)
+    {
+        Types.CreateAccount memory _tx;
+        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
+        return _tx;
+    }
+
     function CompressDrop(Types.Drop memory drop)
         public
         pure
@@ -264,6 +274,14 @@ library RollupUtils {
     }
 
     function CompressExecution(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(_tx);
+    }
+
+    function CompressCreateAccount(Types.CreateAccount memory _tx)
         public
         pure
         returns (bytes memory)
@@ -316,6 +334,14 @@ library RollupUtils {
             );
     }
 
+    function BytesFromCreateAccount(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.toIndex, _tx.tokenType);
+    }
+
     function BytesFromAirdrop(Types.Drop memory _tx)
         public
         pure
@@ -360,6 +386,13 @@ library RollupUtils {
         uint256 amount
     ) public pure returns (bytes memory) {
         return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
+    }
+
+    function BytesFromTxCreateAccountDeconstructed(
+        uint256 to,
+        uint256 tokenType
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(to, tokenType);
     }
 
     function BytesFromTxAirdropDeconstructed(
