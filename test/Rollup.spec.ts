@@ -173,8 +173,8 @@ contract("Rollup", async function (accounts) {
   });
 
   it("submit new batch 1st", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -235,7 +235,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
       UpdatedAliceAccountLeaf,
@@ -305,8 +305,8 @@ contract("Rollup", async function (accounts) {
   })
 
   it("submit new batch 2nd(False Batch)", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -365,7 +365,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -444,8 +444,8 @@ contract("Rollup", async function (accounts) {
 
 
   it("submit new batch 3rd", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -503,7 +503,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -604,8 +604,8 @@ contract("Rollup", async function (accounts) {
   })
 
   it("submit new batch 5nd", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -664,7 +664,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -748,8 +748,8 @@ contract("Rollup", async function (accounts) {
 
 
   it("submit new batch 6nd(False Batch)", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -814,7 +814,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -899,8 +899,8 @@ contract("Rollup", async function (accounts) {
   });
 
   it("submit new batch 7th(false batch)", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -958,7 +958,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -1036,12 +1036,3 @@ contract("Rollup", async function (accounts) {
   })
 
 });
-
-async function createLeaf(account: any) {
-  return await utils.CreateAccountLeaf(
-    account.AccID,
-    account.Amount,
-    account.nonce,
-    account.TokenType
-  );
-}

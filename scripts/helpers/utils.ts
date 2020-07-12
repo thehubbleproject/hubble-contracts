@@ -48,21 +48,36 @@ export async function BytesFromAccountData(
   return rollupUtils.BytesFromAccount(account);
 }
 
-export async function CreateAccountLeaf(
+export interface Account {
   ID: number,
+  tokenType: number,
   balance: number,
-  nonce: number,
-  token: number
+  nonce: number
+}
+
+export async function CreateAccountLeaf(
+  account: Account
 ) {
-  var rollupUtils = await RollupUtils.deployed();
-  // var account = {
-  //   ID: ID,
-  //   tokenType: token,
-  //   balance: balance,
-  //   nonce: nonce,
-  // };
-  var result = await rollupUtils.getAccountHash(ID, balance, nonce, token);
+  const rollupUtils = await RollupUtils.deployed();
+  const result = await rollupUtils.getAccountHash(
+    account.ID,
+    account.balance,
+    account.nonce,
+    account.tokenType
+  );
   return result;
+}
+
+export async function createLeaf(
+  accountAlias: any
+) {
+  const account: Account = {
+    ID: accountAlias.AccID,
+    balance: accountAlias.Amount,
+    tokenType: accountAlias.TokenType,
+    nonce: accountAlias.nonce,
+  };
+  return await CreateAccountLeaf(account);
 }
 
 export async function BytesFromTx(
@@ -276,7 +291,7 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     tx.signature
   );
 
-  const compressedTxs= [compressedTx];
+  const compressedTxs = [compressedTx];
 
   // submit batch for that transactions
   await rollupCoreInstance.submitBatch(
