@@ -1,9 +1,15 @@
 import { ethers } from "ethers";
+import * as ethUtils from "ethereumjs-util";
+import { Account, Transaction } from "./interfaces";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
+const FraudProof = artifacts.require("FraudProof");
+const RollupCore = artifacts.require("Rollup");
+
+
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
   var abiCoder = ethers.utils.defaultAbiCoder;
@@ -44,20 +50,28 @@ export async function BytesFromAccountData(
 }
 
 export async function CreateAccountLeaf(
-  ID: number,
-  balance: number,
-  nonce: number,
-  token: number
+  account: Account
 ) {
-  var rollupUtils = await RollupUtils.deployed();
-  // var account = {
-  //   ID: ID,
-  //   tokenType: token,
-  //   balance: balance,
-  //   nonce: nonce,
-  // };
-  var result = await rollupUtils.getAccountHash(ID, balance, nonce, token);
+  const rollupUtils = await RollupUtils.deployed();
+  const result = await rollupUtils.getAccountHash(
+    account.ID,
+    account.balance,
+    account.nonce,
+    account.tokenType
+  );
   return result;
+}
+
+export async function createLeaf(
+  accountAlias: any
+) {
+  const account: Account = {
+    ID: accountAlias.AccID,
+    balance: accountAlias.Amount,
+    tokenType: accountAlias.TokenType,
+    nonce: accountAlias.nonce,
+  };
+  return await CreateAccountLeaf(account);
 }
 
 export async function BytesFromTx(
@@ -219,4 +233,54 @@ export async function compressTx(
   );
   var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
   return result;
+}
+
+export async function signTx(tx: Transaction, wallet: any) {
+  const RollupUtilsInstance = await RollupUtils.deployed()
+  const dataToSign = await RollupUtilsInstance.getTxSignBytes(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.tokenType,
+    tx.txType,
+    tx.nonce,
+    tx.amount
+  );
+
+  const h = ethUtils.toBuffer(dataToSign);
+  const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
+  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+}
+
+export async function falseProcessTx(
+  _tx: any,
+  accountProofs: any
+) {
+  const fraudProofInstance = await FraudProof.deployed();
+  const _to_merkle_proof = accountProofs.to;
+  const new_to_txApply = await fraudProofInstance.ApplyTx(
+    _to_merkle_proof,
+    _tx
+  );
+  return new_to_txApply.newRoot;
+}
+
+export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
+  const rollupCoreInstance = await RollupCore.deployed();
+  const compressedTx = await compressTx(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.nonce,
+    tx.amount,
+    tx.tokenType,
+    tx.signature
+  );
+
+  const compressedTxs = [compressedTx];
+
+  // submit batch for that transactions
+  await rollupCoreInstance.submitBatch(
+    compressedTxs,
+    newRoot,
+    { value: ethers.utils.parseEther("32").toString() }
+  );
 }

@@ -1,21 +1,19 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
+import { Transaction } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const EcVerify = artifacts.require("ECVerify");
-const FraudProof = artifacts.require("FraudProof");
-import * as ethUtils from "ethereumjs-util";
 
 contract("Rollup", async function (accounts) {
   var wallets: any;
 
   let depositManagerInstance: any;
   let testTokenInstance: any;
-  let fraudProofInstance: any;
   let rollupCoreInstance: any;
   let MTutilsInstance: any;
   let testToken: any;
@@ -54,8 +52,6 @@ contract("Rollup", async function (accounts) {
 
   before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-
-    fraudProofInstance = await FraudProof.deployed();
     depositManagerInstance = await DepositManager.deployed();
     testTokenInstance = await TestToken.deployed();
     rollupCoreInstance = await RollupCore.deployed();
@@ -178,8 +174,8 @@ contract("Rollup", async function (accounts) {
   });
 
   it("submit new batch 1st", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -195,18 +191,16 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
       amount: tranferAmount,
       txType: 1,
-      nonce: 1,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 1
     };
 
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -242,7 +236,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
       UpdatedAliceAccountLeaf,
@@ -283,7 +277,7 @@ contract("Rollup", async function (accounts) {
     );
 
     console.log("result from processTx: " + JSON.stringify(result));
-    await compressAndSubmitBatch(tx, result[0])
+    await utils.compressAndSubmitBatch(tx, result[0])
 
     falseBatchZero = {
       batchId: 0,
@@ -312,8 +306,8 @@ contract("Rollup", async function (accounts) {
   })
 
   it("submit new batch 2nd(False Batch)", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -329,18 +323,16 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       // tokenType: Alice.TokenType,
       tokenType: 2, // false token type (Token not valid)
       amount: tranferAmount,
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -374,7 +366,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -414,19 +406,12 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-
     assert.equal(result[3], ERR_TOKEN_ADDR_INVAILD, "False error ID. It should be `1`")
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchOne = {
       batchId: 0,
@@ -460,8 +445,8 @@ contract("Rollup", async function (accounts) {
 
 
   it("submit new batch 3rd", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -477,17 +462,15 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
       amount: 0, // Error
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -521,7 +504,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -567,20 +550,13 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-    
     assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false Error Id. It should be `2`.");
 
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchTwo = {
       batchId: 0,
@@ -629,8 +605,8 @@ contract("Rollup", async function (accounts) {
   })
 
   it("submit new batch 5nd", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -646,26 +622,16 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: 2, // error
       amount: tranferAmount,
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.tokenType,
-      tx.txType,
-      tx.nonce,
-      tx.amount
-    );
 
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -699,7 +665,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -745,19 +711,12 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-    
     assert.equal(result[3], ERR_FROM_TOKEN_TYPE, "False ErrorId. It should be `4`")
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchFive = {
       batchId: 0,
@@ -790,8 +749,8 @@ contract("Rollup", async function (accounts) {
 
 
   it("submit new batch 6nd(False Batch)", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -815,30 +774,15 @@ contract("Rollup", async function (accounts) {
       siblings: BobPDAsiblings,
     };
 
-    var tx = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
-      // tokenType: Alice.TokenType,
       tokenType: 3, // false type
       amount: tranferAmount,
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.tokenType,
-      tx.txType,
-      tx.nonce,
-      tx.amount
-    );
-
-    const h = ethUtils.toBuffer(dataToSign);
-    var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
-    tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-
+    tx.signature = await utils.signTx(tx, wallets[0]);
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
@@ -871,7 +815,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -917,17 +861,10 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-
     assert.equal(result[3], 1, "Wrong ErrorId")
     var compressedTx = await utils.compressTx(
       tx.fromIndex,
@@ -963,8 +900,8 @@ contract("Rollup", async function (accounts) {
   });
 
   it("submit new batch 7th(false batch)", async function () {
-    var AliceAccountLeaf = await createLeaf(Alice);
-    var BobAccountLeaf = await createLeaf(Bob);
+    var AliceAccountLeaf = await utils.createLeaf(Alice);
+    var BobAccountLeaf = await utils.createLeaf(Bob);
 
     // make a transfer between alice and bob's account
     var tranferAmount = 1;
@@ -980,17 +917,15 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
-      amount: 0, // Error
+      amount: 0, // An invalid amount
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -1024,7 +959,7 @@ contract("Rollup", async function (accounts) {
     Alice.Amount -= Number(tx.amount);
     Alice.nonce++;
 
-    var UpdatedAliceAccountLeaf = await createLeaf(Alice);
+    var UpdatedAliceAccountLeaf = await utils.createLeaf(Alice);
 
     // bob balance tree merkle proof
     var BobAccountSiblings: Array<string> = [
@@ -1070,19 +1005,12 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-    
     assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false ErrorId. it should be `2`");
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchComb.txs.push(tx);
     falseBatchComb.batchProofs.accountProofs.push(accountProofs);
@@ -1109,73 +1037,3 @@ contract("Rollup", async function (accounts) {
   })
 
 });
-
-async function falseProcessTx(
-  FraudProofInstance: any,
-  currentRoot: any,
-  accountRoot: any,
-  _tx: any,
-  alicePDAProof: any,
-  accountProofs: any
-) {
-  var _from_merkle_proof = accountProofs.from;
-  var _to_merkle_proof = accountProofs.to;
-  let new_from_txApply = await FraudProofInstance.ApplyTx(
-    _from_merkle_proof,
-    _tx
-  );
-
-  let new_to_txApply = await FraudProofInstance.ApplyTx(
-    _to_merkle_proof,
-    _tx
-  );
-  return new_to_txApply.newRoot;
-}
-
-async function createLeaf(account: any) {
-  return await utils.CreateAccountLeaf(
-    account.AccID,
-    account.Amount,
-    account.nonce,
-    account.TokenType
-  );
-}
-
-async function signTx(tx: any, wallets: any) {
-  let RollupUtilsInstance = await RollupUtils.deployed()
-  var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-    tx.fromIndex,
-    tx.toIndex,
-    tx.tokenType,
-    tx.txType,
-    tx.nonce,
-    tx.amount
-  );
-
-  const h = ethUtils.toBuffer(dataToSign);
-  var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
-  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-}
-
-async function compressAndSubmitBatch(tx: any, newRoot: any) {
-  let rollupCoreInstance = await RollupCore.deployed()
-  var compressedTx = await utils.compressTx(
-    tx.fromIndex,
-    tx.toIndex,
-    tx.nonce,
-    tx.amount,
-    tx.tokenType,
-    tx.signature
-  );
-
-  let compressedTxs: string[] = [];
-  compressedTxs.push(compressedTx);
-  console.log("compressedTx: " + JSON.stringify(compressedTxs));
-
-  // submit batch for that transactions
-  await rollupCoreInstance.submitBatch(
-    compressedTxs,
-    newRoot,
-    { value: ethers.utils.parseEther("32").toString() }
-  );
-}

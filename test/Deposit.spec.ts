@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import * as walletHelper from "../scripts/helpers/wallet";
-import * as ethUtils from "ethereumjs-util";
+import { Account } from "../scripts/helpers/interfaces";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
@@ -94,12 +94,13 @@ contract("DepositManager", async function (accounts) {
       Alice.TokenType,
       Alice.Pubkey
     );
-    var AliceAccountLeaf = await utils.CreateAccountLeaf(
-      Alice.AccID,
-      Alice.Amount,
-      0,
-      Alice.TokenType
-    );
+    const AliceAccount: Account = {
+      ID: Alice.AccID,
+      tokenType: Alice.TokenType,
+      balance: Alice.Amount,
+      nonce: 0
+    }
+    var AliceAccountLeaf = await utils.CreateAccountLeaf(AliceAccount);
 
     var BalanceOfAliceAfterDeposit = await testTokenInstance.balanceOf(
       Alice.Address
@@ -123,12 +124,13 @@ contract("DepositManager", async function (accounts) {
       Bob.Pubkey
     );
 
-    var BobAccountLeaf = await utils.CreateAccountLeaf(
-      Bob.AccID,
-      Bob.Amount,
-      0,
-      Bob.TokenType
-    );
+    const BobAccount: Account = {
+      ID:Bob.AccID,
+      tokenType:Bob.TokenType,
+      balance: Bob.Amount,
+      nonce: 0
+    }
+    var BobAccountLeaf = await utils.CreateAccountLeaf(BobAccount);
 
     var pendingDeposits0 = await depositManagerInstance.dequeue.call();
 
