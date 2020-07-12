@@ -284,6 +284,7 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
   await rollupCoreInstance.submitBatch(
     compressedTxs,
     newRoot,
+    Usage.Transfer,
     { value: ethers.utils.parseEther("32").toString() }
   );
 }
