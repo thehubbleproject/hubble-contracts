@@ -8,7 +8,6 @@ const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const EcVerify = artifacts.require("ECVerify");
 const FraudProof = artifacts.require("FraudProof");
-import * as ethUtils from "ethereumjs-util";
 
 contract("Rollup", async function (accounts) {
   var wallets: any;
@@ -195,18 +194,16 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: utils.Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
       amount: tranferAmount,
       txType: 1,
-      nonce: 1,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 1
     };
 
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -329,18 +326,16 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: utils.Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       // tokenType: Alice.TokenType,
       tokenType: 2, // false token type (Token not valid)
       amount: tranferAmount,
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -477,17 +472,15 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: utils.Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
       amount: 0, // Error
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -646,26 +639,16 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: utils.Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: 2, // error
       amount: tranferAmount,
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.tokenType,
-      tx.txType,
-      tx.nonce,
-      tx.amount
-    );
 
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -815,30 +798,15 @@ contract("Rollup", async function (accounts) {
       siblings: BobPDAsiblings,
     };
 
-    var tx = {
+    var tx: utils.Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
-      // tokenType: Alice.TokenType,
       tokenType: 3, // false type
       amount: tranferAmount,
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-      tx.fromIndex,
-      tx.toIndex,
-      tx.tokenType,
-      tx.txType,
-      tx.nonce,
-      tx.amount
-    );
-
-    const h = ethUtils.toBuffer(dataToSign);
-    var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
-    tx.signature = ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-
+    tx.signature = await utils.signTx(tx, wallets[0]);
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
       BobAccountLeaf,
@@ -980,17 +948,15 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx = {
+    var tx: utils.Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
-      amount: 0, // Error
+      amount: 0, // An invalid amount
       txType: 1,
-      nonce: 2,
-      signature:
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563",
+      nonce: 2
     };
-    tx.signature = await signTx(tx, wallets);
+    tx.signature = await utils.signTx(tx, wallets[0]);
 
     // alice balance tree merkle proof
     var AliceAccountSiblings: Array<string> = [
@@ -1141,21 +1107,6 @@ async function createLeaf(account: any) {
   );
 }
 
-async function signTx(tx: any, wallets: any) {
-  let RollupUtilsInstance = await RollupUtils.deployed()
-  var dataToSign = await RollupUtilsInstance.getTxSignBytes(
-    tx.fromIndex,
-    tx.toIndex,
-    tx.tokenType,
-    tx.txType,
-    tx.nonce,
-    tx.amount
-  );
-
-  const h = ethUtils.toBuffer(dataToSign);
-  var signature = ethUtils.ecsign(h, wallets[0].getPrivateKey());
-  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-}
 
 async function compressAndSubmitBatch(tx: any, newRoot: any) {
   let rollupCoreInstance = await RollupCore.deployed()

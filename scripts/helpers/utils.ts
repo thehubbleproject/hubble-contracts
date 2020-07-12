@@ -4,6 +4,9 @@ const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
+import * as ethUtils from "ethereumjs-util";
+
+
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
   var abiCoder = ethers.utils.defaultAbiCoder;
@@ -219,4 +222,30 @@ export async function compressTx(
   );
   var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
   return result;
+}
+
+export interface Transaction {
+  fromIndex: number,
+  toIndex: number,
+  tokenType: number,
+  amount: number,
+  txType: number,
+  nonce: number,
+  signature?: string
+}
+
+export async function signTx(tx: Transaction, wallet: any) {
+  const RollupUtilsInstance = await RollupUtils.deployed()
+  const dataToSign = await RollupUtilsInstance.getTxSignBytes(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.tokenType,
+    tx.txType,
+    tx.nonce,
+    tx.amount
+  );
+
+  const h = ethUtils.toBuffer(dataToSign);
+  const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
+  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
 }
