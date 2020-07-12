@@ -130,6 +130,7 @@ contract CreateAccount is FraudProofHelpers {
         createdAccount.balance = 0;
         createdAccount.nonce = 0;
 
+        // Assuming Reddit have run rollup.sol::createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
         // accountProofs.to.accountIP.account should to be a zero account
