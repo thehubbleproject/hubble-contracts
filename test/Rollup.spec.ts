@@ -276,7 +276,7 @@ contract("Rollup", async function (accounts) {
     );
 
     console.log("result from processTx: " + JSON.stringify(result));
-    await compressAndSubmitBatch(tx, result[0])
+    await utils.compressAndSubmitBatch(tx, result[0])
 
     falseBatchZero = {
       batchId: 0,
@@ -410,7 +410,7 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
     assert.equal(result[3], ERR_TOKEN_ADDR_INVAILD, "False error ID. It should be `1`")
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchOne = {
       batchId: 0,
@@ -555,7 +555,7 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false Error Id. It should be `2`.");
 
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchTwo = {
       batchId: 0,
@@ -715,7 +715,7 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
     assert.equal(result[3], ERR_FROM_TOKEN_TYPE, "False ErrorId. It should be `4`")
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchFive = {
       batchId: 0,
@@ -1009,7 +1009,7 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
     assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false ErrorId. it should be `2`");
-    await compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchComb.txs.push(tx);
     falseBatchComb.batchProofs.accountProofs.push(accountProofs);
@@ -1043,29 +1043,5 @@ async function createLeaf(account: any) {
     account.Amount,
     account.nonce,
     account.TokenType
-  );
-}
-
-
-async function compressAndSubmitBatch(tx: any, newRoot: any) {
-  let rollupCoreInstance = await RollupCore.deployed()
-  var compressedTx = await utils.compressTx(
-    tx.fromIndex,
-    tx.toIndex,
-    tx.nonce,
-    tx.amount,
-    tx.tokenType,
-    tx.signature
-  );
-
-  let compressedTxs: string[] = [];
-  compressedTxs.push(compressedTx);
-  console.log("compressedTx: " + JSON.stringify(compressedTxs));
-
-  // submit batch for that transactions
-  await rollupCoreInstance.submitBatch(
-    compressedTxs,
-    newRoot,
-    { value: ethers.utils.parseEther("32").toString() }
   );
 }

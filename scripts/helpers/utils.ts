@@ -6,6 +6,7 @@ const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const FraudProof = artifacts.require("FraudProof");
+const RollupCore = artifacts.require("Rollup");
 
 
 // returns parent node hash given child node hashes
@@ -262,4 +263,25 @@ export async function falseProcessTx(
     _tx
   );
   return new_to_txApply.newRoot;
+}
+
+export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
+  const rollupCoreInstance = await RollupCore.deployed();
+  const compressedTx = await compressTx(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.nonce,
+    tx.amount,
+    tx.tokenType,
+    tx.signature
+  );
+
+  const compressedTxs= [compressedTx];
+
+  // submit batch for that transactions
+  await rollupCoreInstance.submitBatch(
+    compressedTxs,
+    newRoot,
+    { value: ethers.utils.parseEther("32").toString() }
+  );
 }
