@@ -398,18 +398,19 @@ contract("Rollup", async function (accounts) {
     };
 
     // process transaction validity with process tx
-    await rollupCoreInstance.processTx(
+    var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
       tx,
       alicePDAProof,
-      accountProofs,
+      accountProofs
     );
 
     var falseResult = await utils.falseProcessTx(
       tx,
       accountProofs
     );
+    assert.equal(result[3], ERR_TOKEN_ADDR_INVAILD, "False error ID. It should be `1`")
     await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchOne = {
