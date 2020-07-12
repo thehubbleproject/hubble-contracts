@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
+import { Account, Transaction } from "./interfaces";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
@@ -46,13 +47,6 @@ export async function BytesFromAccountData(
     nonce: nonce,
   };
   return rollupUtils.BytesFromAccount(account);
-}
-
-export interface Account {
-  ID: number,
-  tokenType: number,
-  balance: number,
-  nonce: number
 }
 
 export async function CreateAccountLeaf(
@@ -239,16 +233,6 @@ export async function compressTx(
   );
   var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
   return result;
-}
-
-export interface Transaction {
-  fromIndex: number,
-  toIndex: number,
-  tokenType: number,
-  amount: number,
-  txType: number,
-  nonce: number,
-  signature?: string
 }
 
 export async function signTx(tx: Transaction, wallet: any) {

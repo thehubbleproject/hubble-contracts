@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import * as walletHelper from "../scripts/helpers/wallet";
-import * as ethUtils from "ethereumjs-util";
+import { Account } from "../scripts/helpers/interfaces";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
@@ -94,7 +94,7 @@ contract("DepositManager", async function (accounts) {
       Alice.TokenType,
       Alice.Pubkey
     );
-    const AliceAccount: utils.Account = {
+    const AliceAccount: Account = {
       ID: Alice.AccID,
       tokenType: Alice.TokenType,
       balance: Alice.Amount,
@@ -124,7 +124,7 @@ contract("DepositManager", async function (accounts) {
       Bob.Pubkey
     );
 
-    const BobAccount: utils.Account = {
+    const BobAccount: Account = {
       ID:Bob.AccID,
       tokenType:Bob.TokenType,
       balance: Bob.Amount,

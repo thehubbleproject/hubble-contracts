@@ -1,6 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
+import { Transaction } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -190,7 +191,7 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx: utils.Transaction = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
@@ -322,7 +323,7 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx: utils.Transaction = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       // tokenType: Alice.TokenType,
@@ -461,7 +462,7 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx: utils.Transaction = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
@@ -621,7 +622,7 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx: utils.Transaction = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: 2, // error
@@ -773,7 +774,7 @@ contract("Rollup", async function (accounts) {
       siblings: BobPDAsiblings,
     };
 
-    var tx: utils.Transaction = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: 3, // false type
@@ -916,7 +917,7 @@ contract("Rollup", async function (accounts) {
     );
     assert.equal(isValid, true, "pda proof wrong");
 
-    var tx: utils.Transaction = {
+    var tx: Transaction = {
       fromIndex: Alice.AccID,
       toIndex: Bob.AccID,
       tokenType: Alice.TokenType,
