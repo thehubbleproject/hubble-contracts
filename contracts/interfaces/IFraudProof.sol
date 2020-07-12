@@ -24,7 +24,7 @@ interface IFraudProof {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
+        Types.Transaction[] calldata _txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
