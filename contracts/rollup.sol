@@ -363,8 +363,7 @@ contract Rollup is RollupHelpers {
             batches[_batch_id - 1].accountRoot,
             _txs,
             batchProofs,
-            batches[_batch_id].txRoot,
-            batches[_batch_id].batchType
+            batches[_batch_id].txRoot
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -438,8 +437,7 @@ contract Rollup is RollupHelpers {
         bytes32 accountsRoot,
         Types.Transaction[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot,
-        Types.Usage batchType
+        bytes32 expectedTxRoot
     )
         public
         view
