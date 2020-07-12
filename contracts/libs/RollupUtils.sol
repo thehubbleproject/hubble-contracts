@@ -253,7 +253,7 @@ library RollupUtils {
         returns (Types.CreateAccount memory)
     {
         Types.CreateAccount memory _tx;
-        _tx.toIndex = abi.decode(txBytes, (uint256));
+        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
         return _tx;
     }
 
@@ -334,6 +334,14 @@ library RollupUtils {
             );
     }
 
+    function BytesFromCreateAccount(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.toIndex, _tx.tokenType);
+    }
+
     function BytesFromAirdrop(Types.Drop memory _tx)
         public
         pure
@@ -378,6 +386,13 @@ library RollupUtils {
         uint256 amount
     ) public pure returns (bytes memory) {
         return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
+    }
+
+    function BytesFromTxCreateAccountDeconstructed(
+        uint256 to,
+        uint256 tokenType
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(to, tokenType);
     }
 
     function BytesFromTxAirdropDeconstructed(
