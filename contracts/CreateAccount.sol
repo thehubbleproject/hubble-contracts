@@ -95,14 +95,14 @@ contract CreateAccount is FraudProofHelpers {
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
-    function ValidateZeroAccount(UserAccount account)
+    function ValidateZeroAccount(Types.UserAccount memory account)
         public
         pure
         returns (bool)
     {
         return
             account.ID == 0 &&
-            account.okenType == 0 &&
+            account.tokenType == 0 &&
             account.balance == 0 &&
             account.nonce == 0;
     }
@@ -124,11 +124,7 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        Types.UserAccount expectedZeroAccount = accountProofs
-            .to
-            .accountIP
-            .account;
-        Types.UserAccount createdAccount;
+        Types.UserAccount memory createdAccount;
         createdAccount.ID = _tx.toIndex;
         createdAccount.tokenType = 1; // Arbitrary assign a default token
         createdAccount.balance = 0;
@@ -136,7 +132,8 @@ contract CreateAccount is FraudProofHelpers {
 
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
-        bool result = ValidateZeroAccount(expectedZeroAccount);
+        // accountProofs.to.accountIP.account should to be a zero account
+        bool result = ValidateZeroAccount(accountProofs.to.accountIP.account);
         if (result == false) {
             return ("", "", "", 0, false);
         }
@@ -147,7 +144,10 @@ contract CreateAccount is FraudProofHelpers {
             createdAccount,
             accountProofs.to // We only use the pathToAccount and siblings but not the proof itself
         );
+        bytes memory createdAccountBytes = RollupUtils.BytesFromAccount(
+            createdAccount
+        );
 
-        return (newRoot, createdAccount, "", 0, true);
+        return (newRoot, createdAccountBytes, "", 0, true);
     }
 }
