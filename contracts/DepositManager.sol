@@ -152,19 +152,16 @@ contract DepositManager {
         newAccount.ID = accID;
 
         // get new account hash
-        bytes32 accountHash = RollupUtils.HashFromAccount(newAccount);
+        bytes memory accountBytes = RollupUtils.BytesFromAccount(newAccount);
 
         // queue the deposit
-        pendingDeposits.push(accountHash);
+        pendingDeposits.push(keccak256(accountBytes));
 
         // emit the event
         logger.logDepositQueued(
             accID,
-            _destination,
-            _amount,
-            _tokenType,
-            accountHash,
-            _pubkey
+            _pubkey, 
+            accountBytes
         );
 
         queueNumber++;
