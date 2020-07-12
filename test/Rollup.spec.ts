@@ -7,14 +7,12 @@ const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const EcVerify = artifacts.require("ECVerify");
-const FraudProof = artifacts.require("FraudProof");
 
 contract("Rollup", async function (accounts) {
   var wallets: any;
 
   let depositManagerInstance: any;
   let testTokenInstance: any;
-  let fraudProofInstance: any;
   let rollupCoreInstance: any;
   let MTutilsInstance: any;
   let testToken: any;
@@ -53,8 +51,6 @@ contract("Rollup", async function (accounts) {
 
   before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-
-    fraudProofInstance = await FraudProof.deployed();
     depositManagerInstance = await DepositManager.deployed();
     testTokenInstance = await TestToken.deployed();
     rollupCoreInstance = await RollupCore.deployed();
@@ -409,17 +405,10 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-
     assert.equal(result[3], ERR_TOKEN_ADDR_INVAILD, "False error ID. It should be `1`")
     await compressAndSubmitBatch(tx, falseResult)
 
@@ -560,17 +549,10 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-    
     assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false Error Id. It should be `2`.");
 
     await compressAndSubmitBatch(tx, falseResult)
@@ -728,17 +710,10 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-    
     assert.equal(result[3], ERR_FROM_TOKEN_TYPE, "False ErrorId. It should be `4`")
     await compressAndSubmitBatch(tx, falseResult)
 
@@ -885,17 +860,10 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-
     assert.equal(result[3], 1, "Wrong ErrorId")
     var compressedTx = await utils.compressTx(
       tx.fromIndex,
@@ -1036,17 +1004,10 @@ contract("Rollup", async function (accounts) {
       accountProofs
     );
 
-    var falseResult = await falseProcessTx(
-      fraudProofInstance,
-      currentRoot,
-      accountRoot,
+    var falseResult = await utils.falseProcessTx(
       tx,
-      alicePDAProof,
       accountProofs
     );
-    console.log("result from falseProcessTx: " + falseResult);
-    console.log("result from processTx: " + JSON.stringify(result));
-    
     assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false ErrorId. it should be `2`");
     await compressAndSubmitBatch(tx, falseResult)
 
@@ -1075,28 +1036,6 @@ contract("Rollup", async function (accounts) {
   })
 
 });
-
-async function falseProcessTx(
-  FraudProofInstance: any,
-  currentRoot: any,
-  accountRoot: any,
-  _tx: any,
-  alicePDAProof: any,
-  accountProofs: any
-) {
-  var _from_merkle_proof = accountProofs.from;
-  var _to_merkle_proof = accountProofs.to;
-  let new_from_txApply = await FraudProofInstance.ApplyTx(
-    _from_merkle_proof,
-    _tx
-  );
-
-  let new_to_txApply = await FraudProofInstance.ApplyTx(
-    _to_merkle_proof,
-    _tx
-  );
-  return new_to_txApply.newRoot;
-}
 
 async function createLeaf(account: any) {
   return await utils.CreateAccountLeaf(
