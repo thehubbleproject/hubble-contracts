@@ -70,6 +70,8 @@ export async function createLeaf(
     balance: accountAlias.Amount,
     tokenType: accountAlias.TokenType,
     nonce: accountAlias.nonce,
+    burn: 0,
+    lastBurn: 0
   };
   return await CreateAccountLeaf(account);
 }
