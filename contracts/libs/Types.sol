@@ -9,6 +9,7 @@ library Types {
     enum Usage {
         Genesis, // The Genesis type is only applicable to batch but not tx
         Transfer,
+        CreateAccount,
         Airdrop,
         BurnConsent,
         BurnExecution
