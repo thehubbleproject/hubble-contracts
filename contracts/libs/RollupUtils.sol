@@ -486,13 +486,17 @@ library RollupUtils {
             ID: 0,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         Types.UserAccount memory account2 = Types.UserAccount({
             ID: 1,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         leaves[0] = HashFromAccount(account1);
         leaves[1] = HashFromAccount(account2);
@@ -507,19 +511,23 @@ library RollupUtils {
             ID: 0,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         Types.UserAccount memory account2 = Types.UserAccount({
             ID: 1,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         dataBlocks[0] = BytesFromAccount(account1);
         dataBlocks[1] = BytesFromAccount(account2);
     }
 
-    function GetYearMonth() public pure returns (uint256 yearMonth) {
+    function GetYearMonth() public view returns (uint256 yearMonth) {
         return now % (4 weeks);
     }
 }
