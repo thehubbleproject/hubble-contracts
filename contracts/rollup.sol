@@ -182,10 +182,10 @@ contract RollupHelpers is RollupSetup {
             // load batch
             Types.Batch memory batch = batches[i];
 
-            // TODO use safe math
             // calculate challeger's reward
-            challengerRewards += (batch.stakeCommitted * 2) / 3;
-            burnedAmount += batch.stakeCommitted.sub(challengerRewards);
+            uint256 _challengerReward = (batch.stakeCommitted.mul(2)).div(3);
+            challengerRewards += _challengerReward;
+            burnedAmount += batch.stakeCommitted.sub(_challengerReward);
 
             batches[i].stakeCommitted = 0;
 
@@ -344,7 +344,7 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        bytes[] memory _txs,
+        Types.Transaction[] memory _txs,
         Types.BatchValidationProofs memory batchProofs
     ) public {
         {
@@ -379,8 +379,7 @@ contract Rollup is RollupHelpers {
             batches[_batch_id - 1].accountRoot,
             _txs,
             batchProofs,
-            batches[_batch_id].txRoot,
-            batches[_batch_id].batchType
+            batches[_batch_id].txRoot
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -452,10 +451,9 @@ contract Rollup is RollupHelpers {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txs,
+        Types.Transaction[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot,
-        Types.Usage batchType
+        bytes32 expectedTxRoot
     )
         public
         view
@@ -465,43 +463,14 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-        if (batchType == Types.Usage.Transfer) {
-            return
-                fraudProof.processBatch(
-                    initialStateRoot,
-                    accountsRoot,
-                    _txs,
-                    batchProofs,
-                    expectedTxRoot
-                );
-        } else if (batchType == Types.Usage.Airdrop) {
-            return
-                airdrop.processBatch(
-                    initialStateRoot,
-                    accountsRoot,
-                    _txs,
-                    batchProofs,
-                    expectedTxRoot
-                );
-        } else if (batchType == Types.Usage.BurnConsent) {
-            return
-                burnConsent.processBatch(
-                    initialStateRoot,
-                    accountsRoot,
-                    _txs,
-                    batchProofs,
-                    expectedTxRoot
-                );
-        } else if (batchType == Types.Usage.BurnExecution) {
-            return
-                burnExecution.processBatch(
-                    initialStateRoot,
-                    accountsRoot,
-                    _txs,
-                    batchProofs,
-                    expectedTxRoot
-                );
-        }
+        return
+            fraudProof.processBatch(
+                initialStateRoot,
+                accountsRoot,
+                _txs,
+                batchProofs,
+                expectedTxRoot
+            );
     }
 
     /**

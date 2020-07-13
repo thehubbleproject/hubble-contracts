@@ -6,7 +6,7 @@ import * as walletHelper from "../../scripts/helpers/wallet";
 import * as utils from "../../scripts/helpers/utils";
 const BN = require("bn.js");
 
-contract("IncrementalTree", async function(accounts) {
+contract("IncrementalTree", async function (accounts) {
   var wallets: any;
   var depth: number = 2;
   var firstDataBlock = utils.StringToBytes32("0x123");
@@ -17,21 +17,21 @@ contract("IncrementalTree", async function(accounts) {
     firstDataBlock,
     secondDataBlock,
     thirdDataBlock,
-    fourthDataBlock
+    fourthDataBlock,
   ];
   var dataLeaves = [
     utils.Hash(firstDataBlock),
     utils.Hash(secondDataBlock),
     utils.Hash(thirdDataBlock),
-    utils.Hash(fourthDataBlock)
+    utils.Hash(fourthDataBlock),
   ];
 
-  before(async function() {
+  before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
   });
 
   // test if we are able to create append a leaf
-  it("create incremental MT and add 2 leaves", async function() {
+  it("create incremental MT and add 2 leaves", async function () {
     // get mtlibInstance
     var mtlibInstance = await utils.getMerkleTreeUtils();
 
@@ -46,15 +46,6 @@ contract("IncrementalTree", async function(accounts) {
     var zeroLeaf1 = await mtlibInstance.getRoot(1);
     var zeroLeaf2 = await mtlibInstance.getRoot(2);
     var zeroLeaf3 = await mtlibInstance.getRoot(3);
-
-    console.log(
-      "data",
-      zeroLeaf,
-      zeroLeaf1,
-      zeroLeaf2,
-      zeroLeaf3,
-      utils.getParentLeaf(zeroLeaf, zeroLeaf)
-    );
 
     // append leaf to the tree
     await IMTInstace.appendLeaf(leaf);
@@ -80,7 +71,7 @@ contract("IncrementalTree", async function(accounts) {
       dataLeaves[0],
       utils.getParentLeaf(coordinator, coordinator),
       zeroLeaf2,
-      zeroLeaf3
+      zeroLeaf3,
     ];
     isValid = await mtlibInstance.verifyLeaf(
       root1,
