@@ -48,7 +48,7 @@ contract Airdrop is FraudProofHelpers {
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
      * */
-    function processBatch(
+    function processAirdropBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
         Types.DropTx[] memory _txs,
@@ -79,7 +79,7 @@ contract Airdrop is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (stateRoot, , , , isTxValid) = processTx(
+                (stateRoot, , , , isTxValid) = processAirdropTx(
                     stateRoot,
                     accountsRoot,
                     _txs[i],
@@ -96,9 +96,13 @@ contract Airdrop is FraudProofHelpers {
     }
 
     /**
-     * @notice Overrides processTx in FraudProof
+     * @notice processTx processes a transactions and returns the updated balance tree
+     *  and the updated leaves
+     * conditions in require mean that the dispute be declared invalid
+     * if conditons evaluate if the coordinator was at fault
+     * @return Total number of batches submitted onchain
      */
-    function processTx(
+    function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.DropTx memory _tx,
@@ -115,21 +119,40 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        if (_tx.amount <= 0) {
+        // Step-1 Prove that from address's public keys are available
+        ValidatePubkeyAvailability(
+            _accountsRoot,
+            _from_pda_proof,
+            _tx.fromIndex
+        );
+
+        // STEP:2 Ensure the transaction has been signed using the from public key
+        // ValidateSignature(_tx, _from_pda_proof);
+
+        // Validate the from account merkle proof
+        ValidateAccountMP(_balanceRoot, accountProofs.from);
+
+        uint256 err_code = validateAirDropTxBasic(
+            _tx,
+            accountProofs.from.accountIP.account
+        );
+        if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
+
+        // account holds the token type in the tx
+        if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
-            // had amount less than 0
-            return (
-                ZERO_BYTES32,
-                "",
-                "",
-                Types.ErrorCode.InvalidTokenAmount,
-                false
-            );
-        }
+            // had invalid token type
+            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromTokenType, false);
+
+        bytes32 newRoot;
+        bytes memory new_from_account;
+        bytes memory new_to_account;
+
+        (new_from_account, newRoot) = ApplyAirdropTx(accountProofs.from, _tx);
 
         // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(_balanceRoot, accountProofs.to);
+        ValidateAccountMP(newRoot, accountProofs.to);
 
         // account holds the token type in the tx
         if (accountProofs.to.accountIP.account.tokenType != _tx.tokenType)
@@ -144,11 +167,43 @@ contract Airdrop is FraudProofHelpers {
                 false
             );
 
-        Types.UserAccount memory account = accountProofs.to.accountIP.account;
-        account = AddTokensToAccount(account, _tx.amount);
-        bytes32 newRoot = UpdateAccountWithSiblings(account, accountProofs.to);
-        bytes memory new_to_account = RollupUtils.BytesFromAccount(account);
+        (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, _tx);
 
-        return (newRoot, "", new_to_account, Types.ErrorCode.NoError, true);
+        return (newRoot, new_from_account, new_to_account, 0, true);
+    }
+
+    /**
+     * @notice ApplyTx applies the transaction on the account. This is where
+     * people need to define the logic for the application
+     * @param _merkle_proof contains the siblings and path to the account
+     * @param transaction is the transaction that needs to be applied
+     * @return returns updated account and updated state root
+     * */
+    function ApplyAirdropTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        Types.DropTx memory transaction
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        return
+            _ApplyTx(
+                _merkle_proof,
+                transaction.fromIndex,
+                transaction.toIndex,
+                transaction.amount
+            );
+    }
+
+     function validateAirDropTxBasic(
+        Types.DropTx memory _tx,
+        Types.UserAccount memory _from_account
+    ) public view returns (uint256) {
+        // verify that tokens are registered
+        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
+            // invalid state transition
+            // to be slashed because the submitted transaction
+            // had invalid token type
+            return ERR_TOKEN_ADDR_INVAILD;
+        }
+
+        return _validateTxBasic(_tx.amount, _from_account);
     }
 }
