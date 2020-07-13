@@ -518,4 +518,8 @@ library RollupUtils {
         dataBlocks[0] = BytesFromAccount(account1);
         dataBlocks[1] = BytesFromAccount(account2);
     }
+
+    function GetYearMonth() public pure returns (uint256 yearMonth) {
+        return now % (4 weeks);
+    }
 }
