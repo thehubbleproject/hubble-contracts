@@ -11,15 +11,15 @@ interface IFraudProof {
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
-    external
-    view
-    returns (
-      bytes32,
+        external
+        view
+        returns (
+            bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
-    );
+        );
 
     function processBatch(
         bytes32 initialStateRoot,
@@ -27,14 +27,17 @@ interface IFraudProof {
         Types.Transaction[] calldata _txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
-    ) external view returns (bytes32,bytes32, bool);
-
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
 
     function ApplyTx(
         Types.AccountMerkleProof calldata _merkle_proof,
         Types.Transaction calldata transaction
-    )
-       external 
-        view
-        returns (bytes memory, bytes32 newRoot);
+    ) external view returns (bytes memory, bytes32 newRoot);
 }
