@@ -252,7 +252,7 @@ export async function signTx(tx: Transaction, wallet: any) {
 }
 
 export enum Usage {
-  Genesis, Transfer, Airdrop, BurnConsent, BurnExecution
+  Genesis, Transfer, CreateAccount, Airdrop, BurnConsent, BurnExecution
 }
 export async function falseProcessTx(
   _tx: any,
