@@ -207,6 +207,7 @@ contract FraudProofHelpers is FraudProofSetup {
             )
         );
     }
+
     function BalanceFromAccount(Types.UserAccount memory account)
         public
         pure

@@ -379,66 +379,89 @@ library RollupUtils {
     // Airdrop Utils 
     //
 
-    function CompressDrop(Types.Drop memory drop)
+    function CompressDrop(Types.DropTx memory _tx)
         public
         pure
         returns (bytes memory)
     {
-        return abi.encode(drop);
+        return
+            abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
     }
 
     function DecompressDrop(bytes memory dropBytes)
         public
         pure
-        returns (Types.Drop memory)
+        returns (Types.DropTx memory)
     {
-        Types.Drop memory drop;
+        Types.DropTx memory drop;
         (
             drop.toIndex,
-            drop.tokenType,
-            drop.epoch,
             drop.amount,
-            // drop.signature
-
-        ) = abi.decode(dropBytes, (uint256, uint256, uint256, uint256, bytes));
+            drop.signature
+        ) = abi.decode(dropBytes, (uint256, uint256, bytes));
         return drop;
     }
 
     function BytesFromTxAirdropDeconstructed(
-        uint256 to,
-        uint256 tokenType,
-        uint256 epoch,
-        uint256 amount
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(to, tokenType, epoch, amount);
+            uint256 from,
+            uint256 to,
+            uint256 tokenType,
+            uint256 nonce,
+            uint256 txType,
+            uint256 amount
+        ) public pure returns (bytes memory)
+    {
+         return abi.encodePacked(
+                from,
+                to,
+                tokenType,
+                nonce,
+                txType,
+                amount
+            );
     }
-
-    function BytesFromAirdrop(Types.Drop memory _tx)
+    function BytesFromAirdrop(Types.DropTx memory _tx)
         public
         pure
         returns (bytes memory)
     {
-        return
-            abi.encodePacked(_tx.toIndex, _tx.tokenType, _tx.epoch, _tx.amount);
+        return abi.encodePacked(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.nonce,
+                _tx.txType,
+                _tx.amount
+            );
     }
 
     function getDropSignBytes(
+        uint256 fromIndex,
         uint256 toIndex,
         uint256 tokenType,
-        uint256 epoch,
+        uint256 txType,
+        uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-        return
-            keccak256(CompressDropNoStruct(toIndex, tokenType, epoch, amount));
+            return
+            keccak256(
+                BytesFromTxAirdropDeconstructed(
+                    fromIndex,
+                    toIndex,
+                    tokenType,
+                    nonce,
+                    txType,
+                    amount
+                )
+            );
     }
 
     function CompressDropNoStruct(
         uint256 toIndex,
-        uint256 tokenType,
-        uint256 epoch,
-        uint256 amount
+        uint256 amount, 
+        bytes memory sig
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(toIndex, tokenType, epoch, amount);
+        return abi.encodePacked(toIndex, amount, sig);
     }
 
     // 
