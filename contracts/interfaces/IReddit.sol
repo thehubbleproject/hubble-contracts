@@ -4,14 +4,14 @@ pragma experimental ABIEncoderV2;
 import {Types} from "../libs/Types.sol";
 
 interface IReddit {
-    function processTxAirdrop(
+        function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.DropTx calldata _tx,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
-        external
+       external 
         view
         returns (
             bytes32,
