@@ -30,7 +30,7 @@ contract Airdrop is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.Drop[] memory _txs)
+    function generateTxRoot(Types.DropTx[] memory _txs)
         public
         view
         returns (bytes32 txRoot)
@@ -51,7 +51,7 @@ contract Airdrop is FraudProofHelpers {
     function processBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.Drop[] memory _txs,
+        Types.DropTx[] memory _txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -101,7 +101,7 @@ contract Airdrop is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Drop memory _tx,
+        Types.DropTx memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )

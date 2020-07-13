@@ -7,7 +7,7 @@ interface IReddit {
     function processTxAirdrop(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Drop calldata _tx,
+        Types.DropTx calldata _tx,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )

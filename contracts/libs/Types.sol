@@ -51,11 +51,14 @@ library Types {
         bytes signature;
     }
 
-    struct Drop {
+    struct DropTx {
+       uint256 fromIndex;
         uint256 toIndex;
         uint256 tokenType;
-        uint256 epoch;
+        uint256 nonce;
+        uint256 txType;
         uint256 amount;
+        bytes signature;
     }
 
     struct BurnConsent {

@@ -29,7 +29,7 @@ contract RollupReddit {
     function processTxAirdrop(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Drop memory _tx,
+        Types.DropTx memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
