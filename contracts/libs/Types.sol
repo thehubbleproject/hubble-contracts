@@ -94,6 +94,8 @@ library Types {
         uint256 tokenType;
         uint256 balance;
         uint256 nonce;
+        uint256 burn;
+        uint256 last_burn;
     }
 
     struct AccountMerkleProof {
