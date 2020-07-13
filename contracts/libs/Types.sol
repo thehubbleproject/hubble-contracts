@@ -1,6 +1,5 @@
 pragma solidity ^0.5.15;
 
-
 /**
  * @title DataTypes
  */
@@ -85,5 +84,14 @@ library Types {
     struct PDAMerkleProof {
         PDAInclusionProof _pda;
         bytes32[] siblings;
+    }
+
+    enum ErrorCode {
+        NoError,
+        InvalidTokenAddress,
+        InvalidTokenAmount,
+        NotEnoughTokenBalance,
+        BadFromTokenType,
+        BadToTokenType
     }
 }

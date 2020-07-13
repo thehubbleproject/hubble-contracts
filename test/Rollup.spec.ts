@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Transaction } from "../scripts/helpers/interfaces";
+import { Transaction, ErrorCode } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -42,13 +42,6 @@ contract("Rollup", async function (accounts) {
   let BobPDAsiblings: any;
 
   let alicePDAProof: any;
-
-    let NO_ERR = 0;
-    let ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
-    let ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    let ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    let ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    let ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 
   before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
@@ -410,7 +403,7 @@ contract("Rollup", async function (accounts) {
       tx,
       accountProofs
     );
-    assert.equal(result[3], ERR_TOKEN_ADDR_INVAILD, "False error ID. It should be `1`")
+    assert.equal(result[3], ErrorCode.InvalidTokenAddress, "False error ID. It should be `1`");
     await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchOne = {
@@ -554,7 +547,7 @@ contract("Rollup", async function (accounts) {
       tx,
       accountProofs
     );
-    assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false Error Id. It should be `2`.");
+    assert.equal(result[3], ErrorCode.InvalidTokenAmount, "false Error Id. It should be `2`.");
 
     await utils.compressAndSubmitBatch(tx, falseResult)
 
@@ -715,7 +708,7 @@ contract("Rollup", async function (accounts) {
       tx,
       accountProofs
     );
-    assert.equal(result[3], ERR_FROM_TOKEN_TYPE, "False ErrorId. It should be `4`")
+    assert.equal(result[3], ErrorCode.BadFromTokenType, "False ErrorId. It should be `4`")
     await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchFive = {
@@ -1009,7 +1002,7 @@ contract("Rollup", async function (accounts) {
       tx,
       accountProofs
     );
-    assert.equal(result[3], ERR_TOKEN_AMT_INVAILD, "false ErrorId. it should be `2`");
+    assert.equal(result[3], ErrorCode.InvalidTokenAmount, "false ErrorId. it should be `2`");
     await utils.compressAndSubmitBatch(tx, falseResult)
 
     falseBatchComb.txs.push(tx);

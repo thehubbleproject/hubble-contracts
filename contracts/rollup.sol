@@ -48,16 +48,6 @@ contract RollupSetup {
     // will be reset to 0 once rollback is completed
     uint256 public invalidBatchMarker;
 
-    /*********************
-     * Error Codes *
-     ********************/
-    uint256 public constant NO_ERR = 0;
-    uint256 public constant ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
-    uint256 public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    uint256 public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    uint256 public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    uint256 public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
-
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.POB())
@@ -393,7 +383,7 @@ contract Rollup is RollupHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {

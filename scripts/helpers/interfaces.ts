@@ -15,3 +15,12 @@ export interface Transaction {
     nonce: number,
     signature?: string
 }
+
+export enum ErrorCode {
+    NoError,
+    InvalidTokenAddress,
+    InvalidTokenAmount,
+    NotEnoughTokenBalance,
+    BadFromTokenType,
+    BadToTokenType
+}
