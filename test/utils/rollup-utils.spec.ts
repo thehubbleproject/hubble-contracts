@@ -127,8 +127,7 @@ contract("RollupUtils", async function (accounts) {
     var decompressedTx = await rollupUtils.DecompressTx(compressedTx);
     assert.equal(decompressedTx[0].toNumber(), tx.fromIndex);
     assert.equal(decompressedTx[1].toNumber(), tx.toIndex);
-    assert.equal(decompressedTx[2].toNumber(), tx.tokenType);
-    assert.equal(decompressedTx[3].toNumber(), tx.amount);
-    assert.equal(decompressedTx[4].toString(), tx.signature);
+    assert.equal(decompressedTx[2].toNumber(), tx.amount);
+    assert.equal(decompressedTx[3].toString(), tx.signature);
   });
 });
