@@ -135,6 +135,8 @@ contract BurnConsent is FraudProofHelpers {
             return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
         }
 
+        // TODO: Validate nonce
+
         if (_tx.cancel) {
             if (account.burn < _tx.amount) {
                 return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);

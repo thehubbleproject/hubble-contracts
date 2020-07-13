@@ -61,6 +61,7 @@ library Types {
     struct BurnConsent {
         uint256 fromIndex;
         uint256 amount;
+        uint256 nonce;
         bool cancel;
         bytes signature;
     }
