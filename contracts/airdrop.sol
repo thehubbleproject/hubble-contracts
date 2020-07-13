@@ -186,7 +186,7 @@ contract Airdrop is FraudProofHelpers {
             );
     }
 
-     function validateAirDropTxBasic(
+    function validateAirDropTxBasic(
         Types.DropTx memory _tx,
         Types.UserAccount memory _from_account
     ) public view returns (uint256) {

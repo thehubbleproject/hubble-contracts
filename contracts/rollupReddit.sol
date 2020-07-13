@@ -26,7 +26,7 @@ contract RollupReddit {
         );
     }
 
-    function processTxAirdrop(
+    function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.DropTx memory _tx,
@@ -44,7 +44,7 @@ contract RollupReddit {
         )
     {
         return
-            airdrop.processTxAirdrop(
+            airdrop.processAirdropTx(
                 _balanceRoot,
                 _accountsRoot,
                 _tx,
