@@ -78,11 +78,8 @@ contract FraudProofHelpers is FraudProofSetup {
         bytes32 root,
         Types.AccountMerkleProof memory merkle_proof
     ) public view {
-        bytes32 accountLeaf = RollupUtils.getAccountHash(
-            merkle_proof.accountIP.account.ID,
-            merkle_proof.accountIP.account.balance,
-            merkle_proof.accountIP.account.nonce,
-            merkle_proof.accountIP.account.tokenType
+        bytes32 accountLeaf = RollupUtils.HashFromAccount(
+            merkle_proof.accountIP.account
         );
 
         // verify from leaf exists in the balance tree

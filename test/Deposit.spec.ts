@@ -72,6 +72,7 @@ contract("DepositManager", async function (accounts) {
       TokenType: 1,
       AccID: 2,
       Path: "2",
+      nonce: 0
     };
     var Bob = {
       Address: wallets[1].getAddressString(),
@@ -80,6 +81,7 @@ contract("DepositManager", async function (accounts) {
       TokenType: 1,
       AccID: 3,
       Path: "3",
+      nonce: 0
     };
     var coordinator_leaves = await rollupUtilsInstance.GetGenesisLeaves();
 
@@ -167,6 +169,8 @@ contract("DepositManager", async function (accounts) {
           tokenType: 0,
           balance: 0,
           nonce: 0,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: siblingsInProof,

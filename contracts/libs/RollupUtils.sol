@@ -38,10 +38,16 @@ library RollupUtils {
             uint256 ID,
             uint256 balance,
             uint256 nonce,
-            uint256 tokenType
+            uint256 tokenType,
+            uint256 burn,
+            uint256 lastBurn
         )
     {
-        return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
+        return
+            abi.decode(
+                accountBytes,
+                (uint256, uint256, uint256, uint256, uint256, uint256)
+            );
     }
 
     //
@@ -56,7 +62,9 @@ library RollupUtils {
             account.ID,
             account.balance,
             account.nonce,
-            account.tokenType
+            account.tokenType,
+            account.burn,
+            account.lastBurn
         );
 
         return data;
@@ -66,9 +74,11 @@ library RollupUtils {
         uint256 ID,
         uint256 balance,
         uint256 nonce,
-        uint256 tokenType
+        uint256 tokenType,
+        uint256 burn,
+        uint256 lastBurn
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(ID, balance, nonce, tokenType);
+        return abi.encodePacked(ID, balance, nonce, tokenType, burn, lastBurn);
     }
 
     //
@@ -78,11 +88,20 @@ library RollupUtils {
         uint256 id,
         uint256 balance,
         uint256 nonce,
-        uint256 tokenType
+        uint256 tokenType,
+        uint256 burn,
+        uint256 lastBurn
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromAccountDeconstructed(id, balance, nonce, tokenType)
+                BytesFromAccountDeconstructed(
+                    id,
+                    balance,
+                    nonce,
+                    tokenType,
+                    burn,
+                    lastBurn
+                )
             );
     }
 
@@ -91,15 +110,7 @@ library RollupUtils {
         pure
         returns (bytes32)
     {
-        return
-            keccak256(
-                BytesFromAccountDeconstructed(
-                    account.ID,
-                    account.balance,
-                    account.nonce,
-                    account.tokenType
-                )
-            );
+        return keccak256(BytesFromAccount(account));
     }
 
     // ---------- Tx Related Utils -------------------
