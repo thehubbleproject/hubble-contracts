@@ -13,23 +13,6 @@ library RollupUtils {
         return keccak256(abi.encode(_PDA_Leaf.pubkey));
     }
 
-    // returns a new User Account with updated balance
-    function UpdateBalanceInAccount(
-        Types.UserAccount memory original_account,
-        uint256 new_balance
-    ) public pure returns (Types.UserAccount memory updated_account) {
-        original_account.balance = new_balance;
-        return original_account;
-    }
-
-    function BalanceFromAccount(Types.UserAccount memory account)
-        public
-        pure
-        returns (uint256)
-    {
-        return account.balance;
-    }
-
     // AccountFromBytes decodes the bytes to account
     function AccountFromBytes(bytes memory accountBytes)
         public
@@ -103,8 +86,6 @@ library RollupUtils {
     }
 
     // ---------- Tx Related Utils -------------------
-
-
 
     function TxFromBytesBurnConsent(bytes memory txBytes)
         public
@@ -187,8 +168,6 @@ library RollupUtils {
         return abi.encode(_tx);
     }
 
-    
-
     //
     // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
     //
@@ -200,8 +179,6 @@ library RollupUtils {
     {
         return abi.encodePacked(_tx.toIndex, _tx.tokenType);
     }
-
-    
 
     function BytesFromBurnConsent(Types.BurnConsent memory _tx)
         public
@@ -219,14 +196,12 @@ library RollupUtils {
         return abi.encodePacked(_tx.fromIndex);
     }
 
-
     function BytesFromTxCreateAccountDeconstructed(
         uint256 to,
         uint256 tokenType
     ) public pure returns (bytes memory) {
         return abi.encodePacked(to, tokenType);
     }
-
 
     function BytesFromTxBurnConsentDeconstructed(
         uint256 from,
@@ -243,10 +218,6 @@ library RollupUtils {
     {
         return abi.encodePacked(from);
     }
-
-    //
-    // HashFromTx and getTxSignBytes do the same thing i.e get the tx data to be signed
-    //
 
     function HashFromConsent(Types.BurnConsent memory _tx)
         public
@@ -469,10 +440,17 @@ library RollupUtils {
     ) public pure returns (bytes memory) {
         return abi.encodePacked(toIndex, tokenType, epoch, amount);
     }
+
     // 
     // Burn 
     //
 
+
+
+
+    // 
+    // Create Account 
+    // 
 
     /**
      * @notice Calculates the address from the pubkey

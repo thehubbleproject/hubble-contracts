@@ -139,11 +139,20 @@ contract FraudProofHelpers is FraudProofSetup {
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
         return (
-            RollupUtils.UpdateBalanceInAccount(
+            UpdateBalanceInAccount(
                 account,
-                RollupUtils.BalanceFromAccount(account).sub(numOfTokens)
+                BalanceFromAccount(account).sub(numOfTokens)
             )
         );
+    }
+
+    // returns a new User Account with updated balance
+    function UpdateBalanceInAccount(
+        Types.UserAccount memory original_account,
+        uint256 new_balance
+    ) public pure returns (Types.UserAccount memory updated_account) {
+        original_account.balance = new_balance;
+        return original_account;
     }
 
     function _ApplyTx(
@@ -192,11 +201,18 @@ contract FraudProofHelpers is FraudProofSetup {
         uint256 numOfTokens
     ) public pure returns (Types.UserAccount memory updatedAccount) {
         return (
-            RollupUtils.UpdateBalanceInAccount(
+            UpdateBalanceInAccount(
                 account,
-                RollupUtils.BalanceFromAccount(account).add(numOfTokens)
+                BalanceFromAccount(account).add(numOfTokens)
             )
         );
+    }
+    function BalanceFromAccount(Types.UserAccount memory account)
+        public
+        pure
+        returns (uint256)
+    {
+        return account.balance;
     }
 
     /**
