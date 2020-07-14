@@ -417,6 +417,14 @@ library RollupUtils {
         return abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
     }
 
+    function CompressDropNoStruct(
+        uint256 toIndex,
+        uint256 amount, 
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(toIndex, amount, sig);
+    }
+
     function DecompressDrop(bytes memory dropBytes)
         public
         pure
@@ -486,13 +494,6 @@ library RollupUtils {
             );
     }
 
-    function CompressDropNoStruct(
-        uint256 toIndex,
-        uint256 amount,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(toIndex, amount, sig);
-    }
 
     //
     // Burn

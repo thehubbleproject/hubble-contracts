@@ -1,6 +1,5 @@
 pragma solidity ^0.5.15;
 
-
 // token registry contract interface
 contract ITokenRegistry {
     uint256 public numTokens;
