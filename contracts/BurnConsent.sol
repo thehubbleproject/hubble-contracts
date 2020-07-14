@@ -123,28 +123,37 @@ contract BurnConsent is FraudProofHelpers {
         );
 
         // STEP:2 Ensure the transaction has been signed using the from public key
-        // ValidateSignature(_tx, _from_pda_proof);
+        // TODO: ValidateSignature(_tx, _from_pda_proof);
 
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
-        // Validate only certain token is allow to burn
+        Types.UserAccount memory account = accountProofs.from.accountIP.account;
 
-        uint256 err_code = _validateTxBasic(
-            _tx.amount,
-            accountProofs.from.accountIP.account
+        // TODO: Validate only certain token is allow to burn
+        if (_tx.amount == 0) {
+            return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+        }
+
+        // TODO: Validate nonce
+
+        if (_tx.cancel) {
+            if (account.burn < _tx.amount) {
+                return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+            }
+            account.burn -= _tx.amount;
+        } else {
+            account.burn += _tx.amount;
+            if (account.balance < account.burn) {
+                return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+            }
+        }
+
+        bytes32 newRoot = UpdateAccountWithSiblings(
+            account,
+            accountProofs.from
         );
-        if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
-
-        bytes32 newRoot;
-        bytes memory new_from_account;
-
-        (new_from_account, newRoot) = _ApplyTx(
-            accountProofs.from,
-            _tx.fromIndex,
-            0,
-            _tx.amount
-        );
+        bytes memory new_from_account = RollupUtils.BytesFromAccount(account);
 
         return (newRoot, new_from_account, "", 0, true);
     }

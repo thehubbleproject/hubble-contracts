@@ -161,6 +161,8 @@ contract("Rollup", async function (accounts) {
           tokenType: 0,
           balance: 0,
           nonce: 0,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: siblingsInProof,
@@ -228,6 +230,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Alice.TokenType,
           balance: Alice.Amount,
           nonce: Alice.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: AliceAccountSiblings,
@@ -255,6 +259,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Bob.TokenType,
           balance: Bob.Amount,
           nonce: Bob.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: BobAccountSiblings,
@@ -358,6 +364,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Alice.TokenType,
           balance: Alice.Amount,
           nonce: Alice.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: AliceAccountSiblings,
@@ -386,6 +394,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Bob.TokenType,
           balance: Bob.Amount,
           nonce: Bob.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: BobAccountSiblings,
@@ -496,6 +506,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Alice.TokenType,
           balance: Alice.Amount,
           nonce: Alice.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: AliceAccountSiblings,
@@ -530,6 +542,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Bob.TokenType,
           balance: Bob.Amount,
           nonce: Bob.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: BobAccountSiblings,
@@ -657,6 +671,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Alice.TokenType,
           balance: Alice.Amount,
           nonce: Alice.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: AliceAccountSiblings,
@@ -691,6 +707,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Bob.TokenType,
           balance: Bob.Amount,
           nonce: Bob.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: BobAccountSiblings,
@@ -807,6 +825,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Alice.TokenType,
           balance: Alice.Amount,
           nonce: Alice.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: AliceAccountSiblings,
@@ -841,6 +861,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Bob.TokenType,
           balance: Bob.Amount,
           nonce: Bob.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: BobAccountSiblings,
@@ -933,6 +955,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Alice.TokenType,
           balance: Alice.Amount,
           nonce: Alice.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: AliceAccountSiblings,
@@ -967,6 +991,8 @@ contract("Rollup", async function (accounts) {
           tokenType: Bob.TokenType,
           balance: Bob.Amount,
           nonce: Bob.nonce,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: BobAccountSiblings,

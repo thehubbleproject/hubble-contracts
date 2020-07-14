@@ -3,7 +3,9 @@ export interface Account {
     ID: number,
     tokenType: number,
     balance: number,
-    nonce: number
+    nonce: number,
+    burn: number,
+    lastBurn: number
 }
 
 export interface Transaction {
