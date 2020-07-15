@@ -32,6 +32,7 @@ contract RollupReddit is RollupHelpers {
     function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
+        bytes memory sig,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
@@ -47,6 +48,7 @@ contract RollupReddit is RollupHelpers {
         )
     {
         Types.DropTx memory _tx = RollupUtils.AirdropTxFromBytes(txBytes);
+               _tx.signature = sig;
         return
             airdrop.processAirdropTx(
                 _balanceRoot,
@@ -83,6 +85,7 @@ contract RollupReddit is RollupHelpers {
     function processTransferTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
+        bytes memory sig,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
@@ -98,6 +101,7 @@ contract RollupReddit is RollupHelpers {
         )
     {
         Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
+               _tx.signature = sig;
         return
             transfer.processTx(
                 _balanceRoot,
