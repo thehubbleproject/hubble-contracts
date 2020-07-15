@@ -399,6 +399,15 @@ library RollupUtils {
             abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
     }
 
+    function CompressAirdropTxWithMessage(bytes memory message, bytes memory sig)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.DropTx memory _tx = AirdropTxFromBytes(message);
+        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+    }
+
     function CompressDropNoStruct(
         uint256 toIndex,
         uint256 amount, 
