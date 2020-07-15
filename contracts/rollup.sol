@@ -243,22 +243,6 @@ contract Rollup is RollupHelpers {
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }
 
-    function createPublickeys(bytes[] calldata publicKeys)
-        external
-        onlyCoordinator
-        returns (uint256[] memory)
-    {
-        uint256[] memory accountIDs = new uint256[](publicKeys.length);
-        for (uint256 i = 0; i < publicKeys.length; i++) {
-            Types.PDALeaf memory newPDALeaf;
-            newPDALeaf.pubkey = publicKeys[i];
-            accountIDs[i] = accountsTree.appendLeaf(
-                RollupUtils.PDALeafToHash(newPDALeaf)
-            );
-        }
-        return accountIDs;
-    }
-
     /**
      * @notice Submits a new batch to batches
      * @param _txs Compressed transactions .
@@ -381,7 +365,7 @@ contract Rollup is RollupHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-       Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes); 
+        Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes);
         return fraudProof.ApplyTx(_merkle_proof, transaction);
     }
 
@@ -409,7 +393,7 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
-       Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
+        Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
         return
             fraudProof.processTx(
                 _balanceRoot,
