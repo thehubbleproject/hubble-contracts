@@ -111,7 +111,7 @@ contract BurnConsent is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
@@ -132,20 +132,38 @@ contract BurnConsent is FraudProofHelpers {
 
         // TODO: Validate only certain token is allow to burn
         if (_tx.amount == 0) {
-            return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.InvalidTokenAmount,
+                false
+            );
         }
 
         // TODO: Validate nonce
 
         if (_tx.cancel) {
             if (account.burn < _tx.amount) {
-                return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+                return (
+                    ZERO_BYTES32,
+                    "",
+                    "",
+                    Types.ErrorCode.InvalidCancelBurnAmount,
+                    false
+                );
             }
             account.burn -= _tx.amount;
         } else {
             account.burn += _tx.amount;
             if (account.balance < account.burn) {
-                return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+                return (
+                    ZERO_BYTES32,
+                    "",
+                    "",
+                    Types.ErrorCode.InvalidBurnAmount,
+                    false
+                );
             }
         }
 
@@ -155,6 +173,6 @@ contract BurnConsent is FraudProofHelpers {
         );
         bytes memory new_from_account = RollupUtils.BytesFromAccount(account);
 
-        return (newRoot, new_from_account, "", 0, true);
+        return (newRoot, new_from_account, "", Types.ErrorCode.NoError, true);
     }
 }

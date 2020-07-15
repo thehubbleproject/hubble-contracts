@@ -87,7 +87,7 @@ contract FraudProofHelpers is FraudProofSetup {
     function _validateTxBasic(
         uint256 amount,
         Types.UserAccount memory _from_account
-    ) public pure returns (uint256) {
+    ) public pure returns (Types.ErrorCode) {
         if (amount == 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
@@ -109,7 +109,7 @@ contract FraudProofHelpers is FraudProofSetup {
     function validateTxBasic(
         Types.Transaction memory _tx,
         Types.UserAccount memory _from_account
-    ) public view returns (uint256) {
+    ) public view returns (Types.ErrorCode) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition

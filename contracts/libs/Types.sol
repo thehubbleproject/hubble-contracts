@@ -133,6 +133,10 @@ library Types {
         InvalidTokenAmount,
         NotEnoughTokenBalance,
         BadFromTokenType,
-        BadToTokenType
+        BadToTokenType,
+        InvalidCancelBurnAmount,
+        InvalidBurnAmount,
+        BadFromIndex,
+        BurnAlreadyExecuted
     }
 }

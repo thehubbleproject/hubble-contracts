@@ -39,7 +39,7 @@ contract RollupReddit {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
@@ -66,7 +66,7 @@ contract RollupReddit {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
@@ -93,7 +93,7 @@ contract RollupReddit {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {

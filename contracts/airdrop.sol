@@ -111,7 +111,7 @@ contract Airdrop is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
@@ -119,7 +119,13 @@ contract Airdrop is FraudProofHelpers {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had amount less than 0
-            return (ZERO_BYTES32, "", "", ERR_TOKEN_AMT_INVAILD, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.InvalidTokenAmount,
+                false
+            );
         }
 
         // validate if leaf exists in the updated balance tree
@@ -130,13 +136,19 @@ contract Airdrop is FraudProofHelpers {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadFromTokenType,
+                false
+            );
 
         Types.UserAccount memory account = accountProofs.to.accountIP.account;
         account = AddTokensToAccount(account, _tx.amount);
         bytes32 newRoot = UpdateAccountWithSiblings(account, accountProofs.to);
         bytes memory new_to_account = RollupUtils.BytesFromAccount(account);
 
-        return (newRoot, "", new_to_account, 0, true);
+        return (newRoot, "", new_to_account, Types.ErrorCode.NoError, true);
     }
 }
