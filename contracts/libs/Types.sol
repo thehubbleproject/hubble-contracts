@@ -126,4 +126,13 @@ library Types {
         PDAInclusionProof _pda;
         bytes32[] siblings;
     }
+
+    enum ErrorCode {
+        NoError,
+        InvalidTokenAddress,
+        InvalidTokenAmount,
+        NotEnoughTokenBalance,
+        BadFromTokenType,
+        BadToTokenType
+    }
 }
