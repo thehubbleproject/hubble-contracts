@@ -6,6 +6,7 @@ import {ParamManager} from "./libs/ParamManager.sol";
 import {Types} from "./libs/Types.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {RollupHelpers} from "./rollup.sol";
+import {RollupUtils} from "./libs/RollupUtils.sol";
 
 contract RollupReddit is RollupHelpers {
     Registry public nameRegistry;
@@ -36,7 +37,7 @@ contract RollupReddit is RollupHelpers {
     function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.DropTx memory _tx,
+        bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -50,6 +51,7 @@ contract RollupReddit is RollupHelpers {
             bool
         )
     {
+        Types.DropTx memory _tx = RollupUtils.AirdropTxFromBytes(txBytes);
         return
             airdrop.processAirdropTx(
                 _balanceRoot,
@@ -62,9 +64,18 @@ contract RollupReddit is RollupHelpers {
 
     function ApplyAirdropTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.DropTx memory transaction
+        bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
+        Types.DropTx memory transaction = RollupUtils.AirdropTxFromBytes(txBytes);
         return airdrop.ApplyAirdropTx(_merkle_proof, transaction);
+    }
+
+    function ApplyTransferTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        bytes memory txBytes
+    ) public view returns (bytes memory, bytes32 newRoot) {
+        Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes);
+        return transfer.ApplyTx(_merkle_proof, transaction);
     }
 
     /**
@@ -74,10 +85,10 @@ contract RollupReddit is RollupHelpers {
      * if conditons evaluate if the coordinator was at fault
      * @return Total number of batches submitted onchain
      */
-    function processTx(
+    function processTransferTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -87,10 +98,11 @@ contract RollupReddit is RollupHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
+        Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
         return
             transfer.processTx(
                 _balanceRoot,
@@ -99,13 +111,6 @@ contract RollupReddit is RollupHelpers {
                 _from_pda_proof,
                 accountProofs
             );
-    }
-
-    function ApplyTx(
-        Types.AccountMerkleProof memory _merkle_proof,
-        Types.Transaction memory transaction
-    ) public view returns (bytes memory, bytes32 newRoot) {
-        return transfer.ApplyTx(_merkle_proof, transaction);
     }
 
     function processTxBurnConsent(

@@ -493,7 +493,45 @@ library RollupUtils {
                 )
             );
     }
+    
+    function AirdropTxFromBytesNoStruct(bytes memory txBytes)
+        public
+        pure
+        returns (
+            uint256 from,
+            uint256 to,
+            uint256 tokenType,
+            uint256 nonce,
+            uint256 txType,
+            uint256 amount
+        )
+    {
+        return
+            abi.decode(
+                txBytes,
+                (uint256, uint256, uint256, uint256, uint256, uint256)
+            );
+    }
 
+    function AirdropTxFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.DropTx memory)
+    {
+        Types.DropTx memory transaction;
+        (
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.tokenType,
+            transaction.nonce,
+            transaction.txType,
+            transaction.amount
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256)
+        );
+        return transaction;
+    }
 
     //
     // Burn
