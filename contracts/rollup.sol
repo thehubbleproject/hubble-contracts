@@ -48,16 +48,6 @@ contract RollupSetup {
     // will be reset to 0 once rollback is completed
     uint256 public invalidBatchMarker;
 
-    /*********************
-     * Error Codes *
-     ********************/
-    uint256 public constant NO_ERR = 0;
-    uint256 public constant ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
-    uint256 public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    uint256 public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    uint256 public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    uint256 public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
-
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.POB())
@@ -389,8 +379,9 @@ contract Rollup is RollupHelpers {
 
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.Transaction memory transaction
+        bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
+       Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes); 
         return fraudProof.ApplyTx(_merkle_proof, transaction);
     }
 
@@ -404,7 +395,7 @@ contract Rollup is RollupHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -414,10 +405,11 @@ contract Rollup is RollupHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
+       Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
         return
             fraudProof.processTx(
                 _balanceRoot,
