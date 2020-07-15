@@ -9,7 +9,6 @@ const RollupUtils = artifacts.require("RollupUtils");
 const FraudProof = artifacts.require("FraudProof");
 const RollupCore = artifacts.require("Rollup");
 
-
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
   var abiCoder = ethers.utils.defaultAbiCoder;
@@ -33,9 +32,7 @@ export function StringToBytes32(data: string) {
   return ethers.utils.formatBytes32String(data);
 }
 
-export async function CreateAccountLeaf(
-  account: Account
-) {
+export async function CreateAccountLeaf(account: Account) {
   const rollupUtils = await RollupUtils.deployed();
   const result = await rollupUtils.getAccountHash(
     account.ID,
@@ -48,9 +45,7 @@ export async function CreateAccountLeaf(
   return result;
 }
 
-export async function createLeaf(
-  accountAlias: any
-) {
+export async function createLeaf(accountAlias: any) {
   const account: Account = {
     ID: accountAlias.AccID,
     balance: accountAlias.Amount,
@@ -211,20 +206,13 @@ export async function compressTx(
   // TODO find out why this fails
   // await rollupUtils.CompressTx(tx);
 
-  var message = await rollupUtils.BytesFromTxDeconstructed(
-    tx.fromIndex,
-    tx.toIndex,
-    tx.tokenType,
-    tx.nonce,
-    tx.txType,
-    tx.amount
-  );
+  var message = await TxToBytes(tx);
   var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
   return result;
 }
 
 export async function signTx(tx: Transaction, wallet: any) {
-  const RollupUtilsInstance = await RollupUtils.deployed()
+  const RollupUtilsInstance = await RollupUtils.deployed();
   const dataToSign = await RollupUtilsInstance.getTxSignBytes(
     tx.fromIndex,
     tx.toIndex,
@@ -242,10 +230,21 @@ export async function signTx(tx: Transaction, wallet: any) {
 export enum Usage {
   Genesis, Transfer, CreateAccount, Airdrop, BurnConsent, BurnExecution
 }
-export async function falseProcessTx(
-  _tx: any,
-  accountProofs: any
-) {
+
+export async function TxToBytes(tx: Transaction) {
+  const RollupUtilsInstance = await RollupUtils.deployed();
+  var txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+    tx.fromIndex,
+    tx.toIndex,
+    tx.tokenType,
+    tx.nonce,
+    tx.txType,
+    tx.amount
+  );
+  return txBytes;
+}
+
+export async function falseProcessTx(_tx: any, accountProofs: any) {
   const fraudProofInstance = await FraudProof.deployed();
   const _to_merkle_proof = accountProofs.to;
   const new_to_txApply = await fraudProofInstance.ApplyTx(
