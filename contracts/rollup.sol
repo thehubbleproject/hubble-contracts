@@ -358,8 +358,9 @@ contract Rollup is RollupHelpers {
 
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.Transaction memory transaction
+        bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
+       Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes); 
         return fraudProof.ApplyTx(_merkle_proof, transaction);
     }
 
@@ -373,7 +374,7 @@ contract Rollup is RollupHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -387,6 +388,7 @@ contract Rollup is RollupHelpers {
             bool
         )
     {
+       Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
         return
             fraudProof.processTx(
                 _balanceRoot,
