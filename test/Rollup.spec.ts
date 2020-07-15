@@ -61,7 +61,7 @@ contract("Rollup", async function (accounts) {
       TokenType: 1,
       AccID: 2,
       Path: "2",
-      nonce: 0
+      nonce: 0,
     };
     Bob = {
       Address: wallets[1].getAddressString(),
@@ -70,7 +70,7 @@ contract("Rollup", async function (accounts) {
       TokenType: 1,
       AccID: 3,
       Path: "3",
-      nonce: 0
+      nonce: 0,
     };
 
     coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
@@ -103,7 +103,6 @@ contract("Rollup", async function (accounts) {
       },
       siblings: AlicePDAsiblings,
     };
-
   });
 
   // test if we are able to create append a leaf
@@ -175,7 +174,7 @@ contract("Rollup", async function (accounts) {
     // prepare data for process Tx
     var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
     var accountRoot = await IMTInstance.getTreeRoot();
-    
+
     var isValid = await MTutilsInstance.verifyLeaf(
       accountRoot,
       utils.PubKeyHash(Alice.Pubkey),
@@ -190,7 +189,7 @@ contract("Rollup", async function (accounts) {
       tokenType: Alice.TokenType,
       amount: tranferAmount,
       txType: 1,
-      nonce: 1
+      nonce: 1,
     };
 
     tx.signature = await utils.signTx(tx, wallets[0]);
@@ -211,7 +210,6 @@ contract("Rollup", async function (accounts) {
       AliceAccountSiblings
     );
     expect(isValid).to.be.deep.eq(true);
-
 
     var AliceAccountMP = {
       accountIP: {
@@ -264,23 +262,23 @@ contract("Rollup", async function (accounts) {
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
-      tx,
+      await utils.TxToBytes(tx),
       alicePDAProof,
       accountProofs
     );
 
     console.log("result from processTx: " + JSON.stringify(result));
-    await utils.compressAndSubmitBatch(tx, result[0])
+    await utils.compressAndSubmitBatch(tx, result[0]);
 
     falseBatchZero = {
       batchId: 0,
       txs: [tx],
       batchProofs: {
         accountProofs: [accountProofs],
-        pdaProof: [alicePDAProof]
-      }
-    }
-    
+        pdaProof: [alicePDAProof],
+      },
+    };
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     falseBatchZero.batchId = Number(batchId) - 1;
   });
@@ -289,14 +287,18 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.disputeBatch(
       falseBatchZero.batchId,
       falseBatchZero.txs,
-      falseBatchZero.batchProofs,
+      falseBatchZero.batchProofs
     );
-    
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     let batchMarker = await rollupCoreInstance.invalidBatchMarker();
     assert.equal(batchMarker, "0", "batchMarker is not zero");
-    assert.equal(batchId - 1 , falseBatchZero.batchId, "dispute shouldnt happen");
-  })
+    assert.equal(
+      batchId - 1,
+      falseBatchZero.batchId,
+      "dispute shouldnt happen"
+    );
+  });
 
   it("submit new batch 2nd(False Batch)", async function () {
     var AliceAccountLeaf = await utils.createLeaf(Alice);
@@ -323,7 +325,7 @@ contract("Rollup", async function (accounts) {
       tokenType: 2, // false token type (Token not valid)
       amount: tranferAmount,
       txType: 1,
-      nonce: 2
+      nonce: 2,
     };
     tx.signature = await utils.signTx(tx, wallets[0]);
 
@@ -394,27 +396,28 @@ contract("Rollup", async function (accounts) {
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
-      tx,
+      await utils.TxToBytes(tx),
       alicePDAProof,
       accountProofs
     );
 
-    var falseResult = await utils.falseProcessTx(
-      tx,
-      accountProofs
+    var falseResult = await utils.falseProcessTx(tx, accountProofs);
+    assert.equal(
+      result[3],
+      ErrorCode.InvalidTokenAddress,
+      "False error ID. It should be `1`"
     );
-    assert.equal(result[3], ErrorCode.InvalidTokenAddress, "False error ID. It should be `1`");
-    await utils.compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult);
 
     falseBatchOne = {
       batchId: 0,
       txs: [tx],
       batchProofs: {
         accountProofs: [accountProofs],
-        pdaProof: [alicePDAProof]
-      }
-    }
-    
+        pdaProof: [alicePDAProof],
+      },
+    };
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     falseBatchOne.batchId = Number(batchId) - 1;
     // console.log(falseBatchOne)
@@ -423,19 +426,21 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.disputeBatch(
       falseBatchOne.batchId,
       falseBatchOne.txs,
-      falseBatchOne.batchProofs,
+      falseBatchOne.batchProofs
     );
-    
-    
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     let batchMarker = await rollupCoreInstance.invalidBatchMarker();
     assert.equal(batchMarker, "0", "invalidBatchMarker is not zero");
-    assert.equal(batchId -1 , falseBatchOne.batchId - 1, "batchId doesnt match");
+    assert.equal(
+      batchId - 1,
+      falseBatchOne.batchId - 1,
+      "batchId doesnt match"
+    );
     Alice.Amount += falseBatchOne.txs[0].amount;
     Bob.Amount -= falseBatchOne.txs[0].amount;
     Alice.nonce--;
-  })
-
+  });
 
   it("submit new batch 3rd", async function () {
     var AliceAccountLeaf = await utils.createLeaf(Alice);
@@ -461,7 +466,7 @@ contract("Rollup", async function (accounts) {
       tokenType: Alice.TokenType,
       amount: 0, // Error
       txType: 1,
-      nonce: 2
+      nonce: 2,
     };
     tx.signature = await utils.signTx(tx, wallets[0]);
 
@@ -538,28 +543,29 @@ contract("Rollup", async function (accounts) {
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
-      tx,
+      await utils.TxToBytes(tx),
       alicePDAProof,
       accountProofs
     );
 
-    var falseResult = await utils.falseProcessTx(
-      tx,
-      accountProofs
+    var falseResult = await utils.falseProcessTx(tx, accountProofs);
+    assert.equal(
+      result[3],
+      ErrorCode.InvalidTokenAmount,
+      "false Error Id. It should be `2`."
     );
-    assert.equal(result[3], ErrorCode.InvalidTokenAmount, "false Error Id. It should be `2`.");
 
-    await utils.compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult);
 
     falseBatchTwo = {
       batchId: 0,
       txs: [tx],
       batchProofs: {
         accountProofs: [accountProofs],
-        pdaProof: [alicePDAProof]
-      }
-    }
-    
+        pdaProof: [alicePDAProof],
+      },
+    };
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     falseBatchTwo.batchId = Number(batchId) - 1;
   });
@@ -568,34 +574,42 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.disputeBatch(
       falseBatchTwo.batchId,
       falseBatchTwo.txs,
-      falseBatchTwo.batchProofs,
+      falseBatchTwo.batchProofs
     );
-    
-    
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     let batchMarker = await rollupCoreInstance.invalidBatchMarker();
     assert.equal(batchMarker, "0", "batchMarker is not zero");
-    assert.equal(batchId -1 , falseBatchTwo.batchId - 1, "batchId doesnt match");
+    assert.equal(
+      batchId - 1,
+      falseBatchTwo.batchId - 1,
+      "batchId doesnt match"
+    );
     Alice.Amount += falseBatchTwo.txs[0].amount;
     Bob.Amount -= falseBatchTwo.txs[0].amount;
     Alice.nonce--;
-  })
+  });
 
-  
   it("Registring new token", async function () {
     await TestToken.new().then(async (instance: any) => {
       let testToken2Instance = instance;
-      console.log("testToken2Instance.address: ", testToken2Instance.address)
-      await tokenRegistryInstance.requestTokenRegistration(testToken2Instance.address, {
-        from: wallets[0].getAddressString(),
-      });
-      await tokenRegistryInstance.finaliseTokenRegistration(testToken2Instance.address, {
-        from: wallets[0].getAddressString(),
-      });
+      console.log("testToken2Instance.address: ", testToken2Instance.address);
+      await tokenRegistryInstance.requestTokenRegistration(
+        testToken2Instance.address,
+        {
+          from: wallets[0].getAddressString(),
+        }
+      );
+      await tokenRegistryInstance.finaliseTokenRegistration(
+        testToken2Instance.address,
+        {
+          from: wallets[0].getAddressString(),
+        }
+      );
     });
     var tokenAddress = await tokenRegistryInstance.registeredTokens(2);
     // TODO
-  })
+  });
 
   it("submit new batch 5nd", async function () {
     var AliceAccountLeaf = await utils.createLeaf(Alice);
@@ -621,7 +635,7 @@ contract("Rollup", async function (accounts) {
       tokenType: 2, // error
       amount: tranferAmount,
       txType: 1,
-      nonce: 2
+      nonce: 2,
     };
 
     tx.signature = await utils.signTx(tx, wallets[0]);
@@ -699,27 +713,28 @@ contract("Rollup", async function (accounts) {
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
-      tx,
+      await utils.TxToBytes(tx),
       alicePDAProof,
       accountProofs
     );
 
-    var falseResult = await utils.falseProcessTx(
-      tx,
-      accountProofs
+    var falseResult = await utils.falseProcessTx(tx, accountProofs);
+    assert.equal(
+      result[3],
+      ErrorCode.BadFromTokenType,
+      "False ErrorId. It should be `4`"
     );
-    assert.equal(result[3], ErrorCode.BadFromTokenType, "False ErrorId. It should be `4`")
-    await utils.compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult);
 
     falseBatchFive = {
       batchId: 0,
       txs: [tx],
       batchProofs: {
         accountProofs: [accountProofs],
-        pdaProof: [alicePDAProof]
-      }
-    }
-    
+        pdaProof: [alicePDAProof],
+      },
+    };
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     falseBatchFive.batchId = Number(batchId) - 1;
   });
@@ -727,19 +742,21 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.disputeBatch(
       falseBatchFive.batchId,
       falseBatchFive.txs,
-      falseBatchFive.batchProofs,
+      falseBatchFive.batchProofs
     );
-    
-    
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     let batchMarker = await rollupCoreInstance.invalidBatchMarker();
     assert.equal(batchMarker, "0", "batchMarker is not zero");
-    assert.equal(batchId -1 , falseBatchFive.batchId - 1, "batchId doesnt match");
+    assert.equal(
+      batchId - 1,
+      falseBatchFive.batchId - 1,
+      "batchId doesnt match"
+    );
     Alice.Amount += falseBatchFive.txs[0].amount;
     Bob.Amount -= falseBatchFive.txs[0].amount;
     Alice.nonce--;
-  })
-
+  });
 
   it("submit new batch 6nd(False Batch)", async function () {
     var AliceAccountLeaf = await utils.createLeaf(Alice);
@@ -773,7 +790,7 @@ contract("Rollup", async function (accounts) {
       tokenType: 3, // false type
       amount: tranferAmount,
       txType: 1,
-      nonce: 2
+      nonce: 2,
     };
     tx.signature = await utils.signTx(tx, wallets[0]);
     // alice balance tree merkle proof
@@ -849,16 +866,13 @@ contract("Rollup", async function (accounts) {
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
-      tx,
+      await utils.TxToBytes(tx),
       alicePDAProof,
       accountProofs
     );
 
-    var falseResult = await utils.falseProcessTx(
-      tx,
-      accountProofs
-    );
-    assert.equal(result[3], 1, "Wrong ErrorId")
+    var falseResult = await utils.falseProcessTx(tx, accountProofs);
+    assert.equal(result[3], 1, "Wrong ErrorId");
     var compressedTx = await utils.compressTx(
       tx.fromIndex,
       tx.toIndex,
@@ -873,21 +887,19 @@ contract("Rollup", async function (accounts) {
     console.log("compressedTx: " + JSON.stringify(compressedTxs));
 
     // submit batch for that transactions
-    await rollupCoreInstance.submitBatch(
-      compressedTxs,
-      falseResult,
-      { value: ethers.utils.parseEther("32").toString() }
-    );
+    await rollupCoreInstance.submitBatch(compressedTxs, falseResult, {
+      value: ethers.utils.parseEther("32").toString(),
+    });
 
     falseBatchComb = {
       batchId: 0,
       txs: [tx],
       batchProofs: {
         accountProofs: [accountProofs],
-        pdaProof: [alicePDAProof]
-      }
-    }
-    
+        pdaProof: [alicePDAProof],
+      },
+    };
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     falseBatchComb.batchId = Number(batchId) - 1;
   });
@@ -916,7 +928,7 @@ contract("Rollup", async function (accounts) {
       tokenType: Alice.TokenType,
       amount: 0, // An invalid amount
       txType: 1,
-      nonce: 2
+      nonce: 2,
     };
     tx.signature = await utils.signTx(tx, wallets[0]);
 
@@ -993,17 +1005,18 @@ contract("Rollup", async function (accounts) {
     var result = await rollupCoreInstance.processTx(
       currentRoot,
       accountRoot,
-      tx,
+      await utils.TxToBytes(tx),
       alicePDAProof,
       accountProofs
     );
 
-    var falseResult = await utils.falseProcessTx(
-      tx,
-      accountProofs
+    var falseResult = await utils.falseProcessTx(tx, accountProofs);
+    assert.equal(
+      result[3],
+      ErrorCode.InvalidTokenAmount,
+      "false ErrorId. it should be `2`"
     );
-    assert.equal(result[3], ErrorCode.InvalidTokenAmount, "false ErrorId. it should be `2`");
-    await utils.compressAndSubmitBatch(tx, falseResult)
+    await utils.compressAndSubmitBatch(tx, falseResult);
 
     falseBatchComb.txs.push(tx);
     falseBatchComb.batchProofs.accountProofs.push(accountProofs);
@@ -1014,19 +1027,22 @@ contract("Rollup", async function (accounts) {
     await rollupCoreInstance.disputeBatch(
       falseBatchComb.batchId,
       falseBatchComb.txs,
-      falseBatchComb.batchProofs,
+      falseBatchComb.batchProofs
     );
-    
+
     let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
     let batchMarker = await rollupCoreInstance.invalidBatchMarker();
     assert.equal(batchMarker, "0", "batchMarker is not zero");
-    assert.equal(batchId -1 , falseBatchComb.batchId - 1, "batchId doesnt match");
+    assert.equal(
+      batchId - 1,
+      falseBatchComb.batchId - 1,
+      "batchId doesnt match"
+    );
     Alice.Amount += falseBatchComb.txs[0].amount;
     Alice.Amount += falseBatchComb.txs[1].amount;
     Bob.Amount -= falseBatchComb.txs[0].amount;
     Bob.Amount -= falseBatchComb.txs[1].amount;
     Alice.nonce--;
     Alice.nonce--;
-  })
-
+  });
 });
