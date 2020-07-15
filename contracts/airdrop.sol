@@ -132,18 +132,18 @@ contract Airdrop is FraudProofHelpers {
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
-        uint256 err_code = validateAirDropTxBasic(
+        Types.ErrorCode err_code = validateAirDropTxBasic(
             _tx,
             accountProofs.from.accountIP.account
         );
-        if (err_code != NO_ERR) return (ZERO_BYTES32, "", "", err_code, false);
+        if (err_code != Types.ErrorCode.NoError) return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
         if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
+            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromTokenType, false);
 
         bytes32 newRoot;
         bytes memory new_from_account;
@@ -169,7 +169,7 @@ contract Airdrop is FraudProofHelpers {
 
         (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, _tx);
 
-        return (newRoot, new_from_account, new_to_account, 0, true);
+        return (newRoot, new_from_account, new_to_account, Types.ErrorCode.NoError, true);
     }
 
     /**
@@ -195,13 +195,13 @@ contract Airdrop is FraudProofHelpers {
     function validateAirDropTxBasic(
         Types.DropTx memory _tx,
         Types.UserAccount memory _from_account
-    ) public view returns (uint256) {
+    ) public view returns (Types.ErrorCode) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition
             // to be slashed because the submitted transaction
             // had invalid token type
-            return ERR_TOKEN_ADDR_INVAILD;
+            return Types.ErrorCode.InvalidTokenAddress;
         }
 
         return _validateTxBasic(_tx.amount, _from_account);

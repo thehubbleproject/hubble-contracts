@@ -39,7 +39,7 @@ interface IReddit {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         );
 
