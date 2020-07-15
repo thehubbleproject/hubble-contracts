@@ -27,16 +27,6 @@ contract FraudProofSetup {
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
     Governance public governance;
-
-    /********************
-     * Error Codes *
-     ********************/
-    uint256 public constant NO_ERR = 0;
-    uint256 public constant ERR_TOKEN_ADDR_INVAILD = 1; // account doesnt hold token type in the tx
-    uint256 public constant ERR_TOKEN_AMT_INVAILD = 2; // tx amount is less than zero
-    uint256 public constant ERR_TOKEN_NOT_ENOUGH_BAL = 3; // leaf doesnt has enough balance
-    uint256 public constant ERR_FROM_TOKEN_TYPE = 4; // from account doesnt hold the token type in the tx
-    uint256 public constant ERR_TO_TOKEN_TYPE = 5; // to account doesnt hold the token type in the tx
 }
 
 contract FraudProofHelpers is FraudProofSetup {
@@ -78,11 +68,8 @@ contract FraudProofHelpers is FraudProofSetup {
         bytes32 root,
         Types.AccountMerkleProof memory merkle_proof
     ) public view {
-        bytes32 accountLeaf = RollupUtils.getAccountHash(
-            merkle_proof.accountIP.account.ID,
-            merkle_proof.accountIP.account.balance,
-            merkle_proof.accountIP.account.nonce,
-            merkle_proof.accountIP.account.tokenType
+        bytes32 accountLeaf = RollupUtils.HashFromAccount(
+            merkle_proof.accountIP.account
         );
 
         // verify from leaf exists in the balance tree
@@ -100,12 +87,12 @@ contract FraudProofHelpers is FraudProofSetup {
     function _validateTxBasic(
         uint256 amount,
         Types.UserAccount memory _from_account
-    ) public pure returns (uint256) {
+    ) public pure returns (Types.ErrorCode) {
         if (amount == 0) {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had 0 amount.
-            return ERR_TOKEN_AMT_INVAILD;
+            return Types.ErrorCode.InvalidTokenAmount;
         }
 
         // check from leaf has enough balance
@@ -113,22 +100,22 @@ contract FraudProofHelpers is FraudProofSetup {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer
-            return ERR_TOKEN_NOT_ENOUGH_BAL;
+            return Types.ErrorCode.NotEnoughTokenBalance;
         }
 
-        return NO_ERR;
+        return Types.ErrorCode.NoError;
     }
 
     function validateTxBasic(
         Types.Transaction memory _tx,
         Types.UserAccount memory _from_account
-    ) public view returns (uint256) {
+    ) public view returns (Types.ErrorCode) {
         // verify that tokens are registered
         if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
             // invalid state transition
             // to be slashed because the submitted transaction
             // had invalid token type
-            return ERR_TOKEN_ADDR_INVAILD;
+            return Types.ErrorCode.InvalidTokenAddress;
         }
 
         return _validateTxBasic(_tx.amount, _from_account);

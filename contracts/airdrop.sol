@@ -115,7 +115,7 @@ contract Airdrop is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
@@ -159,7 +159,13 @@ contract Airdrop is FraudProofHelpers {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, "", "", ERR_FROM_TOKEN_TYPE, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadFromTokenType,
+                false
+            );
 
         (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, _tx);
 

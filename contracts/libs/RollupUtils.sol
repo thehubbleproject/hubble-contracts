@@ -21,10 +21,16 @@ library RollupUtils {
             uint256 ID,
             uint256 balance,
             uint256 nonce,
-            uint256 tokenType
+            uint256 tokenType,
+            uint256 burn,
+            uint256 lastBurn
         )
     {
-        return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
+        return
+            abi.decode(
+                accountBytes,
+                (uint256, uint256, uint256, uint256, uint256, uint256)
+            );
     }
 
     //
@@ -39,7 +45,9 @@ library RollupUtils {
             account.ID,
             account.balance,
             account.nonce,
-            account.tokenType
+            account.tokenType,
+            account.burn,
+            account.lastBurn
         );
 
         return data;
@@ -49,9 +57,11 @@ library RollupUtils {
         uint256 ID,
         uint256 balance,
         uint256 nonce,
-        uint256 tokenType
+        uint256 tokenType,
+        uint256 burn,
+        uint256 lastBurn
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(ID, balance, nonce, tokenType);
+        return abi.encodePacked(ID, balance, nonce, tokenType, burn, lastBurn);
     }
 
     //
@@ -61,11 +71,20 @@ library RollupUtils {
         uint256 id,
         uint256 balance,
         uint256 nonce,
-        uint256 tokenType
+        uint256 tokenType,
+        uint256 burn,
+        uint256 lastBurn
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromAccountDeconstructed(id, balance, nonce, tokenType)
+                BytesFromAccountDeconstructed(
+                    id,
+                    balance,
+                    nonce,
+                    tokenType,
+                    burn,
+                    lastBurn
+                )
             );
     }
 
@@ -74,15 +93,7 @@ library RollupUtils {
         pure
         returns (bytes32)
     {
-        return
-            keccak256(
-                BytesFromAccountDeconstructed(
-                    account.ID,
-                    account.balance,
-                    account.nonce,
-                    account.tokenType
-                )
-            );
+        return keccak256(BytesFromAccount(account));
     }
 
     // ---------- Tx Related Utils -------------------
@@ -499,13 +510,17 @@ library RollupUtils {
             ID: 0,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         Types.UserAccount memory account2 = Types.UserAccount({
             ID: 1,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         leaves[0] = HashFromAccount(account1);
         leaves[1] = HashFromAccount(account2);
@@ -520,15 +535,23 @@ library RollupUtils {
             ID: 0,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         Types.UserAccount memory account2 = Types.UserAccount({
             ID: 1,
             tokenType: 0,
             balance: 0,
-            nonce: 0
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
         });
         dataBlocks[0] = BytesFromAccount(account1);
         dataBlocks[1] = BytesFromAccount(account2);
+    }
+
+    function GetYearMonth() public view returns (uint256 yearMonth) {
+        return now % (4 weeks);
     }
 }

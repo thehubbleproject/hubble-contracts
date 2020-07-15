@@ -77,19 +77,25 @@ contract("RollupUtils", async function (accounts) {
       tokenType: 2,
       balance: 3,
       nonce: 4,
+      burn: 0,
+      lastBurn: 0
     };
 
     var accountBytes = await rollupUtils.BytesFromAccountDeconstructed(
       account.ID,
       account.balance,
       account.nonce,
-      account.tokenType
+      account.tokenType,
+      account.burn,
+      account.lastBurn
     );
     var regeneratedAccount = await rollupUtils.AccountFromBytes(accountBytes);
     assert.equal(regeneratedAccount["0"].toNumber(), account.ID);
     assert.equal(regeneratedAccount["1"].toNumber(), account.balance);
     assert.equal(regeneratedAccount["2"].toNumber(), account.nonce);
     assert.equal(regeneratedAccount["3"].toNumber(), account.tokenType);
+    assert.equal(regeneratedAccount["4"].toNumber(), account.burn);
+    assert.equal(regeneratedAccount["5"].toNumber(), account.lastBurn);
 
     var tx = {
       fromIndex: 1,

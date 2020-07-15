@@ -72,6 +72,7 @@ contract("DepositManager", async function (accounts) {
       TokenType: 1,
       AccID: 2,
       Path: "2",
+      nonce: 0
     };
     var Bob = {
       Address: wallets[1].getAddressString(),
@@ -80,6 +81,7 @@ contract("DepositManager", async function (accounts) {
       TokenType: 1,
       AccID: 3,
       Path: "3",
+      nonce: 0
     };
     var coordinator_leaves = await rollupUtilsInstance.GetGenesisLeaves();
 
@@ -94,13 +96,7 @@ contract("DepositManager", async function (accounts) {
       Alice.TokenType,
       Alice.Pubkey
     );
-    const AliceAccount: Account = {
-      ID: Alice.AccID,
-      tokenType: Alice.TokenType,
-      balance: Alice.Amount,
-      nonce: 0
-    }
-    var AliceAccountLeaf = await utils.CreateAccountLeaf(AliceAccount);
+    const AliceAccountLeaf = await utils.createLeaf(Alice);
 
     var BalanceOfAliceAfterDeposit = await testTokenInstance.balanceOf(
       Alice.Address
@@ -124,13 +120,7 @@ contract("DepositManager", async function (accounts) {
       Bob.Pubkey
     );
 
-    const BobAccount: Account = {
-      ID:Bob.AccID,
-      tokenType:Bob.TokenType,
-      balance: Bob.Amount,
-      nonce: 0
-    }
-    var BobAccountLeaf = await utils.CreateAccountLeaf(BobAccount);
+    const BobAccountLeaf = await utils.createLeaf(Bob);
 
     var pendingDeposits0 = await depositManagerInstance.dequeue.call();
 
@@ -179,6 +169,8 @@ contract("DepositManager", async function (accounts) {
           tokenType: 0,
           balance: 0,
           nonce: 0,
+          burn: 0,
+          lastBurn: 0
         },
       },
       siblings: siblingsInProof,

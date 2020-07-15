@@ -111,10 +111,35 @@ contract BurnExecution is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
-        // TODO
+        ValidateAccountMP(_balanceRoot, accountProofs.from);
+        Types.UserAccount memory account = accountProofs.from.accountIP.account;
+        if (_tx.fromIndex != account.ID) {
+            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromIndex, false);
+        }
+
+        uint256 yearMonth = RollupUtils.GetYearMonth();
+        if (account.lastBurn == yearMonth) {
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BurnAlreadyExecuted,
+                false
+            );
+        }
+        account.balance -= account.burn;
+        account.lastBurn = RollupUtils.GetYearMonth();
+
+        bytes32 newRoot = UpdateAccountWithSiblings(
+            account,
+            accountProofs.from
+        );
+        bytes memory new_from_account = RollupUtils.BytesFromAccount(account);
+
+        return (newRoot, new_from_account, "", Types.ErrorCode.NoError, true);
     }
 }
