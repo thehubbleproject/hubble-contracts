@@ -8,12 +8,17 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 
 contract RollupReddit {
     Registry public nameRegistry;
+    IReddit public createAccount;
     IReddit public airdrop;
     IReddit public burnConsent;
     IReddit public burnExecution;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
+
+        createAccount = IReddit(
+            nameRegistry.getContractDetails(ParamManager.CREATE_ACCOUNT())
+        );
 
         airdrop = IReddit(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())

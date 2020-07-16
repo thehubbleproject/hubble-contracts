@@ -8,6 +8,8 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const FraudProof = artifacts.require("FraudProof");
 const RollupCore = artifacts.require("Rollup");
+const DepositManager = artifacts.require("DepositManager");
+const TestToken = artifacts.require("TestToken");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -274,4 +276,25 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     Usage.Transfer,
     { value: ethers.utils.parseEther("32").toString() }
   );
+}
+
+
+export async function registerToken(wallet: any) {
+  const testTokenInstance = await TestToken.deployed();
+  const tokenRegistryInstance = await TokenRegistry.deployed();
+  const depositManagerInstance = await DepositManager.deployed();
+  await tokenRegistryInstance.requestTokenRegistration(
+    testTokenInstance.address,
+    { from: wallet.getAddressString() }
+  );
+  await tokenRegistryInstance.finaliseTokenRegistration(
+    testTokenInstance.address,
+    { from: wallet.getAddressString() }
+  );
+  await testTokenInstance.approve(
+    depositManagerInstance.address,
+    ethers.utils.parseEther("1"),
+    { from: wallet.getAddressString() }
+  );
+  return testTokenInstance
 }

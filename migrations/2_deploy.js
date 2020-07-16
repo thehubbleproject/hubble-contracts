@@ -11,6 +11,7 @@ const MTUtilsContract = artifacts.require("MerkleTreeUtils");
 const loggerContract = artifacts.require("Logger");
 const tokenRegistryContract = artifacts.require("TokenRegistry");
 const fraudProofContract = artifacts.require("FraudProof");
+const createAccountContract = artifacts.require("CreateAccount");
 const airdropContract = artifacts.require("Airdrop");
 const burnConsentContract = artifacts.require("BurnConsent");
 const burnExecutionContract = artifacts.require("BurnExecution");
@@ -91,6 +92,13 @@ module.exports = async function (deployer) {
     [nameRegistryInstance.address],
     "FRAUD_PROOF"
   );
+  const createAccountInstance = await deployAndRegister(
+    deployer,
+    createAccountContract,
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
+    "CREATE_ACCOUNT"
+  )
   const airdropInstance = await deployAndRegister(
     deployer,
     airdropContract,
@@ -180,6 +188,7 @@ module.exports = async function (deployer) {
     Logger: loggerInstance.address,
     MerkleTreeUtils: mtUtilsInstance.address,
     FraudProof: fraudProofInstance.address,
+    CreateAccount: createAccountInstance.address,
     Airdrop: airdropInstance.address,
     BurnConsent: burnConsentInstance.address,
     BurnExecution: burnExecutionInstance.address,

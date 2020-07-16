@@ -41,10 +41,10 @@ contract CreateAccount is FraudProofHelpers {
         _;
     }
 
-    function createPublickeys(bytes[] calldata publicKeys)
-        external
+    function createPublickeys(bytes[] memory publicKeys)
+        public
         onlyReddit
-        returns (uint256[] memory accountIDs)
+        returns (uint256[] memory)
     {
         uint256[] memory accountIDs = new uint256[](publicKeys.length);
         for (uint256 i = 0; i < publicKeys.length; i++) {
