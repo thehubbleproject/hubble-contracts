@@ -109,7 +109,7 @@ contract("Reddit", async function () {
             siblings: userPDAsiblings,
         }
         tx.signature!;
-        createAccountInstance.processTx(
+        await createAccountInstance.processTx(
             balanceRoot,
             accountRoot,
             tx,
