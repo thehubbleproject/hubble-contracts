@@ -137,6 +137,7 @@ library Types {
         InvalidCancelBurnAmount,
         InvalidBurnAmount,
         BadFromIndex,
-        BurnAlreadyExecuted
+        BurnAlreadyExecuted,
+        NotCreatingOnZeroAccount
     }
 }

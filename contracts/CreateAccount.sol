@@ -147,7 +147,7 @@ contract CreateAccount is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
@@ -160,13 +160,23 @@ contract CreateAccount is FraudProofHelpers {
         // Assuming Reddit have run rollup.sol::createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
-        // to_account_proof.accountIP.account should to be a zero account
-        bool result = ValidateZeroAccount(to_account_proof.accountIP.account);
-        if (result == false) {
-            return ("", "", "", 0, false);
+        // Validate we are creating on a zero account
+        if (
+            !merkleUtils.verifyLeaf(
+                _balanceRoot,
+                keccak256(abi.encode(0)), // default hash 0
+                to_account_proof.accountIP.pathToAccount,
+                to_account_proof.siblings
+            )
+        ) {
+            return (
+                "",
+                "",
+                "",
+                Types.ErrorCode.NotCreatingOnZeroAccount,
+                false
+            );
         }
-
-        ValidateAccountMP(_balanceRoot, to_account_proof);
 
         bytes32 newRoot = UpdateAccountWithSiblings(
             createdAccount,
@@ -176,6 +186,12 @@ contract CreateAccount is FraudProofHelpers {
             createdAccount
         );
 
-        return (newRoot, createdAccountBytes, "", 0, true);
+        return (
+            newRoot,
+            createdAccountBytes,
+            "",
+            Types.ErrorCode.NoError,
+            true
+        );
     }
 }
