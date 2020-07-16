@@ -45,14 +45,17 @@ contract("Reddit", async function () {
             Reddit.Amount,
             Reddit.TokenType,
             Reddit.Pubkey
-          );
+        );
 
     })
     it("Should Create Account and Drop some token to User", async function () {
         const createAccountInstance = await createAccount.deployed();
-        console.log("[User.Pubkey]", [User.Pubkey])
-        const accountId = await createAccountInstance.createPublickeys([User.Pubkey]);
-        console.log("accountId", accountId)
+        // Call to see what's the accountID
+        const accountId = await createAccountInstance.createPublickeys.call([User.Pubkey]);
+        assert.equal(accountId.toString(), "3");
+        // Actual execution
+        await createAccountInstance.createPublickeys([User.Pubkey]);
+
 
     })
 

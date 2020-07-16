@@ -92,13 +92,7 @@ module.exports = async function (deployer) {
     [nameRegistryInstance.address],
     "FRAUD_PROOF"
   );
-  const createAccountInstance = await deployAndRegister(
-    deployer,
-    createAccountContract,
-    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
-    [nameRegistryInstance.address],
-    "CREATE_ACCOUNT"
-  )
+
   const airdropInstance = await deployAndRegister(
     deployer,
     airdropContract,
@@ -139,6 +133,15 @@ module.exports = async function (deployer) {
     [nameRegistryInstance.address],
     "ACCOUNTS_TREE"
   );
+
+  // createAccountContract depends account tree
+  const createAccountInstance = await deployAndRegister(
+    deployer,
+    createAccountContract,
+    [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+    [nameRegistryInstance.address],
+    "CREATE_ACCOUNT"
+  )
 
   // deploy test token
   const testTokenInstance = await deployAndRegister(
