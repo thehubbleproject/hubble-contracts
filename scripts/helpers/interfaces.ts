@@ -29,3 +29,10 @@ export enum ErrorCode {
   BadFromIndex,
   BurnAlreadyExecuted,
 }
+
+
+export interface CreateAccount {
+  toIndex: number;
+  tokenType: number;
+  signature?: string;
+}

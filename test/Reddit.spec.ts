@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Transaction, ErrorCode } from "../scripts/helpers/interfaces";
+import { Transaction, ErrorCode, CreateAccount } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -12,7 +12,7 @@ const createAccount = artifacts.require("CreateAccount");
 
 
 contract("Reddit", async function () {
-    let wallets;
+    let wallets: any;
     let Reddit: any;
     let User: any;
     let testTokenInstance;
@@ -48,7 +48,7 @@ contract("Reddit", async function () {
         );
 
     })
-    it("Should Create Account and Drop some token to User", async function () {
+    it("Should Create Account for the User", async function () {
         const createAccountInstance = await createAccount.deployed();
         // Call to see what's the accountID
         const accountId = await createAccountInstance.createPublickeys.call([User.Pubkey]);
@@ -56,7 +56,14 @@ contract("Reddit", async function () {
         // Actual execution
         await createAccountInstance.createPublickeys([User.Pubkey]);
 
-
+        const tx: CreateAccount = {
+            toIndex: 3,
+            tokenType: 1
+        };
+        const RollupUtilsInstance = await RollupUtils.deployed();
+        const signBytes = await RollupUtilsInstance.getCreateAccountSignBytes(tx.toIndex, tx.tokenType);
+        tx.signature = utils.sign(signBytes, wallets[0]);
+        // createAccountInstance.processTx()
     })
 
 })

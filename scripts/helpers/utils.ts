@@ -213,6 +213,12 @@ export async function compressTx(
   return result;
 }
 
+export function sign(signBytes: string, wallet: any) {
+  const h = ethUtils.toBuffer(signBytes);
+  const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
+  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+}
+
 export async function signTx(tx: Transaction, wallet: any) {
   const RollupUtilsInstance = await RollupUtils.deployed();
   const dataToSign = await RollupUtilsInstance.getTxSignBytes(
@@ -223,10 +229,7 @@ export async function signTx(tx: Transaction, wallet: any) {
     tx.nonce,
     tx.amount
   );
-
-  const h = ethUtils.toBuffer(dataToSign);
-  const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
-  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+  return sign(dataToSign, wallet);
 }
 
 export enum Usage {

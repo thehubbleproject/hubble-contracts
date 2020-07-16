@@ -52,7 +52,7 @@ library Types {
     }
 
     struct DropTx {
-       uint256 fromIndex;
+        uint256 fromIndex;
         uint256 toIndex;
         uint256 tokenType;
         uint256 nonce;
