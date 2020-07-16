@@ -111,7 +111,7 @@ contract CreateAccount is FraudProofHelpers {
                     accountsRoot,
                     _txs[i],
                     batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i]
+                    batchProofs.accountProofs[i].to
                 );
 
                 if (!isTxValid) {
@@ -139,7 +139,7 @@ contract CreateAccount is FraudProofHelpers {
         bytes32 _accountsRoot,
         Types.CreateAccount memory _tx,
         Types.PDAMerkleProof memory _to_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory to_account_proof
     )
         public
         view
@@ -160,17 +160,17 @@ contract CreateAccount is FraudProofHelpers {
         // Assuming Reddit have run rollup.sol::createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
-        // accountProofs.to.accountIP.account should to be a zero account
-        bool result = ValidateZeroAccount(accountProofs.to.accountIP.account);
+        // to_account_proof.accountIP.account should to be a zero account
+        bool result = ValidateZeroAccount(to_account_proof.accountIP.account);
         if (result == false) {
             return ("", "", "", 0, false);
         }
 
-        ValidateAccountMP(_balanceRoot, accountProofs.to);
+        ValidateAccountMP(_balanceRoot, to_account_proof);
 
         bytes32 newRoot = UpdateAccountWithSiblings(
             createdAccount,
-            accountProofs.to // We only use the pathToAccount and siblings but not the proof itself
+            to_account_proof // We only use the pathToAccount and siblings but not the proof itself
         );
         bytes memory createdAccountBytes = RollupUtils.BytesFromAccount(
             createdAccount

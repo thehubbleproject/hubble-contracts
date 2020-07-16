@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Transaction, ErrorCode, CreateAccount } from "../scripts/helpers/interfaces";
+import { Transaction, ErrorCode, CreateAccount, Account } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -17,6 +17,8 @@ contract("Reddit", async function () {
     let User: any;
     let testTokenInstance;
     let depositManagerInstance;
+    let rollupCoreInstance: any;
+    let IMTInstance: any;
     before(async function () {
         depositManagerInstance = await DepositManager.deployed();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
@@ -46,7 +48,8 @@ contract("Reddit", async function () {
             Reddit.TokenType,
             Reddit.Pubkey
         );
-
+        rollupCoreInstance = await RollupCore.deployed();
+        IMTInstance = await IMT.deployed();
     })
     it("Should Create Account for the User", async function () {
         const createAccountInstance = await createAccount.deployed();
@@ -56,14 +59,63 @@ contract("Reddit", async function () {
         // Actual execution
         await createAccountInstance.createPublickeys([User.Pubkey]);
 
-        const tx: CreateAccount = {
+        const tx = {
             toIndex: 3,
             tokenType: 1
-        };
+        } as CreateAccount;
         const RollupUtilsInstance = await RollupUtils.deployed();
         const signBytes = await RollupUtilsInstance.getCreateAccountSignBytes(tx.toIndex, tx.tokenType);
         tx.signature = utils.sign(signBytes, wallets[0]);
-        // createAccountInstance.processTx()
+        const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+        const accountRoot = await IMTInstance.getTreeRoot();
+        const ZeroAccount: Account = {
+            ID: 0,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
+        }
+        const RedditAccountLeaf = await utils.createLeaf(Reddit)
+        const zeroHashes = await utils.defaultHashes(4);
+        const coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
+        const NewAccountSiblings: Array<string> = [
+            RedditAccountLeaf,
+            utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
+            zeroHashes[2],
+            zeroHashes[3],
+        ];
+        const NewAccountMP = {
+            accountIP: {
+                pathToAccount: User.Path,
+                account: ZeroAccount,
+            },
+            siblings: NewAccountSiblings,
+        };
+        const coordinatorPubkeyHash =
+            "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
+
+        const userPDAsiblings = [
+            utils.PubKeyHash(Reddit.Pubkey),
+            utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
+            zeroHashes[2],
+            zeroHashes[3],
+        ];
+        const userPDAProof = {
+            _pda: {
+                pathToPubkey: "3",
+                pubkey_leaf: { pubkey: User.Pubkey },
+            },
+            siblings: userPDAsiblings,
+        }
+        tx.signature!;
+        createAccountInstance.processTx(
+            balanceRoot,
+            accountRoot,
+            tx,
+            userPDAProof,
+            NewAccountMP,
+        )
     })
 
 })
