@@ -10,7 +10,7 @@ const governanceContract = artifacts.require("Governance");
 const MTUtilsContract = artifacts.require("MerkleTreeUtils");
 const loggerContract = artifacts.require("Logger");
 const tokenRegistryContract = artifacts.require("TokenRegistry");
-const fraudProofContract = artifacts.require("FraudProof");
+const transferContract = artifacts.require("Transfer");
 const createAccountContract = artifacts.require("CreateAccount");
 const airdropContract = artifacts.require("Airdrop");
 const burnConsentContract = artifacts.require("BurnConsent");
@@ -85,12 +85,12 @@ module.exports = async function (deployer) {
   );
 
   // deploy Token registry contract
-  const fraudProofInstance = await deployAndRegister(
+  const transferInstance = await deployAndRegister(
     deployer,
-    fraudProofContract,
+    transferContract,
     [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
     [nameRegistryInstance.address],
-    "FRAUD_PROOF"
+    "TRANSFER"
   );
 
   const airdropInstance = await deployAndRegister(
@@ -190,7 +190,7 @@ module.exports = async function (deployer) {
     NameRegistry: nameRegistryInstance.address,
     Logger: loggerInstance.address,
     MerkleTreeUtils: mtUtilsInstance.address,
-    FraudProof: fraudProofInstance.address,
+    Transfer: transferInstance.address,
     CreateAccount: createAccountInstance.address,
     Airdrop: airdropInstance.address,
     BurnConsent: burnConsentInstance.address,

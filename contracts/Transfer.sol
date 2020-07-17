@@ -9,7 +9,7 @@ import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 
-contract Transfers is FraudProofHelpers {
+contract Transfer is FraudProofHelpers {
     /*********************
      * Constructor *
      ********************/
