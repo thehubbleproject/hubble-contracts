@@ -88,8 +88,6 @@ contract("Reddit", async function () {
             defaultHashes[2],
             defaultHashes[3],
         ];
-        console.log("siblingsInProof", siblingsInProof)
-
         const _zero_account_mp = {
             accountIP: {
                 pathToAccount: "001",
@@ -135,7 +133,6 @@ contract("Reddit", async function () {
             n3,
             defaultHashes[3],
         ];
-        console.log("balanceRoot", balanceRoot)
         const NewAccountMP = {
             accountIP: {
                 pathToAccount: User.Path,
@@ -170,6 +167,17 @@ contract("Reddit", async function () {
             NewAccountMP,
         );
         assert.equal(ErrorCode.NoError, result[3].toNumber());
+
+        const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
+            tx.toIndex, tx.tokenType, tx.signature
+        );
+        await rollupCoreInstance.submitBatch(
+            [compressedTx],
+            result[0],
+            utils.Usage.CreateAccount,
+            { value: ethers.utils.parseEther("32").toString() }
+        );
+
 
     })
 
