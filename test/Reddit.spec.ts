@@ -108,13 +108,15 @@ contract("Reddit", async function () {
             },
             siblings: userPDAsiblings,
         }
-        await createAccountInstance.processTx(
+        const result = await createAccountInstance.processTx(
             balanceRoot,
             accountRoot,
             tx,
             userPDAProof,
             NewAccountMP,
-        )
+        );
+        assert.equal(result[3].toNumber(), ErrorCode.NoError);
+
     })
 
 })

@@ -148,16 +148,7 @@ contract CreateAccount is FraudProofHelpers {
         // Assuming Reddit have run createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
-        if (
-            RollupUtils.calculateAddress(
-                _to_pda_proof._pda.pubkey_leaf.pubkey
-            ) !=
-            RollupUtils
-                .getCreateAccountSignBytes(_tx.toIndex, _tx.tokenType)
-                .ecrecovery(_tx.signature)
-        ) {
-            return ("", "", "", Types.ErrorCode.BadSignature, false);
-        }
+        // Validate Signture, this requires validate public key and it's existence with _from_pda_proof.
 
         // Validate we are creating on a zero account
         if (
