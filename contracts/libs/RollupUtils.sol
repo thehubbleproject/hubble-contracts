@@ -175,7 +175,15 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx);
+        return abi.encode(_tx.toIndex, _tx.tokenType, _tx.signature);
+    }
+
+    function CompressCreateAccountDeconstructed(
+        uint256 toIndex,
+        uint256 tokenType,
+        uint256 signature
+    ) public pure returns (bytes memory) {
+        return abi.encode(toIndex, tokenType, signature);
     }
 
     //
@@ -437,7 +445,7 @@ library RollupUtils {
             );
     }
 
-    function getCreateAccountSignBytes(uint256 toIndex, uint tokenType)
+    function getCreateAccountSignBytes(uint256 toIndex, uint256 tokenType)
         public
         pure
         returns (bytes32)
