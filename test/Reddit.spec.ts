@@ -168,7 +168,7 @@ contract("Reddit", async function () {
         );
         assert.equal(ErrorCode.NoError, result[3].toNumber());
 
-        const compressedTx = await RollupUtilsInstance.CompressCreateAccountDeconstructed(
+        const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
             tx.toIndex, tx.tokenType, tx.signature
         );
         await rollupCoreInstance.submitBatch(
