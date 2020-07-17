@@ -138,6 +138,7 @@ library Types {
         InvalidBurnAmount,
         BadFromIndex,
         BurnAlreadyExecuted,
-        NotCreatingOnZeroAccount
+        NotCreatingOnZeroAccount,
+        BadSignature
     }
 }

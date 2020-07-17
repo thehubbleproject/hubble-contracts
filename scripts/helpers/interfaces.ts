@@ -28,6 +28,8 @@ export enum ErrorCode {
   InvalidBurnAmount,
   BadFromIndex,
   BurnAlreadyExecuted,
+  NotCreatingOnZeroAccount,
+  BadSignature,
 }
 
 

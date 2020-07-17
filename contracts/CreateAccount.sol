@@ -122,18 +122,6 @@ contract CreateAccount is FraudProofHelpers {
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
-    function ValidateZeroAccount(Types.UserAccount memory account)
-        public
-        pure
-        returns (bool)
-    {
-        return
-            account.ID == 0 &&
-            account.tokenType == 0 &&
-            account.balance == 0 &&
-            account.nonce == 0;
-    }
-
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
@@ -153,18 +141,29 @@ contract CreateAccount is FraudProofHelpers {
     {
         Types.UserAccount memory createdAccount;
         createdAccount.ID = _tx.toIndex;
-        createdAccount.tokenType = 1; // Arbitrary assign a default token
+        createdAccount.tokenType = _tx.tokenType;
         createdAccount.balance = 0;
         createdAccount.nonce = 0;
 
-        // Assuming Reddit have run rollup.sol::createPublickeys
+        // Assuming Reddit have run createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
+
+        if (
+            RollupUtils.calculateAddress(
+                _to_pda_proof._pda.pubkey_leaf.pubkey
+            ) !=
+            RollupUtils
+                .getCreateAccountSignBytes(_tx.toIndex, _tx.tokenType)
+                .ecrecovery(_tx.signature)
+        ) {
+            return ("", "", "", Types.ErrorCode.BadSignature, false);
+        }
 
         // Validate we are creating on a zero account
         if (
             !merkleUtils.verifyLeaf(
                 _balanceRoot,
-                keccak256(abi.encode(0)), // default hash 0
+                merkleUtils.defaultHashes(0), // Zero account leaf
                 to_account_proof.accountIP.pathToAccount,
                 to_account_proof.siblings
             )
