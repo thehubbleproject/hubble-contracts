@@ -53,6 +53,10 @@ library ParamManager {
         return keccak256("fraud_proof");
     }
 
+    function CREATE_ACCOUNT() public pure returns (bytes32) {
+        return keccak256("create_account");
+    }
+
     function AIRDROP() public pure returns (bytes32) {
         return keccak256("airdrop");
     }

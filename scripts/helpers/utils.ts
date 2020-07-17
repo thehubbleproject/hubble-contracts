@@ -8,6 +8,8 @@ const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const FraudProof = artifacts.require("FraudProof");
 const RollupCore = artifacts.require("Rollup");
+const DepositManager = artifacts.require("DepositManager");
+const TestToken = artifacts.require("TestToken");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -211,6 +213,12 @@ export async function compressTx(
   return result;
 }
 
+export function sign(signBytes: string, wallet: any) {
+  const h = ethUtils.toBuffer(signBytes);
+  const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
+  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+}
+
 export async function signTx(tx: Transaction, wallet: any) {
   const RollupUtilsInstance = await RollupUtils.deployed();
   const dataToSign = await RollupUtilsInstance.getTxSignBytes(
@@ -221,10 +229,7 @@ export async function signTx(tx: Transaction, wallet: any) {
     tx.nonce,
     tx.amount
   );
-
-  const h = ethUtils.toBuffer(dataToSign);
-  const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
-  return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
+  return sign(dataToSign, wallet);
 }
 
 export enum Usage {
@@ -274,4 +279,25 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     Usage.Transfer,
     { value: ethers.utils.parseEther("32").toString() }
   );
+}
+
+
+export async function registerToken(wallet: any) {
+  const testTokenInstance = await TestToken.deployed();
+  const tokenRegistryInstance = await TokenRegistry.deployed();
+  const depositManagerInstance = await DepositManager.deployed();
+  await tokenRegistryInstance.requestTokenRegistration(
+    testTokenInstance.address,
+    { from: wallet.getAddressString() }
+  );
+  await tokenRegistryInstance.finaliseTokenRegistration(
+    testTokenInstance.address,
+    { from: wallet.getAddressString() }
+  );
+  await testTokenInstance.approve(
+    depositManagerInstance.address,
+    ethers.utils.parseEther("1"),
+    { from: wallet.getAddressString() }
+  );
+  return testTokenInstance
 }

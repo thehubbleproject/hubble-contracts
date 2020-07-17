@@ -28,4 +28,13 @@ export enum ErrorCode {
   InvalidBurnAmount,
   BadFromIndex,
   BurnAlreadyExecuted,
+  NotCreatingOnZeroAccount,
+  BadSignature,
+}
+
+
+export interface CreateAccount {
+  toIndex: number;
+  tokenType: number;
+  signature: string;
 }

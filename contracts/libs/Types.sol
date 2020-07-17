@@ -52,7 +52,7 @@ library Types {
     }
 
     struct DropTx {
-       uint256 fromIndex;
+        uint256 fromIndex;
         uint256 toIndex;
         uint256 tokenType;
         uint256 nonce;
@@ -137,6 +137,8 @@ library Types {
         InvalidCancelBurnAmount,
         InvalidBurnAmount,
         BadFromIndex,
-        BurnAlreadyExecuted
+        BurnAlreadyExecuted,
+        NotCreatingOnZeroAccount,
+        BadSignature
     }
 }

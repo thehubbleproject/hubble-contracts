@@ -41,10 +41,10 @@ contract CreateAccount is FraudProofHelpers {
         _;
     }
 
-    function createPublickeys(bytes[] calldata publicKeys)
-        external
+    function createPublickeys(bytes[] memory publicKeys)
+        public
         onlyReddit
-        returns (uint256[] memory accountIDs)
+        returns (uint256[] memory)
     {
         uint256[] memory accountIDs = new uint256[](publicKeys.length);
         for (uint256 i = 0; i < publicKeys.length; i++) {
@@ -111,7 +111,7 @@ contract CreateAccount is FraudProofHelpers {
                     accountsRoot,
                     _txs[i],
                     batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i]
+                    batchProofs.accountProofs[i].to
                 );
 
                 if (!isTxValid) {
@@ -122,24 +122,12 @@ contract CreateAccount is FraudProofHelpers {
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
-    function ValidateZeroAccount(Types.UserAccount memory account)
-        public
-        pure
-        returns (bool)
-    {
-        return
-            account.ID == 0 &&
-            account.tokenType == 0 &&
-            account.balance == 0 &&
-            account.nonce == 0;
-    }
-
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.CreateAccount memory _tx,
         Types.PDAMerkleProof memory _to_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory to_account_proof
     )
         public
         view
@@ -147,35 +135,53 @@ contract CreateAccount is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            uint256,
+            Types.ErrorCode,
             bool
         )
     {
         Types.UserAccount memory createdAccount;
         createdAccount.ID = _tx.toIndex;
-        createdAccount.tokenType = 1; // Arbitrary assign a default token
+        createdAccount.tokenType = _tx.tokenType;
         createdAccount.balance = 0;
         createdAccount.nonce = 0;
 
-        // Assuming Reddit have run rollup.sol::createPublickeys
+        // Assuming Reddit have run createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
-        // accountProofs.to.accountIP.account should to be a zero account
-        bool result = ValidateZeroAccount(accountProofs.to.accountIP.account);
-        if (result == false) {
-            return ("", "", "", 0, false);
-        }
+        // Validate Signture, this requires validate public key and it's existence with _from_pda_proof.
 
-        ValidateAccountMP(_balanceRoot, accountProofs.to);
+        // Validate we are creating on a zero account
+        if (
+            !merkleUtils.verifyLeaf(
+                _balanceRoot,
+                merkleUtils.defaultHashes(0), // Zero account leaf
+                to_account_proof.accountIP.pathToAccount,
+                to_account_proof.siblings
+            )
+        ) {
+            return (
+                "",
+                "",
+                "",
+                Types.ErrorCode.NotCreatingOnZeroAccount,
+                false
+            );
+        }
 
         bytes32 newRoot = UpdateAccountWithSiblings(
             createdAccount,
-            accountProofs.to // We only use the pathToAccount and siblings but not the proof itself
+            to_account_proof // We only use the pathToAccount and siblings but not the proof itself
         );
         bytes memory createdAccountBytes = RollupUtils.BytesFromAccount(
             createdAccount
         );
 
-        return (newRoot, createdAccountBytes, "", 0, true);
+        return (
+            newRoot,
+            createdAccountBytes,
+            "",
+            Types.ErrorCode.NoError,
+            true
+        );
     }
 }
