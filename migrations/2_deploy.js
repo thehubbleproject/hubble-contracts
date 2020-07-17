@@ -175,7 +175,7 @@ module.exports = async function (deployer) {
   const rollupRedditInstance = await deployAndRegister(
     deployer,
     rollupRedditContract,
-    [ Types, paramManagerLib],
+    [ Types, paramManagerLib, rollupUtilsLib],
     [nameRegistryInstance.address],
     "ROLLUP_REDDIT"
   );
