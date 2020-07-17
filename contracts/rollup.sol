@@ -238,7 +238,7 @@ contract Rollup is RollupHelpers {
         );
 
         fraudProof = IFraudProof(
-            nameRegistry.getContractDetails(ParamManager.FRAUD_PROOF())
+            nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }

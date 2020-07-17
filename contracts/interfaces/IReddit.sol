@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import {Types} from "../libs/Types.sol";
 
 interface IReddit {
-    function processTxAirdrop(
+    function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.DropTx calldata _tx,
@@ -20,6 +20,33 @@ interface IReddit {
             Types.ErrorCode,
             bool
         );
+
+    function ApplyAirdropTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.DropTx calldata _transaction
+    ) external view returns (bytes memory, bytes32);
+
+    function processTx(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        Types.Transaction calldata _tx,
+        Types.PDAMerkleProof calldata _from_pda_proof,
+        Types.AccountProofs calldata accountProofs
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes memory,
+            bytes memory,
+            Types.ErrorCode,
+            bool
+        );
+
+    function ApplyTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.Transaction calldata transaction
+    ) external view returns (bytes memory, bytes32 newRoot);
 
     function processTxBurnConsent(
         bytes32 _balanceRoot,

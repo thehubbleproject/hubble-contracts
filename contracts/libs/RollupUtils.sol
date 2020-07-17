@@ -417,6 +417,23 @@ library RollupUtils {
         return abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
     }
 
+    function CompressAirdropTxWithMessage(bytes memory message, bytes memory sig)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.DropTx memory _tx = AirdropTxFromBytes(message);
+        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+    }
+
+    function CompressDropNoStruct(
+        uint256 toIndex,
+        uint256 amount, 
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(toIndex, amount, sig);
+    }
+
     function DecompressDrop(bytes memory dropBytes)
         public
         pure
@@ -485,13 +502,44 @@ library RollupUtils {
                 )
             );
     }
+    
+    function AirdropTxFromBytesNoStruct(bytes memory txBytes)
+        public
+        pure
+        returns (
+            uint256 from,
+            uint256 to,
+            uint256 tokenType,
+            uint256 nonce,
+            uint256 txType,
+            uint256 amount
+        )
+    {
+        return
+            abi.decode(
+                txBytes,
+                (uint256, uint256, uint256, uint256, uint256, uint256)
+            );
+    }
 
-    function CompressDropNoStruct(
-        uint256 toIndex,
-        uint256 amount,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(toIndex, amount, sig);
+    function AirdropTxFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.DropTx memory)
+    {
+        Types.DropTx memory transaction;
+        (
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.tokenType,
+            transaction.nonce,
+            transaction.txType,
+            transaction.amount
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256)
+        );
+        return transaction;
     }
 
     //

@@ -6,7 +6,7 @@ const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
-const FraudProof = artifacts.require("FraudProof");
+const Transfer = artifacts.require("Transfer");
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
@@ -250,9 +250,9 @@ export async function TxToBytes(tx: Transaction) {
 }
 
 export async function falseProcessTx(_tx: any, accountProofs: any) {
-  const fraudProofInstance = await FraudProof.deployed();
+  const transferInstance = await Transfer.deployed();
   const _to_merkle_proof = accountProofs.to;
-  const new_to_txApply = await fraudProofInstance.ApplyTx(
+  const new_to_txApply = await transferInstance.ApplyTx(
     _to_merkle_proof,
     _tx
   );

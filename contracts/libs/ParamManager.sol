@@ -49,8 +49,8 @@ library ParamManager {
         return keccak256("token_registry");
     }
 
-    function FRAUD_PROOF() public pure returns (bytes32) {
-        return keccak256("fraud_proof");
+    function TRANSFER() public pure returns (bytes32) {
+        return keccak256("transfer");
     }
 
     function CREATE_ACCOUNT() public pure returns (bytes32) {
