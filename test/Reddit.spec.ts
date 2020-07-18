@@ -185,7 +185,7 @@ contract("Reddit", async function () {
 
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const resultTo = await rollupRedditInstance.ApplyAirdropTx(userMP, txBytes);
-        const userUpdatedAccount = await RollupUtilsInstance.AccountFromBytes(resultTo[0]);
+        const userUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
