@@ -6,6 +6,7 @@ import {
     CreateAccountLeaf,
     PubKeyHash
 } from './utils';
+import { DummyPDA, DummyAccount } from './constants';
 
 
 interface LeafItem<T> {
@@ -76,11 +77,10 @@ abstract class AbstractStore<T> {
         return branches;
     }
     getSubTreeSiblings(position: number, subtreeAtlevel: number): string[] {
-        const siblingLength = this.level - subtreeAtlevel;
         const sibilings: string[] = [];
         const allBranches = this._allBranches();
         let currentLevelPosition = position;
-        for (let i = subtreeAtlevel; i < siblingLength; i++) {
+        for (let i = subtreeAtlevel; i < this.level; i++) {
             if (currentLevelPosition % 2 == 0) {
                 sibilings.push(allBranches[i][currentLevelPosition + 1]);
             } else {
@@ -99,19 +99,21 @@ abstract class AbstractStore<T> {
     }
 }
 
-const DummyAccount: Account = {
-    ID: 0,
-    tokenType: 0,
-    balance: 0,
-    nonce: 0,
-    burn: 0,
-    lastBurn: 0
-}
-
 export class AccountStore extends AbstractStore<Account>{
     async compress(element: Account): Promise<string> {
         return await CreateAccountLeaf(element);
     }
+    async getSubTreeMerkleProof(pathToAccount: string, level: number): Promise<AccountMerkleProof> {
+        const siblings = this.getSubTreeSiblings(parseInt(pathToAccount, 2), level);
+        return {
+            accountIP: {
+                pathToAccount,
+                account: DummyAccount
+            },
+            siblings
+        };
+    }
+
     async getAccountMerkleProof(position: number): Promise<AccountMerkleProof> {
         const account: Account = this.items[position]?.data || DummyAccount;
         const siblings = this.getSiblings(position);
@@ -125,10 +127,6 @@ export class AccountStore extends AbstractStore<Account>{
             siblings
         }
     }
-}
-
-const DummyPDA: PDALeaf = {
-    pubkey: "0x1aaa2aaa3aaa4aaa5aaa6aaa7aaa8aaa9aaa10aa11aa12aa13aa14aa15aa16aa"
 }
 
 export class PublicKeyStore extends AbstractStore<PDALeaf>{
