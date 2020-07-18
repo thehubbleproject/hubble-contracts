@@ -43,6 +43,10 @@ abstract class AbstractStore<T> {
         return position;
     }
 
+    nextEmptyIndex(): number{
+        return this.items.length;
+    }
+
     getLeaves(): string[] {
         const leaves: string[] = [];
         const zeroHash = getZeroHash(0);
@@ -133,11 +137,11 @@ export class PublicKeyStore extends AbstractStore<PDALeaf>{
     async compress(element: PDALeaf): Promise<string> {
         return PubKeyHash(element.pubkey);
     }
-    insertPublicKey(pubkey: string) {
+    async insertPublicKey(pubkey: string): Promise<number> {
         const leaf: PDALeaf = {
             pubkey
         };
-        return this.insert(leaf);
+        return await this.insert(leaf);
     }
 
     async getPDAMerkleProof(position: number): Promise<PDAMerkleProof> {

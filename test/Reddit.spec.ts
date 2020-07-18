@@ -105,7 +105,7 @@ contract("Reddit", async function () {
         assert.equal(accountId.toString(), User.AccID);
         // Actual execution
         await createAccountInstance.createPublickeys([User.Pubkey]);
-        pubkeyStore.insertPublicKey(User.Pubkey);
+        const userPubkeyIndex = await pubkeyStore.insertPublicKey(User.Pubkey);
 
         const tx = {
             toIndex: 4,
@@ -116,8 +116,9 @@ contract("Reddit", async function () {
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
-        const NewAccountMP = await accountStore.getAccountMerkleProof(User.AccID);
-        const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.AccID)
+        const userAccountID = accountStore.nextEmptyIndex();
+        const NewAccountMP = await accountStore.getAccountMerkleProof(userAccountID);
+        const userPDAProof = await pubkeyStore.getPDAMerkleProof(userPubkeyIndex);
 
         const result = await createAccountInstance.processTx(
             balanceRoot,
