@@ -299,34 +299,47 @@ export async function registerToken(wallet: any) {
   return testTokenInstance
 }
 
+
+interface LeafItem<T> {
+  hash: string;
+  data?: T;
+}
+
 abstract class AbstractStore<T> {
 
-  dataBlocks: T[];
-  nonemptyElements: number;
+  items: LeafItem<T>[];
   size: number;
   level: number;
 
   constructor(level: number) {
     this.level = level;
     this.size = 2 ** level;
-    this.nonemptyElements = 0;
-    this.dataBlocks = [];
+    this.items = [];
   }
   async abstract compress(element: T): Promise<string>;
 
-  insert(data: T): number {
-    const position = this.dataBlocks.length;
-    this.dataBlocks.push(data);
+  async insert(data: T): Promise<number> {
+    const position = this.items.length;
+    const hash = await this.compress(data);
+    const item: LeafItem<T> = {
+      hash, data
+    };
+    this.items.push(item);
+    return position;
+  }
+  insertHash(hash: string): number {
+    const position = this.items.length;
+    const item: LeafItem<T> = { hash };
+    this.items.push(item);
     return position;
   }
 
-  async getLeaves(): Promise<string[]> {
+  getLeaves(): string[] {
     const leaves: string[] = [];
     const zeroHash = getZeroHash(0);
     for (let i = 0; i < this.size; i++) {
-      if (i < this.dataBlocks.length) {
-        const hashElement = await this.compress(this.dataBlocks[i]);
-        leaves.push(hashElement);
+      if (i < this.items.length) {
+        leaves.push(this.items[i].hash);
       } else {
         leaves.push(zeroHash);
       }
@@ -336,14 +349,14 @@ abstract class AbstractStore<T> {
 
   async getRoot(): Promise<string> {
     const merkleTreeUtilsInstance = await getMerkleTreeUtils();
-    const leaves = await this.getLeaves();
+    const leaves = this.getLeaves();
     const root = await merkleTreeUtilsInstance.getMerkleRootFromLeaves(leaves);
     return root;
 
   }
-  async _allBranches(): Promise<string[][]> {
+  _allBranches(): string[][] {
     const branches: string[][] = [];
-    branches[0] = await this.getLeaves();
+    branches[0] = this.getLeaves();
     for (let i = 1; i < this.level; i++) {
       for (let j = 0; j < 2 ** (this.level - i); j++) {
         branches[i][j] = getParentLeaf(branches[i - 1][j * 2], branches[i - 1][j * 2 + 1]);
@@ -351,11 +364,12 @@ abstract class AbstractStore<T> {
     }
     return branches;
   }
-  async getSiblings(position: number): Promise<string[]> {
-    const sibilings: string[] = new Array(this.level - 1);
-    const allBranches = await this._allBranches();
+  getSubTreeSiblings(position: number, subtreeAtlevel: number): string[] {
+    const siblingLength = this.level - subtreeAtlevel - 1;
+    const sibilings: string[] = new Array(siblingLength);
+    const allBranches = this._allBranches();
     let currentLevelPosition = position;
-    for (let i = 0; i < this.level - 1; i++) {
+    for (let i = subtreeAtlevel; i < siblingLength; i++) {
       if (currentLevelPosition % 2 == 0) {
         sibilings.push(allBranches[i][currentLevelPosition - 1]);
       } else {
@@ -365,10 +379,12 @@ abstract class AbstractStore<T> {
     }
     return sibilings;
   }
+  getSiblings(position: number): string[] {
+    return this.getSubTreeSiblings(position, 0);
+  }
   positionToPath(position: number): string {
     // Convert to binary and pad 0s so that the output has length of this.level -1
     return position.toString(2).padStart(this.level - 1, "0");
-
   }
 }
 
@@ -386,13 +402,8 @@ export class AccountStore extends AbstractStore<Account>{
     return await CreateAccountLeaf(element);
   }
   async getAccountMerkleProof(position: number): Promise<AccountMerkleProof> {
-    let account: Account;
-    if (position < this.dataBlocks.length) {
-      account = this.dataBlocks[position];
-    } else {
-      account = DummyAccount;
-    }
-    const siblings = await this.getSiblings(position);
+    const account: Account = this.items[position]?.data || DummyAccount;
+    const siblings = this.getSiblings(position);
     const pathToAccount = this.positionToPath(position);
 
     return {
@@ -413,14 +424,16 @@ export class PublicKeyStore extends AbstractStore<PDALeaf>{
   async compress(element: PDALeaf): Promise<string> {
     return PubKeyHash(element.pubkey);
   }
+  insertPublicKey(pubkey: string) {
+    const leaf: PDALeaf = {
+      pubkey
+    };
+    return this.insert(leaf);
+  }
+
   async getPDAMerkleProof(position: number): Promise<PDAMerkleProof> {
-    let pubkey_leaf: PDALeaf;
-    if (position < this.dataBlocks.length) {
-      pubkey_leaf = this.dataBlocks[position];
-    } else {
-      pubkey_leaf = DummyPDA;
-    }
-    const siblings = await this.getSiblings(position);
+    const pubkey_leaf: PDALeaf = this.items[position]?.data|| DummyPDA;
+    const siblings = this.getSiblings(position);
     const pathToPubkey = this.positionToPath(position);
 
     return {
