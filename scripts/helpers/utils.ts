@@ -99,24 +99,21 @@ export async function HashFromTx(
 // defaultHashes[0] = leaves
 // defaultHashes[depth-1] = root
 export async function defaultHashes(depth: number) {
-  var zeroValue = 0;
-  var defaultHashes = [];
-  var abiCoder = ethers.utils.defaultAbiCoder;
-  var zeroHash = await getZeroHash(zeroValue);
-  defaultHashes[0] = zeroHash;
-
+  const zeroValue = 0;
+  const hashes = [];
+  hashes[0] = getZeroHash(zeroValue);
   for (let i = 1; i < depth; i++) {
-    defaultHashes[i] = getParentLeaf(
-      defaultHashes[i - 1],
-      defaultHashes[i - 1]
+    hashes[i] = getParentLeaf(
+      hashes[i - 1],
+      hashes[i - 1]
     );
   }
 
-  return defaultHashes;
+  return hashes;
 }
 
-export async function getZeroHash(zeroValue: any) {
-  var abiCoder = ethers.utils.defaultAbiCoder;
+export function getZeroHash(zeroValue: any) {
+  const abiCoder = ethers.utils.defaultAbiCoder;
   return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
 }
 

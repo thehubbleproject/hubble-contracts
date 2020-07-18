@@ -7,6 +7,30 @@ export interface Account {
   lastBurn: number;
 }
 
+export interface AccountInclusionProof {
+  pathToAccount: string;
+  account: Account;
+}
+
+export interface AccountMerkleProof {
+  accountIP: AccountInclusionProof;
+  siblings: string[];
+}
+
+export interface PDALeaf {
+  pubkey: string;
+}
+
+export interface PDAInclusionProof {
+  pathToPubkey: string;
+  pubkey_leaf: PDALeaf;
+}
+
+export interface PDAMerkleProof {
+  _pda: PDAInclusionProof;
+  siblings: string[];
+}
+
 export interface Transaction {
   fromIndex: number;
   toIndex: number;
