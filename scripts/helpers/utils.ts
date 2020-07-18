@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { Account, Transaction } from "./interfaces";
+import { Account, Transaction, AccountMerkleProof, PDALeaf, PDAMerkleProof } from "./interfaces";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
@@ -99,24 +99,21 @@ export async function HashFromTx(
 // defaultHashes[0] = leaves
 // defaultHashes[depth-1] = root
 export async function defaultHashes(depth: number) {
-  var zeroValue = 0;
-  var defaultHashes = [];
-  var abiCoder = ethers.utils.defaultAbiCoder;
-  var zeroHash = await getZeroHash(zeroValue);
-  defaultHashes[0] = zeroHash;
-
+  const zeroValue = 0;
+  const hashes = [];
+  hashes[0] = getZeroHash(zeroValue);
   for (let i = 1; i < depth; i++) {
-    defaultHashes[i] = getParentLeaf(
-      defaultHashes[i - 1],
-      defaultHashes[i - 1]
+    hashes[i] = getParentLeaf(
+      hashes[i - 1],
+      hashes[i - 1]
     );
   }
 
-  return defaultHashes;
+  return hashes;
 }
 
-export async function getZeroHash(zeroValue: any) {
-  var abiCoder = ethers.utils.defaultAbiCoder;
+export function getZeroHash(zeroValue: any) {
+  const abiCoder = ethers.utils.defaultAbiCoder;
   return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
 }
 
@@ -300,4 +297,138 @@ export async function registerToken(wallet: any) {
     { from: wallet.getAddressString() }
   );
   return testTokenInstance
+}
+
+abstract class AbstractStore<T> {
+
+  dataBlocks: T[];
+  nonemptyElements: number;
+  size: number;
+  level: number;
+
+  constructor(level: number) {
+    this.level = level;
+    this.size = 2 ** level;
+    this.nonemptyElements = 0;
+    this.dataBlocks = [];
+  }
+  async abstract compress(element: T): Promise<string>;
+
+  insert(data: T): number {
+    const position = this.dataBlocks.length;
+    this.dataBlocks.push(data);
+    return position;
+  }
+
+  async getLeaves(): Promise<string[]> {
+    const leaves: string[] = [];
+    const zeroHash = getZeroHash(0);
+    for (let i = 0; i < this.size; i++) {
+      if (i < this.dataBlocks.length) {
+        const hashElement = await this.compress(this.dataBlocks[i]);
+        leaves.push(hashElement);
+      } else {
+        leaves.push(zeroHash);
+      }
+    };
+    return leaves;
+  }
+
+  async getRoot(): Promise<string> {
+    const merkleTreeUtilsInstance = await getMerkleTreeUtils();
+    const leaves = await this.getLeaves();
+    const root = await merkleTreeUtilsInstance.getMerkleRootFromLeaves(leaves);
+    return root;
+
+  }
+  async _allBranches(): Promise<string[][]> {
+    const branches: string[][] = [];
+    branches[0] = await this.getLeaves();
+    for (let i = 1; i < this.level; i++) {
+      for (let j = 0; j < 2 ** (this.level - i); j++) {
+        branches[i][j] = getParentLeaf(branches[i - 1][j * 2], branches[i - 1][j * 2 + 1]);
+      }
+    }
+    return branches;
+  }
+  async getSiblings(position: number): Promise<string[]> {
+    const sibilings: string[] = new Array(this.level - 1);
+    const allBranches = await this._allBranches();
+    let currentLevelPosition = position;
+    for (let i = 0; i < this.level - 1; i++) {
+      if (currentLevelPosition % 2 == 0) {
+        sibilings.push(allBranches[i][currentLevelPosition - 1]);
+      } else {
+        sibilings.push(allBranches[i][currentLevelPosition + 1]);
+      }
+      currentLevelPosition = Math.floor(currentLevelPosition / 2);
+    }
+    return sibilings;
+  }
+  positionToPath(position: number): string {
+    // Convert to binary and pad 0s so that the output has length of this.level -1
+    return position.toString(2).padStart(this.level - 1, "0");
+
+  }
+}
+
+const DummyAccount: Account = {
+  ID: 0,
+  tokenType: 0,
+  balance: 0,
+  nonce: 0,
+  burn: 0,
+  lastBurn: 0
+}
+
+export class AccountStore extends AbstractStore<Account>{
+  async compress(element: Account): Promise<string> {
+    return await CreateAccountLeaf(element);
+  }
+  async getAccountMerkleProof(position: number): Promise<AccountMerkleProof> {
+    let account: Account;
+    if (position < this.dataBlocks.length) {
+      account = this.dataBlocks[position];
+    } else {
+      account = DummyAccount;
+    }
+    const siblings = await this.getSiblings(position);
+    const pathToAccount = this.positionToPath(position);
+
+    return {
+      accountIP: {
+        pathToAccount,
+        account
+      },
+      siblings
+    }
+  }
+}
+
+const DummyPDA: PDALeaf = {
+  pubkey: "0xabcd"
+}
+
+export class PublicKeyStore extends AbstractStore<PDALeaf>{
+  async compress(element: PDALeaf): Promise<string> {
+    return PubKeyHash(element.pubkey);
+  }
+  async getPDAMerkleProof(position: number): Promise<PDAMerkleProof> {
+    let pubkey_leaf: PDALeaf;
+    if (position < this.dataBlocks.length) {
+      pubkey_leaf = this.dataBlocks[position];
+    } else {
+      pubkey_leaf = DummyPDA;
+    }
+    const siblings = await this.getSiblings(position);
+    const pathToPubkey = this.positionToPath(position);
+
+    return {
+      _pda: {
+        pathToPubkey,
+        pubkey_leaf
+      },
+      siblings
+    }
+  }
 }
