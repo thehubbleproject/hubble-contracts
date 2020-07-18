@@ -62,3 +62,13 @@ export interface CreateAccount {
   tokenType: number;
   signature: string;
 }
+
+export interface DropTx {
+  fromIndex: number;
+  toIndex: number;
+  tokenType: number;
+  nonce: number;
+  txType: number;
+  amount: number;
+  signature: string;
+}

@@ -130,10 +130,13 @@ export class AccountStore extends AbstractStore<Account>{
         };
     }
 
-    async getAccountMerkleProof(position: number): Promise<AccountMerkleProof> {
+    async getAccountMerkleProof(position: number, allowDummy = false): Promise<AccountMerkleProof> {
+        if (!allowDummy && !this.items[position]?.data) {
+            throw new Error("Account data not exists")
+        }
         const account: Account = this.items[position]?.data || DummyAccount;
         const siblings = this.getSiblings(position);
-        const pathToAccount = this.positionToPath(position);
+        const pathToAccount = position.toString();
 
         return {
             accountIP: {
@@ -156,7 +159,10 @@ export class PublicKeyStore extends AbstractStore<PDALeaf>{
         return await this.insert(leaf);
     }
 
-    async getPDAMerkleProof(position: number): Promise<PDAMerkleProof> {
+    async getPDAMerkleProof(position: number, allowDummy = false): Promise<PDAMerkleProof> {
+        if (!allowDummy && !this.items[position]?.data) {
+            throw new Error("Public key data not exists")
+        }
         const pubkey_leaf: PDALeaf = this.items[position]?.data || DummyPDA;
         const siblings = this.getSiblings(position);
         const pathToPubkey = position.toString();
