@@ -356,6 +356,9 @@ abstract class AbstractStore<T> {
   }
   _allBranches(): string[][] {
     const branches: string[][] = [];
+    for (let i = 0; i < this.level; i++) {
+      branches[i] = [];
+    }
     branches[0] = this.getLeaves();
     for (let i = 1; i < this.level; i++) {
       for (let j = 0; j < 2 ** (this.level - i); j++) {
@@ -365,15 +368,15 @@ abstract class AbstractStore<T> {
     return branches;
   }
   getSubTreeSiblings(position: number, subtreeAtlevel: number): string[] {
-    const siblingLength = this.level - subtreeAtlevel - 1;
-    const sibilings: string[] = new Array(siblingLength);
+    const siblingLength = this.level - subtreeAtlevel;
+    const sibilings: string[] = [];
     const allBranches = this._allBranches();
     let currentLevelPosition = position;
     for (let i = subtreeAtlevel; i < siblingLength; i++) {
       if (currentLevelPosition % 2 == 0) {
-        sibilings.push(allBranches[i][currentLevelPosition - 1]);
-      } else {
         sibilings.push(allBranches[i][currentLevelPosition + 1]);
+      } else {
+        sibilings.push(allBranches[i][currentLevelPosition - 1]);
       }
       currentLevelPosition = Math.floor(currentLevelPosition / 2);
     }
@@ -384,7 +387,7 @@ abstract class AbstractStore<T> {
   }
   positionToPath(position: number): string {
     // Convert to binary and pad 0s so that the output has length of this.level -1
-    return position.toString(2).padStart(this.level - 1, "0");
+    return position.toString(2).padStart(this.level, "0");
   }
 }
 
@@ -434,7 +437,7 @@ export class PublicKeyStore extends AbstractStore<PDALeaf>{
   async getPDAMerkleProof(position: number): Promise<PDAMerkleProof> {
     const pubkey_leaf: PDALeaf = this.items[position]?.data|| DummyPDA;
     const siblings = this.getSiblings(position);
-    const pathToPubkey = this.positionToPath(position);
+    const pathToPubkey = position.toString();
 
     return {
       _pda: {
