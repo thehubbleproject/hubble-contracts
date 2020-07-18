@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 import { ErrorCode, CreateAccount } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
-import { coordinatorPubkeyHash } from '../scripts/helpers/constants';
+import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -32,7 +32,6 @@ contract("Reddit", async function () {
         IMTInstance = await IMT.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-        const maxSize = 4;
         Reddit = {
             Address: wallets[0].getAddressString(),
             Pubkey: wallets[0].getPublicKeyString(),
@@ -74,7 +73,7 @@ contract("Reddit", async function () {
             Bob.TokenType,
             Bob.Pubkey
         );
-        accountStore = new AccountStore(maxSize);
+        accountStore = new AccountStore(MAX_DEPTH);
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
         accountStore.insertHash(coordinator_leaves[0]);
         accountStore.insertHash(coordinator_leaves[1]);
@@ -92,7 +91,7 @@ contract("Reddit", async function () {
         accountStore.insertHash(await utils.createLeaf(Reddit));
         accountStore.insertHash(await utils.createLeaf(Bob));
 
-        pubkeyStore = new PublicKeyStore(maxSize);
+        pubkeyStore = new PublicKeyStore(MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertPublicKey(Reddit.Pubkey);
