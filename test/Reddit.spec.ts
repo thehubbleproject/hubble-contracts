@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { ErrorCode, CreateAccount, DropTx, Account } from "../scripts/helpers/interfaces";
+import { ErrorCode, CreateAccount, DropTx, Account, BurnConsentTx } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
 const RollupCore = artifacts.require("Rollup");
@@ -211,6 +211,58 @@ contract("Reddit", async function () {
             [compressedTx],
             newBalanceRoot,
             utils.Usage.Airdrop,
+            { value: ethers.utils.parseEther("32").toString() }
+        );
+
+        assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+    })
+    it("lets user send burn consent", async function () {
+        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const tx = {
+            fromIndex: User.AccID,
+            amount: 5,
+            nonce: userMP.accountIP.account.nonce,
+            cancel: false,
+        } as BurnConsentTx
+        const signBytes = await RollupUtilsInstance.getBurnConsentSignBytes(
+            tx.fromIndex, tx.amount, tx.nonce, tx.cancel
+        );
+        tx.signature = utils.sign(signBytes, User.Wallet);
+        const txBytes = await RollupUtilsInstance.BytesFromBurnConsentDeconstructed(
+            tx.fromIndex, tx.amount, tx.nonce, tx.cancel
+        );
+        await RollupUtilsInstance.BurnConsentTxFromBytes(txBytes);
+
+
+        const result = await rollupRedditInstance.ApplyBurnConsentTx(userMP, txBytes);
+        const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
+        await accountStore.update(User.AccID, userUpdatedAccount);
+
+        const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+        const accountRoot = await IMTInstance.getTreeRoot();
+        const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
+
+
+        const resultProcessTx = await rollupRedditInstance.processBurnConsentTx(
+            balanceRoot,
+            accountRoot,
+            tx.signature,
+            txBytes,
+            userPDAProof,
+            userMP
+        )
+        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[2]];
+        assert.equal(errorCode, ErrorCode.NoError);
+        assert.equal(newBalanceRoot, result[1]);
+
+        const compressedTx = await RollupUtilsInstance.CompressConsentNoStruct(
+            tx.fromIndex, tx.amount, tx.cancel, tx.signature
+        );
+        await rollupCoreInstance.submitBatch(
+            [compressedTx],
+            newBalanceRoot,
+            utils.Usage.BurnConsent,
             { value: ethers.utils.parseEther("32").toString() }
         );
 

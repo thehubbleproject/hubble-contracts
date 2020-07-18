@@ -54,6 +54,7 @@ export enum ErrorCode {
   BurnAlreadyExecuted,
   NotCreatingOnZeroAccount,
   BadSignature,
+  BadNonce,
 }
 
 
@@ -70,5 +71,13 @@ export interface DropTx {
   nonce: number;
   txType: number;
   amount: number;
+  signature: string;
+}
+
+export interface BurnConsentTx {
+  fromIndex: number;
+  amount: number;
+  nonce: number;
+  cancel: boolean;
   signature: string;
 }
