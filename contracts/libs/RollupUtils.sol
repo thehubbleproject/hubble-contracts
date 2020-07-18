@@ -98,15 +98,15 @@ library RollupUtils {
 
     // ---------- Tx Related Utils -------------------
 
-    function TxFromBytesBurnConsent(bytes memory txBytes)
+    function BurnConsentTxFromBytes(bytes memory txBytes)
         public
         pure
         returns (Types.BurnConsent memory)
     {
         Types.BurnConsent memory _tx;
-        (_tx.fromIndex, _tx.amount, _tx.cancel, _tx.signature) = abi.decode(
+        (_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel) = abi.decode(
             txBytes,
-            (uint256, uint256, bool, bytes)
+            (uint256, uint256, uint256, bool)
         );
         return _tx;
     }
@@ -127,10 +127,8 @@ library RollupUtils {
         returns (Types.BurnConsent memory)
     {
         Types.BurnConsent memory _tx;
-        (_tx.fromIndex, _tx.amount, _tx.cancel, _tx.signature) = abi.decode(
-            txBytes,
-            (uint256, uint256, bool, bytes)
-        );
+        (_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel, _tx.signature) = abi
+            .decode(txBytes, (uint256, uint256, uint256, bool, bytes));
         return _tx;
     }
 
@@ -159,7 +157,16 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx);
+        return abi.encode(_tx.fromIndex, _tx.amount, _tx.cancel, _tx.signature);
+    }
+
+    function CompressConsentNoStruct(
+        uint256 fromIndex,
+        uint256 amount,
+        bool cancel,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        return abi.encode(fromIndex, amount, cancel, sig);
     }
 
     function CompressExecution(Types.BurnExecution memory _tx)
@@ -215,7 +222,17 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.cancel);
+        return
+            abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel);
+    }
+
+    function BytesFromBurnConsentDeconstructed(
+        uint256 fromIndex,
+        uint256 amount,
+        uint256 nonce,
+        bool cancel
+    ) public pure returns (bytes memory) {
+        return abi.encode(fromIndex, amount, nonce, cancel);
     }
 
     function BytesFromBurnExecution(Types.BurnExecution memory _tx)
@@ -234,11 +251,12 @@ library RollupUtils {
     }
 
     function BytesFromTxBurnConsentDeconstructed(
-        uint256 from,
+        uint256 fromIndex,
         uint256 amount,
+        uint256 nonce,
         bool cancel
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(from, amount, cancel);
+        return abi.encodePacked(fromIndex, amount, nonce, cancel);
     }
 
     function BytesFromTxBurnExecutionDeconstructed(uint256 from)
@@ -417,18 +435,17 @@ library RollupUtils {
         return abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
     }
 
-    function CompressAirdropTxWithMessage(bytes memory message, bytes memory sig)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function CompressAirdropTxWithMessage(
+        bytes memory message,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
         Types.DropTx memory _tx = AirdropTxFromBytes(message);
         return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
     }
 
     function CompressDropNoStruct(
         uint256 toIndex,
-        uint256 amount, 
+        uint256 amount,
         bytes memory sig
     ) public pure returns (bytes memory) {
         return abi.encodePacked(toIndex, amount, sig);
@@ -502,7 +519,24 @@ library RollupUtils {
                 )
             );
     }
-    
+
+    function getBurnConsentSignBytes(
+        uint256 fromIndex,
+        uint256 amount,
+        uint256 nonce,
+        bool cancel
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                BytesFromTxBurnConsentDeconstructed(
+                    fromIndex,
+                    amount,
+                    nonce,
+                    cancel
+                )
+            );
+    }
+
     function AirdropTxFromBytesNoStruct(bytes memory txBytes)
         public
         pure

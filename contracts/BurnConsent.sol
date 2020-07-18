@@ -79,12 +79,12 @@ contract BurnConsent is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (stateRoot, , , , isTxValid) = processTx(
+                (stateRoot, , , isTxValid) = processBurnConsentTx(
                     stateRoot,
                     accountsRoot,
                     _txs[i],
                     batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i]
+                    batchProofs.accountProofs[i].from
                 );
 
                 if (!isTxValid) {
@@ -95,21 +95,36 @@ contract BurnConsent is FraudProofHelpers {
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
+    function ApplyBurnConsentTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        Types.BurnConsent memory _tx
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        if (_tx.cancel) {
+            account.burn -= _tx.amount;
+        } else {
+            account.burn += _tx.amount;
+        }
+
+        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
+        updatedAccount = RollupUtils.BytesFromAccount(account);
+        return (updatedAccount, newRoot);
+    }
+
     /**
      * @notice Overrides processTx in FraudProof
      */
-    function processTx(
+    function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.BurnConsent memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory _fromAccountProof
     )
         public
         view
         returns (
             bytes32,
-            bytes memory,
             bytes memory,
             Types.ErrorCode,
             bool
@@ -126,53 +141,42 @@ contract BurnConsent is FraudProofHelpers {
         // TODO: ValidateSignature(_tx, _from_pda_proof);
 
         // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, accountProofs.from);
+        ValidateAccountMP(_balanceRoot, _fromAccountProof);
 
-        Types.UserAccount memory account = accountProofs.from.accountIP.account;
+        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
 
         // TODO: Validate only certain token is allow to burn
         if (_tx.amount == 0) {
             return (
                 ZERO_BYTES32,
                 "",
-                "",
                 Types.ErrorCode.InvalidTokenAmount,
                 false
             );
         }
-
-        // TODO: Validate nonce
-
-        if (_tx.cancel) {
-            if (account.burn < _tx.amount) {
-                return (
-                    ZERO_BYTES32,
-                    "",
-                    "",
-                    Types.ErrorCode.InvalidCancelBurnAmount,
-                    false
-                );
-            }
-            account.burn -= _tx.amount;
-        } else {
-            account.burn += _tx.amount;
-            if (account.balance < account.burn) {
-                return (
-                    ZERO_BYTES32,
-                    "",
-                    "",
-                    Types.ErrorCode.InvalidBurnAmount,
-                    false
-                );
-            }
+        if (_tx.cancel && account.burn < _tx.amount) {
+            return (
+                ZERO_BYTES32,
+                "",
+                Types.ErrorCode.InvalidCancelBurnAmount,
+                false
+            );
         }
 
-        bytes32 newRoot = UpdateAccountWithSiblings(
-            account,
-            accountProofs.from
+        if (!_tx.cancel && account.balance < _tx.amount) {
+            return (ZERO_BYTES32, "", Types.ErrorCode.InvalidBurnAmount, false);
+        }
+        if (_tx.nonce != account.nonce){
+            return (ZERO_BYTES32, "", Types.ErrorCode.BadNonce, false);
+        }
+       
+        bytes32 newRoot;
+        bytes memory new_from_account;
+        (new_from_account, newRoot) = ApplyBurnConsentTx(
+            _fromAccountProof,
+            _tx
         );
-        bytes memory new_from_account = RollupUtils.BytesFromAccount(account);
 
-        return (newRoot, new_from_account, "", Types.ErrorCode.NoError, true);
+        return (newRoot, new_from_account, Types.ErrorCode.NoError, true);
     }
 }

@@ -139,6 +139,7 @@ library Types {
         BadFromIndex,
         BurnAlreadyExecuted,
         NotCreatingOnZeroAccount,
-        BadSignature
+        BadSignature,
+        BadNonce
     }
 }
