@@ -298,3 +298,17 @@ export async function registerToken(wallet: any) {
   );
   return testTokenInstance
 }
+
+export async function AccountFromBytes(accountBytes: string): Promise<Account> {
+  const RollupUtilsInstance = await RollupUtils.deployed();
+  const result = await RollupUtilsInstance.AccountFromBytes(accountBytes);
+  const account: Account = {
+    ID: result["ID"].toNumber(),
+    tokenType: result["tokenType"].toNumber(),
+    balance: result["balance"].toNumber(),
+    nonce: result["nonce"].toNumber(),
+    burn: result["burn"].toNumber(),
+    lastBurn: result["lastBurn"].toNumber()
+  };
+  return account;
+}

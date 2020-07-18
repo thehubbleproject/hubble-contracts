@@ -46,15 +46,15 @@ contract CreateAccount is FraudProofHelpers {
         onlyReddit
         returns (uint256[] memory)
     {
-        uint256[] memory accountIDs = new uint256[](publicKeys.length);
+        uint256[] memory pubkeyIDs = new uint256[](publicKeys.length);
         for (uint256 i = 0; i < publicKeys.length; i++) {
             Types.PDALeaf memory newPDALeaf;
             newPDALeaf.pubkey = publicKeys[i];
-            accountIDs[i] = accountsTree.appendLeaf(
+            pubkeyIDs[i] = accountsTree.appendLeaf(
                 RollupUtils.PDALeafToHash(newPDALeaf)
             );
         }
-        return accountIDs;
+        return pubkeyIDs;
     }
 
     function generateTxRoot(Types.CreateAccount[] memory _txs)
