@@ -2,21 +2,12 @@ import * as utils from "../../scripts/helpers/utils";
 import * as walletHelper from "../..//scripts/helpers/wallet";
 import { assert } from "chai";
 
-const RollupUtilContract = artifacts.require("RollupUtils");
-const Types = artifacts.require("Types");
-
+const RollupUtils = artifacts.require("RollupUtils");
 
 contract("RollupUtils", async function (accounts) {
   var wallets: any;
-
-  var rollupUtils: any;
-  
   before(async function () {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-    const typesLib = await Types.new();
-    console.log("Types.address: ", typesLib.address)
-    await RollupUtilContract.link("Types", typesLib.address);
-    rollupUtils = await RollupUtilContract.new();
   });
 
   // test if we are able to create append a leaf
@@ -80,7 +71,7 @@ contract("RollupUtils", async function (accounts) {
   // });
 
   it("test account encoding and decoding", async function () {
-    // var rollupUtils = await RollupUtils.deployed();
+    var rollupUtils = await RollupUtils.deployed();
     var account = {
       ID: 1,
       tokenType: 2,
