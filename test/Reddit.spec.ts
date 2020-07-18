@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { ErrorCode, CreateAccount } from "../scripts/helpers/interfaces";
+import { ErrorCode, CreateAccount, DropTx } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
 const RollupCore = artifacts.require("Rollup");
@@ -33,6 +33,7 @@ contract("Reddit", async function () {
         RollupUtilsInstance = await RollupUtils.deployed();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
         Reddit = {
+            Wallet: wallets[0],
             Address: wallets[0].getAddressString(),
             Pubkey: wallets[0].getPublicKeyString(),
             Amount: 50,
@@ -42,6 +43,7 @@ contract("Reddit", async function () {
             nonce: 0,
         };
         Bob = {
+            Wallet: wallets[1],
             Address: wallets[1].getAddressString(),
             Pubkey: wallets[1].getPublicKeyString(),
             Amount: 1,
@@ -51,6 +53,7 @@ contract("Reddit", async function () {
             nonce: 0,
         };
         User = {
+            Wallet: wallets[2],
             Address: wallets[2].getAddressString(),
             Pubkey: wallets[2].getPublicKeyString(),
             Amount: 10,
@@ -100,25 +103,26 @@ contract("Reddit", async function () {
     })
     it("Should Create Account for the User", async function () {
         const createAccountInstance = await createAccount.deployed();
-        // Call to see what's the accountID
-        const accountId = await createAccountInstance.createPublickeys.call([User.Pubkey]);
-        assert.equal(accountId.toString(), User.AccID);
+        // Call to see what's the pubkeyId
+        const userPubkeyId = await createAccountInstance.createPublickeys.call([User.Pubkey]);
+        assert.equal(userPubkeyId.toString(), User.AccID);
         // Actual execution
         await createAccountInstance.createPublickeys([User.Pubkey]);
-        const userPubkeyIndex = await pubkeyStore.insertPublicKey(User.Pubkey);
+        const userPubkeyIdOffchain = await pubkeyStore.insertPublicKey(User.Pubkey);
+        assert.equal(userPubkeyIdOffchain.toString(), userPubkeyId.toString());
 
+        const userAccountID = accountStore.nextEmptyIndex();
         const tx = {
-            toIndex: 4,
+            toIndex: userAccountID,
             tokenType: 1
         } as CreateAccount;
         const signBytes = await RollupUtilsInstance.getCreateAccountSignBytes(tx.toIndex, tx.tokenType);
-        tx.signature = utils.sign(signBytes, wallets[0]);
+        tx.signature = utils.sign(signBytes, Reddit.Wallet);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
-        const userAccountID = accountStore.nextEmptyIndex();
         const NewAccountMP = await accountStore.getAccountMerkleProof(userAccountID);
-        const userPDAProof = await pubkeyStore.getPDAMerkleProof(userPubkeyIndex);
+        const userPDAProof = await pubkeyStore.getPDAMerkleProof(userPubkeyIdOffchain);
 
         const result = await createAccountInstance.processTx(
             balanceRoot,
@@ -127,18 +131,22 @@ contract("Reddit", async function () {
             userPDAProof,
             NewAccountMP,
         );
-        assert.equal(ErrorCode.NoError, result[3].toNumber());
+        const [newBalanceRoot, createdAccountBytes, errorCode] = [result[0], result[1], result[3]];
+        assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
             tx.toIndex, tx.tokenType, tx.signature
         );
         await rollupCoreInstance.submitBatch(
             [compressedTx],
-            result[0],
+            newBalanceRoot,
             utils.Usage.CreateAccount,
             { value: ethers.utils.parseEther("32").toString() }
         );
 
+        const createdAccount = await RollupUtilsInstance.AccountFromBytes(createdAccountBytes);
+        accountStore.update(userAccountID, createdAccount);
+        assert.equal(newBalanceRoot, await accountStore.getRoot());
 
     })
 

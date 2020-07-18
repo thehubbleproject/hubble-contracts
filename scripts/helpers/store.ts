@@ -43,8 +43,20 @@ abstract class AbstractStore<T> {
         return position;
     }
 
-    nextEmptyIndex(): number{
+    nextEmptyIndex(): number {
         return this.items.length;
+    }
+
+    async update(position: number, data: T) {
+        const hash = await this.compress(data);
+        const item: LeafItem<T> = {
+            hash, data
+        };
+        this.items[position] = item
+    }
+    async updateHash(position: number, hash: string) {
+        const item: LeafItem<T> = { hash };
+        this.items[position] = item
     }
 
     getLeaves(): string[] {
