@@ -163,10 +163,6 @@ contract BurnConsent is FraudProofHelpers {
             );
         }
 
-        // After the transaction, the user should have enough balance to pay the burn
-        if (!_tx.cancel && account.balance < (_tx.amount + account.burn)) {
-            return (ZERO_BYTES32, "", Types.ErrorCode.InvalidBurnAmount, false);
-        }
         if (_tx.nonce != account.nonce) {
             return (ZERO_BYTES32, "", Types.ErrorCode.BadNonce, false);
         }
