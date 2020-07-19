@@ -5,11 +5,9 @@ import { ErrorCode, CreateAccount, DropTx, Account, BurnConsentTx, BurnExecution
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
 const RollupCore = artifacts.require("Rollup");
-const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
-const EcVerify = artifacts.require("ECVerify");
 const RollupReddit = artifacts.require("RollupReddit");
 
 
