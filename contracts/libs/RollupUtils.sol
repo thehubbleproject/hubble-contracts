@@ -615,25 +615,6 @@ library RollupUtils {
         return keccak256(CompressExecution(_tx));
     }
 
-    //
-    // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
-    //
-
-    function BytesFromTxCreateAccountDeconstructed(
-        uint256 to,
-        uint256 tokenType
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(to, tokenType);
-    }
-
-    //
-    // Burn
-    //
-
-    //
-    // Create Account
-    //
-
     /**
      * @notice Calculates the address from the pubkey
      * @param pub is the pubkey
