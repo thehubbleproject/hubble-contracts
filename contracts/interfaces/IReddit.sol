@@ -4,6 +4,18 @@ pragma experimental ABIEncoderV2;
 import {Types} from "../libs/Types.sol";
 
 interface IReddit {
+    //
+    // CreateAccount
+    //
+    function createPublickeys(bytes[] calldata publicKeys)
+        external
+        returns (uint256[] memory);
+
+    function ApplyCreateAccountTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.CreateAccount calldata _tx
+    ) external view returns (bytes memory, bytes32 newRoot);
+
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
@@ -20,14 +32,14 @@ interface IReddit {
             bool
         );
 
-    function ApplyCreateAccountTx(
-        Types.AccountMerkleProof calldata _merkle_proof,
-        Types.CreateAccount calldata _tx
-    ) external view returns (bytes memory, bytes32 newRoot);
+    //
+    // Airdrop
+    //
 
-    function createPublickeys(bytes[] calldata publicKeys)
-        external
-        returns (uint256[] memory);
+    function ApplyAirdropTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.DropTx calldata _transaction
+    ) external view returns (bytes memory, bytes32);
 
     function processAirdropTx(
         bytes32 _balanceRoot,
@@ -46,10 +58,14 @@ interface IReddit {
             bool
         );
 
-    function ApplyAirdropTx(
+    //
+    // Transfer
+    //
+
+    function ApplyTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.DropTx calldata _transaction
-    ) external view returns (bytes memory, bytes32);
+        Types.Transaction calldata transaction
+    ) external view returns (bytes memory, bytes32 newRoot);
 
     function processTx(
         bytes32 _balanceRoot,
@@ -68,10 +84,14 @@ interface IReddit {
             bool
         );
 
-    function ApplyTx(
+    //
+    // Burn Consent
+    //
+
+    function ApplyBurnConsentTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.Transaction calldata transaction
-    ) external view returns (bytes memory, bytes32 newRoot);
+        Types.BurnConsent calldata _tx
+    ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnConsentTx(
         bytes32 _balanceRoot,
@@ -89,9 +109,13 @@ interface IReddit {
             bool
         );
 
-    function ApplyBurnConsentTx(
+    //
+    // Burn Execution
+    //
+
+    function ApplyBurnExecutionTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.BurnConsent calldata _tx
+        Types.BurnExecution calldata _tx
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnExecutionTx(
@@ -107,11 +131,6 @@ interface IReddit {
             Types.ErrorCode,
             bool
         );
-
-    function ApplyBurnExecutionTx(
-        Types.AccountMerkleProof calldata _merkle_proof,
-        Types.BurnExecution calldata _tx
-    ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBatch(
         bytes32 initialStateRoot,
