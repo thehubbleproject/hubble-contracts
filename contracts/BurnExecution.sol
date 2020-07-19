@@ -100,7 +100,6 @@ contract BurnExecution is FraudProofHelpers {
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
 
         account.balance -= account.burn;
-        account.burn = 0;
         account.lastBurn = RollupUtils.GetYearMonth();
 
         updatedAccount = RollupUtils.BytesFromAccount(account);
@@ -129,6 +128,14 @@ contract BurnExecution is FraudProofHelpers {
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
         if (_tx.fromIndex != account.ID) {
             return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);
+        }
+        if (account.balance < account.burn) {
+            return (
+                ZERO_BYTES32,
+                "",
+                Types.ErrorCode.NotEnoughTokenBalance,
+                false
+            );
         }
 
         uint256 yearMonth = RollupUtils.GetYearMonth();
