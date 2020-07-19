@@ -544,6 +544,26 @@ library RollupUtils {
         return keccak256(CompressConsent(_tx));
     }
 
+    //
+    // Burn Execution
+    //
+
+    function BytesFromBurnExecution(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.fromIndex);
+    }
+
+    function BytesFromTxBurnExecutionDeconstructed(uint256 fromIndex)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(fromIndex);
+    }
+
     function BurnExecutionTxFromBytes(bytes memory txBytes)
         public
         pure
@@ -554,14 +574,12 @@ library RollupUtils {
         return _tx;
     }
 
-    function DecompressExecution(bytes memory txBytes)
+    function getBurnExecutionSignBytes(uint256 fromIndex)
         public
         pure
-        returns (Types.BurnExecution memory)
+        returns (bytes32)
     {
-        Types.BurnExecution memory _tx;
-        _tx.fromIndex = abi.decode(txBytes, (uint256));
-        return _tx;
+        return keccak256(BytesFromTxBurnExecutionDeconstructed(fromIndex));
     }
 
     function CompressExecution(Types.BurnExecution memory _tx)
@@ -579,31 +597,14 @@ library RollupUtils {
         return abi.encode(fromIndex, signature);
     }
 
-    //
-    // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
-    //
-
-    function BytesFromBurnExecution(Types.BurnExecution memory _tx)
+    function DecompressExecution(bytes memory txBytes)
         public
         pure
-        returns (bytes memory)
+        returns (Types.BurnExecution memory)
     {
-        return abi.encodePacked(_tx.fromIndex);
-    }
-
-    function BytesFromTxCreateAccountDeconstructed(
-        uint256 to,
-        uint256 tokenType
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(to, tokenType);
-    }
-
-    function BytesFromTxBurnExecutionDeconstructed(uint256 fromIndex)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodePacked(fromIndex);
+        Types.BurnExecution memory _tx;
+        _tx.fromIndex = abi.decode(txBytes, (uint256));
+        return _tx;
     }
 
     function HashFromExecution(Types.BurnExecution memory _tx)
@@ -614,12 +615,15 @@ library RollupUtils {
         return keccak256(CompressExecution(_tx));
     }
 
-    function getBurnExecutionSignBytes(uint256 fromIndex)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(BytesFromTxBurnExecutionDeconstructed(fromIndex));
+    //
+    // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
+    //
+
+    function BytesFromTxCreateAccountDeconstructed(
+        uint256 to,
+        uint256 tokenType
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(to, tokenType);
     }
 
     //
