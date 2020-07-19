@@ -456,6 +456,28 @@ library RollupUtils {
             );
     }
 
+    //
+    // Burn Consent
+    //
+
+    function BytesFromBurnConsent(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel);
+    }
+
+    function BytesFromBurnConsentDeconstructed(
+        uint256 fromIndex,
+        uint256 amount,
+        uint256 nonce,
+        bool cancel
+    ) public pure returns (bytes memory) {
+        return abi.encode(fromIndex, amount, nonce, cancel);
+    }
+
     function BurnConsentTxFromBytes(bytes memory txBytes)
         public
         pure
@@ -469,35 +491,21 @@ library RollupUtils {
         return _tx;
     }
 
-    function BurnExecutionTxFromBytes(bytes memory txBytes)
-        public
-        pure
-        returns (Types.BurnExecution memory)
-    {
-        Types.BurnExecution memory _tx;
-        _tx.fromIndex = abi.decode(txBytes, (uint256));
-        return _tx;
-    }
-
-    function DecompressConsent(bytes memory txBytes)
-        public
-        pure
-        returns (Types.BurnConsent memory)
-    {
-        Types.BurnConsent memory _tx;
-        (_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel, _tx.signature) = abi
-            .decode(txBytes, (uint256, uint256, uint256, bool, bytes));
-        return _tx;
-    }
-
-    function DecompressExecution(bytes memory txBytes)
-        public
-        pure
-        returns (Types.BurnExecution memory)
-    {
-        Types.BurnExecution memory _tx;
-        _tx.fromIndex = abi.decode(txBytes, (uint256));
-        return _tx;
+    function getBurnConsentSignBytes(
+        uint256 fromIndex,
+        uint256 amount,
+        uint256 nonce,
+        bool cancel
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                BytesFromBurnConsentDeconstructed(
+                    fromIndex,
+                    amount,
+                    nonce,
+                    cancel
+                )
+            );
     }
 
     function CompressConsent(Types.BurnConsent memory _tx)
@@ -515,6 +523,45 @@ library RollupUtils {
         bytes memory sig
     ) public pure returns (bytes memory) {
         return abi.encode(fromIndex, amount, cancel, sig);
+    }
+
+    function DecompressConsent(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnConsent memory)
+    {
+        Types.BurnConsent memory _tx;
+        (_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel, _tx.signature) = abi
+            .decode(txBytes, (uint256, uint256, uint256, bool, bytes));
+        return _tx;
+    }
+
+    function HashFromConsent(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(CompressConsent(_tx));
+    }
+
+    function BurnExecutionTxFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnExecution memory)
+    {
+        Types.BurnExecution memory _tx;
+        _tx.fromIndex = abi.decode(txBytes, (uint256));
+        return _tx;
+    }
+
+    function DecompressExecution(bytes memory txBytes)
+        public
+        pure
+        returns (Types.BurnExecution memory)
+    {
+        Types.BurnExecution memory _tx;
+        _tx.fromIndex = abi.decode(txBytes, (uint256));
+        return _tx;
     }
 
     function CompressExecution(Types.BurnExecution memory _tx)
@@ -535,24 +582,6 @@ library RollupUtils {
     //
     // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
     //
-
-    function BytesFromBurnConsent(Types.BurnConsent memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return
-            abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel);
-    }
-
-    function BytesFromBurnConsentDeconstructed(
-        uint256 fromIndex,
-        uint256 amount,
-        uint256 nonce,
-        bool cancel
-    ) public pure returns (bytes memory) {
-        return abi.encode(fromIndex, amount, nonce, cancel);
-    }
 
     function BytesFromBurnExecution(Types.BurnExecution memory _tx)
         public
@@ -577,37 +606,12 @@ library RollupUtils {
         return abi.encodePacked(fromIndex);
     }
 
-    function HashFromConsent(Types.BurnConsent memory _tx)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(CompressConsent(_tx));
-    }
-
     function HashFromExecution(Types.BurnExecution memory _tx)
         public
         pure
         returns (bytes32)
     {
         return keccak256(CompressExecution(_tx));
-    }
-
-    function getBurnConsentSignBytes(
-        uint256 fromIndex,
-        uint256 amount,
-        uint256 nonce,
-        bool cancel
-    ) public pure returns (bytes32) {
-        return
-            keccak256(
-                BytesFromBurnConsentDeconstructed(
-                    fromIndex,
-                    amount,
-                    nonce,
-                    cancel
-                )
-            );
     }
 
     function getBurnExecutionSignBytes(uint256 fromIndex)
