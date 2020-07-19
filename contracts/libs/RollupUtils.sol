@@ -275,14 +275,6 @@ library RollupUtils {
         return abi.encodePacked(to, tokenType);
     }
 
-    function BytesFromTxBurnConsentDeconstructed(
-        uint256 fromIndex,
-        uint256 amount,
-        uint256 nonce,
-        bool cancel
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(fromIndex, amount, nonce, cancel);
-    }
 
     function BytesFromTxBurnExecutionDeconstructed(uint256 fromIndex)
         public
@@ -553,7 +545,7 @@ library RollupUtils {
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromTxBurnConsentDeconstructed(
+                BytesFromBurnConsentDeconstructed(
                     fromIndex,
                     amount,
                     nonce,
