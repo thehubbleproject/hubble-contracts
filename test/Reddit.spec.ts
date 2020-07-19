@@ -131,7 +131,7 @@ contract("Reddit", async function () {
             toIndex: userAccountID,
             tokenType: 1
         } as CreateAccount;
-        const signBytes = await RollupUtilsInstance.getCreateAccountSignBytes(tx.toIndex, tx.tokenType);
+        const signBytes = await RollupUtilsInstance.CreateAccountSignBytes(tx.toIndex, tx.tokenType);
         tx.signature = utils.sign(signBytes, Reddit.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(tx.toIndex, tx.tokenType);
 
@@ -177,11 +177,11 @@ contract("Reddit", async function () {
             txType: Usage.Airdrop,
             amount: 10,
         } as DropTx
-        const signBytes = await RollupUtilsInstance.getDropSignBytes(
+        const signBytes = await RollupUtilsInstance.AirdropSignBytes(
             tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
         );
         tx.signature = utils.sign(signBytes, Reddit.Wallet);
-        const txBytes = await RollupUtilsInstance.BytesFromTxAirdropDeconstructed(
+        const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
             tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
         );
 
@@ -211,7 +211,7 @@ contract("Reddit", async function () {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressDropNoStruct(
+        const compressedTx = await RollupUtilsInstance.CompressAirdropNoStruct(
             tx.toIndex, tx.amount, tx.signature
         );
         await rollupCoreInstance.submitBatch(
@@ -232,11 +232,11 @@ contract("Reddit", async function () {
             nonce: userMP.accountIP.account.nonce,
             cancel: false,
         } as BurnConsentTx
-        const signBytes = await RollupUtilsInstance.getBurnConsentSignBytes(
+        const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.fromIndex, tx.amount, tx.nonce, tx.cancel
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
-        const txBytes = await RollupUtilsInstance.BytesFromBurnConsentDeconstructed(
+        const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
             tx.fromIndex, tx.amount, tx.nonce, tx.cancel
         );
         await RollupUtilsInstance.BurnConsentTxFromBytes(txBytes);
@@ -263,7 +263,7 @@ contract("Reddit", async function () {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressConsentNoStruct(
+        const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
             tx.fromIndex, tx.amount, tx.cancel, tx.signature
         );
         await rollupCoreInstance.submitBatch(
@@ -281,14 +281,14 @@ contract("Reddit", async function () {
         const tx = {
             fromIndex: User.AccID,
         } as BurnExecutionTx
-        const signBytes = await RollupUtilsInstance.getBurnExecutionSignBytes(
+        const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
             tx.fromIndex
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
-        const txBytes = await RollupUtilsInstance.BytesFromTxBurnExecutionDeconstructed(
+        const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
             tx.fromIndex
         );
-        await RollupUtilsInstance.BurnExecutionTxFromBytes(txBytes);
+        await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
 
 
         const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP, txBytes);
@@ -306,7 +306,7 @@ contract("Reddit", async function () {
         assert.equal(errorCode, ErrorCode.NoError, "processTx returns error");
         assert.equal(newBalanceRoot, result[1], "mismatch balance root");
 
-        const compressedTx = await RollupUtilsInstance.CompressExecutionNoStruct(
+        const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
             tx.fromIndex, tx.signature
         );
         await rollupCoreInstance.submitBatch(
