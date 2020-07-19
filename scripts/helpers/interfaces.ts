@@ -1,3 +1,8 @@
+export enum Usage {
+  Genesis, Transfer, CreateAccount, Airdrop, BurnConsent, BurnExecution
+}
+
+
 export interface Account {
   ID: number;
   tokenType: number;

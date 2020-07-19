@@ -229,10 +229,6 @@ export async function signTx(tx: Transaction, wallet: any) {
   return sign(dataToSign, wallet);
 }
 
-export enum Usage {
-  Genesis, Transfer, CreateAccount, Airdrop, BurnConsent, BurnExecution
-}
-
 export async function TxToBytes(tx: Transaction) {
   const RollupUtilsInstance = await RollupUtils.deployed();
   var txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(

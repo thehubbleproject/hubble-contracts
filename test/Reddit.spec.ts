@@ -1,7 +1,15 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { ErrorCode, CreateAccount, DropTx, Account, BurnConsentTx, BurnExecutionTx } from "../scripts/helpers/interfaces";
+import {
+    Usage,
+    ErrorCode,
+    CreateAccount,
+    DropTx,
+    Account,
+    BurnConsentTx,
+    BurnExecutionTx,
+} from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
 const RollupCore = artifacts.require("Rollup");
@@ -153,7 +161,7 @@ contract("Reddit", async function () {
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
-            utils.Usage.CreateAccount,
+            Usage.CreateAccount,
             { value: ethers.utils.parseEther("32").toString() }
         );
         assert.equal(newBalanceRoot, await accountStore.getRoot());
@@ -166,7 +174,7 @@ contract("Reddit", async function () {
             toIndex: User.AccID,
             tokenType: 1,
             nonce: 0,
-            txType: utils.Usage.Airdrop,
+            txType: Usage.Airdrop,
             amount: 10,
         } as DropTx
         const signBytes = await RollupUtilsInstance.getDropSignBytes(
@@ -209,7 +217,7 @@ contract("Reddit", async function () {
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
-            utils.Usage.Airdrop,
+            Usage.Airdrop,
             { value: ethers.utils.parseEther("32").toString() }
         );
 
@@ -261,7 +269,7 @@ contract("Reddit", async function () {
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
-            utils.Usage.BurnConsent,
+            Usage.BurnConsent,
             { value: ethers.utils.parseEther("32").toString() }
         );
 
@@ -304,7 +312,7 @@ contract("Reddit", async function () {
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
-            utils.Usage.BurnExecution,
+            Usage.BurnExecution,
             { value: ethers.utils.parseEther("32").toString() }
         );
 
