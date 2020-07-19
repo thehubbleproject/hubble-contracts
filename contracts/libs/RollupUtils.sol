@@ -98,6 +98,16 @@ library RollupUtils {
 
     // ---------- Tx Related Utils -------------------
 
+    function CreateAccountTxFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.CreateAccount memory)
+    {
+        Types.CreateAccount memory _tx;
+        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
+        return _tx;
+    }
+
     function BurnConsentTxFromBytes(bytes memory txBytes)
         public
         pure
@@ -222,6 +232,14 @@ library RollupUtils {
         returns (bytes memory)
     {
         return abi.encodePacked(_tx.toIndex, _tx.tokenType);
+    }
+
+    function BytesFromCreateAccountNoStruct(uint256 toIndex, uint256 tokenType)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(toIndex, tokenType);
     }
 
     function BytesFromBurnConsent(Types.BurnConsent memory _tx)

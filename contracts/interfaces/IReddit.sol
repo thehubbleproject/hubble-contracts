@@ -4,6 +4,31 @@ pragma experimental ABIEncoderV2;
 import {Types} from "../libs/Types.sol";
 
 interface IReddit {
+    function processCreateAccountTx(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        Types.CreateAccount calldata _tx,
+        Types.PDAMerkleProof calldata _to_pda_proof,
+        Types.AccountMerkleProof calldata to_account_proof
+    )
+        external
+        view
+        returns (
+            bytes32 newRoot,
+            bytes memory createdAccountBytes,
+            Types.ErrorCode,
+            bool
+        );
+
+    function ApplyCreateAccountTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.CreateAccount calldata _tx
+    ) external view returns (bytes memory, bytes32 newRoot);
+
+    function createPublickeys(bytes[] calldata publicKeys)
+        external
+        returns (uint256[] memory);
+
     function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
