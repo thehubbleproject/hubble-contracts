@@ -49,7 +49,6 @@ export enum ErrorCode {
   BadFromTokenType,
   BadToTokenType,
   InvalidCancelBurnAmount,
-  InvalidBurnAmount,
   BadFromIndex,
   BurnAlreadyExecuted,
   NotCreatingOnZeroAccount,

@@ -163,13 +163,10 @@ contract BurnConsent is FraudProofHelpers {
             );
         }
 
-        if (!_tx.cancel && account.balance < _tx.amount) {
-            return (ZERO_BYTES32, "", Types.ErrorCode.InvalidBurnAmount, false);
-        }
-        if (_tx.nonce != account.nonce){
+        if (_tx.nonce != account.nonce) {
             return (ZERO_BYTES32, "", Types.ErrorCode.BadNonce, false);
         }
-       
+
         bytes32 newRoot;
         bytes memory new_from_account;
         (new_from_account, newRoot) = ApplyBurnConsentTx(
