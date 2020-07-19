@@ -98,6 +98,39 @@ library RollupUtils {
 
     // ---------- Tx Related Utils -------------------
 
+    /*
+        The order with:
+
+        BytesFromX
+        BytesFromXNoStruct
+        XFromBytes
+        XSignBytes
+        CompressX
+        CompressXNoStruct
+        CompressXWithMessage
+        DecompressX
+     */
+
+    //
+    // CreateAccount
+    //
+
+    function BytesFromCreateAccount(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(_tx.toIndex, _tx.tokenType);
+    }
+
+    function BytesFromCreateAccountNoStruct(uint256 toIndex, uint256 tokenType)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encodePacked(toIndex, tokenType);
+    }
+
     function CreateAccountTxFromBytes(bytes memory txBytes)
         public
         pure
@@ -106,6 +139,180 @@ library RollupUtils {
         Types.CreateAccount memory _tx;
         (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
         return _tx;
+    }
+
+    function getCreateAccountSignBytes(uint256 toIndex, uint256 tokenType)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(toIndex, tokenType));
+    }
+
+    function CompressCreateAccount(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(_tx.toIndex, _tx.tokenType, _tx.signature);
+    }
+
+    function CompressCreateAccountNoStruct(
+        uint256 toIndex,
+        uint256 tokenType,
+        uint256 signature
+    ) public pure returns (bytes memory) {
+        return abi.encode(toIndex, tokenType, signature);
+    }
+
+    function CompressCreateAccountTxWithMessage(
+        bytes memory message,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        Types.CreateAccount memory _tx;
+        (_tx.toIndex, _tx.tokenType, ) = abi.decode(
+            message,
+            (uint256, uint256, bytes)
+        );
+        return abi.encode(_tx.toIndex, _tx.tokenType, sig);
+    }
+
+    function DecompressCreateAccount(bytes memory txBytes)
+        public
+        pure
+        returns (Types.CreateAccount memory)
+    {
+        Types.CreateAccount memory _tx;
+        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
+        return _tx;
+    }
+
+    //
+    // Airdrop
+    //
+
+    function BytesFromAirdrop(Types.DropTx memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.nonce,
+                _tx.txType,
+                _tx.amount
+            );
+    }
+
+    function BytesFromTxAirdropDeconstructed(
+        uint256 from,
+        uint256 to,
+        uint256 tokenType,
+        uint256 nonce,
+        uint256 txType,
+        uint256 amount
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
+    }
+
+    function AirdropTxFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.DropTx memory)
+    {
+        Types.DropTx memory transaction;
+        (
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.tokenType,
+            transaction.nonce,
+            transaction.txType,
+            transaction.amount
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256)
+        );
+        return transaction;
+    }
+
+    function AirdropTxFromBytesNoStruct(bytes memory txBytes)
+        public
+        pure
+        returns (
+            uint256 from,
+            uint256 to,
+            uint256 tokenType,
+            uint256 nonce,
+            uint256 txType,
+            uint256 amount
+        )
+    {
+        return
+            abi.decode(
+                txBytes,
+                (uint256, uint256, uint256, uint256, uint256, uint256)
+            );
+    }
+
+    function getDropSignBytes(
+        uint256 fromIndex,
+        uint256 toIndex,
+        uint256 tokenType,
+        uint256 txType,
+        uint256 nonce,
+        uint256 amount
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                BytesFromTxAirdropDeconstructed(
+                    fromIndex,
+                    toIndex,
+                    tokenType,
+                    nonce,
+                    txType,
+                    amount
+                )
+            );
+    }
+
+    function CompressDrop(Types.DropTx memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
+    }
+
+    function CompressDropNoStruct(
+        uint256 toIndex,
+        uint256 amount,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(toIndex, amount, sig);
+    }
+
+    function CompressAirdropTxWithMessage(
+        bytes memory message,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        Types.DropTx memory _tx = AirdropTxFromBytes(message);
+        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+    }
+
+    function DecompressDrop(bytes memory dropBytes)
+        public
+        pure
+        returns (Types.DropTx memory)
+    {
+        Types.DropTx memory drop;
+        (drop.toIndex, drop.amount, drop.signature) = abi.decode(
+            dropBytes,
+            (uint256, uint256, bytes)
+        );
+        return drop;
     }
 
     function BurnConsentTxFromBytes(bytes memory txBytes)
@@ -152,16 +359,6 @@ library RollupUtils {
         return _tx;
     }
 
-    function DecompressCreateAccount(bytes memory txBytes)
-        public
-        pure
-        returns (Types.CreateAccount memory)
-    {
-        Types.CreateAccount memory _tx;
-        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
-        return _tx;
-    }
-
     function CompressConsent(Types.BurnConsent memory _tx)
         public
         pure
@@ -194,53 +391,9 @@ library RollupUtils {
         return abi.encode(fromIndex, signature);
     }
 
-    function CompressCreateAccount(Types.CreateAccount memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encode(_tx.toIndex, _tx.tokenType, _tx.signature);
-    }
-
-    function CompressCreateAccountNoStruct(
-        uint256 toIndex,
-        uint256 tokenType,
-        uint256 signature
-    ) public pure returns (bytes memory) {
-        return abi.encode(toIndex, tokenType, signature);
-    }
-
-    function CompressCreateAccountTxWithMessage(
-        bytes memory message,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
-        Types.CreateAccount memory _tx;
-        (_tx.toIndex, _tx.tokenType, ) = abi.decode(
-            message,
-            (uint256, uint256, bytes)
-        );
-        return abi.encode(_tx.toIndex, _tx.tokenType, sig);
-    }
-
     //
     // BytesFromTx and BytesFromTxDeconstructed do the same thing i.e encode transaction to bytes
     //
-
-    function BytesFromCreateAccount(Types.CreateAccount memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodePacked(_tx.toIndex, _tx.tokenType);
-    }
-
-    function BytesFromCreateAccountNoStruct(uint256 toIndex, uint256 tokenType)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodePacked(toIndex, tokenType);
-    }
 
     function BytesFromBurnConsent(Types.BurnConsent memory _tx)
         public
@@ -274,7 +427,6 @@ library RollupUtils {
     ) public pure returns (bytes memory) {
         return abi.encodePacked(to, tokenType);
     }
-
 
     function BytesFromTxBurnExecutionDeconstructed(uint256 fromIndex)
         public
@@ -440,103 +592,6 @@ library RollupUtils {
         return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
     }
 
-    //
-    // Airdrop Utils
-    //
-
-    function CompressDrop(Types.DropTx memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encode(_tx.toIndex, _tx.amount, _tx.signature);
-    }
-
-    function CompressAirdropTxWithMessage(
-        bytes memory message,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
-        Types.DropTx memory _tx = AirdropTxFromBytes(message);
-        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
-    }
-
-    function CompressDropNoStruct(
-        uint256 toIndex,
-        uint256 amount,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(toIndex, amount, sig);
-    }
-
-    function DecompressDrop(bytes memory dropBytes)
-        public
-        pure
-        returns (Types.DropTx memory)
-    {
-        Types.DropTx memory drop;
-        (drop.toIndex, drop.amount, drop.signature) = abi.decode(
-            dropBytes,
-            (uint256, uint256, bytes)
-        );
-        return drop;
-    }
-
-    function BytesFromTxAirdropDeconstructed(
-        uint256 from,
-        uint256 to,
-        uint256 tokenType,
-        uint256 nonce,
-        uint256 txType,
-        uint256 amount
-    ) public pure returns (bytes memory) {
-        return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
-    }
-
-    function BytesFromAirdrop(Types.DropTx memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return
-            abi.encodePacked(
-                _tx.fromIndex,
-                _tx.toIndex,
-                _tx.tokenType,
-                _tx.nonce,
-                _tx.txType,
-                _tx.amount
-            );
-    }
-
-    function getCreateAccountSignBytes(uint256 toIndex, uint256 tokenType)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encodePacked(toIndex, tokenType));
-    }
-
-    function getDropSignBytes(
-        uint256 fromIndex,
-        uint256 toIndex,
-        uint256 tokenType,
-        uint256 txType,
-        uint256 nonce,
-        uint256 amount
-    ) public pure returns (bytes32) {
-        return
-            keccak256(
-                BytesFromTxAirdropDeconstructed(
-                    fromIndex,
-                    toIndex,
-                    tokenType,
-                    nonce,
-                    txType,
-                    amount
-                )
-            );
-    }
-
     function getBurnConsentSignBytes(
         uint256 fromIndex,
         uint256 amount,
@@ -560,45 +615,6 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(BytesFromTxBurnExecutionDeconstructed(fromIndex));
-    }
-
-    function AirdropTxFromBytesNoStruct(bytes memory txBytes)
-        public
-        pure
-        returns (
-            uint256 from,
-            uint256 to,
-            uint256 tokenType,
-            uint256 nonce,
-            uint256 txType,
-            uint256 amount
-        )
-    {
-        return
-            abi.decode(
-                txBytes,
-                (uint256, uint256, uint256, uint256, uint256, uint256)
-            );
-    }
-
-    function AirdropTxFromBytes(bytes memory txBytes)
-        public
-        pure
-        returns (Types.DropTx memory)
-    {
-        Types.DropTx memory transaction;
-        (
-            transaction.fromIndex,
-            transaction.toIndex,
-            transaction.tokenType,
-            transaction.nonce,
-            transaction.txType,
-            transaction.amount
-        ) = abi.decode(
-            txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
-        );
-        return transaction;
     }
 
     //
