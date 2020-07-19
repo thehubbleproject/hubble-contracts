@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { Account, Transaction } from "./interfaces";
+import { Account, Transaction, Usage } from "./interfaces";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
