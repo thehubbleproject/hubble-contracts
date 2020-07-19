@@ -106,7 +106,7 @@ contract CreateAccount is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (stateRoot, , , , isTxValid) = processTx(
+                (stateRoot, , , isTxValid) = processCreateAccountTx(
                     stateRoot,
                     accountsRoot,
                     _txs[i],
@@ -122,7 +122,24 @@ contract CreateAccount is FraudProofHelpers {
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
-    function processTx(
+    function ApplyCreateAccountTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        Types.CreateAccount memory _tx
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account;
+        account.ID = _tx.toIndex;
+        account.tokenType = _tx.tokenType;
+        account.balance = 0;
+        account.nonce = 0;
+        account.burn = 0;
+        account.lastBurn = 0;
+
+        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
+        updatedAccount = RollupUtils.BytesFromAccount(account);
+        return (updatedAccount, newRoot);
+    }
+
+    function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
         Types.CreateAccount memory _tx,
@@ -132,19 +149,12 @@ contract CreateAccount is FraudProofHelpers {
         public
         view
         returns (
-            bytes32,
-            bytes memory,
-            bytes memory,
+            bytes32 newRoot,
+            bytes memory createdAccountBytes,
             Types.ErrorCode,
             bool
         )
     {
-        Types.UserAccount memory createdAccount;
-        createdAccount.ID = _tx.toIndex;
-        createdAccount.tokenType = _tx.tokenType;
-        createdAccount.balance = 0;
-        createdAccount.nonce = 0;
-
         // Assuming Reddit have run createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
 
@@ -159,29 +169,14 @@ contract CreateAccount is FraudProofHelpers {
                 to_account_proof.siblings
             )
         ) {
-            return (
-                "",
-                "",
-                "",
-                Types.ErrorCode.NotCreatingOnZeroAccount,
-                false
-            );
+            return ("", "", Types.ErrorCode.NotCreatingOnZeroAccount, false);
         }
 
-        bytes32 newRoot = UpdateAccountWithSiblings(
-            createdAccount,
-            to_account_proof // We only use the pathToAccount and siblings but not the proof itself
-        );
-        bytes memory createdAccountBytes = RollupUtils.BytesFromAccount(
-            createdAccount
+        (createdAccountBytes, newRoot) = ApplyCreateAccountTx(
+            to_account_proof,
+            _tx
         );
 
-        return (
-            newRoot,
-            createdAccountBytes,
-            "",
-            Types.ErrorCode.NoError,
-            true
-        );
+        return (newRoot, createdAccountBytes, Types.ErrorCode.NoError, true);
     }
 }

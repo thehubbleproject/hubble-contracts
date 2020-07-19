@@ -63,6 +63,22 @@ contract RollupReddit {
             );
     }
 
+    function createPublickeys(bytes[] memory publicKeys)
+        public
+        returns (uint256[] memory)
+    {
+        return createAccount.createPublickeys(publicKeys);
+    }
+
+    function ApplyCreateAccountTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        bytes memory txBytes
+    ) public view returns (bytes memory, bytes32 newRoot) {
+        Types.CreateAccount memory transaction = RollupUtils
+            .CreateAccountTxFromBytes(txBytes);
+        return createAccount.ApplyCreateAccountTx(_merkle_proof, transaction);
+    }
+
     function ApplyAirdropTx(
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
@@ -97,6 +113,35 @@ contract RollupReddit {
         Types.BurnExecution memory transaction = RollupUtils
             .BurnExecutionTxFromBytes(txBytes);
         return burnExecution.ApplyBurnExecutionTx(_merkle_proof, transaction);
+    }
+
+    function processCreateAccountTx(
+        bytes32 _balanceRoot,
+        bytes32 _accountsRoot,
+        bytes memory txBytes,
+        Types.PDAMerkleProof memory _to_pda_proof,
+        Types.AccountMerkleProof memory to_account_proof
+    )
+        public
+        view
+        returns (
+            bytes32 newRoot,
+            bytes memory createdAccountBytes,
+            Types.ErrorCode,
+            bool
+        )
+    {
+        Types.CreateAccount memory _tx = RollupUtils.CreateAccountTxFromBytes(
+            txBytes
+        );
+        return
+            createAccount.processCreateAccountTx(
+                _balanceRoot,
+                _accountsRoot,
+                _tx,
+                _to_pda_proof,
+                to_account_proof
+            );
     }
 
     /**

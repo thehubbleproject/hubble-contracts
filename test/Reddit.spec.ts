@@ -10,7 +10,6 @@ const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const EcVerify = artifacts.require("ECVerify");
-const createAccount = artifacts.require("CreateAccount");
 const RollupReddit = artifacts.require("RollupReddit");
 
 
@@ -113,12 +112,11 @@ contract("Reddit", async function () {
 
     })
     it("Should Create Account for the User", async function () {
-        const createAccountInstance = await createAccount.deployed();
         // Call to see what's the pubkeyId
-        const userPubkeyId = await createAccountInstance.createPublickeys.call([User.Pubkey]);
+        const userPubkeyId = await rollupRedditInstance.createPublickeys.call([User.Pubkey]);
         assert.equal(userPubkeyId.toString(), User.AccID);
         // Actual execution
-        await createAccountInstance.createPublickeys([User.Pubkey]);
+        await rollupRedditInstance.createPublickeys([User.Pubkey]);
         const userPubkeyIdOffchain = await pubkeyStore.insertPublicKey(User.Pubkey);
         assert.equal(userPubkeyIdOffchain.toString(), userPubkeyId.toString());
 
@@ -129,20 +127,26 @@ contract("Reddit", async function () {
         } as CreateAccount;
         const signBytes = await RollupUtilsInstance.getCreateAccountSignBytes(tx.toIndex, tx.tokenType);
         tx.signature = utils.sign(signBytes, Reddit.Wallet);
+        const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(tx.toIndex, tx.tokenType);
+
+        const newAccountMP = await accountStore.getAccountMerkleProof(userAccountID, true);
+        const result = await rollupRedditInstance.ApplyCreateAccountTx(newAccountMP, txBytes);
+        const createdAccount = await utils.AccountFromBytes(result[0]);
+        await accountStore.update(userAccountID, createdAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
-        const NewAccountMP = await accountStore.getAccountMerkleProof(userAccountID, true);
+
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(userPubkeyIdOffchain);
 
-        const result = await createAccountInstance.processTx(
+        const resultProcessTx = await rollupRedditInstance.processCreateAccountTx(
             balanceRoot,
             accountRoot,
-            tx,
+            txBytes,
             userPDAProof,
-            NewAccountMP,
+            newAccountMP,
         );
-        const [newBalanceRoot, createdAccountBytes, errorCode] = [result[0], result[1], result[3]];
+        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[2]];
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
@@ -154,9 +158,6 @@ contract("Reddit", async function () {
             utils.Usage.CreateAccount,
             { value: ethers.utils.parseEther("32").toString() }
         );
-
-        const createdAccount = await utils.AccountFromBytes(createdAccountBytes);
-        accountStore.update(userAccountID, createdAccount);
         assert.equal(newBalanceRoot, await accountStore.getRoot());
 
     })
