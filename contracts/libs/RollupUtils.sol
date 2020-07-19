@@ -96,6 +96,69 @@ library RollupUtils {
         return keccak256(BytesFromAccount(account));
     }
 
+    /**
+     * @notice Calculates the address from the pubkey
+     * @param pub is the pubkey
+     * @return Returns the address that has been calculated from the pubkey
+     */
+    function calculateAddress(bytes memory pub)
+        public
+        pure
+        returns (address addr)
+    {
+        bytes32 hash = keccak256(pub);
+        assembly {
+            mstore(0, hash)
+            addr := mload(0)
+        }
+    }
+
+    function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
+        Types.UserAccount memory account1 = Types.UserAccount({
+            ID: 0,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
+        });
+        Types.UserAccount memory account2 = Types.UserAccount({
+            ID: 1,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
+        });
+        leaves[0] = HashFromAccount(account1);
+        leaves[1] = HashFromAccount(account2);
+    }
+
+    function GetGenesisDataBlocks()
+        public
+        pure
+        returns (bytes[2] memory dataBlocks)
+    {
+        Types.UserAccount memory account1 = Types.UserAccount({
+            ID: 0,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
+        });
+        Types.UserAccount memory account2 = Types.UserAccount({
+            ID: 1,
+            tokenType: 0,
+            balance: 0,
+            nonce: 0,
+            burn: 0,
+            lastBurn: 0
+        });
+        dataBlocks[0] = BytesFromAccount(account1);
+        dataBlocks[1] = BytesFromAccount(account2);
+    }
+
     // ---------- Tx Related Utils -------------------
 
     /*
@@ -613,69 +676,6 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(CompressExecution(_tx));
-    }
-
-    /**
-     * @notice Calculates the address from the pubkey
-     * @param pub is the pubkey
-     * @return Returns the address that has been calculated from the pubkey
-     */
-    function calculateAddress(bytes memory pub)
-        public
-        pure
-        returns (address addr)
-    {
-        bytes32 hash = keccak256(pub);
-        assembly {
-            mstore(0, hash)
-            addr := mload(0)
-        }
-    }
-
-    function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
-        Types.UserAccount memory account1 = Types.UserAccount({
-            ID: 0,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        Types.UserAccount memory account2 = Types.UserAccount({
-            ID: 1,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        leaves[0] = HashFromAccount(account1);
-        leaves[1] = HashFromAccount(account2);
-    }
-
-    function GetGenesisDataBlocks()
-        public
-        pure
-        returns (bytes[2] memory dataBlocks)
-    {
-        Types.UserAccount memory account1 = Types.UserAccount({
-            ID: 0,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        Types.UserAccount memory account2 = Types.UserAccount({
-            ID: 1,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        dataBlocks[0] = BytesFromAccount(account1);
-        dataBlocks[1] = BytesFromAccount(account2);
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {
