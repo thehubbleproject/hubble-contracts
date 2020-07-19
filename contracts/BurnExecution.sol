@@ -79,12 +79,10 @@ contract BurnExecution is FraudProofHelpers {
             for (uint256 i = 0; i < _txs.length; i++) {
                 // call process tx update for every transaction to check if any
                 // tx evaluates correctly
-                (stateRoot, , , , isTxValid) = processTx(
+                (stateRoot, , , isTxValid) = processBurnExecutionTx(
                     stateRoot,
-                    accountsRoot,
                     _txs[i],
-                    batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i]
+                    batchProofs.accountProofs[i].from
                 );
 
                 if (!isTxValid) {
@@ -95,30 +93,42 @@ contract BurnExecution is FraudProofHelpers {
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
+    function ApplyBurnExecutionTx(
+        Types.AccountMerkleProof memory _fromAccountProof,
+        Types.BurnExecution memory _tx
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
+
+        account.balance -= account.burn;
+        account.burn = 0;
+        account.lastBurn = RollupUtils.GetYearMonth();
+
+        updatedAccount = RollupUtils.BytesFromAccount(account);
+        newRoot = UpdateAccountWithSiblings(account, _fromAccountProof);
+        return (updatedAccount, newRoot);
+    }
+
     /**
      * @notice Overrides processTx in FraudProof
      */
-    function processTx(
+    function processBurnExecutionTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         Types.BurnExecution memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory _fromAccountProof
     )
         public
         view
         returns (
             bytes32,
             bytes memory,
-            bytes memory,
             Types.ErrorCode,
             bool
         )
     {
-        ValidateAccountMP(_balanceRoot, accountProofs.from);
-        Types.UserAccount memory account = accountProofs.from.accountIP.account;
+        ValidateAccountMP(_balanceRoot, _fromAccountProof);
+        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
         if (_tx.fromIndex != account.ID) {
-            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromIndex, false);
+            return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);
         }
 
         uint256 yearMonth = RollupUtils.GetYearMonth();
@@ -126,20 +136,18 @@ contract BurnExecution is FraudProofHelpers {
             return (
                 ZERO_BYTES32,
                 "",
-                "",
                 Types.ErrorCode.BurnAlreadyExecuted,
                 false
             );
         }
-        account.balance -= account.burn;
-        account.lastBurn = RollupUtils.GetYearMonth();
 
-        bytes32 newRoot = UpdateAccountWithSiblings(
-            account,
-            accountProofs.from
+        bytes32 newRoot;
+        bytes memory new_from_account;
+        (new_from_account, newRoot) = ApplyBurnExecutionTx(
+            _fromAccountProof,
+            _tx
         );
-        bytes memory new_from_account = RollupUtils.BytesFromAccount(account);
 
-        return (newRoot, new_from_account, "", Types.ErrorCode.NoError, true);
+        return (newRoot, new_from_account, Types.ErrorCode.NoError, true);
     }
 }

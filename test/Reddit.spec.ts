@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { ErrorCode, CreateAccount, DropTx, Account, BurnConsentTx } from "../scripts/helpers/interfaces";
+import { ErrorCode, CreateAccount, DropTx, Account, BurnConsentTx, BurnExecutionTx } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
 const RollupCore = artifacts.require("Rollup");
@@ -269,5 +269,47 @@ contract("Reddit", async function () {
         assert.equal(newBalanceRoot, await accountStore.getRoot());
 
     })
+    it("lets Reddit to execute the burn", async function () {
+        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const tx = {
+            fromIndex: User.AccID,
+        } as BurnExecutionTx
+        const signBytes = await RollupUtilsInstance.getBurnExecutionSignBytes(
+            tx.fromIndex
+        );
+        tx.signature = utils.sign(signBytes, User.Wallet);
+        const txBytes = await RollupUtilsInstance.BytesFromTxBurnExecutionDeconstructed(
+            tx.fromIndex
+        );
+        await RollupUtilsInstance.BurnExecutionTxFromBytes(txBytes);
 
+
+        const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP, txBytes);
+        const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
+        await accountStore.update(User.AccID, userUpdatedAccount);
+
+        const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+
+        const resultProcessTx = await rollupRedditInstance.processBurnExecutionTx(
+            balanceRoot,
+            txBytes,
+            userMP
+        )
+        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[2]];
+        assert.equal(errorCode, ErrorCode.NoError, "processTx returns error");
+        assert.equal(newBalanceRoot, result[1], "mismatch balance root");
+
+        const compressedTx = await RollupUtilsInstance.CompressExecutionNoStruct(
+            tx.fromIndex, tx.signature
+        );
+        await rollupCoreInstance.submitBatch(
+            [compressedTx],
+            newBalanceRoot,
+            utils.Usage.BurnExecution,
+            { value: ethers.utils.parseEther("32").toString() }
+        );
+
+        assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+    })
 })

@@ -69,22 +69,24 @@ interface IReddit {
         Types.BurnConsent calldata _tx
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
-    function processTxBurnExecution(
+    function processBurnExecutionTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         Types.BurnExecution calldata _tx,
-        Types.PDAMerkleProof calldata _from_pda_proof,
-        Types.AccountProofs calldata accountProofs
+        Types.AccountMerkleProof calldata _fromAccountProof
     )
         external
         view
         returns (
             bytes32,
             bytes memory,
-            bytes memory,
             Types.ErrorCode,
             bool
         );
+
+    function ApplyBurnExecutionTx(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Types.BurnExecution calldata _tx
+    ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBatch(
         bytes32 initialStateRoot,
