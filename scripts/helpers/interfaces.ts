@@ -81,3 +81,8 @@ export interface BurnConsentTx {
   cancel: boolean;
   signature: string;
 }
+
+export interface BurnExecutionTx {
+  fromIndex: number;
+  signature: string;
+}

@@ -111,7 +111,7 @@ library RollupUtils {
         return _tx;
     }
 
-    function TxFromBytesBurnExecution(bytes memory txBytes)
+    function BurnExecutionTxFromBytes(bytes memory txBytes)
         public
         pure
         returns (Types.BurnExecution memory)
@@ -174,7 +174,14 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx);
+        return abi.encode(_tx.fromIndex);
+    }
+
+    function CompressExecutionNoStruct(
+        uint256 fromIndex,
+        bytes memory signature
+    ) public pure returns (bytes memory) {
+        return abi.encode(fromIndex, signature);
     }
 
     function CompressCreateAccount(Types.CreateAccount memory _tx)
@@ -259,12 +266,12 @@ library RollupUtils {
         return abi.encodePacked(fromIndex, amount, nonce, cancel);
     }
 
-    function BytesFromTxBurnExecutionDeconstructed(uint256 from)
+    function BytesFromTxBurnExecutionDeconstructed(uint256 fromIndex)
         public
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(from);
+        return abi.encodePacked(fromIndex);
     }
 
     function HashFromConsent(Types.BurnConsent memory _tx)
@@ -537,6 +544,14 @@ library RollupUtils {
             );
     }
 
+    function getBurnExecutionSignBytes(uint256 fromIndex)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(BytesFromTxBurnExecutionDeconstructed(fromIndex));
+    }
+
     function AirdropTxFromBytesNoStruct(bytes memory txBytes)
         public
         pure
@@ -648,6 +663,7 @@ library RollupUtils {
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {
-        return now % (4 weeks);
+        uint256 _now = now;
+        return _now - (_now % (4 weeks));
     }
 }

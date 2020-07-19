@@ -90,6 +90,15 @@ contract RollupReddit {
         return burnConsent.ApplyBurnConsentTx(_merkle_proof, transaction);
     }
 
+    function ApplyBurnExecutionTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        bytes memory txBytes
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.BurnExecution memory transaction = RollupUtils
+            .BurnExecutionTxFromBytes(txBytes);
+        return burnExecution.ApplyBurnExecutionTx(_merkle_proof, transaction);
+    }
+
     /**
      * @notice processTx processes a transactions and returns the updated balance tree
      *  and the updated leaves
@@ -158,30 +167,28 @@ contract RollupReddit {
             );
     }
 
-    function processTxBurnExecution(
+    function processBurnExecutionTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        Types.BurnExecution memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        bytes memory txBytes,
+        Types.AccountMerkleProof memory _fromAccountProof
     )
         public
         view
         returns (
             bytes32,
             bytes memory,
-            bytes memory,
             Types.ErrorCode,
             bool
         )
     {
+        Types.BurnExecution memory _tx = RollupUtils.BurnExecutionTxFromBytes(
+            txBytes
+        );
         return
-            burnExecution.processTxBurnExecution(
+            burnExecution.processBurnExecutionTx(
                 _balanceRoot,
-                _accountsRoot,
                 _tx,
-                _from_pda_proof,
-                accountProofs
+                _fromAccountProof
             );
     }
 }
