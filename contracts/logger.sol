@@ -74,14 +74,10 @@ contract Logger {
         emit RegistrationRequest(tokenContract);
     }
 
-    event DepositQueued(uint256 AccountID, bytes pubkey, bytes data);
+    event DepositQueued(uint256 AccountID, bytes data);
 
-    function logDepositQueued(
-        uint256 accountID,
-        bytes memory pubkey,
-        bytes memory data
-    ) public {
-        emit DepositQueued(accountID, pubkey, data);
+    function logDepositQueued(uint256 accountID, bytes memory data) public {
+        emit DepositQueued(accountID, data);
     }
 
     event DepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot);

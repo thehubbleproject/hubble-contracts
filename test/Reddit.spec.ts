@@ -13,9 +13,10 @@ import {
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
+import { BLSAccountRegistryInstance } from '../types/truffle-contracts';
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
-const IMT = artifacts.require("IncrementalTree");
+const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const RollupReddit = artifacts.require("RollupReddit");
 
@@ -30,7 +31,7 @@ contract("Reddit", async function () {
     let rollupCoreInstance: any;
     let rollupRedditInstance: any;
     let RollupUtilsInstance: any;
-    let IMTInstance: any;
+    let BLSAccountTreeRegistryInstance: BLSAccountRegistryInstance;
     let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
     let accountStore: AccountStore;
@@ -38,7 +39,7 @@ contract("Reddit", async function () {
         depositManagerInstance = await DepositManager.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         rollupRedditInstance = await RollupReddit.deployed();
-        IMTInstance = await IMT.deployed();
+        BLSAccountTreeRegistryInstance = await BLSAccountRegistry.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
         Reddit = {
@@ -73,17 +74,15 @@ contract("Reddit", async function () {
         };
         testTokenInstance = await utils.registerToken(wallets[0]);
         await testTokenInstance.transfer(Reddit.Address, 100);
-        await depositManagerInstance.depositFor(
-            Reddit.Address,
+        await depositManagerInstance.deposit(
             Reddit.Amount,
             Reddit.TokenType,
-            Reddit.Pubkey
+            Reddit.AccID
         );
-        await depositManagerInstance.depositFor(
-            Bob.Address,
+        await depositManagerInstance.deposit(
             Bob.Amount,
             Bob.TokenType,
-            Bob.Pubkey
+            Bob.AccID
         );
         accountStore = new AccountStore(MAX_DEPTH);
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
@@ -150,7 +149,7 @@ contract("Reddit", async function () {
         await accountStore.update(userAccountID, createdAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
+        const accountRoot = await BLSAccountTreeRegistryInstance.root();
 
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(userPubkeyIdOffchain);
 
@@ -205,7 +204,7 @@ contract("Reddit", async function () {
         await accountStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
+        const accountRoot = await BLSAccountTreeRegistryInstance.root();
         const redditPDAProof = await pubkeyStore.getPDAMerkleProof(Reddit.Path);
 
         const resultProcessTx = await rollupRedditInstance.processAirdropTx(
@@ -262,7 +261,7 @@ contract("Reddit", async function () {
         await accountStore.update(Bob.AccID, bobUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
+        const accountRoot = await BLSAccountTreeRegistryInstance.root();
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
 
         const resultProcessTx = await rollupRedditInstance.processTransferTx(
@@ -313,7 +312,7 @@ contract("Reddit", async function () {
         await accountStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
+        const accountRoot = await BLSAccountTreeRegistryInstance.root();
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
 
 

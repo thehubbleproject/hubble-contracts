@@ -118,16 +118,6 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            _tx.fromIndex
-        );
-
-        // STEP:2 Ensure the transaction has been signed using the from public key
-        // ValidateSignature(_tx, _from_pda_proof);
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
@@ -135,14 +125,21 @@ contract Transfer is FraudProofHelpers {
             _tx,
             accountProofs.from.accountIP.account
         );
-        if (err_code != Types.ErrorCode.NoError) return (ZERO_BYTES32, "", "", err_code, false);
+        if (err_code != Types.ErrorCode.NoError)
+            return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
         if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromTokenType, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadFromTokenType,
+                false
+            );
 
         bytes32 newRoot;
         bytes memory new_from_account;
@@ -158,10 +155,22 @@ contract Transfer is FraudProofHelpers {
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromTokenType, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadFromTokenType,
+                false
+            );
 
         (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
 
-        return (newRoot, new_from_account, new_to_account, Types.ErrorCode.NoError, true);
+        return (
+            newRoot,
+            new_from_account,
+            new_to_account,
+            Types.ErrorCode.NoError,
+            true
+        );
     }
 }

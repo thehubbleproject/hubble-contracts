@@ -1,32 +1,31 @@
 import * as chai from "chai";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Account } from "../scripts/helpers/interfaces";
+import {Account} from "../scripts/helpers/interfaces";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
 import * as utils from "../scripts/helpers/utils";
-import { RollupContract } from "../types/truffle-contracts/index";
+import {RollupContract} from "../types/truffle-contracts/index";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
-import { ethers } from "ethers";
+import {ethers} from "ethers";
 const RollupCore = artifacts.require("Rollup");
-const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const EcVerify = artifacts.require("ECVerify");
 chai.use(chaiAsPromised);
 const truffleAssert = require("truffle-assertions");
 
-contract("DepositManager", async function (accounts) {
+contract("DepositManager", async function(accounts) {
   var wallets: any;
-  before(async function () {
+  before(async function() {
     wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
   });
 
-  it("should register a token", async function () {
+  it("should register a token", async function() {
     let testToken = await TestToken.deployed();
     let tokenRegistryInstance = await utils.getTokenRegistry();
     await tokenRegistryInstance.requestTokenRegistration(testToken.address, {
-      from: wallets[0].getAddressString(),
+      from: wallets[0].getAddressString()
     });
   });
 
@@ -38,7 +37,7 @@ contract("DepositManager", async function (accounts) {
 
     let approveToken = await tokenRegistryInstance.finaliseTokenRegistration(
       testToken.address,
-      { from: wallets[0].getAddressString() }
+      {from: wallets[0].getAddressString()}
     );
     assert(approveToken, "token registration failed");
   });
@@ -51,7 +50,7 @@ contract("DepositManager", async function (accounts) {
       depositManagerInstance.address,
       ethers.utils.parseEther("1"),
       {
-        from: wallets[0].getAddressString(),
+        from: wallets[0].getAddressString()
       }
     );
     assert(approveToken, "approveToken failed");
@@ -94,7 +93,7 @@ contract("DepositManager", async function (accounts) {
     await depositManagerInstance.deposit(
       Alice.Amount,
       Alice.TokenType,
-      Alice.Pubkey
+      Alice.AccID
     );
     const AliceAccountLeaf = await utils.createLeaf(Alice);
 
@@ -113,12 +112,7 @@ contract("DepositManager", async function (accounts) {
     //
 
     // do a deposit for bob
-    await depositManagerInstance.depositFor(
-      Bob.Address,
-      Bob.Amount,
-      Bob.TokenType,
-      Bob.Pubkey
-    );
+    await depositManagerInstance.deposit(Bob.Amount, Bob.TokenType, Bob.AccID);
 
     const BobAccountLeaf = await utils.createLeaf(Bob);
 
@@ -134,20 +128,10 @@ contract("DepositManager", async function (accounts) {
     assert.equal(pendingDepositAfter, 0, "pending deposits mismatch");
 
     // do a deposit for bob
-    await depositManagerInstance.depositFor(
-      Bob.Address,
-      Bob.Amount,
-      Bob.TokenType,
-      Bob.Pubkey
-    );
+    await depositManagerInstance.deposit(Bob.Amount, Bob.TokenType, Bob.AccID);
 
     // do a deposit for bob
-    await depositManagerInstance.depositFor(
-      Bob.Address,
-      Bob.Amount,
-      Bob.TokenType,
-      Bob.Pubkey
-    );
+    await depositManagerInstance.deposit(Bob.Amount, Bob.TokenType, Bob.AccID);
 
     // finalise the deposit back to the state tree
     var path = "001";
@@ -158,7 +142,7 @@ contract("DepositManager", async function (accounts) {
     var siblingsInProof = [
       utils.getParentLeaf(coordinator_leaves[0], coordinator_leaves[1]),
       defaultHashes[2],
-      defaultHashes[3],
+      defaultHashes[3]
     ];
 
     var _zero_account_mp = {
@@ -171,15 +155,15 @@ contract("DepositManager", async function (accounts) {
           nonce: 0,
           burn: 0,
           lastBurn: 0
-        },
+        }
       },
-      siblings: siblingsInProof,
+      siblings: siblingsInProof
     };
 
     await rollupContractInstance.finaliseDepositsAndSubmitBatch(
       subtreeDepth,
       _zero_account_mp,
-      { value: ethers.utils.parseEther("32").toString() }
+      {value: ethers.utils.parseEther("32").toString()}
     );
 
     //
@@ -201,7 +185,7 @@ contract("DepositManager", async function (accounts) {
       BobAccountLeaf,
       siblingsInProof[0],
       siblingsInProof[1],
-      siblingsInProof[2],
+      siblingsInProof[2]
     ];
     var leaf = AliceAccountLeaf;
     var firstAccountPath: string = "2";
@@ -218,7 +202,7 @@ contract("DepositManager", async function (accounts) {
       AliceAccountLeaf,
       siblingsInProof[0],
       siblingsInProof[1],
-      siblingsInProof[2],
+      siblingsInProof[2]
     ];
     var leaf = BobAccountLeaf;
     var secondAccountPath: string = "3";

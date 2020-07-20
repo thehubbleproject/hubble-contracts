@@ -17,7 +17,7 @@ const burnConsentContract = artifacts.require("BurnConsent");
 const burnExecutionContract = artifacts.require("BurnExecution");
 
 const nameRegistryContract = artifacts.require("NameRegistry");
-const incrementalTreeContract = artifacts.require("IncrementalTree");
+const blsAccountRegistryContract = artifacts.require("BLSAccountRegistry");
 const depositManagerContract = artifacts.require("DepositManager");
 const rollupContract = artifacts.require("Rollup");
 const rollupRedditContract = artifacts.require("RollupReddit");
@@ -126,12 +126,12 @@ module.exports = async function (deployer) {
   );
 
   // deploy account tree contract
-  const accountsTreeInstance = await deployAndRegister(
+  const blsAccountRegistryInstance = await deployAndRegister(
     deployer,
-    incrementalTreeContract,
-    [paramManagerLib],
-    [nameRegistryInstance.address],
-    "ACCOUNTS_TREE"
+    blsAccountRegistryContract,
+    [],
+    [],
+    "REGISTRY"
   );
 
   // createAccountContract depends account tree
@@ -181,7 +181,7 @@ module.exports = async function (deployer) {
   );
 
   const contractAddresses = {
-    AccountTree: accountsTreeInstance.address,
+    Registry: blsAccountRegistryInstance.address,
     ParamManager: paramManagerInstance.address,
     DepositManager: depositManagerInstance.address,
     RollupContract: rollupInstance.address,

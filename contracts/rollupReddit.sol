@@ -40,12 +40,10 @@ contract RollupReddit {
     // CreateAccount
     //
 
-    function createPublickeys(bytes[] memory publicKeys)
-        public
-        returns (uint256[] memory)
-    {
-        return createAccount.createPublickeys(publicKeys);
-    }
+    // TODO: should be routed to registry
+    // function createPublickeys(bytes[] memory publicKeys) public returns (uint256[] memory) {
+    //   return createAccount.createPublickeys(publicKeys);
+    // }
 
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof memory _merkle_proof,
