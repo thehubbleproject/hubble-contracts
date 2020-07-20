@@ -9,6 +9,7 @@ import {
     Account,
     BurnConsentTx,
     BurnExecutionTx,
+    Transaction,
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
 import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
@@ -105,10 +106,18 @@ contract("Reddit", async function () {
             burn: 0,
             lastBurn: 0,
         };
+        const BobAccount: Account = {
+            ID: Bob.AccID,
+            tokenType: Bob.TokenType,
+            balance: Bob.Amount,
+            nonce: Bob.nonce,
+            burn: 0,
+            lastBurn: 0,
+        }
 
         // Insert Reddit's and Bob's account after finaliseDepositsAndSubmitBatch
         await accountStore.insert(RedditAccount);
-        accountStore.insertHash(await utils.createLeaf(Bob));
+        await accountStore.insert(BobAccount);
 
         pubkeyStore = new PublicKeyStore(MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
@@ -169,11 +178,12 @@ contract("Reddit", async function () {
     })
 
     it("Should Airdrop some token to the User", async function () {
+        const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
         const tx = {
             fromIndex: Reddit.AccID,
             toIndex: User.AccID,
             tokenType: 1,
-            nonce: 0,
+            nonce: redditMP.accountIP.account.nonce,
             txType: Usage.Airdrop,
             amount: 10,
         } as DropTx
@@ -185,7 +195,6 @@ contract("Reddit", async function () {
             tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
         );
 
-        const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
         const resultFrom = await rollupRedditInstance.ApplyAirdropTx(redditMP, txBytes);
         const redditUpdatedAccount: Account = await utils.AccountFromBytes(resultFrom[0]);
         await accountStore.update(Reddit.AccID, redditUpdatedAccount);
@@ -218,6 +227,63 @@ contract("Reddit", async function () {
             [compressedTx],
             newBalanceRoot,
             Usage.Airdrop,
+            { value: ethers.utils.parseEther("32").toString() }
+        );
+
+        assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+    })
+
+    it("let user transfer some token to Bob", async function () {
+        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const tx = {
+            fromIndex: User.AccID,
+            toIndex: Bob.AccID,
+            tokenType: 1,
+            nonce: userMP.accountIP.account.nonce,
+            txType: Usage.Transfer,
+            amount: 1,
+        } as Transaction;
+        const signBytes = await RollupUtilsInstance.getTxSignBytes(
+            tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
+        );
+        tx.signature = utils.sign(signBytes, User.Wallet);
+        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
+        );
+
+        const resultFrom = await rollupRedditInstance.ApplyTransferTx(userMP, txBytes);
+        const userUpdatedAccount = await utils.AccountFromBytes(resultFrom[0]);
+        await accountStore.update(User.AccID, userUpdatedAccount);
+
+        const bobMP = await accountStore.getAccountMerkleProof(Bob.AccID);
+        const resultTo = await rollupRedditInstance.ApplyTransferTx(bobMP, txBytes);
+        const bobUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
+        await accountStore.update(Bob.AccID, bobUpdatedAccount);
+
+        const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+        const accountRoot = await IMTInstance.getTreeRoot();
+        const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
+
+        const resultProcessTx = await rollupRedditInstance.processTransferTx(
+            balanceRoot,
+            accountRoot,
+            tx.signature,
+            txBytes,
+            userPDAProof,
+            { from: userMP, to: bobMP }
+        )
+        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[3]];
+        assert.equal(errorCode, ErrorCode.NoError);
+        assert.equal(newBalanceRoot, resultTo[1]);
+
+        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
+            txBytes, tx.signature
+        );
+        await rollupCoreInstance.submitBatch(
+            [compressedTx],
+            newBalanceRoot,
+            Usage.Transfer,
             { value: ethers.utils.parseEther("32").toString() }
         );
 
