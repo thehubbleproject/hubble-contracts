@@ -11,9 +11,9 @@ contract RollupReddit {
     Registry public nameRegistry;
     IReddit public createAccount;
     IReddit public airdrop;
+    IReddit public transfer;
     IReddit public burnConsent;
     IReddit public burnExecution;
-    IReddit public transfer;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -24,6 +24,9 @@ contract RollupReddit {
 
         airdrop = IReddit(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
+        );
+        transfer = IReddit(
+            nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
         burnConsent = IReddit(
             nameRegistry.getContractDetails(ParamManager.BURN_CONSENT())
@@ -90,9 +93,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.DropTx memory transaction = RollupUtils.AirdropFromBytes(
-            txBytes
-        );
+        Types.DropTx memory transaction = RollupUtils.AirdropFromBytes(txBytes);
         return airdrop.ApplyAirdropTx(_merkle_proof, transaction);
     }
 
