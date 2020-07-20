@@ -38,7 +38,7 @@ contract BurnConsent is FraudProofHelpers {
         // generate merkle tree from the txs provided by user
         bytes[] memory txs = new bytes[](_txs.length);
         for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressConsent(_txs[i]);
+            txs[i] = RollupUtils.CompressBurnConsent(_txs[i]);
         }
         txRoot = merkleUtils.getMerkleRoot(txs);
         return txRoot;

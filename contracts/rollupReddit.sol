@@ -49,7 +49,7 @@ contract RollupReddit {
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
         Types.CreateAccount memory transaction = RollupUtils
-            .CreateAccountTxFromBytes(txBytes);
+            .CreateAccountFromBytes(txBytes);
         return createAccount.ApplyCreateAccountTx(_merkle_proof, transaction);
     }
 
@@ -69,7 +69,7 @@ contract RollupReddit {
             bool
         )
     {
-        Types.CreateAccount memory _tx = RollupUtils.CreateAccountTxFromBytes(
+        Types.CreateAccount memory _tx = RollupUtils.CreateAccountFromBytes(
             txBytes
         );
         return
@@ -90,7 +90,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.DropTx memory transaction = RollupUtils.AirdropTxFromBytes(
+        Types.DropTx memory transaction = RollupUtils.AirdropFromBytes(
             txBytes
         );
         return airdrop.ApplyAirdropTx(_merkle_proof, transaction);
@@ -114,7 +114,7 @@ contract RollupReddit {
             bool
         )
     {
-        Types.DropTx memory _tx = RollupUtils.AirdropTxFromBytes(txBytes);
+        Types.DropTx memory _tx = RollupUtils.AirdropFromBytes(txBytes);
         _tx.signature = sig;
         return
             airdrop.processAirdropTx(
@@ -221,7 +221,7 @@ contract RollupReddit {
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.BurnExecution memory transaction = RollupUtils
-            .BurnExecutionTxFromBytes(txBytes);
+            .BurnExecutionFromBytes(txBytes);
         return burnExecution.ApplyBurnExecutionTx(_merkle_proof, transaction);
     }
 
@@ -239,7 +239,7 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnExecution memory _tx = RollupUtils.BurnExecutionTxFromBytes(
+        Types.BurnExecution memory _tx = RollupUtils.BurnExecutionFromBytes(
             txBytes
         );
         return
