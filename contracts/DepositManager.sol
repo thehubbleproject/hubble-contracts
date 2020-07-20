@@ -12,6 +12,7 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
 import { Governance } from "./Governance.sol";
 import { Rollup } from "./rollup.sol";
+import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 
 contract DepositManager {
     MTUtils public merkleUtils;
@@ -39,10 +40,10 @@ contract DepositManager {
     uint256 public queueNumber;
     uint256 public depositSubtreeHeight;
     Governance public governance;
+    BLSAccountRegistry public registry;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
-    IncrementalTree public accountsTree;
 
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
@@ -75,17 +76,12 @@ contract DepositManager {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        registry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.REGISTRY())
         );
 
-        AddCoordinatorLeaves();
-    }
-
-    function AddCoordinatorLeaves() internal {
-        // first 2 leaves belong to coordinator
-        accountsTree.appendLeaf(ZERO_BYTES32);
-        accountsTree.appendLeaf(ZERO_BYTES32);
+        // FIX: should do it somewhere else
+        // AddCoordinatorLeaves();
     }
 
     /**
@@ -96,31 +92,10 @@ contract DepositManager {
     function deposit(
         uint256 _amount,
         uint256 _tokenType,
-        bytes memory _pubkey
-    ) public {
-        depositFor(msg.sender, _amount, _tokenType, _pubkey);
-    }
-
-    /**
-     * @notice Adds a deposit for an address to the deposit queue
-     * @param _destination Address for which we are depositing
-     * @param _amount Number of tokens that user wants to deposit
-     * @param _tokenType Type of token user is depositing
-     */
-    function depositFor(
-        address _destination,
-        uint256 _amount,
-        uint256 _tokenType,
-        bytes memory _pubkey
+        uint256 accountID
     ) public {
         // check amount is greater than 0
         require(_amount > 0, "token deposit must be greater than 0");
-
-        // ensure public matches the destination address
-        require(
-            _destination == RollupUtils.calculateAddress(_pubkey),
-            "public key and address don't match"
-        );
 
         // check token type exists
         address tokenContractAddress = tokenRegistry.registeredTokens(
@@ -134,15 +109,12 @@ contract DepositManager {
             "token transfer not approved"
         );
 
-        // returns leaf index upon successfull append
-        uint256 accID = accountsTree.appendDataBlock(_pubkey);
-
         // create a new account
         Types.UserAccount memory newAccount;
         newAccount.balance = _amount;
         newAccount.tokenType = _tokenType;
         newAccount.nonce = 0;
-        newAccount.ID = accID;
+        newAccount.ID = accountID;
 
         // get new account hash
         bytes memory accountBytes = RollupUtils.BytesFromAccount(newAccount);
@@ -151,7 +123,7 @@ contract DepositManager {
         pendingDeposits.push(keccak256(accountBytes));
 
         // emit the event
-        logger.logDepositQueued(accID, _pubkey, accountBytes);
+        logger.logDepositQueued(accountID, accountBytes);
 
         queueNumber++;
         uint256 tmpDepositSubtreeHeight = 0;

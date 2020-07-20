@@ -9,7 +9,7 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ECVerify } from "./libs/ECVerify.sol";
-import { IncrementalTree } from "./IncrementalTree.sol";
+import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./logger.sol";
 import { POB } from "./POB.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
@@ -47,7 +47,7 @@ contract RollupSetup {
 
     // External contracts
     DepositManager public depositManager;
-    IncrementalTree public accountsTree;
+    BLSAccountRegistry public registry;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
@@ -107,7 +107,7 @@ contract RollupHelpers is RollupSetup {
     ) internal {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
-            accountRoot: accountsTree.getTreeRoot(),
+            accountRoot: registry.root(),
             depositTree: ZERO_BYTES32,
             committer: msg.sender,
             txRoot: txRoot,
@@ -131,7 +131,7 @@ contract RollupHelpers is RollupSetup {
     {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
-            accountRoot: accountsTree.getTreeRoot(),
+            accountRoot: registry.root(),
             depositTree: depositRoot,
             committer: msg.sender,
             txRoot: ZERO_BYTES32,
@@ -247,8 +247,8 @@ contract Rollup is RollupHelpers {
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        registry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.REGISTRY())
         );
 
         tokenRegistry = ITokenRegistry(

@@ -9,11 +9,8 @@ import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { IncrementalTree } from "./IncrementalTree.sol";
 
 contract CreateAccount is FraudProofHelpers {
-    IncrementalTree public accountsTree;
-
     /*********************
      * Constructor *
      ********************/
@@ -31,26 +28,11 @@ contract CreateAccount is FraudProofHelpers {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
-        );
     }
 
     modifier onlyReddit() {
         // TODO: Add only Reddit check
         _;
-    }
-
-    function createPublickeys(bytes[] memory publicKeys)
-        public
-        onlyReddit
-        returns (uint256[] memory)
-    {
-        uint256[] memory pubkeyIDs = new uint256[](publicKeys.length);
-        for (uint256 i = 0; i < publicKeys.length; i++) {
-            pubkeyIDs[i] = accountsTree.appendDataBlock(publicKeys[i]);
-        }
-        return pubkeyIDs;
     }
 
     function generateTxRoot(Types.CreateAccount[] memory _txs)

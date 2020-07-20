@@ -7,9 +7,6 @@ interface IReddit {
     //
     // CreateAccount
     //
-    function createPublickeys(bytes[] calldata publicKeys)
-        external
-        returns (uint256[] memory);
 
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof calldata _merkle_proof,

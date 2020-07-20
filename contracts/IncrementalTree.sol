@@ -51,7 +51,6 @@ contract IncrementalTree {
     function appendDataBlock(bytes memory datablock) public returns (uint256) {
         bytes32 _leaf = keccak256(abi.encode(datablock));
         uint256 accID = appendLeaf(_leaf);
-        logger.logNewPubkeyAdded(accID, datablock);
         return accID;
     }
 

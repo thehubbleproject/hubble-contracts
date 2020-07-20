@@ -71,13 +71,12 @@ contract("DepositManager", async function(accounts) {
         await depositManagerInstance.deposit(
             Alice.Amount,
             Alice.TokenType,
-            Alice.Pubkey
+            Alice.AccID
         );
-        await depositManagerInstance.depositFor(
-            Bob.Address,
+        await depositManagerInstance.deposit(
             Bob.Amount,
             Bob.TokenType,
-            Bob.Pubkey
+            Bob.AccID
         );
     });
 });

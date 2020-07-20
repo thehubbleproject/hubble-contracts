@@ -130,16 +130,6 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            _tx.fromIndex
-        );
-
-        // STEP:2 Ensure the transaction has been signed using the from public key
-        // ValidateSignature(_tx, _from_pda_proof);
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 

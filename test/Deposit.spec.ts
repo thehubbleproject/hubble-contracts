@@ -10,7 +10,6 @@ const abiDecoder = require("abi-decoder"); // NodeJS
 
 import { ethers } from "ethers";
 const RollupCore = artifacts.require("Rollup");
-const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const EcVerify = artifacts.require("ECVerify");
 chai.use(chaiAsPromised);
@@ -97,7 +96,7 @@ contract("DepositManager", async function(accounts) {
         await depositManagerInstance.deposit(
             Alice.Amount,
             Alice.TokenType,
-            Alice.Pubkey
+            Alice.AccID
         );
         const AliceAccountLeaf = await utils.createLeaf(Alice);
 
@@ -116,11 +115,10 @@ contract("DepositManager", async function(accounts) {
         //
 
         // do a deposit for bob
-        await depositManagerInstance.depositFor(
-            Bob.Address,
+        await depositManagerInstance.deposit(
             Bob.Amount,
             Bob.TokenType,
-            Bob.Pubkey
+            Bob.AccID
         );
 
         const BobAccountLeaf = await utils.createLeaf(Bob);
@@ -137,19 +135,17 @@ contract("DepositManager", async function(accounts) {
         assert.equal(pendingDepositAfter, 0, "pending deposits mismatch");
 
         // do a deposit for bob
-        await depositManagerInstance.depositFor(
-            Bob.Address,
+        await depositManagerInstance.deposit(
             Bob.Amount,
             Bob.TokenType,
-            Bob.Pubkey
+            Bob.AccID
         );
 
         // do a deposit for bob
-        await depositManagerInstance.depositFor(
-            Bob.Address,
+        await depositManagerInstance.deposit(
             Bob.Amount,
             Bob.TokenType,
-            Bob.Pubkey
+            Bob.AccID
         );
 
         // finalise the deposit back to the state tree

@@ -5,7 +5,7 @@ import { Transaction, ErrorCode } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
-const IMT = artifacts.require("IncrementalTree");
+const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const RollupReddit = artifacts.require("RollupReddit");
 
@@ -19,8 +19,8 @@ contract("Rollup", async function(accounts) {
     let testToken: any;
     let RollupUtilsInstance: any;
     let tokenRegistryInstance: any;
-    let IMTInstance: any;
     let RollupRedditInstance: any;
+    let BLSAccountRegistryInstance: any;
 
     let Alice: any;
     let Bob: any;
@@ -53,8 +53,8 @@ contract("Rollup", async function(accounts) {
         testToken = await TestToken.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
         tokenRegistryInstance = await utils.getTokenRegistry();
-        IMTInstance = await IMT.deployed();
         RollupRedditInstance = await RollupReddit.deployed();
+        BLSAccountRegistryInstance = await BLSAccountRegistry.deployed();
 
         Alice = {
             Address: wallets[0].getAddressString(),
@@ -115,6 +115,7 @@ contract("Rollup", async function(accounts) {
                 from: wallets[0].getAddressString()
             }
         );
+
         await tokenRegistryInstance.finaliseTokenRegistration(
             testToken.address,
             {
@@ -134,13 +135,12 @@ contract("Rollup", async function(accounts) {
         await depositManagerInstance.deposit(
             Alice.Amount,
             Alice.TokenType,
-            Alice.Pubkey
+            Alice.AccID
         );
-        await depositManagerInstance.depositFor(
-            Bob.Address,
+        await depositManagerInstance.deposit(
             Bob.Amount,
             Bob.TokenType,
-            Bob.Pubkey
+            Bob.AccID
         );
 
         var subtreeDepth = 1;
@@ -184,15 +184,7 @@ contract("Rollup", async function(accounts) {
         var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        var accountRoot = await IMTInstance.getTreeRoot();
-
-        var isValid = await MTutilsInstance.verifyLeaf(
-            accountRoot,
-            utils.PubKeyHash(Alice.Pubkey),
-            "2",
-            AlicePDAsiblings
-        );
-        assert.equal(isValid, true, "pda proof wrong");
+        var accountRoot = await BLSAccountRegistryInstance.root();
 
         var tx: Transaction = {
             fromIndex: Alice.AccID,
@@ -214,13 +206,6 @@ contract("Rollup", async function(accounts) {
         ];
         var leaf = AliceAccountLeaf;
         var AliceAccountPath: string = "2";
-        var isValid = await MTutilsInstance.verifyLeaf(
-            currentRoot,
-            leaf,
-            AliceAccountPath,
-            AliceAccountSiblings
-        );
-        expect(isValid).to.be.deep.eq(true);
 
         var AliceAccountMP = {
             accountIP: {
@@ -285,7 +270,6 @@ contract("Rollup", async function(accounts) {
             accountProofs
         );
 
-        console.log("result from processTx: " + JSON.stringify(result));
         await utils.compressAndSubmitBatch(tx, result[0]);
 
         falseBatchZero = {
@@ -328,15 +312,7 @@ contract("Rollup", async function(accounts) {
         var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        var accountRoot = await IMTInstance.getTreeRoot();
-
-        var isValid = await MTutilsInstance.verifyLeaf(
-            accountRoot,
-            utils.PubKeyHash(Alice.Pubkey),
-            "2",
-            AlicePDAsiblings
-        );
-        assert.equal(isValid, true, "pda proof wrong");
+        var accountRoot = await BLSAccountRegistryInstance.root();
 
         var tx: Transaction = {
             fromIndex: Alice.AccID,
@@ -358,13 +334,7 @@ contract("Rollup", async function(accounts) {
         ];
         var leaf = AliceAccountLeaf;
         var AliceAccountPath: string = "2";
-        var isValid = await MTutilsInstance.verifyLeaf(
-            currentRoot,
-            leaf,
-            AliceAccountPath,
-            AliceAccountSiblings
-        );
-        expect(isValid).to.be.deep.eq(true);
+
         var AliceAccountMP = {
             accountIP: {
                 pathToAccount: AliceAccountPath,
@@ -478,15 +448,7 @@ contract("Rollup", async function(accounts) {
         var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        var accountRoot = await IMTInstance.getTreeRoot();
-
-        var isValid = await MTutilsInstance.verifyLeaf(
-            accountRoot,
-            utils.PubKeyHash(Alice.Pubkey),
-            "2",
-            AlicePDAsiblings
-        );
-        assert.equal(isValid, true, "pda proof wrong");
+        var accountRoot = await BLSAccountRegistryInstance.root();
 
         var tx: Transaction = {
             fromIndex: Alice.AccID,
@@ -543,12 +505,6 @@ contract("Rollup", async function(accounts) {
         ];
         var leaf = BobAccountLeaf;
         var BobAccountPath: string = "3";
-        var isBobValid = await MTutilsInstance.verifyLeaf(
-            currentRoot,
-            leaf,
-            BobAccountPath,
-            BobAccountSiblings
-        );
 
         var BobAccountMP = {
             accountIP: {
@@ -660,15 +616,7 @@ contract("Rollup", async function(accounts) {
         var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        var accountRoot = await IMTInstance.getTreeRoot();
-
-        var isValid = await MTutilsInstance.verifyLeaf(
-            accountRoot,
-            utils.PubKeyHash(Alice.Pubkey),
-            "2",
-            AlicePDAsiblings
-        );
-        assert.equal(isValid, true, "pda proof wrong");
+        var accountRoot = await BLSAccountRegistryInstance.root();
 
         var tx: Transaction = {
             fromIndex: Alice.AccID,
@@ -817,15 +765,7 @@ contract("Rollup", async function(accounts) {
         var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        var accountRoot = await IMTInstance.getTreeRoot();
-
-        var isValid = await MTutilsInstance.verifyLeaf(
-            accountRoot,
-            utils.PubKeyHash(Alice.Pubkey),
-            "2",
-            AlicePDAsiblings
-        );
-        assert.equal(isValid, true, "pda proof wrong");
+        var accountRoot = await BLSAccountRegistryInstance.root();
 
         var bobPDAProof = {
             _pda: {
@@ -889,12 +829,6 @@ contract("Rollup", async function(accounts) {
         ];
         var leaf = BobAccountLeaf;
         var BobAccountPath: string = "3";
-        var isBobValid = await MTutilsInstance.verifyLeaf(
-            currentRoot,
-            leaf,
-            BobAccountPath,
-            BobAccountSiblings
-        );
 
         var BobAccountMP = {
             accountIP: {
@@ -955,15 +889,7 @@ contract("Rollup", async function(accounts) {
         var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        var accountRoot = await IMTInstance.getTreeRoot();
-
-        var isValid = await MTutilsInstance.verifyLeaf(
-            accountRoot,
-            utils.PubKeyHash(Alice.Pubkey),
-            "2",
-            AlicePDAsiblings
-        );
-        assert.equal(isValid, true, "pda proof wrong");
+        var accountRoot = await BLSAccountRegistryInstance.root();
 
         var tx: Transaction = {
             fromIndex: Alice.AccID,
@@ -1020,13 +946,6 @@ contract("Rollup", async function(accounts) {
         ];
         var leaf = BobAccountLeaf;
         var BobAccountPath: string = "3";
-        var isBobValid = await MTutilsInstance.verifyLeaf(
-            currentRoot,
-            leaf,
-            BobAccountPath,
-            BobAccountSiblings
-        );
-
         var BobAccountMP = {
             accountIP: {
                 pathToAccount: BobAccountPath,
