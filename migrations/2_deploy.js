@@ -1,4 +1,6 @@
 const fs = require("fs");
+var argv = require('minimist')(process.argv.slice(2));
+
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
@@ -33,9 +35,7 @@ function writeContractAddresses(contractAddresses) {
   );
 }
 
-module.exports = async function (deployer) {
-  // picked address from mnemoic
-  var coordinator = "0x9fB29AAc15b9A4B7F17c3385939b007540f4d791";
+async function deploy(deployer){
   var max_depth = 4;
   var maxDepositSubtreeDepth = 1;
 
@@ -84,7 +84,6 @@ module.exports = async function (deployer) {
     "TOKEN_REGISTRY"
   );
 
-  // deploy Token registry contract
   const transferInstance = await deployAndRegister(
     deployer,
     transferContract,
@@ -115,7 +114,6 @@ module.exports = async function (deployer) {
     "BURN_EXECUTION"
   )
 
-
   // deploy POB contract
   const pobInstance = await deployAndRegister(
     deployer,
@@ -133,8 +131,6 @@ module.exports = async function (deployer) {
     [nameRegistryInstance.address],
     "ACCOUNTS_TREE"
   );
-
-  // createAccountContract depends account tree
   const createAccountInstance = await deployAndRegister(
     deployer,
     createAccountContract,
@@ -171,7 +167,6 @@ module.exports = async function (deployer) {
     [nameRegistryInstance.address, root],
     "ROLLUP_CORE"
   );
-
   const rollupRedditInstance = await deployAndRegister(
     deployer,
     rollupRedditContract,
@@ -199,6 +194,12 @@ module.exports = async function (deployer) {
   };
 
   writeContractAddresses(contractAddresses);
+}
+
+module.exports = async function (deployer) {
+  if (!argv.dn) {
+    await deploy(deployer);
+  }
 };
 
 async function getMerkleRootWithCoordinatorAccount(maxSize) {
