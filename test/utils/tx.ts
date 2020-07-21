@@ -4,8 +4,7 @@ import {Tree} from "./tree";
 const amountLen = 4;
 const accountIDLen = 4;
 const stateIDLen = 4;
-const indexLen = 4;
-const tokenIdLen = 2;
+const tokenLen = 2;
 const nonceLen = 4;
 
 function log2(n: number) {
@@ -27,7 +26,7 @@ export function calculateRoot(txs: Tx[]) {
   return tree.root;
 }
 
-export function serialize(txs: TxTransfer[]) {
+export function serialize(txs: Tx[]) {
   const serialized = "0x" + txs.map(tx => tx.encode()).join("");
   const commit = web3.utils.soliditySha3({t: "bytes", v: serialized});
   return {serialized, commit};
@@ -78,6 +77,47 @@ export class TxTransfer {
     let nonce = web3.utils.padLeft(web3.utils.toHex(this.nonce), nonceLen * 2);
     let encoded =
       sender.slice(2) + receiver.slice(2) + amount.slice(2) + nonce.slice(2);
+    if (prefix) {
+      encoded = "0x" + encoded;
+    }
+    return encoded;
+  }
+}
+
+export class TxCreate {
+  public static rand(): TxCreate {
+    const accountID = web3.utils.hexToNumber(
+      web3.utils.randomHex(accountIDLen)
+    );
+    const stateID = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
+    const token = web3.utils.hexToNumber(web3.utils.randomHex(tokenLen));
+    return new TxCreate(accountID, stateID, token);
+  }
+  constructor(
+    public readonly accountID: number,
+    public readonly stateID: number,
+    public readonly token: number
+  ) {}
+
+  public hash(): string {
+    return web3.utils.soliditySha3(
+      {v: this.accountID, t: "uint32"},
+      {v: this.stateID, t: "uint32"},
+      {v: this.token, t: "uint16"}
+    );
+  }
+
+  public encode(prefix: boolean = false): string {
+    let accountID = web3.utils.padLeft(
+      web3.utils.toHex(this.accountID),
+      accountIDLen * 2
+    );
+    let stateID = web3.utils.padLeft(
+      web3.utils.toHex(this.stateID),
+      stateIDLen * 2
+    );
+    let token = web3.utils.padLeft(web3.utils.toHex(this.token), tokenLen * 2);
+    let encoded = accountID.slice(2) + stateID.slice(2) + token.slice(2);
     if (prefix) {
       encoded = "0x" + encoded;
     }
