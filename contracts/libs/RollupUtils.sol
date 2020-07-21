@@ -651,7 +651,7 @@ library RollupUtils {
     }
 
     function CompressBurnExecutionNoStruct(
-        uint256 fromIndex,
+        uint256 fromIndex
     ) public pure returns (bytes memory) {
         return abi.encode(fromIndex);
     }
