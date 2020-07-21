@@ -44,6 +44,14 @@ library Tx {
     uint256 public constant POSITION_NONCE_2 = 12;
     uint256 public constant POSITION_SIGN_2 = 13;
 
+    // transaction_type: airdrop
+    // [receiver_state_id<4>|amount<4>]
+    uint256 public constant TX_LEN_3 = 8;
+    uint256 public constant MASK_TX_3 = 0xffffffff;
+    // positions in bytes
+    uint256 public constant POSITION_RECEIVER_3 = 4;
+    uint256 public constant POSITION_AMOUNT_3 = 8;
+
     struct TransferDecoded {
         uint256 senderID;
         uint256 receiverID;
@@ -62,6 +70,11 @@ library Tx {
         uint256 amount;
         uint256 nonce;
         bool sign;
+    }
+
+    struct DropDecoded {
+        uint256 receiverID;
+        uint256 amount;
     }
 
     function serialize(TransferDecoded[] memory txs)
@@ -433,5 +446,71 @@ library Tx {
             r := keccak256(p_tx, TX_LEN_2)
         }
         return BLS.mapToPoint(r);
+    }
+
+    function serialize(DropDecoded[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+
+        bytes memory serialized = new bytes(TX_LEN_3 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 receiverID = txs[i].receiverID;
+            uint256 amount = txs[i].amount;
+            require(receiverID < bound4Bytes, "invalid stateID");
+            require(amount < bound4Bytes, "invalid amount");
+            bytes memory _tx = abi.encodePacked(
+                uint32(receiverID),
+                uint32(amount)
+            );
+            require(_tx.length == TX_LEN_3, "TODO: rm, bad implementation");
+            uint256 off = i * TX_LEN_3;
+            for (uint256 j = 0; j < TX_LEN_3; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
+    function airdrop_hasExcessData(bytes memory txs)
+        internal
+        pure
+        returns (bool)
+    {
+        return txs.length % TX_LEN_3 != 0;
+    }
+
+    function airdrop_size(bytes memory txs) internal pure returns (uint256) {
+        return txs.length / TX_LEN_3;
+    }
+
+    function airdrop_receiverOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 receiver)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_3))
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_3)),
+                MASK_STATE_ID
+            )
+        }
+    }
+
+    function airdrop_amountOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 amount)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_3))
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_3)), MASK_AMOUNT)
+        }
+        return amount;
     }
 }
