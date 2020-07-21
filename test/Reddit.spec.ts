@@ -167,6 +167,8 @@ contract("Reddit", async function () {
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
             tx.toIndex, tx.tokenType, tx.signature
         );
+        await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
+
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
@@ -223,6 +225,8 @@ contract("Reddit", async function () {
         const compressedTx = await RollupUtilsInstance.CompressAirdropNoStruct(
             tx.toIndex, tx.amount, tx.signature
         );
+        await RollupUtilsInstance.DecompressAirdrop(compressedTx);
+
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
@@ -280,6 +284,8 @@ contract("Reddit", async function () {
         const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
             txBytes, tx.signature
         );
+        await RollupUtilsInstance.DecompressTx(compressedTx);
+
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
@@ -330,8 +336,10 @@ contract("Reddit", async function () {
         assert.equal(newBalanceRoot, result[1]);
 
         const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
-            tx.fromIndex, tx.amount, tx.cancel, tx.signature
+            tx.fromIndex, tx.amount, tx.nonce, tx.cancel, tx.signature
         );
+        await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
+
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
@@ -375,6 +383,8 @@ contract("Reddit", async function () {
         const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
             tx.fromIndex, tx.signature
         );
+        await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
+
         await rollupCoreInstance.submitBatch(
             [compressedTx],
             newBalanceRoot,
