@@ -240,7 +240,7 @@ contract("Reddit", async function () {
             fromIndex: User.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
-            nonce: userMP.accountIP.account.nonce,
+            nonce: userMP.accountIP.account.nonce + 1,
             txType: Usage.Transfer,
             amount: 1,
         } as Transaction;
@@ -295,7 +295,7 @@ contract("Reddit", async function () {
         const tx = {
             fromIndex: User.AccID,
             amount: 5,
-            nonce: userMP.accountIP.account.nonce,
+            nonce: userMP.accountIP.account.nonce + 1,
             cancel: false,
         } as BurnConsentTx
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(

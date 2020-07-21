@@ -163,7 +163,7 @@ contract BurnConsent is FraudProofHelpers {
             );
         }
 
-        if (_tx.nonce != account.nonce) {
+        if (_tx.nonce != account.nonce.add(1)) {
             return (ZERO_BYTES32, "", Types.ErrorCode.BadNonce, false);
         }
 
