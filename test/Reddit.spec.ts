@@ -157,7 +157,6 @@ contract("Reddit", async function () {
         const resultProcessTx = await rollupRedditInstance.processCreateAccountTx(
             balanceRoot,
             accountRoot,
-            tx.signature,
             txBytes,
             userPDAProof,
             newAccountMP,
