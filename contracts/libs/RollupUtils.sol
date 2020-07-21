@@ -492,7 +492,7 @@ library RollupUtils {
         returns (
             uint256 from,
             uint256 to,
-            uint256 nonce,
+            uint256 amount,
             bytes memory sig
         )
     {
@@ -652,9 +652,8 @@ library RollupUtils {
 
     function CompressBurnExecutionNoStruct(
         uint256 fromIndex,
-        bytes memory signature
     ) public pure returns (bytes memory) {
-        return abi.encode(fromIndex, signature);
+        return abi.encode(fromIndex);
     }
 
     function DecompressBurnExecution(bytes memory txBytes)
