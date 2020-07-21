@@ -117,4 +117,76 @@ contract TestTx {
     {
         return txs.create_hashOf(index);
     }
+
+    function burnConcent_serialize(Tx.BurnConcentDecoded[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function burnConcent_hasExcessData(bytes calldata txs)
+        external
+        pure
+        returns (bool)
+    {
+        return txs.burnConcent_hasExcessData();
+    }
+
+    function burnConcent_size(bytes calldata txs)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConcent_size();
+    }
+
+    function burnConcent_stateIdOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConcent_stateIdOf(index);
+    }
+
+    function burnConcent_amountOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConcent_amountOf(index);
+    }
+
+    function burnConcent_nonceOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConcent_nonceOf(index);
+    }
+
+    function burnConcent_signOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (bool)
+    {
+        return txs.burnConcent_signOf(index);
+    }
+
+    function burnConcent_hashOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (bytes32)
+    {
+        return txs.burnConcent_hashOf(index);
+    }
+
+    function burnConcent_mapToPoint(bytes calldata txs, uint256 index)
+        external
+        view
+        returns (uint256[2] memory)
+    {
+        return txs.burnConcent_mapToPoint(index);
+    }
 }
