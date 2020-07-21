@@ -219,7 +219,7 @@ library RollupUtils {
         return abi.encode(toIndex, tokenType);
     }
     
-    function CompressAirdropTxWithMessage(
+    function CompressCreateAccountWithMessage(
         bytes memory message,
         bytes memory sig
     ) public pure returns (bytes memory) {
