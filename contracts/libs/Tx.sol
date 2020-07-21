@@ -107,6 +107,29 @@ library Tx {
         return serialized;
     }
 
+    function transfer_decode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (
+            uint256 sender,
+            uint256 receiver,
+            uint256 amount,
+            uint256 nonce
+        )
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_0))
+            sender := and(mload(add(p_tx, POSITION_SENDER_0)), MASK_STATE_ID)
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_0)),
+                MASK_STATE_ID
+            )
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
+            nonce := and(mload(add(p_tx, POSITION_NONCE_0)), MASK_STATE_ID)
+        }
+    }
+
     function transfer_hasExcessData(bytes memory txs)
         internal
         pure
@@ -162,12 +185,12 @@ library Tx {
     function transfer_nonceOf(bytes memory txs, uint256 index)
         internal
         pure
-        returns (uint256 receiver)
+        returns (uint256 nonce)
     {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
-            receiver := and(mload(add(p_tx, POSITION_NONCE_0)), MASK_STATE_ID)
+            nonce := and(mload(add(p_tx, POSITION_NONCE_0)), MASK_STATE_ID)
         }
     }
 

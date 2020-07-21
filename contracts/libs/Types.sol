@@ -4,6 +4,20 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
+    // struct TransferTransitionProof {
+    //     UserAccount[] senderAccounts;
+    //     bytes32[][] senderWitnesses;
+    //     UserAccount[] receiverAccounts;
+    //     bytes32[][] receiverWitnesses;
+    // }
+
+    struct TransferTransitionProof {
+        UserAccount senderAccount;
+        bytes32[] senderWitness;
+        UserAccount receiverAccount;
+        bytes32[] receiverWitness;
+    }
+
     // We define Usage for a batch or for a tx
     // to check if the usage of a batch and all txs in it are the same
     enum Usage {
@@ -27,9 +41,11 @@ library Types {
         bytes32 depositTree;
         address committer;
         bytes32 txRoot;
+        bytes32 txCommit;
         uint256 stakeCommitted;
         uint256 finalisesOn;
         uint256 timestamp;
+        uint256[2] signature;
         Usage batchType;
     }
 
