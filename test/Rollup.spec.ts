@@ -937,7 +937,7 @@ contract("Rollup", async function (accounts) {
       tokenType: Alice.TokenType,
       amount: 0, // An invalid amount
       txType: 1,
-      nonce: 2,
+      nonce: Alice.nonce + 1,
     };
     tx.signature = await utils.signTx(tx, wallets[0]);
 
