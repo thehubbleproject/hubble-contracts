@@ -59,6 +59,7 @@ contract RollupReddit {
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
+        bytes memory sig,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
@@ -75,6 +76,7 @@ contract RollupReddit {
         Types.CreateAccount memory _tx = RollupUtils.CreateAccountFromBytes(
             txBytes
         );
+        _tx.signature = sig;
         return
             createAccount.processCreateAccountTx(
                 _balanceRoot,
