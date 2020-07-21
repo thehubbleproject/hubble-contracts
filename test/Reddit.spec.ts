@@ -384,7 +384,7 @@ contract("Reddit", async function () {
         assert.equal(newBalanceRoot, result[1], "mismatch balance root");
 
         const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
-            tx.fromIndex, tx.signature
+            tx.fromIndex
         );
         await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
 
