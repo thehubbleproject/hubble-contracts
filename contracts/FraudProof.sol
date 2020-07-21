@@ -117,6 +117,9 @@ contract FraudProofHelpers is FraudProofSetup {
             // had invalid token type
             return Types.ErrorCode.InvalidTokenAddress;
         }
+        if (_tx.nonce != _from_account.nonce.add(1)) {
+            return Types.ErrorCode.BadNonce;
+        }
 
         return _validateTxBasic(_tx.amount, _from_account);
     }
