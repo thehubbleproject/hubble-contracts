@@ -140,8 +140,6 @@ contract("Reddit", async function () {
             toIndex: userAccountID,
             tokenType: 1
         } as CreateAccount;
-        const signBytes = await RollupUtilsInstance.CreateAccountSignBytes(tx.toIndex, tx.tokenType);
-        tx.signature = utils.sign(signBytes, Reddit.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(tx.toIndex, tx.tokenType);
 
         const newAccountMP = await accountStore.getAccountMerkleProof(userAccountID, true);
@@ -165,9 +163,8 @@ contract("Reddit", async function () {
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.toIndex, tx.tokenType, tx.signature
+            tx.toIndex, tx.tokenType
         );
-        await RollupUtilsInstance.CompressCreateAccountWithMessage(txBytes, tx.signature);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
 
         await rollupCoreInstance.submitBatch(

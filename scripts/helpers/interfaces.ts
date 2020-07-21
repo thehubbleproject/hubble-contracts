@@ -65,7 +65,6 @@ export enum ErrorCode {
 export interface CreateAccount {
   toIndex: number;
   tokenType: number;
-  signature: string;
 }
 
 export interface DropTx {

@@ -204,49 +204,27 @@ library RollupUtils {
         return _tx;
     }
 
-    function CreateAccountSignBytes(uint256 toIndex, uint256 tokenType)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encodePacked(toIndex, tokenType));
-    }
-
     function CompressCreateAccount(Types.CreateAccount memory _tx)
         public
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx.toIndex, _tx.tokenType, _tx.signature);
+        return abi.encode(_tx.toIndex, _tx.tokenType);
     }
 
     function CompressCreateAccountNoStruct(
         uint256 toIndex,
-        uint256 tokenType,
-        bytes memory signature
+        uint256 tokenType
     ) public pure returns (bytes memory) {
-        return abi.encode(toIndex, tokenType, signature);
-    }
-
-    function CompressCreateAccountWithMessage(
-        bytes memory message,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
-        Types.CreateAccount memory _tx;
-        (_tx.toIndex, _tx.tokenType) = abi.decode(message, (uint256, uint256));
-        return abi.encode(_tx.toIndex, _tx.tokenType, sig);
+        return abi.encode(toIndex, tokenType);
     }
 
     function DecompressCreateAccount(bytes memory txBytes)
         public
         pure
-        returns (
-            uint256 toIndex,
-            uint256 tokenType,
-            bytes memory signature
-        )
+        returns (uint256 toIndex, uint256 tokenType)
     {
-        return abi.decode(txBytes, (uint256, uint256, bytes));
+        return abi.decode(txBytes, (uint256, uint256));
     }
 
     //
@@ -650,9 +628,11 @@ library RollupUtils {
         return abi.encode(_tx.fromIndex);
     }
 
-    function CompressBurnExecutionNoStruct(
-        uint256 fromIndex
-    ) public pure returns (bytes memory) {
+    function CompressBurnExecutionNoStruct(uint256 fromIndex)
+        public
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(fromIndex);
     }
 
