@@ -223,7 +223,7 @@ library RollupUtils {
     function CompressCreateAccountNoStruct(
         uint256 toIndex,
         uint256 tokenType,
-        uint256 signature
+        bytes memory signature
     ) public pure returns (bytes memory) {
         return abi.encode(toIndex, tokenType, signature);
     }
@@ -233,21 +233,20 @@ library RollupUtils {
         bytes memory sig
     ) public pure returns (bytes memory) {
         Types.CreateAccount memory _tx;
-        (_tx.toIndex, _tx.tokenType, ) = abi.decode(
-            message,
-            (uint256, uint256, bytes)
-        );
+        (_tx.toIndex, _tx.tokenType) = abi.decode(message, (uint256, uint256));
         return abi.encode(_tx.toIndex, _tx.tokenType, sig);
     }
 
     function DecompressCreateAccount(bytes memory txBytes)
         public
         pure
-        returns (Types.CreateAccount memory)
+        returns (
+            uint256 toIndex,
+            uint256 tokenType,
+            bytes memory signature
+        )
     {
-        Types.CreateAccount memory _tx;
-        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
-        return _tx;
+        return abi.decode(txBytes, (uint256, uint256, bytes));
     }
 
     //
@@ -354,7 +353,7 @@ library RollupUtils {
         uint256 amount,
         bytes memory sig
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(toIndex, amount, sig);
+        return abi.encode(toIndex, amount, sig);
     }
 
     function CompressAirdropTxWithMessage(
@@ -362,20 +361,19 @@ library RollupUtils {
         bytes memory sig
     ) public pure returns (bytes memory) {
         Types.DropTx memory _tx = AirdropFromBytes(message);
-        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+        return abi.encode(_tx.toIndex, _tx.amount, sig);
     }
 
-    function DecompressAirdrop(bytes memory dropBytes)
+    function DecompressAirdrop(bytes memory txBytes)
         public
         pure
-        returns (Types.DropTx memory)
+        returns (
+            uint256 toIndex,
+            uint256 amount,
+            bytes memory signature
+        )
     {
-        Types.DropTx memory drop;
-        (drop.toIndex, drop.amount, drop.signature) = abi.decode(
-            dropBytes,
-            (uint256, uint256, bytes)
-        );
-        return drop;
+        return abi.decode(txBytes, (uint256, uint256, bytes));
     }
 
     //
@@ -562,12 +560,7 @@ library RollupUtils {
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromBurnConsentNoStruct(
-                    fromIndex,
-                    amount,
-                    nonce,
-                    cancel
-                )
+                BytesFromBurnConsentNoStruct(fromIndex, amount, nonce, cancel)
             );
     }
 
@@ -582,21 +575,25 @@ library RollupUtils {
     function CompressBurnConsentNoStruct(
         uint256 fromIndex,
         uint256 amount,
+        uint256 nonce,
         bool cancel,
         bytes memory sig
     ) public pure returns (bytes memory) {
-        return abi.encode(fromIndex, amount, cancel, sig);
+        return abi.encode(fromIndex, amount, nonce, cancel, sig);
     }
 
     function DecompressBurnConsent(bytes memory txBytes)
         public
         pure
-        returns (Types.BurnConsent memory)
+        returns (
+            uint256 fromIndex,
+            uint256 amount,
+            uint256 nonce,
+            bool cancel,
+            bytes memory signature
+        )
     {
-        Types.BurnConsent memory _tx;
-        (_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel, _tx.signature) = abi
-            .decode(txBytes, (uint256, uint256, uint256, bool, bytes));
-        return _tx;
+        return abi.decode(txBytes, (uint256, uint256, uint256, bool, bytes));
     }
 
     function HashFromBurnConsent(Types.BurnConsent memory _tx)
@@ -663,11 +660,9 @@ library RollupUtils {
     function DecompressBurnExecution(bytes memory txBytes)
         public
         pure
-        returns (Types.BurnExecution memory)
+        returns (uint256 fromIndex)
     {
-        Types.BurnExecution memory _tx;
-        _tx.fromIndex = abi.decode(txBytes, (uint256));
-        return _tx;
+        return abi.decode(txBytes, (uint256));
     }
 
     function HashFromBurnExecution(Types.BurnExecution memory _tx)
