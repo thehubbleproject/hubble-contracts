@@ -66,20 +66,15 @@ contract FraudProofHelpers is FraudProofSetup {
 
     function ValidateAccountMP(
         bytes32 root,
-        Types.AccountMerkleProof memory merkle_proof
+        uint256 stateID,
+        Types.UserAccount memory account,
+        bytes32[] memory witness
     ) public view {
-        bytes32 accountLeaf = RollupUtils.HashFromAccount(
-            merkle_proof.accountIP.account
-        );
+        bytes32 accountLeaf = RollupUtils.HashFromAccount(account);
 
         // verify from leaf exists in the balance tree
         require(
-            merkleUtils.verifyLeaf(
-                root,
-                accountLeaf,
-                merkle_proof.accountIP.pathToAccount,
-                merkle_proof.siblings
-            ),
+            merkleUtils.verifyLeaf(root, accountLeaf, stateID, witness),
             "Merkle Proof is incorrect"
         );
     }

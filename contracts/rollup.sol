@@ -84,7 +84,9 @@ contract RollupHelpers is RollupSetup {
 
     function addNewBatch(
         bytes32 txRoot,
+        bytes32 txCommit,
         bytes32 _updatedRoot,
+        uint256[2] memory signature,
         Types.Usage batchType
     ) internal {
         Types.Batch memory newBatch = Types.Batch({
@@ -92,10 +94,12 @@ contract RollupHelpers is RollupSetup {
             accountRoot: registry.root(),
             depositTree: ZERO_BYTES32,
             committer: msg.sender,
+            txCommit: txCommit,
             txRoot: txRoot,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             timestamp: now,
+            signature: signature,
             batchType: batchType
         });
 
@@ -117,8 +121,10 @@ contract RollupHelpers is RollupSetup {
             depositTree: depositRoot,
             committer: msg.sender,
             txRoot: ZERO_BYTES32,
+            txCommit: ZERO_BYTES32,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            signature: [uint256(0), uint256(0)],
             timestamp: now,
             batchType: Types.Usage.Transfer
         });
@@ -243,14 +249,11 @@ contract Rollup is RollupHelpers {
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }
 
-    /**
-     * @notice Submits a new batch to batches
-     * @param _txs Compressed transactions .
-     * @param _updatedRoot New balance tree root after processing all the transactions
-     */
     function submitBatch(
-        bytes[] calldata _txs,
+        bytes calldata _txs,
         bytes32 _updatedRoot,
+        bytes32 txRoot,
+        uint256[2] calldata signature,
         Types.Usage batchType
     ) external payable onlyCoordinator isNotRollingBack {
         require(
@@ -262,12 +265,8 @@ contract Rollup is RollupHelpers {
             _txs.length <= governance.MAX_TXS_PER_BATCH(),
             "Batch contains more transations than the limit"
         );
-        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
-        require(
-            txRoot != ZERO_BYTES32,
-            "Cannot submit a transaction with no transactions"
-        );
-        addNewBatch(txRoot, _updatedRoot, batchType);
+        bytes32 txCommit = keccak256(abi.encodePacked(_txs));
+        addNewBatch(txRoot, txCommit, _updatedRoot, batchType);
     }
 
     /**
