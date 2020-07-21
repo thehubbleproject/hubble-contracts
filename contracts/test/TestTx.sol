@@ -189,4 +189,40 @@ contract TestTx {
     {
         return txs.burnConcent_mapToPoint(index);
     }
+
+    function airdrop_serialize(Tx.DropDecoded[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function airdrop_hasExcessData(bytes calldata txs)
+        external
+        pure
+        returns (bool)
+    {
+        txs.airdrop_hasExcessData();
+    }
+
+    function airdrop_size(bytes calldata txs) external pure returns (uint256) {
+        return txs.airdrop_size();
+    }
+
+    function airdrop_receiverOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.airdrop_receiverOf(index);
+    }
+
+    function airdrop_amountOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.airdrop_amountOf(index);
+    }
 }

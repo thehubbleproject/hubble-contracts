@@ -145,7 +145,7 @@ export class TxBurnConcent {
       {v: this.stateID, t: "uint32"},
       {v: this.amount, t: "uint32"},
       {v: this.nonce, t: "uint32"},
-      {v: this.sign , t: "bool"}
+      {v: this.sign, t: "bool"}
     );
   }
 
@@ -169,6 +169,41 @@ export class TxBurnConcent {
       amount.slice(2) +
       nonce.slice(2) +
       (this.sign ? "01" : "00");
+    if (prefix) {
+      encoded = "0x" + encoded;
+    }
+    return encoded;
+  }
+}
+
+export class TxAirdrop {
+  public static rand(): TxAirdrop {
+    const receiverID = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
+    const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
+    return new TxAirdrop(receiverID, amount);
+  }
+  constructor(
+    public readonly receiverID: number,
+    public readonly amount: number
+  ) {}
+
+  public hash(): string {
+    return web3.utils.soliditySha3(
+      {v: this.receiverID, t: "uint32"},
+      {v: this.amount, t: "uint32"}
+    );
+  }
+
+  public encode(prefix: boolean = false): string {
+    let receiverID = web3.utils.padLeft(
+      web3.utils.toHex(this.receiverID),
+      stateIDLen * 2
+    );
+    let amount = web3.utils.padLeft(
+      web3.utils.toHex(this.amount),
+      amountLen * 2
+    );
+    let encoded = receiverID.slice(2) + amount.slice(2);
     if (prefix) {
       encoded = "0x" + encoded;
     }
