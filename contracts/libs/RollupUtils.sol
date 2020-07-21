@@ -361,7 +361,7 @@ library RollupUtils {
         bytes memory sig
     ) public pure returns (bytes memory) {
         Types.DropTx memory _tx = AirdropFromBytes(message);
-        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+        return abi.encode(_tx.toIndex, _tx.amount, sig);
     }
 
     function DecompressAirdrop(bytes memory txBytes)

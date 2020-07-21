@@ -167,6 +167,7 @@ contract("Reddit", async function () {
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
             tx.toIndex, tx.tokenType, tx.signature
         );
+        await RollupUtilsInstance.CompressCreateAccountWithMessage(txBytes, tx.signature);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
 
         await rollupCoreInstance.submitBatch(
@@ -225,6 +226,7 @@ contract("Reddit", async function () {
         const compressedTx = await RollupUtilsInstance.CompressAirdropNoStruct(
             tx.toIndex, tx.amount, tx.signature
         );
+        await RollupUtilsInstance.CompressAirdropTxWithMessage(txBytes, tx.signature);
         await RollupUtilsInstance.DecompressAirdrop(compressedTx);
 
         await rollupCoreInstance.submitBatch(
