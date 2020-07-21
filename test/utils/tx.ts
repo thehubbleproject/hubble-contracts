@@ -137,3 +137,59 @@ export class TxCreate {
         return encoded;
     }
 }
+
+export class TxBurnConcent {
+    public static rand(): TxBurnConcent {
+        const stateID = web3.utils.hexToNumber(
+            web3.utils.randomHex(stateIDLen)
+        );
+        const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
+        const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
+        const sign = Math.random() >= 0.5;
+        return new TxBurnConcent(stateID, amount, nonce, sign);
+    }
+    constructor(
+        public readonly stateID: number,
+        public readonly amount: number,
+        public readonly nonce: number,
+        public readonly sign: boolean
+    ) {}
+
+    public hash(): string {
+        return web3.utils.soliditySha3(
+            { v: this.stateID, t: "uint32" },
+            { v: this.amount, t: "uint32" },
+            { v: this.nonce, t: "uint32" },
+            { v: this.sign, t: "bool" }
+        );
+    }
+
+    public mapToPoint() {
+        const e = this.hash();
+        return mcl.g1ToHex(mcl.mapToPoint(e));
+    }
+
+    public encode(prefix: boolean = false): string {
+        let stateID = web3.utils.padLeft(
+            web3.utils.toHex(this.stateID),
+            stateIDLen * 2
+        );
+        let amount = web3.utils.padLeft(
+            web3.utils.toHex(this.amount),
+            amountLen * 2
+        );
+        let nonce = web3.utils.padLeft(
+            web3.utils.toHex(this.nonce),
+            amountLen * 2
+        );
+        let encoded =
+            stateID.slice(2) +
+            amount.slice(2) +
+            nonce.slice(2) +
+            (this.sign ? "01" : "00");
+        if (prefix) {
+            encoded = "0x" + encoded;
+        }
+        return encoded;
+    }
+}
