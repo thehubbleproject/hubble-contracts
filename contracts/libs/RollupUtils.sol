@@ -220,11 +220,10 @@ library RollupUtils {
     }
     
     function CompressCreateAccountWithMessage(
-        bytes memory message,
-        bytes memory sig
+        bytes memory message
     ) public pure returns (bytes memory) {
         Types.CreateAccount memory _tx = CreateAccountFromBytes(message);
-        return abi.encode(_tx.toIndex, _tx.tokenType, sig);
+        return abi.encode(_tx.toIndex, _tx.tokenType);
     }
     
     function DecompressCreateAccount(bytes memory txBytes)
