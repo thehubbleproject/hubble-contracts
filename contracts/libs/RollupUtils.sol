@@ -218,7 +218,15 @@ library RollupUtils {
     ) public pure returns (bytes memory) {
         return abi.encode(toIndex, tokenType);
     }
-
+    
+    function CompressAirdropTxWithMessage(
+        bytes memory message,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        Types.CreateAccount memory _tx = CreateAccountFromBytes(message);
+        return abi.encode(_tx.toIndex, _tx.tokenType, sig);
+    }
+    
     function DecompressCreateAccount(bytes memory txBytes)
         public
         pure
