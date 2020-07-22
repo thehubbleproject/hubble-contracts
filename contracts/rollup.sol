@@ -21,12 +21,12 @@ interface IRollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txs,
-        Types.BatchValidationProofs memory batchProofs,
+        bytes[] calldata _txs,
+        Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot,
         Types.Usage batchType
     )
-        public
+        external
         view
         returns (
             bytes32,
@@ -322,7 +322,7 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
         Types.BatchValidationProofs memory batchProofs
     ) public {
         {
