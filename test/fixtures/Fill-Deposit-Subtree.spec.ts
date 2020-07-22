@@ -8,76 +8,76 @@ import { ethers } from "ethers";
 
 chai.use(chaiAsPromised);
 
-contract("DepositManager", async function (accounts) {
-  var wallets: any;
-  before(async function () {
-    wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-  });
+contract("DepositManager", async function(accounts) {
+    var wallets: any;
+    before(async function() {
+        wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
+    });
 
-  it("should register a token", async function () {
-    let testToken = await TestToken.deployed();
-    let tokenRegistryInstance = await utils.getTokenRegistry();
-    let registerTokenReceipt = await tokenRegistryInstance.requestTokenRegistration(
-      testToken.address,
-      { from: wallets[0].getAddressString() }
-    );
-  });
+    it("should register a token", async function() {
+        let testToken = await TestToken.deployed();
+        let tokenRegistryInstance = await utils.getTokenRegistry();
+        let registerTokenReceipt = await tokenRegistryInstance.requestTokenRegistration(
+            testToken.address,
+            { from: wallets[0].getAddressString() }
+        );
+    });
 
-  it("should finalise token registration", async () => {
-    let testToken = await TestToken.deployed();
+    it("should finalise token registration", async () => {
+        let testToken = await TestToken.deployed();
 
-    let tokenRegistryInstance = await utils.getTokenRegistry();
+        let tokenRegistryInstance = await utils.getTokenRegistry();
 
-    let approveToken = await tokenRegistryInstance.finaliseTokenRegistration(
-      testToken.address,
-      { from: wallets[0].getAddressString() }
-    );
+        let approveToken = await tokenRegistryInstance.finaliseTokenRegistration(
+            testToken.address,
+            { from: wallets[0].getAddressString() }
+        );
 
-    assert(approveToken, "token registration failed");
-  });
+        assert(approveToken, "token registration failed");
+    });
 
-  // ----------------------------------------------------------------------------------
-  it("should approve Rollup on TestToken", async () => {
-    let testToken = await TestToken.deployed();
-    let depositManagerInstance = await DepositManager.deployed();
-    let approveToken = await testToken.approve(
-      depositManagerInstance.address,
-      ethers.utils.parseEther("1"),
-      {
-        from: wallets[0].getAddressString(),
-      }
-    );
-    assert(approveToken, "approveToken failed");
-  });
+    // ----------------------------------------------------------------------------------
+    it("should approve Rollup on TestToken", async () => {
+        let testToken = await TestToken.deployed();
+        let depositManagerInstance = await DepositManager.deployed();
+        let approveToken = await testToken.approve(
+            depositManagerInstance.address,
+            ethers.utils.parseEther("1"),
+            {
+                from: wallets[0].getAddressString()
+            }
+        );
+        assert(approveToken, "approveToken failed");
+    });
 
-  it("should allow doing one deposit", async () => {
-    let depositManagerInstance = await DepositManager.deployed();
-    var Alice = {
-      Address: wallets[0].getAddressString(),
-      Pubkey: wallets[0].getPublicKeyString(),
-      Amount: 10,
-      TokenType: 1,
-      AccID: 1,
-      Path: "2",
-    };
-    var Bob = {
-      Address: wallets[1].getAddressString(),
-      Pubkey: wallets[1].getPublicKeyString(),
-      Amount: 10,
-      TokenType: 1,
-      AccID: 2,
-      Path: "3",
-    };
-    await depositManagerInstance.deposit(
-      Alice.Amount,
-      Alice.TokenType,
-      Alice.Pubkey
-    );
-    await depositManagerInstance.depositFor(
-      Bob.Address,
-      Bob.Amount,
-      Bob.TokenType,
-      Bob.Pubkey
-    );
-  });
+    it("should allow doing one deposit", async () => {
+        let depositManagerInstance = await DepositManager.deployed();
+        var Alice = {
+            Address: wallets[0].getAddressString(),
+            Pubkey: wallets[0].getPublicKeyString(),
+            Amount: 10,
+            TokenType: 1,
+            AccID: 1,
+            Path: "2"
+        };
+        var Bob = {
+            Address: wallets[1].getAddressString(),
+            Pubkey: wallets[1].getPublicKeyString(),
+            Amount: 10,
+            TokenType: 1,
+            AccID: 2,
+            Path: "3"
+        };
+        await depositManagerInstance.deposit(
+            Alice.Amount,
+            Alice.TokenType,
+            Alice.Pubkey
+        );
+        await depositManagerInstance.depositFor(
+            Bob.Address,
+            Bob.Amount,
+            Bob.TokenType,
+            Bob.Pubkey
+        );
+    });
 });

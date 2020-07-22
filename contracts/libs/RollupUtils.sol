@@ -1,7 +1,7 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import {Types} from "./Types.sol";
+import { Types } from "./Types.sol";
 
 library RollupUtils {
     // ---------- Account Related Utils -------------------
@@ -212,20 +212,23 @@ library RollupUtils {
         return abi.encode(_tx.toIndex, _tx.tokenType);
     }
 
-    function CompressCreateAccountNoStruct(
-        uint256 toIndex,
-        uint256 tokenType
-    ) public pure returns (bytes memory) {
+    function CompressCreateAccountNoStruct(uint256 toIndex, uint256 tokenType)
+        public
+        pure
+        returns (bytes memory)
+    {
         return abi.encode(toIndex, tokenType);
     }
-    
-    function CompressCreateAccountWithMessage(
-        bytes memory message
-    ) public pure returns (bytes memory) {
+
+    function CompressCreateAccountWithMessage(bytes memory message)
+        public
+        pure
+        returns (bytes memory)
+    {
         Types.CreateAccount memory _tx = CreateAccountFromBytes(message);
         return abi.encode(_tx.toIndex, _tx.tokenType);
     }
-    
+
     function DecompressCreateAccount(bytes memory txBytes)
         public
         pure
@@ -566,14 +569,14 @@ library RollupUtils {
     ) public pure returns (bytes memory) {
         return abi.encode(fromIndex, amount, nonce, cancel, sig);
     }
-    
-    function CompressBurnConsentWithMessage(bytes memory message, bytes memory sig)
-        public
-        pure
-        returns (bytes memory)
-    {
+
+    function CompressBurnConsentWithMessage(
+        bytes memory message,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
         Types.BurnConsent memory _tx = BurnConsentFromBytes(message);
-        return abi.encode(_tx.fromIndex, _tx.amount, _tx.nonce,_tx.cancel, sig);
+        return
+            abi.encode(_tx.fromIndex, _tx.amount, _tx.nonce, _tx.cancel, sig);
     }
 
     function DecompressBurnConsent(bytes memory txBytes)

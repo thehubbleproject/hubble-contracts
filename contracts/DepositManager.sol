@@ -1,17 +1,17 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import {IncrementalTree} from "./IncrementalTree.sol";
-import {Types} from "./libs/Types.sol";
-import {Logger} from "./logger.sol";
-import {RollupUtils} from "./libs/RollupUtils.sol";
-import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
-import {IERC20} from "./interfaces/IERC20.sol";
-import {ParamManager} from "./libs/ParamManager.sol";
-import {POB} from "./POB.sol";
-import {Governance} from "./Governance.sol";
-import {Rollup} from "./rollup.sol";
+import { IncrementalTree } from "./IncrementalTree.sol";
+import { Types } from "./libs/Types.sol";
+import { Logger } from "./logger.sol";
+import { RollupUtils } from "./libs/RollupUtils.sol";
+import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
+import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
+import { IERC20 } from "./interfaces/IERC20.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { POB } from "./POB.sol";
+import { Governance } from "./Governance.sol";
+import { Rollup } from "./rollup.sol";
 
 contract DepositManager {
     MTUtils public merkleUtils;

@@ -1,8 +1,8 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import {ParamManager} from "./libs/ParamManager.sol";
-import {Governance} from "./Governance.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { Governance } from "./Governance.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
 
 contract MerkleTreeUtils {
     // The default hashes

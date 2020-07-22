@@ -1,11 +1,11 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import {IReddit} from "./interfaces/IReddit.sol";
-import {ParamManager} from "./libs/ParamManager.sol";
-import {Types} from "./libs/Types.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {RollupUtils} from "./libs/RollupUtils.sol";
+import { IReddit } from "./interfaces/IReddit.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { Types } from "./libs/Types.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
+import { RollupUtils } from "./libs/RollupUtils.sol";
 
 contract RollupReddit {
     Registry public nameRegistry;
@@ -177,8 +177,9 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.BurnConsent memory transaction = RollupUtils
-            .BurnConsentFromBytes(txBytes);
+        Types.BurnConsent memory transaction = RollupUtils.BurnConsentFromBytes(
+            txBytes
+        );
         return burnConsent.ApplyBurnConsentTx(_merkle_proof, transaction);
     }
 

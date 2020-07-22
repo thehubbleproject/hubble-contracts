@@ -1,19 +1,19 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import {IERC20} from "./interfaces/IERC20.sol";
-import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
+import { IERC20 } from "./interfaces/IERC20.sol";
+import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 
-import {Types} from "./libs/Types.sol";
-import {RollupUtils} from "./libs/RollupUtils.sol";
-import {ParamManager} from "./libs/ParamManager.sol";
-import {ECVerify} from "./libs/ECVerify.sol";
+import { Types } from "./libs/Types.sol";
+import { RollupUtils } from "./libs/RollupUtils.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { ECVerify } from "./libs/ECVerify.sol";
 
-import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
-import {Governance} from "./Governance.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
+import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { Governance } from "./Governance.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
 
 contract FraudProofSetup {
     using SafeMath for uint256;

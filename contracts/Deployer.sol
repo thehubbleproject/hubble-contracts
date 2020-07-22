@@ -1,13 +1,13 @@
 pragma solidity ^0.5.15;
-import {ParamManager} from "./libs/ParamManager.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {DepositManager} from "./DepositManager.sol";
-import {TestToken} from "./TestToken.sol";
-import {Rollup} from "./rollup.sol";
-import {TokenRegistry} from "./TokenRegistry.sol";
-import {Logger} from "./logger.sol";
-import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
-import {Governance} from "./Governance.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
+import { DepositManager } from "./DepositManager.sol";
+import { TestToken } from "./TestToken.sol";
+import { Rollup } from "./rollup.sol";
+import { TokenRegistry } from "./TokenRegistry.sol";
+import { Logger } from "./logger.sol";
+import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { Governance } from "./Governance.sol";
 
 // Deployer is supposed to deploy new set of contracts while setting up all the utilities
 // libraries and other auxiallry contracts like registry
