@@ -7,13 +7,16 @@ import {Types} from "./libs/Types.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
 
+import {Transfer} from "./Transfer.sol";
+
 contract RollupReddit {
     Registry public nameRegistry;
     IReddit public createAccount;
     IReddit public airdrop;
-    IReddit public transfer;
     IReddit public burnConsent;
     IReddit public burnExecution;
+
+    Transfer public transfer;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -21,11 +24,10 @@ contract RollupReddit {
         createAccount = IReddit(
             nameRegistry.getContractDetails(ParamManager.CREATE_ACCOUNT())
         );
-
         airdrop = IReddit(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
-        transfer = IReddit(
+        transfer = Transfer(
             nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
         burnConsent = IReddit(
@@ -165,6 +167,43 @@ contract RollupReddit {
                 _from_pda_proof,
                 accountProofs
             );
+    }
+
+    function transfer_shouldRollBackSignerAccountCheck(
+        Types.SignerProof calldata proof,
+        bytes32 state,
+        bytes calldata signers,
+        bytes calldata txs
+    ) external view returns (bool) {
+        return 0 != transfer.signerAccountCheck(proof, state, signers, txs);
+    }
+
+    function transfer_shouldRollbackInvalidSignature(
+        uint256[2] calldata signature,
+        Types.PubkeyAccountProofs calldata proof,
+        bytes calldata txs,
+        bytes calldata signers
+    ) external view returns (bool) {
+        return 0 != transfer.signatureCheck(signature, proof, txs, signers);
+    }
+
+    function transfer_shouldRollbackInvalidStateTransition(
+        bytes32 stateRoot0,
+        bytes32 stateRoot10,
+        bytes memory txs,
+        Types.TransferTransitionProof[] memory proofs
+    ) public view returns (bool) {
+        (bytes32 stateRoot11, uint256 safe) = transfer.processBatch(
+            stateRoot0,
+            txs,
+            proofs
+        );
+        if (0 != safe) {
+            return true;
+        }
+        if (stateRoot11 != stateRoot10) {
+            return true;
+        }
     }
 
     //

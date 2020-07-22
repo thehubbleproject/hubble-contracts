@@ -4,18 +4,32 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
-    // struct TransferTransitionProof {
-    //     UserAccount[] senderAccounts;
-    //     bytes32[][] senderWitnesses;
-    //     UserAccount[] receiverAccounts;
-    //     bytes32[][] receiverWitnesses;
-    // }
-
     struct TransferTransitionProof {
         UserAccount senderAccount;
-        bytes32[] senderWitness;
+        bytes32[] senderWitness; // at state tree depth
         UserAccount receiverAccount;
-        bytes32[] receiverWitness;
+        bytes32[] receiverWitness; // at state tree depth
+    }
+
+    struct AirDropTransitionProof {
+        UserAccount account;
+        bytes32[] witness; // at state tree depth
+    }
+
+    struct SignerProof {
+        uint256 targetIndex;
+        UserAccount account;
+        bytes32[] witness; // at state tree depth
+    }
+
+    struct PubkeyAccountProofs {
+        uint256[4][] pubkeys;
+        bytes32[31][] witnesses;
+    }
+
+    struct PubkeyAccountProof {
+        uint256[4] pubkey;
+        bytes32[31] witness;
     }
 
     // We define Usage for a batch or for a tx
@@ -42,6 +56,7 @@ library Types {
         address committer;
         bytes32 txRoot;
         bytes32 txCommit;
+        bytes32 signerCommit;
         uint256 stakeCommitted;
         uint256 finalisesOn;
         uint256 timestamp;

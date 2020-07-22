@@ -2,49 +2,133 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import {FraudProofHelpers} from "./FraudProof.sol";
 import {Types} from "./libs/Types.sol";
-import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 
+import {BLSAccountRegistry} from "./BLSAccountRegistry.sol";
+import {BLS} from "./libs/BLS.sol";
 import {Tx} from "./libs/Tx.sol";
 
 contract Transfer is FraudProofHelpers {
     using Tx for bytes;
 
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
+    BLSAccountRegistry accountRegistry;
 
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
+    // FIX: commented out to test other components
+    // constructor(address _registryAddr) public {
+    //     nameRegistry = Registry(_registryAddr);
 
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
 
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
+    //     merkleUtils = MTUtils(
+    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+    //     );
+    // }
 
-    function generateTxRoot(Types.Transaction[] memory _txs)
+    function generateTxRoot(Tx.TransferDecoded[] memory _txs)
         public
         view
         returns (bytes32 txRoot)
     {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
+        return
+            merkleUtils.ascendToRootTruncated(Tx.transfer_decodedToLeafs(_txs));
+    }
+
+    function generateTxRoot(bytes memory txs)
+        public
+        view
+        returns (bytes32 txRoot)
+    {
+        return merkleUtils.ascendToRootTruncated(txs.transfer_toLeafs());
+    }
+
+    // TODO: move somewhere nice
+    uint256 constant ACCOUNT_ID_LEN = 4;
+    uint256 constant MASK_ACCOUNT_ID = 0xffffffff;
+
+    function txRootCheck(bytes32 txRoot, bytes calldata txs)
+        external
+        view
+        returns (uint256)
+    {
+        if (txRoot != generateTxRoot(txs)) {
+            return 1;
         }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
+        return 0;
+    }
+
+    function signerAccountCheck(
+        Types.SignerProof calldata proof,
+        bytes32 state,
+        bytes calldata signers,
+        bytes calldata txs
+    ) external view returns (uint256) {
+        uint256 batchSize = txs.transfer_size();
+        // Checks below has to be done at submit batch level
+        // require(batchSize > 0, "Rollup: empty signer array");
+        // require(!txs.transfer_hasExcessData(), "Transfer: excess tx data");
+        uint256 targetIndex = proof.targetIndex;
+        require(targetIndex < batchSize, "Transfer: invalid target index");
+        uint256 stateID = txs.transfer_senderOf(targetIndex);
+        ValidateAccountMP(state, stateID, proof.account, proof.witness);
+        uint256 committedSignerAccountID;
+        bytes memory _signers = signers;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            // TODO: use calldata copy
+            let p_signers := add(
+                _signers,
+                mul(add(1, targetIndex), ACCOUNT_ID_LEN)
+            )
+            committedSignerAccountID := and(mload(p_signers), MASK_ACCOUNT_ID)
+        }
+        if (committedSignerAccountID != proof.account.ID) {
+            return 1;
+        }
+        return 0;
+    }
+
+    function signatureCheck(
+        uint256[2] calldata signature,
+        Types.PubkeyAccountProofs calldata proof,
+        bytes calldata txs,
+        bytes calldata signers
+    ) external view returns (uint256) {
+        uint256 batchSize = txs.transfer_size();
+        // Checks below has to be done at submit batch level
+        // require(batchSize > 0, "Transfer: empty batch");
+        // require(!txs.transfer_hasExcessData(), "Transfer: excess tx data");
+        uint256[2][] memory messages = new uint256[2][](batchSize);
+        // TODO use calldata copy
+        bytes memory _signers = signers;
+        uint256 off = ACCOUNT_ID_LEN;
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 signerID;
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                let p_signers := add(_signers, off)
+                signerID := and(mload(p_signers), MASK_ACCOUNT_ID)
+            }
+            require(
+                accountRegistry.exists(
+                    signerID,
+                    proof.pubkeys[i],
+                    proof.witnesses[i]
+                ),
+                "Transfer: account does not exists"
+            );
+            messages[i] = txs.transfer_mapToPoint(i);
+            off += ACCOUNT_ID_LEN;
+        }
+        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+            return 1;
+        }
+        return 0;
     }
 
     function processBatch(
@@ -53,41 +137,33 @@ contract Transfer is FraudProofHelpers {
         Types.TransferTransitionProof[] memory proofs
     ) public view returns (bytes32, uint256) {
         uint256 batchSize = txs.transfer_size();
-        require(batchSize > 0, "Rollup: empty batch");
-        require(!txs.transfer_hasExcessData(), "Rollup: excess tx data");
+        require(batchSize > 0, "Transfer: empty batch");
+        require(!txs.transfer_hasExcessData(), "Transfer: excess tx data");
         bytes32 acc = stateRoot;
         for (uint256 i = 0; i < batchSize; i++) {
-            (
-                uint256 receiverID,
-                uint256 senderID,
-                uint256 amount,
-                uint256 nonce
-            ) = txs.transfer_decode(i);
             uint256 fraudCode = 0;
-            (acc, fraudCode) = processTx(
-                acc,
-                senderID,
-                receiverID,
-                amount,
-                nonce,
-                proofs[i]
-            );
+            (acc, fraudCode) = processTx(acc, i, txs, proofs[i]);
+
             if (0 != fraudCode) {
                 return (bytes32(0x00), fraudCode);
             }
         }
-        return (stateRoot, 0);
+        return (acc, 0);
     }
 
     function processTx(
         bytes32 stateRoot,
-        uint256 senderID,
-        uint256 receiverID,
-        uint256 amount,
-        uint256 nonce,
+        uint256 index,
+        bytes memory txs,
         Types.TransferTransitionProof memory proof
     ) public view returns (bytes32, uint256) {
         bytes32 acc = stateRoot;
+        (
+            uint256 senderID,
+            uint256 receiverID,
+            uint256 amount,
+            uint256 nonce
+        ) = txs.transfer_decode(index);
 
         // A. check sender inclusion in state
         ValidateAccountMP(
@@ -144,7 +220,7 @@ contract Transfer is FraudProofHelpers {
         // }
         //
         //
-        // B. apply diff for receiver
+        // D. apply diff for receiver
         if (account.tokenType != token) {
             // token type mismatch
             return (bytes32(0x00), 6);

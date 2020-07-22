@@ -44,13 +44,22 @@ library Tx {
     uint256 public constant POSITION_NONCE_2 = 12;
     uint256 public constant POSITION_SIGN_2 = 13;
 
-    // transaction_type: airdrop
+    // transaction_type: airdrop_reciver_side
     // [receiver_state_id<4>|amount<4>]
-    uint256 public constant TX_LEN_3 = 8;
-    uint256 public constant MASK_TX_3 = 0xffffffff;
+    uint256 public constant TX_LEN_3a = 8;
+    uint256 public constant MASK_TX_3a = 0xffffffff;
     // positions in bytes
-    uint256 public constant POSITION_RECEIVER_3 = 4;
-    uint256 public constant POSITION_AMOUNT_3 = 8;
+    uint256 public constant POSITION_RECEIVER_3a = 4;
+    uint256 public constant POSITION_AMOUNT_3a = 8;
+
+    // transaction_type: airdrop_sender_side
+    // [sender_account_id<4>|sender_state_id<4>|nonce<4>]
+    uint256 public constant TX_LEN_3b = 12;
+    uint256 public constant MASK_TX_3b = 0xffffffffffff;
+    // positions in bytes
+    uint256 public constant POSITION_STATE_3b = 4;
+    uint256 public constant POSITION_ACCOUNT_3b = 8;
+    uint256 public constant POSITION_NONCE_3b = 12;
 
     struct TransferDecoded {
         uint256 senderID;
@@ -72,9 +81,14 @@ library Tx {
         bool sign;
     }
 
-    struct DropDecoded {
+    struct DropDecodedReceiver {
         uint256 receiverID;
         uint256 amount;
+    }
+
+    struct DropDecodedSender {
+        uint256 senderID;
+        uint256 nonce;
     }
 
     function serialize(TransferDecoded[] memory txs)
@@ -105,6 +119,26 @@ library Tx {
             }
         }
         return serialized;
+    }
+
+    function transfer_decodedToLeafs(TransferDecoded[] memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = keccak256(
+                abi.encodePacked(
+                    uint32(txs[i].senderID),
+                    uint32(txs[i].receiverID),
+                    uint32(txs[i].amount),
+                    uint32(txs[i].nonce)
+                )
+            );
+        }
+        return buf;
     }
 
     function transfer_decode(bytes memory txs, uint256 index)
@@ -471,30 +505,50 @@ library Tx {
         return BLS.mapToPoint(r);
     }
 
-    function serialize(DropDecoded[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        uint256 batchSize = txs.length;
+    function serialize(
+        DropDecodedSender memory stx,
+        DropDecodedReceiver[] memory rtxs
+    ) internal pure returns (bytes memory) {
+        uint256 batchSize = rtxs.length;
 
-        bytes memory serialized = new bytes(TX_LEN_3 * batchSize);
+        bytes memory serialized = new bytes(TX_LEN_3a * batchSize + TX_LEN_3b);
+        uint256 stateID = stx.senderID;
+        uint256 nonce = stx.nonce;
+        require(stateID < bound4Bytes, "invalid stateID");
+        require(nonce < bound4Bytes, "invalid nonce");
+        bytes memory _tx = abi.encodePacked(uint32(stateID), uint32(nonce));
+        for (uint256 j = 0; j < TX_LEN_3b; j++) {
+            serialized[j] = _tx[j];
+        }
+        uint256 off = TX_LEN_3b;
         for (uint256 i = 0; i < batchSize; i++) {
-            uint256 receiverID = txs[i].receiverID;
-            uint256 amount = txs[i].amount;
-            require(receiverID < bound4Bytes, "invalid stateID");
+            stateID = rtxs[i].receiverID;
+            uint256 amount = rtxs[i].amount;
+            require(stateID < bound4Bytes, "invalid stateID");
             require(amount < bound4Bytes, "invalid amount");
-            bytes memory _tx = abi.encodePacked(
-                uint32(receiverID),
-                uint32(amount)
-            );
-            require(_tx.length == TX_LEN_3, "TODO: rm, bad implementation");
-            uint256 off = i * TX_LEN_3;
-            for (uint256 j = 0; j < TX_LEN_3; j++) {
+            _tx = abi.encodePacked(uint32(stateID), uint32(amount));
+            for (uint256 j = 0; j < TX_LEN_3a; j++) {
                 serialized[j + off] = _tx[j];
             }
+            off += TX_LEN_3a;
         }
         return serialized;
+    }
+
+    function airdrop_decode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 receiver, uint256 amount)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_3a)),
+                MASK_STATE_ID
+            )
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
+        }
     }
 
     function airdrop_hasExcessData(bytes memory txs)
@@ -502,11 +556,47 @@ library Tx {
         pure
         returns (bool)
     {
-        return txs.length % TX_LEN_3 != 0;
+        return (txs.length - TX_LEN_3b) % TX_LEN_3a != 0;
     }
 
     function airdrop_size(bytes memory txs) internal pure returns (uint256) {
-        return txs.length / TX_LEN_3;
+        return (txs.length - TX_LEN_3b) / TX_LEN_3a;
+    }
+
+    function airdrop_senderAccountID(bytes memory txs)
+        internal
+        pure
+        returns (uint256 receiver)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            receiver := and(
+                mload(add(txs, POSITION_ACCOUNT_3b)),
+                MASK_ACCOUNT_ID
+            )
+        }
+    }
+
+    function airdrop_senderStateID(bytes memory txs)
+        internal
+        pure
+        returns (uint256 receiver)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            receiver := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
+        }
+    }
+
+    function airdrop_nonce(bytes memory txs)
+        internal
+        pure
+        returns (uint256 nonce)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_STATE_ID)
+        }
     }
 
     function airdrop_receiverOf(bytes memory txs, uint256 index)
@@ -516,9 +606,9 @@ library Tx {
     {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_3))
+            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
             receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_3)),
+                mload(add(p_tx, POSITION_RECEIVER_3a)),
                 MASK_STATE_ID
             )
         }
@@ -531,8 +621,8 @@ library Tx {
     {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_3))
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_3)), MASK_AMOUNT)
+            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
         }
         return amount;
     }

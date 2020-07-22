@@ -9,7 +9,6 @@ import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
 import {Types} from "./libs/Types.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
-import {ECVerify} from "./libs/ECVerify.sol";
 
 import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {Governance} from "./Governance.sol";
@@ -17,7 +16,6 @@ import {NameRegistry as Registry} from "./NameRegistry.sol";
 
 contract FraudProofSetup {
     using SafeMath for uint256;
-    using ECVerify for bytes32;
 
     MTUtils public merkleUtils;
     ITokenRegistry public tokenRegistry;
@@ -30,40 +28,6 @@ contract FraudProofSetup {
 }
 
 contract FraudProofHelpers is FraudProofSetup {
-    function ValidatePubkeyAvailability(
-        bytes32 _accountsRoot,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        uint256 from_index
-    ) public view {
-        // verify from account pubkey exists in PDA tree
-        // NOTE: We dont need to prove that to address has the pubkey available
-        Types.PDALeaf memory fromPDA = Types.PDALeaf({
-            pubkey: _from_pda_proof._pda.pubkey_leaf.pubkey
-        });
-
-        require(
-            merkleUtils.verifyLeaf(
-                _accountsRoot,
-                RollupUtils.PDALeafToHash(fromPDA),
-                _from_pda_proof._pda.pathToPubkey,
-                _from_pda_proof.siblings
-            ),
-            "From PDA proof is incorrect"
-        );
-
-        // convert pubkey path to ID
-        uint256 computedID = merkleUtils.pathToIndex(
-            _from_pda_proof._pda.pathToPubkey,
-            governance.MAX_DEPTH()
-        );
-
-        // make sure the ID in transaction is the same account for which account proof was provided
-        require(
-            computedID == from_index,
-            "Pubkey not related to the from account in the transaction"
-        );
-    }
-
     function ValidateAccountMP(
         bytes32 root,
         uint256 stateID,
@@ -211,33 +175,5 @@ contract FraudProofHelpers is FraudProofSetup {
             _merkle_proof.siblings
         );
         return (newRoot);
-    }
-
-    function ValidateSignature(
-        Types.Transaction memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof
-    ) public pure returns (bool) {
-        require(
-            RollupUtils.calculateAddress(
-                _from_pda_proof._pda.pubkey_leaf.pubkey
-            ) ==
-                RollupUtils
-                    .getTxSignBytes(
-                    _tx
-                        .fromIndex,
-                    _tx
-                        .toIndex,
-                    _tx
-                        .tokenType,
-                    _tx
-                        .txType,
-                    _tx
-                        .nonce,
-                    _tx
-                        .amount
-                )
-                    .ecrecovery(_tx.signature),
-            "Signature is incorrect"
-        );
     }
 }

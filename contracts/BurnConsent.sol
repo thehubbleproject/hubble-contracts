@@ -131,17 +131,13 @@ contract BurnConsent is FraudProofHelpers {
         )
     {
         // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            _tx.fromIndex
-        );
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         // TODO: ValidateSignature(_tx, _from_pda_proof);
 
         // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, _fromAccountProof);
+
+        // ValidateAccountMP(_balanceRoot, _fromAccountProof);
 
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
 

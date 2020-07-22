@@ -26,6 +26,19 @@ contract TestTx {
         return txs.transfer_size();
     }
 
+    function transfer_decode(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (
+            uint256 sender,
+            uint256 receiver,
+            uint256 amount,
+            uint256 nonce
+        )
+    {
+        return Tx.transfer_decode(txs, index);
+    }
+
     function transfer_amountOf(bytes calldata txs, uint256 index)
         external
         pure
@@ -190,12 +203,11 @@ contract TestTx {
         return txs.burnConcent_mapToPoint(index);
     }
 
-    function airdrop_serialize(Tx.DropDecoded[] calldata txs)
-        external
-        pure
-        returns (bytes memory)
-    {
-        return Tx.serialize(txs);
+    function airdrop_serialize(
+        Tx.DropDecodedSender calldata stx,
+        Tx.DropDecodedReceiver[] calldata rtxs
+    ) external pure returns (bytes memory) {
+        return Tx.serialize(stx, rtxs);
     }
 
     function airdrop_hasExcessData(bytes calldata txs)

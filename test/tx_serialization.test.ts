@@ -15,8 +15,8 @@ contract("Tx Serialization", accounts => {
     await mclInit();
     c = await TestTx.new();
   });
-  it("parse transfer transaction", async function() {
-    const txSize = 32;
+  it.only("parse transfer transaction", async function() {
+    const txSize = 2;
     const txs: TxTransfer[] = [];
     for (let i = 0; i < txSize; i++) {
       txs.push(TxTransfer.rand());

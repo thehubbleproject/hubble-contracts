@@ -143,11 +143,6 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        // Assuming Reddit have run createPublickeys
-        ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
-
-        // Validate Signture, this requires validate public key and it's existence with _from_pda_proof.
-
         // Validate we are creating on a zero account
         if (
             !merkleUtils.verifyLeaf(

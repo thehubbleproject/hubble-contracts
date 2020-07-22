@@ -86,6 +86,7 @@ contract RollupHelpers is RollupSetup {
         bytes32 txRoot,
         bytes32 txCommit,
         bytes32 _updatedRoot,
+        bytes32 signerCommit,
         uint256[2] memory signature,
         Types.Usage batchType
     ) internal {
@@ -100,7 +101,8 @@ contract RollupHelpers is RollupSetup {
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             timestamp: now,
             signature: signature,
-            batchType: batchType
+            batchType: batchType,
+            signerCommit: signerCommit
         });
 
         batches.push(newBatch);
@@ -122,6 +124,7 @@ contract RollupHelpers is RollupSetup {
             committer: msg.sender,
             txRoot: ZERO_BYTES32,
             txCommit: ZERO_BYTES32,
+            signerCommit: ZERO_BYTES32,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             signature: [uint256(0), uint256(0)],
@@ -246,13 +249,21 @@ contract Rollup is RollupHelpers {
         fraudProof = IFraudProof(
             nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
-        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
+        addNewBatch(
+            ZERO_BYTES32,
+            ZERO_BYTES32,
+            genesisStateRoot,
+            ZERO_BYTES32,
+            [uint256(0), uint256(0)],
+            Types.Usage.Genesis
+        );
     }
 
     function submitBatch(
         bytes calldata _txs,
         bytes32 _updatedRoot,
         bytes32 txRoot,
+        bytes32 signerCommit,
         uint256[2] calldata signature,
         Types.Usage batchType
     ) external payable onlyCoordinator isNotRollingBack {
@@ -266,7 +277,14 @@ contract Rollup is RollupHelpers {
             "Batch contains more transations than the limit"
         );
         bytes32 txCommit = keccak256(abi.encodePacked(_txs));
-        addNewBatch(txRoot, txCommit, _updatedRoot, batchType);
+        addNewBatch(
+            txRoot,
+            txCommit,
+            _updatedRoot,
+            signerCommit,
+            signature,
+            batchType
+        );
     }
 
     /**
@@ -294,70 +312,6 @@ contract Rollup is RollupHelpers {
 
         // add new batch
         addNewBatchWithDeposit(updatedRoot, depositSubTreeRoot);
-    }
-
-    /**
-     *  disputeBatch processes a transactions and returns the updated balance tree
-     *  and the updated leaves.
-     * @notice Gives the number of batches submitted on-chain
-     * @return Total number of batches submitted onchain
-     */
-    function disputeBatch(
-        uint256 _batch_id,
-        Types.Transaction[] memory _txs,
-        Types.BatchValidationProofs memory batchProofs
-    ) public {
-        {
-            // load batch
-            require(
-                batches[_batch_id].stakeCommitted != 0,
-                "Batch doesnt exist or is slashed already"
-            );
-
-            // check if batch is disputable
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-                "Already successfully disputed. Roll back in process"
-            );
-
-            require(
-                batches[_batch_id].txRoot != ZERO_BYTES32,
-                "Cannot dispute blocks with no transaction"
-            );
-        }
-
-        bytes32 updatedBalanceRoot;
-        bool isDisputeValid;
-        bytes32 txRoot;
-        (updatedBalanceRoot, txRoot, isDisputeValid) = processBatch(
-            batches[_batch_id - 1].stateRoot,
-            batches[_batch_id - 1].accountRoot,
-            _txs,
-            batchProofs,
-            batches[_batch_id].txRoot
-        );
-
-        // dispute is valid, we need to slash and rollback :(
-        if (isDisputeValid) {
-            // before rolling back mark the batch invalid
-            // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
-            return;
-        }
-
-        // if new root doesnt match what was submitted by coordinator
-        // slash and rollback
-        if (updatedBalanceRoot != batches[_batch_id].stateRoot) {
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
-            return;
-        }
     }
 
     function ApplyTx(
@@ -461,5 +415,103 @@ contract Rollup is RollupHelpers {
             batch_id
         );
         committedBatch.stakeCommitted = 0;
+    }
+
+    // /**
+    //  *  disputeBatch processes a transactions and returns the updated balance tree
+    //  *  and the updated leaves.
+    //  * @notice Gives the number of batches submitted on-chain
+    //  * @return Total number of batches submitted onchain
+    //  */
+    // function disputeBatch(
+    //     uint256 _batch_id,
+    //     Types.Transaction[] memory _txs,
+    //     Types.BatchValidationProofs memory batchProofs
+    // ) public {
+    //     {
+    //         // load batch
+    //         require(
+    //             batches[_batch_id].stakeCommitted != 0,
+    //             "Batch doesnt exist or is slashed already"
+    //         );
+
+    //         // check if batch is disputable
+    //         require(
+    //             block.number < batches[_batch_id].finalisesOn,
+    //             "Batch already finalised"
+    //         );
+
+    //         require(
+    //             (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+    //             "Already successfully disputed. Roll back in process"
+    //         );
+
+    //         require(
+    //             batches[_batch_id].txRoot != ZERO_BYTES32,
+    //             "Cannot dispute blocks with no transaction"
+    //         );
+    //     }
+
+    //     bytes32 updatedBalanceRoot;
+    //     bool isDisputeValid;
+    //     bytes32 txRoot;
+    //     (updatedBalanceRoot, txRoot, isDisputeValid) = processBatch(
+    //         batches[_batch_id - 1].stateRoot,
+    //         batches[_batch_id - 1].accountRoot,
+    //         _txs,
+    //         batchProofs,
+    //         batches[_batch_id].txRoot
+    //     );
+
+    //     // dispute is valid, we need to slash and rollback :(
+    //     if (isDisputeValid) {
+    //         // before rolling back mark the batch invalid
+    //         // so we can pause and unpause
+    //         invalidBatchMarker = _batch_id;
+    //         SlashAndRollback();
+    //         return;
+    //     }
+
+    //     // if new root doesnt match what was submitted by coordinator
+    //     // slash and rollback
+    //     if (updatedBalanceRoot != batches[_batch_id].stateRoot) {
+    //         invalidBatchMarker = _batch_id;
+    //         SlashAndRollback();
+    //         return;
+    //     }
+    // }
+
+    function disputeBatchTransferStateTransition(
+        uint256 _batch_id,
+        bytes memory _txs,
+        Types.TransferTransitionProof[] memory proofs
+    ) internal {
+        // load batch
+        require(
+            batches[_batch_id].stakeCommitted != 0,
+            "Batch doesnt exist or is slashed already"
+        );
+        // check if batch is disputable
+        require(
+            block.number < batches[_batch_id].finalisesOn,
+            "Batch already finalised"
+        );
+        require(
+            (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+            "Already successfully disputed. Roll back in process"
+        );
+        require(
+            batches[_batch_id].txRoot != ZERO_BYTES32,
+            "Cannot dispute blocks with no transaction"
+        );
+        require(
+            batches[_batch_id].txCommit == keccak256(abi.encodePacked(_txs)),
+            "Cannot dispute blocks with no transaction"
+        );
+        //         batches[_batch_id - 1].stateRoot,
+
+        // bytes32 stateRoot,
+        // bytes memory txs,
+        // Types.TransferTransitionProof[] memory proofs
     }
 }

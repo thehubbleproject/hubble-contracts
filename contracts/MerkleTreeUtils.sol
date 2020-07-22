@@ -1,30 +1,62 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import {ParamManager} from "./libs/ParamManager.sol";
-import {Governance} from "./Governance.sol";
+// import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 
 contract MerkleTreeUtils {
     // The default hashes
     bytes32[] public defaultHashes;
-    uint256 public MAX_DEPTH;
-    Governance public governance;
+    uint256 public MAX_DEPTH = 32;
+
+    // Governance public governance;
 
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor(address _registryAddr) public {
-        Registry nameRegistry = Registry(_registryAddr);
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        MAX_DEPTH = governance.MAX_DEPTH();
+    constructor() public {
+        // FIX: commented out to test other components
+        // constructor(address _registryAddr) public {
+        // Registry nameRegistry = Registry(_registryAddr);
+        // governance = Governance(
+        //     nameRegistry.getContractDetails(ParamManager.Governance())
+        // );
+        // MAX_DEPTH = governance.MAX_DEPTH();
         defaultHashes = new bytes32[](MAX_DEPTH);
         // Calculate & set the default hashes
         setDefaultHashes(MAX_DEPTH);
     }
 
     /* Methods */
+
+    function ascendToRootTruncated(bytes32[] memory buf)
+        public
+        view
+        returns (bytes32)
+    {
+        uint256 odd = buf.length & 1;
+        uint256 n = (buf.length + 1) >> 1;
+        uint256 level = 0;
+        while (true) {
+            uint256 i = 0;
+            for (; i < n - odd; i++) {
+                uint256 j = i << 1;
+                buf[i] = keccak256(abi.encode(buf[j], buf[j + 1]));
+            }
+            if (odd == 1) {
+                buf[i] = keccak256(
+                    abi.encode(buf[i << 1], defaultHashes[level])
+                );
+            }
+            if (n == 1) {
+                break;
+            }
+            odd = (n & 1);
+            n = (n + 1) >> 1;
+            level += 1;
+        }
+        return buf[0];
+    }
 
     /**
      * @notice Set default hashes
