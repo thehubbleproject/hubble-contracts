@@ -12,7 +12,9 @@ library Types {
         CreateAccount,
         Airdrop,
         BurnConsent,
-        BurnExecution
+        BurnExecution,
+        // Only applicable to batch and not tx
+        Deposit
     }
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
