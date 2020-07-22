@@ -1,0 +1,5 @@
+test-blockchain/
+types/
+.github/
+.solcover.js
+truffle-config.js
