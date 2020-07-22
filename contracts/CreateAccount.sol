@@ -48,11 +48,7 @@ contract CreateAccount is FraudProofHelpers {
     {
         uint256[] memory pubkeyIDs = new uint256[](publicKeys.length);
         for (uint256 i = 0; i < publicKeys.length; i++) {
-            Types.PDALeaf memory newPDALeaf;
-            newPDALeaf.pubkey = publicKeys[i];
-            pubkeyIDs[i] = accountsTree.appendLeaf(
-                RollupUtils.PDALeafToHash(newPDALeaf)
-            );
+            pubkeyIDs[i] = accountsTree.appendDataBlock(publicKeys[i]);
         }
         return pubkeyIDs;
     }
