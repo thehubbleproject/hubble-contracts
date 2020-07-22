@@ -1,91 +1,94 @@
 export enum Usage {
-  Genesis, Transfer, CreateAccount, Airdrop, BurnConsent, BurnExecution
+    Genesis,
+    Transfer,
+    CreateAccount,
+    Airdrop,
+    BurnConsent,
+    BurnExecution
 }
 
-
 export interface Account {
-  ID: number;
-  tokenType: number;
-  balance: number;
-  nonce: number;
-  burn: number;
-  lastBurn: number;
+    ID: number;
+    tokenType: number;
+    balance: number;
+    nonce: number;
+    burn: number;
+    lastBurn: number;
 }
 
 export interface AccountInclusionProof {
-  pathToAccount: string;
-  account: Account;
+    pathToAccount: string;
+    account: Account;
 }
 
 export interface AccountMerkleProof {
-  accountIP: AccountInclusionProof;
-  siblings: string[];
+    accountIP: AccountInclusionProof;
+    siblings: string[];
 }
 
 export interface PDALeaf {
-  pubkey: string;
+    pubkey: string;
 }
 
 export interface PDAInclusionProof {
-  pathToPubkey: string;
-  pubkey_leaf: PDALeaf;
+    pathToPubkey: string;
+    pubkey_leaf: PDALeaf;
 }
 
 export interface PDAMerkleProof {
-  _pda: PDAInclusionProof;
-  siblings: string[];
+    _pda: PDAInclusionProof;
+    siblings: string[];
 }
 
 export interface Transaction {
-  fromIndex: number;
-  toIndex: number;
-  tokenType: number;
-  amount: number;
-  txType: number;
-  nonce: number;
-  signature?: string;
+    fromIndex: number;
+    toIndex: number;
+    tokenType: number;
+    amount: number;
+    txType: number;
+    nonce: number;
+    signature?: string;
 }
 
 export enum ErrorCode {
-  NoError,
-  InvalidTokenAddress,
-  InvalidTokenAmount,
-  NotEnoughTokenBalance,
-  BadFromTokenType,
-  BadToTokenType,
-  InvalidCancelBurnAmount,
-  BadFromIndex,
-  BurnAlreadyExecuted,
-  NotCreatingOnZeroAccount,
-  BadSignature,
-  BadNonce,
+    NoError,
+    InvalidTokenAddress,
+    InvalidTokenAmount,
+    NotEnoughTokenBalance,
+    BadFromTokenType,
+    BadToTokenType,
+    InvalidCancelBurnAmount,
+    BadFromIndex,
+    BurnAlreadyExecuted,
+    NotCreatingOnZeroAccount,
+    BadSignature,
+    BadNonce
 }
 
-
 export interface CreateAccount {
-  toIndex: number;
-  tokenType: number;
+    toIndex: number;
+    tokenType: number;
 }
 
 export interface DropTx {
-  fromIndex: number;
-  toIndex: number;
-  tokenType: number;
-  nonce: number;
-  txType: number;
-  amount: number;
-  signature: string;
+    fromIndex: number;
+    toIndex: number;
+    tokenType: number;
+    nonce: number;
+    txType: number;
+    amount: number;
+    signature: string;
 }
 
 export interface BurnConsentTx {
-  fromIndex: number;
-  amount: number;
-  nonce: number;
-  cancel: boolean;
-  signature: string;
+    fromIndex: number;
+    amount: number;
+    nonce: number;
+    cancel: boolean;
+    signature: string;
 }
 
 export interface BurnExecutionTx {
-  fromIndex: number;
-  signature: string;
+    fromIndex: number;
+    signature: string;
 }

@@ -1,14 +1,14 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import {FraudProofHelpers} from "./FraudProof.sol";
-import {Types} from "./libs/Types.sol";
-import {ITokenRegistry} from "./interfaces/ITokenRegistry.sol";
-import {RollupUtils} from "./libs/RollupUtils.sol";
-import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
-import {Governance} from "./Governance.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {ParamManager} from "./libs/ParamManager.sol";
+import { FraudProofHelpers } from "./FraudProof.sol";
+import { Types } from "./libs/Types.sol";
+import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
+import { RollupUtils } from "./libs/RollupUtils.sol";
+import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { Governance } from "./Governance.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
 
 contract Airdrop is FraudProofHelpers {
     /*********************
@@ -136,14 +136,21 @@ contract Airdrop is FraudProofHelpers {
             _tx,
             accountProofs.from.accountIP.account
         );
-        if (err_code != Types.ErrorCode.NoError) return (ZERO_BYTES32, "", "", err_code, false);
+        if (err_code != Types.ErrorCode.NoError)
+            return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
         if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
-            return (ZERO_BYTES32, "", "", Types.ErrorCode.BadFromTokenType, false);
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadFromTokenType,
+                false
+            );
 
         bytes32 newRoot;
         bytes memory new_from_account;
@@ -169,7 +176,13 @@ contract Airdrop is FraudProofHelpers {
 
         (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, _tx);
 
-        return (newRoot, new_from_account, new_to_account, Types.ErrorCode.NoError, true);
+        return (
+            newRoot,
+            new_from_account,
+            new_to_account,
+            Types.ErrorCode.NoError,
+            true
+        );
     }
 
     /**

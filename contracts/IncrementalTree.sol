@@ -1,11 +1,11 @@
 pragma solidity ^0.5.15;
 
-import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
-import {ParamManager} from "./libs/ParamManager.sol";
-import {NameRegistry as Registry} from "./NameRegistry.sol";
-import {Governance} from "./Governance.sol";
-import {Logger} from "./logger.sol";
-import {RollupUtils} from "./libs/RollupUtils.sol";
+import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { NameRegistry as Registry } from "./NameRegistry.sol";
+import { Governance } from "./Governance.sol";
+import { Logger } from "./logger.sol";
+import { RollupUtils } from "./libs/RollupUtils.sol";
 
 contract IncrementalTree {
     Registry public nameRegistry;
@@ -48,7 +48,7 @@ contract IncrementalTree {
         }
     }
 
-    function appendDataBlock(bytes memory datablock) public returns(uint256){
+    function appendDataBlock(bytes memory datablock) public returns (uint256) {
         bytes32 _leaf = keccak256(abi.encode(datablock));
         uint256 accID = appendLeaf(_leaf);
         logger.logNewPubkeyAdded(accID, datablock);

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import {Types} from "../libs/Types.sol";
+import { Types } from "../libs/Types.sol";
 
 interface IFraudProof {
     function processTx(

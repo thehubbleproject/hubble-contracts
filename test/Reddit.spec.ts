@@ -9,18 +9,17 @@ import {
     Account,
     BurnConsentTx,
     BurnExecutionTx,
-    Transaction,
+    Transaction
 } from "../scripts/helpers/interfaces";
-import { PublicKeyStore, AccountStore } from '../scripts/helpers/store';
-import { coordinatorPubkeyHash, MAX_DEPTH } from '../scripts/helpers/constants';
+import { PublicKeyStore, AccountStore } from "../scripts/helpers/store";
+import { coordinatorPubkeyHash, MAX_DEPTH } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 const RollupReddit = artifacts.require("RollupReddit");
 
-
-contract("Reddit", async function () {
+contract("Reddit", async function() {
     let wallets: any;
     let Reddit: any;
     let User: any;
@@ -34,7 +33,7 @@ contract("Reddit", async function () {
     let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
     let accountStore: AccountStore;
-    before(async function () {
+    before(async function() {
         depositManagerInstance = await DepositManager.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         rollupRedditInstance = await RollupReddit.deployed();
@@ -49,7 +48,7 @@ contract("Reddit", async function () {
             TokenType: 1,
             AccID: 2,
             Path: 2,
-            nonce: 0,
+            nonce: 0
         };
         Bob = {
             Wallet: wallets[1],
@@ -59,7 +58,7 @@ contract("Reddit", async function () {
             TokenType: 1,
             AccID: 3,
             Path: 3,
-            nonce: 0,
+            nonce: 0
         };
         User = {
             Wallet: wallets[2],
@@ -69,7 +68,7 @@ contract("Reddit", async function () {
             TokenType: 1,
             AccID: 4,
             Path: 4,
-            nonce: 0,
+            nonce: 0
         };
         testTokenInstance = await utils.registerToken(wallets[0]);
         await testTokenInstance.transfer(Reddit.Address, 100);
@@ -90,8 +89,11 @@ contract("Reddit", async function () {
         accountStore.insertHash(coordinator_leaves[0]);
         accountStore.insertHash(coordinator_leaves[1]);
 
-        const subtreeDepth = 1
-        const _zero_account_mp = await accountStore.getSubTreeMerkleProof("001", subtreeDepth);
+        const subtreeDepth = 1;
+        const _zero_account_mp = await accountStore.getSubTreeMerkleProof(
+            "001",
+            subtreeDepth
+        );
 
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
@@ -104,7 +106,7 @@ contract("Reddit", async function () {
             balance: Reddit.Amount,
             nonce: Reddit.nonce,
             burn: 0,
-            lastBurn: 0,
+            lastBurn: 0
         };
         const BobAccount: Account = {
             ID: Bob.AccID,
@@ -112,8 +114,8 @@ contract("Reddit", async function () {
             balance: Bob.Amount,
             nonce: Bob.nonce,
             burn: 0,
-            lastBurn: 0,
-        }
+            lastBurn: 0
+        };
 
         // Insert Reddit's and Bob's account after finaliseDepositsAndSubmitBatch
         await accountStore.insert(RedditAccount);
@@ -124,15 +126,18 @@ contract("Reddit", async function () {
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertPublicKey(Reddit.Pubkey);
         pubkeyStore.insertPublicKey(Bob.Pubkey);
-
-    })
-    it("Should Create Account for the User", async function () {
+    });
+    it("Should Create Account for the User", async function() {
         // Call to see what's the pubkeyId
-        const userPubkeyId = await rollupRedditInstance.createPublickeys.call([User.Pubkey]);
+        const userPubkeyId = await rollupRedditInstance.createPublickeys.call([
+            User.Pubkey
+        ]);
         assert.equal(userPubkeyId.toString(), User.AccID);
         // Actual execution
         await rollupRedditInstance.createPublickeys([User.Pubkey]);
-        const userPubkeyIdOffchain = await pubkeyStore.insertPublicKey(User.Pubkey);
+        const userPubkeyIdOffchain = await pubkeyStore.insertPublicKey(
+            User.Pubkey
+        );
         assert.equal(userPubkeyIdOffchain.toString(), userPubkeyId.toString());
 
         const userAccountID = accountStore.nextEmptyIndex();
@@ -140,30 +145,45 @@ contract("Reddit", async function () {
             toIndex: userAccountID,
             tokenType: 1
         } as CreateAccount;
-        const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(tx.toIndex, tx.tokenType);
+        const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
+            tx.toIndex,
+            tx.tokenType
+        );
 
-        const newAccountMP = await accountStore.getAccountMerkleProof(userAccountID, true);
-        const result = await rollupRedditInstance.ApplyCreateAccountTx(newAccountMP, txBytes);
+        const newAccountMP = await accountStore.getAccountMerkleProof(
+            userAccountID,
+            true
+        );
+        const result = await rollupRedditInstance.ApplyCreateAccountTx(
+            newAccountMP,
+            txBytes
+        );
         const createdAccount = await utils.AccountFromBytes(result[0]);
         await accountStore.update(userAccountID, createdAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
 
-        const userPDAProof = await pubkeyStore.getPDAMerkleProof(userPubkeyIdOffchain);
+        const userPDAProof = await pubkeyStore.getPDAMerkleProof(
+            userPubkeyIdOffchain
+        );
 
         const resultProcessTx = await rollupRedditInstance.processCreateAccountTx(
             balanceRoot,
             accountRoot,
             txBytes,
             userPDAProof,
-            newAccountMP,
+            newAccountMP
         );
-        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[2]];
+        const [newBalanceRoot, errorCode] = [
+            resultProcessTx[0],
+            resultProcessTx[2]
+        ];
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.toIndex, tx.tokenType
+            tx.toIndex,
+            tx.tokenType
         );
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
 
@@ -174,10 +194,9 @@ contract("Reddit", async function () {
             { value: ethers.utils.parseEther("32").toString() }
         );
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+    });
 
-    })
-
-    it("Should Airdrop some token to the User", async function () {
+    it("Should Airdrop some token to the User", async function() {
         const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
         const tx = {
             fromIndex: Reddit.AccID,
@@ -185,22 +204,40 @@ contract("Reddit", async function () {
             tokenType: 1,
             nonce: redditMP.accountIP.account.nonce,
             txType: Usage.Airdrop,
-            amount: 10,
-        } as DropTx
+            amount: 10
+        } as DropTx;
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
-            tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
         );
         tx.signature = utils.sign(signBytes, Reddit.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
-            tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
         );
 
-        const resultFrom = await rollupRedditInstance.ApplyAirdropTx(redditMP, txBytes);
-        const redditUpdatedAccount: Account = await utils.AccountFromBytes(resultFrom[0]);
+        const resultFrom = await rollupRedditInstance.ApplyAirdropTx(
+            redditMP,
+            txBytes
+        );
+        const redditUpdatedAccount: Account = await utils.AccountFromBytes(
+            resultFrom[0]
+        );
         await accountStore.update(Reddit.AccID, redditUpdatedAccount);
 
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
-        const resultTo = await rollupRedditInstance.ApplyAirdropTx(userMP, txBytes);
+        const resultTo = await rollupRedditInstance.ApplyAirdropTx(
+            userMP,
+            txBytes
+        );
         const userUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
@@ -215,15 +252,23 @@ contract("Reddit", async function () {
             txBytes,
             redditPDAProof,
             { from: redditMP, to: userMP }
-        )
-        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[3]];
+        );
+        const [newBalanceRoot, errorCode] = [
+            resultProcessTx[0],
+            resultProcessTx[3]
+        ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
         const compressedTx = await RollupUtilsInstance.CompressAirdropNoStruct(
-            tx.toIndex, tx.amount, tx.signature
+            tx.toIndex,
+            tx.amount,
+            tx.signature
         );
-        await RollupUtilsInstance.CompressAirdropTxWithMessage(txBytes, tx.signature);
+        await RollupUtilsInstance.CompressAirdropTxWithMessage(
+            txBytes,
+            tx.signature
+        );
         await RollupUtilsInstance.DecompressAirdrop(compressedTx);
 
         await rollupCoreInstance.submitBatch(
@@ -234,10 +279,9 @@ contract("Reddit", async function () {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+    });
 
-    })
-
-    it("let user transfer some token to Bob", async function () {
+    it("let user transfer some token to Bob", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const tx = {
             fromIndex: User.AccID,
@@ -245,22 +289,38 @@ contract("Reddit", async function () {
             tokenType: 1,
             nonce: userMP.accountIP.account.nonce + 1,
             txType: Usage.Transfer,
-            amount: 1,
+            amount: 1
         } as Transaction;
         const signBytes = await RollupUtilsInstance.getTxSignBytes(
-            tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-            tx.fromIndex, tx.toIndex, tx.tokenType, tx.txType, tx.nonce, tx.amount
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
         );
 
-        const resultFrom = await rollupRedditInstance.ApplyTransferTx(userMP, txBytes);
+        const resultFrom = await rollupRedditInstance.ApplyTransferTx(
+            userMP,
+            txBytes
+        );
         const userUpdatedAccount = await utils.AccountFromBytes(resultFrom[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
         const bobMP = await accountStore.getAccountMerkleProof(Bob.AccID);
-        const resultTo = await rollupRedditInstance.ApplyTransferTx(bobMP, txBytes);
+        const resultTo = await rollupRedditInstance.ApplyTransferTx(
+            bobMP,
+            txBytes
+        );
         const bobUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
         await accountStore.update(Bob.AccID, bobUpdatedAccount);
 
@@ -275,13 +335,17 @@ contract("Reddit", async function () {
             txBytes,
             userPDAProof,
             { from: userMP, to: bobMP }
-        )
-        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[3]];
+        );
+        const [newBalanceRoot, errorCode] = [
+            resultProcessTx[0],
+            resultProcessTx[3]
+        ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
         const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
-            txBytes, tx.signature
+            txBytes,
+            tx.signature
         );
         await RollupUtilsInstance.DecompressTx(compressedTx);
 
@@ -293,34 +357,40 @@ contract("Reddit", async function () {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
-
-    })
-    it("lets user send burn consent", async function () {
+    });
+    it("lets user send burn consent", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const tx = {
             fromIndex: User.AccID,
             amount: 5,
             nonce: userMP.accountIP.account.nonce + 1,
-            cancel: false,
-        } as BurnConsentTx
+            cancel: false
+        } as BurnConsentTx;
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
-            tx.fromIndex, tx.amount, tx.nonce, tx.cancel
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce,
+            tx.cancel
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
-            tx.fromIndex, tx.amount, tx.nonce, tx.cancel
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce,
+            tx.cancel
         );
         await RollupUtilsInstance.BurnConsentFromBytes(txBytes);
 
-
-        const result = await rollupRedditInstance.ApplyBurnConsentTx(userMP, txBytes);
+        const result = await rollupRedditInstance.ApplyBurnConsentTx(
+            userMP,
+            txBytes
+        );
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
-
 
         const resultProcessTx = await rollupRedditInstance.processBurnConsentTx(
             balanceRoot,
@@ -329,13 +399,20 @@ contract("Reddit", async function () {
             txBytes,
             userPDAProof,
             userMP
-        )
-        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[2]];
+        );
+        const [newBalanceRoot, errorCode] = [
+            resultProcessTx[0],
+            resultProcessTx[2]
+        ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
 
         const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
-            tx.fromIndex, tx.amount, tx.nonce, tx.cancel, tx.signature
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce,
+            tx.cancel,
+            tx.signature
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
 
@@ -347,13 +424,12 @@ contract("Reddit", async function () {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
-
-    })
-    it("lets Reddit to execute the burn", async function () {
+    });
+    it("lets Reddit to execute the burn", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const tx = {
-            fromIndex: User.AccID,
-        } as BurnExecutionTx
+            fromIndex: User.AccID
+        } as BurnExecutionTx;
         const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
             tx.fromIndex
         );
@@ -363,8 +439,10 @@ contract("Reddit", async function () {
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
 
-
-        const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP, txBytes);
+        const result = await rollupRedditInstance.ApplyBurnExecutionTx(
+            userMP,
+            txBytes
+        );
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
@@ -374,8 +452,11 @@ contract("Reddit", async function () {
             balanceRoot,
             txBytes,
             userMP
-        )
-        const [newBalanceRoot, errorCode] = [resultProcessTx[0], resultProcessTx[2]];
+        );
+        const [newBalanceRoot, errorCode] = [
+            resultProcessTx[0],
+            resultProcessTx[2]
+        ];
         assert.equal(errorCode, ErrorCode.NoError, "processTx returns error");
         assert.equal(newBalanceRoot, result[1], "mismatch balance root");
 
@@ -392,6 +473,5 @@ contract("Reddit", async function () {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
-
-    })
-})
+    });
+});

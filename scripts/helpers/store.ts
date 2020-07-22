@@ -1,13 +1,17 @@
-import { Account, AccountMerkleProof, PDALeaf, PDAMerkleProof } from "./interfaces";
+import {
+    Account,
+    AccountMerkleProof,
+    PDALeaf,
+    PDAMerkleProof
+} from "./interfaces";
 import {
     getZeroHash,
     getMerkleTreeUtils,
     getParentLeaf,
     CreateAccountLeaf,
     PubKeyHash
-} from './utils';
-import { DummyPDA, DummyAccount } from './constants';
-
+} from "./utils";
+import { DummyPDA, DummyAccount } from "./constants";
 
 interface LeafItem<T> {
     hash: string;
@@ -15,7 +19,6 @@ interface LeafItem<T> {
 }
 
 abstract class AbstractStore<T> {
-
     items: LeafItem<T>[];
     size: number;
     level: number;
@@ -25,13 +28,14 @@ abstract class AbstractStore<T> {
         this.size = 2 ** level;
         this.items = [];
     }
-    async abstract compress(element: T): Promise<string>;
+    abstract async compress(element: T): Promise<string>;
 
     async insert(data: T): Promise<number> {
         const position = this.items.length;
         const hash = await this.compress(data);
         const item: LeafItem<T> = {
-            hash, data
+            hash,
+            data
         };
         this.items.push(item);
         return position;
@@ -50,13 +54,14 @@ abstract class AbstractStore<T> {
     async update(position: number, data: T) {
         const hash = await this.compress(data);
         const item: LeafItem<T> = {
-            hash, data
+            hash,
+            data
         };
-        this.items[position] = item
+        this.items[position] = item;
     }
     async updateHash(position: number, hash: string) {
         const item: LeafItem<T> = { hash };
-        this.items[position] = item
+        this.items[position] = item;
     }
 
     getLeaves(): string[] {
@@ -68,16 +73,17 @@ abstract class AbstractStore<T> {
             } else {
                 leaves.push(zeroHash);
             }
-        };
+        }
         return leaves;
     }
 
     async getRoot(): Promise<string> {
         const merkleTreeUtilsInstance = await getMerkleTreeUtils();
         const leaves = this.getLeaves();
-        const root = await merkleTreeUtilsInstance.getMerkleRootFromLeaves(leaves);
+        const root = await merkleTreeUtilsInstance.getMerkleRootFromLeaves(
+            leaves
+        );
         return root;
-
     }
     _allBranches(): string[][] {
         const branches: string[][] = [];
@@ -87,7 +93,10 @@ abstract class AbstractStore<T> {
         branches[0] = this.getLeaves();
         for (let i = 1; i < this.level; i++) {
             for (let j = 0; j < 2 ** (this.level - i); j++) {
-                branches[i][j] = getParentLeaf(branches[i - 1][j * 2], branches[i - 1][j * 2 + 1]);
+                branches[i][j] = getParentLeaf(
+                    branches[i - 1][j * 2],
+                    branches[i - 1][j * 2 + 1]
+                );
             }
         }
         return branches;
@@ -115,12 +124,18 @@ abstract class AbstractStore<T> {
     }
 }
 
-export class AccountStore extends AbstractStore<Account>{
+export class AccountStore extends AbstractStore<Account> {
     async compress(element: Account): Promise<string> {
         return await CreateAccountLeaf(element);
     }
-    async getSubTreeMerkleProof(pathToAccount: string, level: number): Promise<AccountMerkleProof> {
-        const siblings = this.getSubTreeSiblings(parseInt(pathToAccount, 2), level);
+    async getSubTreeMerkleProof(
+        pathToAccount: string,
+        level: number
+    ): Promise<AccountMerkleProof> {
+        const siblings = this.getSubTreeSiblings(
+            parseInt(pathToAccount, 2),
+            level
+        );
         return {
             accountIP: {
                 pathToAccount,
@@ -130,9 +145,12 @@ export class AccountStore extends AbstractStore<Account>{
         };
     }
 
-    async getAccountMerkleProof(position: number, allowDummy = false): Promise<AccountMerkleProof> {
+    async getAccountMerkleProof(
+        position: number,
+        allowDummy = false
+    ): Promise<AccountMerkleProof> {
         if (!allowDummy && !this.items[position]?.data) {
-            throw new Error("Account data not exists")
+            throw new Error("Account data not exists");
         }
         const account: Account = this.items[position]?.data || DummyAccount;
         const siblings = this.getSiblings(position);
@@ -144,11 +162,11 @@ export class AccountStore extends AbstractStore<Account>{
                 account
             },
             siblings
-        }
+        };
     }
 }
 
-export class PublicKeyStore extends AbstractStore<PDALeaf>{
+export class PublicKeyStore extends AbstractStore<PDALeaf> {
     async compress(element: PDALeaf): Promise<string> {
         return PubKeyHash(element.pubkey);
     }
@@ -159,9 +177,12 @@ export class PublicKeyStore extends AbstractStore<PDALeaf>{
         return await this.insert(leaf);
     }
 
-    async getPDAMerkleProof(position: number, allowDummy = false): Promise<PDAMerkleProof> {
+    async getPDAMerkleProof(
+        position: number,
+        allowDummy = false
+    ): Promise<PDAMerkleProof> {
         if (!allowDummy && !this.items[position]?.data) {
-            throw new Error("Public key data not exists")
+            throw new Error("Public key data not exists");
         }
         const pubkey_leaf: PDALeaf = this.items[position]?.data || DummyPDA;
         const siblings = this.getSiblings(position);
@@ -173,6 +194,6 @@ export class PublicKeyStore extends AbstractStore<PDALeaf>{
                 pubkey_leaf
             },
             siblings
-        }
+        };
     }
 }
