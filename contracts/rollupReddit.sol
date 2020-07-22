@@ -178,7 +178,7 @@ contract RollupReddit {
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.BurnConsent memory transaction = RollupUtils
-            .BurnConsentTxFromBytes(txBytes);
+            .BurnConsentFromBytes(txBytes);
         return burnConsent.ApplyBurnConsentTx(_merkle_proof, transaction);
     }
 
@@ -199,7 +199,7 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnConsent memory _tx = RollupUtils.BurnConsentTxFromBytes(
+        Types.BurnConsent memory _tx = RollupUtils.BurnConsentFromBytes(
             txBytes
         );
         _tx.signature = sig;

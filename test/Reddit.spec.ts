@@ -310,7 +310,7 @@ contract("Reddit", async function () {
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
             tx.fromIndex, tx.amount, tx.nonce, tx.cancel
         );
-        await RollupUtilsInstance.BurnConsentTxFromBytes(txBytes);
+        await RollupUtilsInstance.BurnConsentFromBytes(txBytes);
 
 
         const result = await rollupRedditInstance.ApplyBurnConsentTx(userMP, txBytes);
