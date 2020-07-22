@@ -7,7 +7,7 @@ const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
-const EcVerify = artifacts.require("ECVerify");
+const RollupReddit = artifacts.require("RollupReddit");
 
 contract("Rollup", async function(accounts) {
     var wallets: any;
@@ -20,6 +20,7 @@ contract("Rollup", async function(accounts) {
     let RollupUtilsInstance: any;
     let tokenRegistryInstance: any;
     let IMTInstance: any;
+    let RollupRedditInstance: any;
 
     let Alice: any;
     let Bob: any;
@@ -53,6 +54,7 @@ contract("Rollup", async function(accounts) {
         RollupUtilsInstance = await RollupUtils.deployed();
         tokenRegistryInstance = await utils.getTokenRegistry();
         IMTInstance = await IMT.deployed();
+        RollupRedditInstance = await RollupReddit.deployed();
 
         Alice = {
             Address: wallets[0].getAddressString(),
@@ -119,6 +121,7 @@ contract("Rollup", async function(accounts) {
                 from: wallets[0].getAddressString()
             }
         );
+
         await testToken.approve(
             depositManagerInstance.address,
             ethers.utils.parseEther("1"),
@@ -270,11 +273,14 @@ contract("Rollup", async function(accounts) {
             to: BobAccountMP
         };
 
+        const txByte = await utils.TxToBytes(tx);
+
         // process transaction validity with process tx
-        var result = await rollupCoreInstance.processTx(
+        const result = await RollupRedditInstance.processTransferTx(
             currentRoot,
             accountRoot,
-            await utils.TxToBytes(tx),
+            tx.signature,
+            txByte,
             alicePDAProof,
             accountProofs
         );
@@ -284,7 +290,8 @@ contract("Rollup", async function(accounts) {
 
         falseBatchZero = {
             batchId: 0,
-            txs: [tx],
+            txs: [txByte],
+            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
                 pdaProof: [alicePDAProof]
@@ -299,6 +306,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchZero.batchId,
             falseBatchZero.txs,
+            falseBatchZero.signatures,
             falseBatchZero.batchProofs
         );
 
@@ -407,12 +415,13 @@ contract("Rollup", async function(accounts) {
             from: AliceAccountMP,
             to: BobAccountMP
         };
-
+        const txByte = await utils.TxToBytes(tx);
         // process transaction validity with process tx
-        var result = await rollupCoreInstance.processTx(
+        const result = await RollupRedditInstance.processTransferTx(
             currentRoot,
             accountRoot,
-            await utils.TxToBytes(tx),
+            tx.signature,
+            txByte,
             alicePDAProof,
             accountProofs
         );
@@ -427,7 +436,8 @@ contract("Rollup", async function(accounts) {
 
         falseBatchOne = {
             batchId: 0,
-            txs: [tx],
+            txs: [txByte],
+            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
                 pdaProof: [alicePDAProof]
@@ -442,6 +452,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchOne.batchId,
             falseBatchOne.txs,
+            falseBatchOne.signatures,
             falseBatchOne.batchProofs
         );
 
@@ -453,8 +464,9 @@ contract("Rollup", async function(accounts) {
             falseBatchOne.batchId - 1,
             "batchId doesnt match"
         );
-        Alice.Amount += falseBatchOne.txs[0].amount;
-        Bob.Amount -= falseBatchOne.txs[0].amount;
+        const tx = await RollupUtilsInstance.TxFromBytes(falseBatchOne.txs[0]);
+        Alice.Amount += Number(tx.amount);
+        Bob.Amount -= Number(tx.amount);
         Alice.nonce--;
     });
 
@@ -559,11 +571,14 @@ contract("Rollup", async function(accounts) {
             to: BobAccountMP
         };
 
+        const txByte = await utils.TxToBytes(tx);
+
         // process transaction validity with process tx
-        var result = await rollupCoreInstance.processTx(
+        const result = await RollupRedditInstance.processTransferTx(
             currentRoot,
             accountRoot,
-            await utils.TxToBytes(tx),
+            tx.signature,
+            txByte,
             alicePDAProof,
             accountProofs
         );
@@ -579,7 +594,8 @@ contract("Rollup", async function(accounts) {
 
         falseBatchTwo = {
             batchId: 0,
-            txs: [tx],
+            txs: [txByte],
+            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
                 pdaProof: [alicePDAProof]
@@ -594,6 +610,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchTwo.batchId,
             falseBatchTwo.txs,
+            falseBatchTwo.signatures,
             falseBatchTwo.batchProofs
         );
 
@@ -605,8 +622,9 @@ contract("Rollup", async function(accounts) {
             falseBatchTwo.batchId - 1,
             "batchId doesnt match"
         );
-        Alice.Amount += falseBatchTwo.txs[0].amount;
-        Bob.Amount -= falseBatchTwo.txs[0].amount;
+        const tx = await RollupUtilsInstance.TxFromBytes(falseBatchTwo.txs[0]);
+        Alice.Amount += Number(tx.amount);
+        Bob.Amount -= Number(tx.amount);
         Alice.nonce--;
     });
 
@@ -736,11 +754,14 @@ contract("Rollup", async function(accounts) {
             to: BobAccountMP
         };
 
+        const txByte = await utils.TxToBytes(tx);
+
         // process transaction validity with process tx
-        var result = await rollupCoreInstance.processTx(
+        const result = await RollupRedditInstance.processTransferTx(
             currentRoot,
             accountRoot,
-            await utils.TxToBytes(tx),
+            tx.signature,
+            txByte,
             alicePDAProof,
             accountProofs
         );
@@ -755,7 +776,8 @@ contract("Rollup", async function(accounts) {
 
         falseBatchFive = {
             batchId: 0,
-            txs: [tx],
+            txs: [txByte],
+            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
                 pdaProof: [alicePDAProof]
@@ -769,6 +791,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchFive.batchId,
             falseBatchFive.txs,
+            falseBatchFive.signatures,
             falseBatchFive.batchProofs
         );
 
@@ -780,8 +803,9 @@ contract("Rollup", async function(accounts) {
             falseBatchFive.batchId - 1,
             "batchId doesnt match"
         );
-        Alice.Amount += falseBatchFive.txs[0].amount;
-        Bob.Amount -= falseBatchFive.txs[0].amount;
+        const tx = await RollupUtilsInstance.TxFromBytes(falseBatchFive.txs[0]);
+        Alice.Amount += Number(tx.amount);
+        Bob.Amount -= Number(tx.amount);
         Alice.nonce--;
     });
 
@@ -893,11 +917,14 @@ contract("Rollup", async function(accounts) {
             to: BobAccountMP
         };
 
+        const txByte = await utils.TxToBytes(tx);
+
         // process transaction validity with process tx
-        var result = await rollupCoreInstance.processTx(
+        const result = await RollupRedditInstance.processTransferTx(
             currentRoot,
             accountRoot,
-            await utils.TxToBytes(tx),
+            tx.signature,
+            txByte,
             alicePDAProof,
             accountProofs
         );
@@ -908,7 +935,8 @@ contract("Rollup", async function(accounts) {
 
         falseBatchComb = {
             batchId: 0,
-            txs: [tx],
+            txs: [txByte],
+            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
                 pdaProof: [alicePDAProof]
@@ -1020,11 +1048,14 @@ contract("Rollup", async function(accounts) {
             to: BobAccountMP
         };
 
+        const txByte = await utils.TxToBytes(tx);
+
         // process transaction validity with process tx
-        var result = await rollupCoreInstance.processTx(
+        const result = await RollupRedditInstance.processTransferTx(
             currentRoot,
             accountRoot,
-            await utils.TxToBytes(tx),
+            tx.signature,
+            txByte,
             alicePDAProof,
             accountProofs
         );
@@ -1037,7 +1068,8 @@ contract("Rollup", async function(accounts) {
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
 
-        falseBatchComb.txs.push(tx);
+        falseBatchComb.txs.push(txByte);
+        falseBatchComb.signatures.push(tx.signature);
         falseBatchComb.batchProofs.accountProofs.push(accountProofs);
         falseBatchComb.batchProofs.pdaProof.push(alicePDAProof);
     });
@@ -1046,6 +1078,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchComb.batchId,
             falseBatchComb.txs,
+            falseBatchComb.signatures,
             falseBatchComb.batchProofs
         );
 
@@ -1057,10 +1090,16 @@ contract("Rollup", async function(accounts) {
             falseBatchComb.batchId - 1,
             "batchId doesnt match"
         );
-        Alice.Amount += falseBatchComb.txs[0].amount;
-        Alice.Amount += falseBatchComb.txs[1].amount;
-        Bob.Amount -= falseBatchComb.txs[0].amount;
-        Bob.Amount -= falseBatchComb.txs[1].amount;
+        const tx0 = await RollupUtilsInstance.TxFromBytes(
+            falseBatchComb.txs[0]
+        );
+        const tx1 = await RollupUtilsInstance.TxFromBytes(
+            falseBatchComb.txs[1]
+        );
+        Alice.Amount += Number(tx0.amount);
+        Alice.Amount += Number(tx1.amount);
+        Bob.Amount -= Number(tx0.amount);
+        Bob.Amount -= Number(tx1.amount);
         Alice.nonce--;
         Alice.nonce--;
     });
