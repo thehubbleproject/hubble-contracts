@@ -4,13 +4,15 @@ import {MerkleTreeUtils as MTUtils} from "./MerkleTreeUtils.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {Governance} from "./Governance.sol";
+import {Logger} from "./logger.sol";
+import {RollupUtils} from "./libs/RollupUtils.sol";
 
 contract IncrementalTree {
     Registry public nameRegistry;
     MTUtils public merkleUtils;
     Governance public governance;
     MerkleTree public tree;
-
+    Logger public logger;
     // Merkle Tree to store the whole tree
     struct MerkleTree {
         // Root of the tree
@@ -33,6 +35,8 @@ contract IncrementalTree {
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
         );
+
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
         tree.filledSubtrees = new bytes32[](governance.MAX_DEPTH());
         setMerkleRootAndHeight(
             merkleUtils.getZeroRoot(),
@@ -44,13 +48,19 @@ contract IncrementalTree {
         }
     }
 
+    function appendDataBlock(bytes memory datablock) public returns(uint256){
+        bytes32 _leaf = keccak256(abi.encode(datablock));
+        uint256 accID = appendLeaf(_leaf);
+        logger.logNewPubkeyAdded(accID, datablock);
+        return accID;
+    }
+
     /**
      * @notice Append leaf will append a leaf to the end of the tree
      * @return The sibling nodes along the way.
      */
     function appendLeaf(bytes32 _leaf) public returns (uint256) {
         uint256 currentIndex = nextLeafIndex;
-
         uint256 depth = uint256(tree.height);
         require(
             currentIndex < uint256(2)**depth,
