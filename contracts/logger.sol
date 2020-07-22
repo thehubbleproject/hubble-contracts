@@ -74,6 +74,12 @@ contract Logger {
         emit RegistrationRequest(tokenContract);
     }
 
+    event NewPubkeyAdded(uint256 AccountID, bytes pubkey);
+
+    function logNewPubkeyAdded(uint256 accountID, bytes memory pubkey) public {
+        emit NewPubkeyAdded(accountID, pubkey);
+    }
+
     event DepositQueued(uint256 AccountID, bytes pubkey, bytes data);
 
     function logDepositQueued(

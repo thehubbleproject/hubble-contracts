@@ -20,7 +20,6 @@ contract DepositManager {
     mapping(uint256 => bytes32) pendingFilledSubtrees;
     uint256 public firstElement = 1;
     uint256 public lastElement = 0;
-
     uint256 public depositSubTreesPackaged = 0;
 
     function enqueue(bytes32 newDepositSubtree) public {
@@ -84,7 +83,7 @@ contract DepositManager {
     }
 
     function AddCoordinatorLeaves() internal {
-        // first leaf in the incremental tree belongs to the coordinator
+        // first 2 leaves belong to coordinator
         accountsTree.appendLeaf(ZERO_BYTES32);
         accountsTree.appendLeaf(ZERO_BYTES32);
     }
@@ -135,14 +134,8 @@ contract DepositManager {
             "token transfer not approved"
         );
 
-        // Add pubkey to PDA tree
-        Types.PDALeaf memory newPDALeaf;
-        newPDALeaf.pubkey = _pubkey;
-
         // returns leaf index upon successfull append
-        uint256 accID = accountsTree.appendLeaf(
-            RollupUtils.PDALeafToHash(newPDALeaf)
-        );
+        uint256 accID = accountsTree.appendDataBlock(_pubkey);
 
         // create a new account
         Types.UserAccount memory newAccount;
