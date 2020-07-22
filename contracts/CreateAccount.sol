@@ -67,14 +67,10 @@ contract CreateAccount is FraudProofHelpers {
         return txRoot;
     }
 
-    /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
-     * */
-    function processBatch(
+    function processCreateAccountBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.CreateAccount[] memory _txs,
+        bytes[] memory _txBytes,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -86,6 +82,11 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
+        Types.CreateAccount[] memory _txs;
+        for (uint256 i = 0; i < _txBytes.length; i++) {
+            _txs[i] = RollupUtils.CreateAccountFromBytes(_txBytes[i]);
+        }
+
         bytes32 actualTxRoot = generateTxRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {

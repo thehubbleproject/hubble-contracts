@@ -47,10 +47,10 @@ contract Transfer is FraudProofHelpers {
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
      * */
-    function processBatch(
+    function processTransferBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txBytes,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -62,6 +62,10 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
+        Types.Transaction[] memory _txs;
+        for (uint256 i = 0; i < _txBytes.length; i++) {
+            _txs[i] = RollupUtils.TxFromBytes(_txBytes[i]);
+        }
         bytes32 actualTxRoot = generateTxRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
