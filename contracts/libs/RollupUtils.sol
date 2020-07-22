@@ -524,7 +524,7 @@ library RollupUtils {
         return abi.encode(fromIndex, amount, nonce, cancel);
     }
 
-    function BurnConsentTxFromBytes(bytes memory txBytes)
+    function BurnConsentFromBytes(bytes memory txBytes)
         public
         pure
         returns (Types.BurnConsent memory)
@@ -567,12 +567,12 @@ library RollupUtils {
         return abi.encode(fromIndex, amount, nonce, cancel, sig);
     }
     
-    function CompressBurnConsentTxWithMessage(bytes memory message, bytes memory sig)
+    function CompressBurnConsentWithMessage(bytes memory message, bytes memory sig)
         public
         pure
         returns (bytes memory)
     {
-        Types.BurnConsent memory _tx = BurnConsentTxFromBytes(message);
+        Types.BurnConsent memory _tx = BurnConsentFromBytes(message);
         return abi.encode(_tx.fromIndex, _tx.amount, _tx.nonce,_tx.cancel, sig);
     }
 
