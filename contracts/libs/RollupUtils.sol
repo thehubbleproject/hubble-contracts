@@ -374,7 +374,7 @@ library RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encodePacked(
+            abi.encode(
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
@@ -392,7 +392,7 @@ library RollupUtils {
         uint256 txType,
         uint256 amount
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
+        return abi.encode(from, to, tokenType, nonce, txType, amount);
     }
 
     function TxFromBytes(bytes memory txBytes)
