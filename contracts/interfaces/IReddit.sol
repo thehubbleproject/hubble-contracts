@@ -132,7 +132,71 @@ interface IReddit {
             bool
         );
 
-    function processBatch(
+    function processCreateAccountBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        bytes[] calldata _txs,
+        bytes[] calldata signatures,
+        Types.BatchValidationProofs calldata batchProofs,
+        bytes32 expectedTxRoot
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
+
+    function processAirdropBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        bytes[] calldata _txs,
+        bytes[] calldata signatures,
+        Types.BatchValidationProofs calldata batchProofs,
+        bytes32 expectedTxRoot
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
+
+    function processTransferBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        bytes[] calldata _txs,
+        bytes[] calldata signatures,
+        Types.BatchValidationProofs calldata batchProofs,
+        bytes32 expectedTxRoot
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
+
+    function processBurnConsentBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        bytes[] calldata _txs,
+        bytes[] calldata signatures,
+        Types.BatchValidationProofs calldata batchProofs,
+        bytes32 expectedTxRoot
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
+
+    function processBurnExecutionBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         bytes[] calldata _txs,

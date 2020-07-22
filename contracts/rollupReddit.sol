@@ -251,4 +251,75 @@ contract RollupReddit {
                 _fromAccountProof
             );
     }
+
+    function processBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        bytes[] memory _txs,
+        bytes[] memory signatures,
+        Types.BatchValidationProofs memory batchProofs,
+        bytes32 expectedTxRoot,
+        Types.Usage batchType
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        )
+    {
+        if (batchType == Types.Usage.CreateAccount) {
+            return
+                createAccount.processCreateAccountBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    signatures,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else if (batchType == Types.Usage.Airdrop) {
+            return
+                airdrop.processAirdropBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    signatures,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else if (batchType == Types.Usage.Transfer) {
+            return
+                transfer.processTransferBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    signatures,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else if (batchType == Types.Usage.BurnConsent) {
+            return
+                burnConsent.processBurnConsentBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    signatures,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else if (batchType == Types.Usage.BurnExecution) {
+            return
+                burnExecution.processBurnExecutionBatch(
+                    initialStateRoot,
+                    accountsRoot,
+                    _txs,
+                    batchProofs,
+                    expectedTxRoot
+                );
+        } else {
+            revert("Invalid BatchType to dispute");
+        }
+    }
 }

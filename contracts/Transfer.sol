@@ -47,10 +47,11 @@ contract Transfer is FraudProofHelpers {
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
      * */
-    function processBatch(
+    function processTransferBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txBytes,
+        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -62,6 +63,17 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
+        require(
+            _txBytes.length == signatures.length,
+            "Mismatch length of signature and txs"
+        );
+        Types.Transaction[] memory _txs = new Types.Transaction[](
+            _txBytes.length
+        );
+        for (uint256 i = 0; i < _txBytes.length; i++) {
+            _txs[i] = RollupUtils.TxFromBytes(_txBytes[i]);
+            _txs[i].signature = signatures[i];
+        }
         bytes32 actualTxRoot = generateTxRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {

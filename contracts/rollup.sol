@@ -5,7 +5,6 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import "solidity-bytes-utils/contracts/BytesLib.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
-import { IFraudProof } from "./interfaces/IFraudProof.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
@@ -17,6 +16,25 @@ import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
+
+interface IRollupReddit {
+    function processBatch(
+        bytes32 initialStateRoot,
+        bytes32 accountsRoot,
+        bytes[] calldata _txs,
+        bytes[] calldata signatures,
+        Types.BatchValidationProofs calldata batchProofs,
+        bytes32 expectedTxRoot,
+        Types.Usage batchType
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
+}
 
 contract RollupSetup {
     using SafeMath for uint256;
@@ -36,7 +54,7 @@ contract RollupSetup {
     Types.Batch[] public batches;
     MTUtils public merkleUtils;
 
-    IFraudProof public fraudProof;
+    IRollupReddit public rollupReddit;
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -237,8 +255,8 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
 
-        fraudProof = IFraudProof(
-            nameRegistry.getContractDetails(ParamManager.TRANSFER())
+        rollupReddit = IRollupReddit(
+            nameRegistry.getContractDetails(ParamManager.ROLLUP_REDDIT())
         );
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }
@@ -305,7 +323,8 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        Types.Transaction[] memory _txs,
+        bytes[] memory _txs,
+        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs
     ) public {
         {
@@ -335,12 +354,15 @@ contract Rollup is RollupHelpers {
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
         bytes32 txRoot;
-        (updatedBalanceRoot, txRoot, isDisputeValid) = processBatch(
+        (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
+            .processBatch(
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id - 1].accountRoot,
             _txs,
+            signatures,
             batchProofs,
-            batches[_batch_id].txRoot
+            batches[_batch_id].txRoot,
+            batches[_batch_id].batchType
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -359,81 +381,6 @@ contract Rollup is RollupHelpers {
             SlashAndRollback();
             return;
         }
-    }
-
-    function ApplyTx(
-        Types.AccountMerkleProof memory _merkle_proof,
-        bytes memory txBytes
-    ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes);
-        return fraudProof.ApplyTx(_merkle_proof, transaction);
-    }
-
-    /**
-     * @notice processTx processes a transactions and returns the updated balance tree
-     *  and the updated leaves
-     * conditions in require mean that the dispute be declared invalid
-     * if conditons evaluate if the coordinator was at fault
-     * @return Total number of batches submitted onchain
-     */
-    function processTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes memory,
-            bytes memory,
-            Types.ErrorCode,
-            bool
-        )
-    {
-        Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
-        return
-            fraudProof.processTx(
-                _balanceRoot,
-                _accountsRoot,
-                _tx,
-                _from_pda_proof,
-                accountProofs
-            );
-    }
-
-    /**
-     * @notice processBatch processes a batch and returns the updated balance tree
-     *  and the updated leaves
-     * conditions in require mean that the dispute be declared invalid
-     * if conditons evaluate if the coordinator was at fault
-     * @return Total number of batches submitted onchain
-     */
-    function processBatch(
-        bytes32 initialStateRoot,
-        bytes32 accountsRoot,
-        Types.Transaction[] memory _txs,
-        Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
-        return
-            fraudProof.processBatch(
-                initialStateRoot,
-                accountsRoot,
-                _txs,
-                batchProofs,
-                expectedTxRoot
-            );
     }
 
     /**

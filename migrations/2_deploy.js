@@ -159,6 +159,14 @@ async function deploy(deployer) {
         "DEPOSIT_MANAGER"
     );
 
+    const rollupRedditInstance = await deployAndRegister(
+        deployer,
+        rollupRedditContract,
+        [Types, paramManagerLib, rollupUtilsLib],
+        [nameRegistryInstance.address],
+        "ROLLUP_REDDIT"
+    );
+
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
         deployer,
@@ -166,13 +174,6 @@ async function deploy(deployer) {
         [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
-    );
-    const rollupRedditInstance = await deployAndRegister(
-        deployer,
-        rollupRedditContract,
-        [Types, paramManagerLib, rollupUtilsLib],
-        [nameRegistryInstance.address],
-        "ROLLUP_REDDIT"
     );
 
     const contractAddresses = {

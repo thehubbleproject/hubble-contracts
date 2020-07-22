@@ -51,7 +51,8 @@ contract Airdrop is FraudProofHelpers {
     function processAirdropBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        Types.DropTx[] memory _txs,
+        bytes[] memory _txBytes,
+        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -63,6 +64,16 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
+        require(
+            _txBytes.length == signatures.length,
+            "Mismatch length of signature and txs"
+        );
+
+        Types.DropTx[] memory _txs = new Types.DropTx[](_txBytes.length);
+        for (uint256 i = 0; i < _txBytes.length; i++) {
+            _txs[i] = RollupUtils.AirdropFromBytes(_txBytes[i]);
+            _txs[i].signature = signatures[i];
+        }
         bytes32 actualTxRoot = generateTxRoot(_txs);
         // if there is an expectation set, revert if it's not met
         if (expectedTxRoot == ZERO_BYTES32) {
