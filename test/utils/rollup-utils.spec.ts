@@ -1,17 +1,17 @@
-import * as walletHelper from "../..//scripts/helpers/wallet";
 import { assert } from "chai";
+import { CreateAccount, Account, Transaction } from "../../scripts/helpers/interfaces";
 
 const RollupUtils = artifacts.require("RollupUtils");
 
-contract("RollupUtils", async function(accounts) {
-    var wallets: any;
-    before(async function() {
-        wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
+contract("RollupUtils", async function (accounts) {
+
+    let RollupUtilsInstance: any;
+    before(async function () {
+        RollupUtilsInstance = await RollupUtils.deployed();
     });
 
-    it("test account encoding and decoding", async function() {
-        var rollupUtils = await RollupUtils.deployed();
-        var account = {
+    it("test account encoding and decoding", async function () {
+        const account: Account = {
             ID: 1,
             tokenType: 2,
             balance: 3,
@@ -20,7 +20,7 @@ contract("RollupUtils", async function(accounts) {
             lastBurn: 0
         };
 
-        var accountBytes = await rollupUtils.BytesFromAccountDeconstructed(
+        const accountBytes = await RollupUtilsInstance.BytesFromAccountDeconstructed(
             account.ID,
             account.balance,
             account.nonce,
@@ -28,7 +28,7 @@ contract("RollupUtils", async function(accounts) {
             account.burn,
             account.lastBurn
         );
-        var regeneratedAccount = await rollupUtils.AccountFromBytes(
+        const regeneratedAccount = await RollupUtilsInstance.AccountFromBytes(
             accountBytes
         );
         assert.equal(regeneratedAccount["0"].toNumber(), account.ID);
@@ -38,7 +38,7 @@ contract("RollupUtils", async function(accounts) {
         assert.equal(regeneratedAccount["4"].toNumber(), account.burn);
         assert.equal(regeneratedAccount["5"].toNumber(), account.lastBurn);
 
-        var tx = {
+        const tx: Transaction = {
             fromIndex: 1,
             toIndex: 2,
             tokenType: 1,
@@ -49,7 +49,7 @@ contract("RollupUtils", async function(accounts) {
             nonce: 0
         };
 
-        var txBytes = await rollupUtils.BytesFromTxDeconstructed(
+        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
@@ -58,7 +58,7 @@ contract("RollupUtils", async function(accounts) {
             tx.amount
         );
 
-        var txData = await rollupUtils.TxFromBytes(txBytes);
+        const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
         assert.equal(txData.fromIndex.toString(), tx.fromIndex.toString());
         assert.equal(txData.toIndex.toString(), tx.toIndex.toString());
         assert.equal(txData.tokenType.toString(), tx.tokenType.toString());
@@ -66,15 +66,32 @@ contract("RollupUtils", async function(accounts) {
         assert.equal(txData.txType.toString(), tx.txType.toString());
         assert.equal(txData.amount.toString(), tx.amount.toString());
 
-        var compressedTx = await rollupUtils.CompressTxWithMessage(
+        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
             txBytes,
             tx.signature
         );
 
-        var decompressedTx = await rollupUtils.DecompressTx(compressedTx);
+        const decompressedTx = await RollupUtilsInstance.DecompressTx(compressedTx);
         assert.equal(decompressedTx[0].toNumber(), tx.fromIndex);
         assert.equal(decompressedTx[1].toNumber(), tx.toIndex);
         assert.equal(decompressedTx[2].toNumber(), tx.amount);
         assert.equal(decompressedTx[3].toString(), tx.signature);
+    });
+    it("test createAccount utils", async function () {
+        const tx: CreateAccount = {
+            toIndex: 1,
+            tokenType: 1
+        }
+        const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
+            tx.toIndex,
+            tx.tokenType
+        );
+        await RollupUtilsInstance.CreateAccountFromBytes(txBytes)
+        const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
+            tx.toIndex,
+            tx.tokenType
+        );
+        await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
+
     });
 });
