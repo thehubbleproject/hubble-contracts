@@ -63,7 +63,9 @@ contract BurnExecution is FraudProofHelpers {
             bool
         )
     {
-        Types.BurnExecution[] memory _txs;
+        Types.BurnExecution[] memory _txs = new Types.BurnExecution[](
+            _txBytes.length
+        );
         for (uint256 i = 0; i < _txBytes.length; i++) {
             _txs[i] = RollupUtils.BurnExecutionFromBytes(_txBytes[i]);
         }
