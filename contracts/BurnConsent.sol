@@ -117,7 +117,7 @@ contract BurnConsent is FraudProofHelpers {
         } else {
             account.burn += _tx.amount;
         }
-
+        account.nonce++;
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
         updatedAccount = RollupUtils.BytesFromAccount(account);
         return (updatedAccount, newRoot);
