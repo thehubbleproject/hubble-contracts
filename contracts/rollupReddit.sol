@@ -275,7 +275,6 @@ contract RollupReddit {
                     initialStateRoot,
                     accountsRoot,
                     _txs,
-                    signatures,
                     batchProofs,
                     expectedTxRoot
                 );

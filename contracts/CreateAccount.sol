@@ -71,7 +71,6 @@ contract CreateAccount is FraudProofHelpers {
         bytes32 stateRoot,
         bytes32 accountsRoot,
         bytes[] memory _txBytes,
-        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -83,16 +82,11 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        require(
-            _txBytes.length == signatures.length,
-            "Mismatch length of signature and txs"
-        );
         Types.CreateAccount[] memory _txs = new Types.CreateAccount[](
             _txBytes.length
         );
         for (uint256 i = 0; i < _txBytes.length; i++) {
             _txs[i] = RollupUtils.CreateAccountFromBytes(_txBytes[i]);
-            _txs[i].signature = signatures[i];
         }
 
         bytes32 actualTxRoot = generateTxRoot(_txs);
@@ -162,8 +156,6 @@ contract CreateAccount is FraudProofHelpers {
     {
         // Assuming Reddit have run createPublickeys
         ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
-
-        // Validate Signture, this requires validate public key and it's existence with _from_pda_proof.
 
         // Validate we are creating on a zero account
         if (
