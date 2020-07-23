@@ -3,7 +3,10 @@ import {
     CreateAccount,
     Account,
     Transaction,
-    DropTx
+    DropTx,
+    Usage,
+    BurnConsentTx,
+    BurnExecutionTx
 } from "../../scripts/helpers/interfaces";
 
 const RollupUtils = artifacts.require("RollupUtils");
@@ -145,5 +148,83 @@ contract("RollupUtils", async function(accounts) {
         assert.equal(compressedTx1, compressedTx2);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx1);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx2);
+    });
+    it("test transfer utils", async function() {
+        const tx: Transaction = {
+            fromIndex: 1,
+            toIndex: 2,
+            tokenType: 1,
+            nonce: 3,
+            txType: Usage.Transfer,
+            amount: 1,
+            signature: "0xabcd"
+        };
+        const signBytes = await RollupUtilsInstance.getTxSignBytes(
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
+        );
+        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
+        );
+        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
+            txBytes,
+            tx.signature
+        );
+        await RollupUtilsInstance.DecompressTx(compressedTx);
+    });
+    it("test burn consent utils", async function() {
+        const tx: BurnConsentTx = {
+            fromIndex: 1,
+            amount: 5,
+            nonce: 3,
+            cancel: false,
+            signature: "0xabcd"
+        };
+        const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce,
+            tx.cancel
+        );
+        const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce,
+            tx.cancel
+        );
+        await RollupUtilsInstance.BurnConsentFromBytes(txBytes);
+        const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce,
+            tx.cancel,
+            tx.signature
+        );
+        await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
+    });
+    it("test burn execution utils", async function() {
+        const tx = {
+            fromIndex: 5
+        } as BurnExecutionTx;
+        const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
+            tx.fromIndex
+        );
+        const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
+            tx.fromIndex
+        );
+        await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
+        const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
+            tx.fromIndex
+        );
+        await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
     });
 });
