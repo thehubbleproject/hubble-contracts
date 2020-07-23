@@ -51,7 +51,7 @@ contract BurnConsent is FraudProofHelpers {
     function processBurnConsentBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txBytes,
+        bytes memory txs,
         bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
@@ -64,15 +64,16 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
+        uint256 length = txs.burnConcent_size();
         require(
-            _txBytes.length == signatures.length,
+            length == signatures.length,
             "Mismatch length of signature and txs"
         );
-        Types.BurnConsent[] memory _txs = new Types.BurnConsent[](
-            _txBytes.length
-        );
-        for (uint256 i = 0; i < _txBytes.length; i++) {
-            _txs[i] = RollupUtils.BurnConsentFromBytes(_txBytes[i]);
+        Types.BurnConsent[] memory _txs = new Types.BurnConsent[](length);
+        for (uint256 i = 0; i < length; i++) {
+            _txs[i].fromIndex = txs.burnConcent_stateIdOf(i);
+            _txs[i].amount = txs.burnConcent_amountOf(i);
+            _txs[i].nonce = txs.burnConcent_nonceOf(i);
             _txs[i].signature = signatures[i];
         }
         bytes32 actualTxRoot = generateTxRoot(_txs);

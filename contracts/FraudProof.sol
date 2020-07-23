@@ -3,6 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
+import { Tx } from "./libs/Tx.sol";
+
 import { IERC20 } from "./interfaces/IERC20.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 
@@ -18,6 +20,7 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 contract FraudProofSetup {
     using SafeMath for uint256;
     using ECVerify for bytes32;
+    using Tx for bytes;
 
     MTUtils public merkleUtils;
     ITokenRegistry public tokenRegistry;

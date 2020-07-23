@@ -2,8 +2,11 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { Types } from "./Types.sol";
+import { Tx } from "./Tx.sol";
 
 library RollupUtils {
+    using Tx for bytes;
+
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
@@ -522,7 +525,11 @@ library RollupUtils {
         uint256 amount,
         uint256 nonce
     ) public pure returns (bytes memory) {
-        return abi.encode(fromIndex, amount, nonce);
+        Tx.BurnConcentDecoded[] memory _txs = new Tx.BurnConcentDecoded[](1);
+        _txs[0].stateID = fromIndex;
+        _txs[0].amount = amount;
+        _txs[0].nonce = nonce;
+        return Tx.serialize(_txs);
     }
 
     function BurnConsentFromBytes(bytes memory txBytes)
@@ -531,10 +538,9 @@ library RollupUtils {
         returns (Types.BurnConsent memory)
     {
         Types.BurnConsent memory _tx;
-        (_tx.fromIndex, _tx.amount, _tx.nonce) = abi.decode(
-            txBytes,
-            (uint256, uint256, uint256)
-        );
+        _tx.fromIndex = txBytes.burnConcent_stateIdOf(0);
+        _tx.amount = txBytes.burnConcent_amountOf(0);
+        _tx.nonce = txBytes.burnConcent_nonceOf(0);
         return _tx;
     }
 

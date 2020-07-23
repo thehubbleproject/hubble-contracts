@@ -303,7 +303,7 @@ contract RollupReddit {
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    _txs[0],
                     signatures,
                     batchProofs,
                     expectedTxRoot
