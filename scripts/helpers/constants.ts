@@ -1,4 +1,4 @@
-import { Account, PDALeaf } from "./interfaces";
+import { Account, PDALeaf, AccountMerkleProof } from "./interfaces";
 
 export const DummyAccount: Account = {
     ID: 0,
@@ -19,3 +19,11 @@ export const coordinatorPubkeyHash =
 // This is the MAX_DEPTH from contract Governance.
 // We Build all merkle trees with this depth in tests
 export const MAX_DEPTH = 4;
+
+export const DummyAccountMP: AccountMerkleProof = {
+    accountIP: {
+        pathToAccount: "0",
+        account: DummyAccount
+    },
+    siblings: []
+};

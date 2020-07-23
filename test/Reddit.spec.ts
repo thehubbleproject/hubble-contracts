@@ -9,10 +9,15 @@ import {
     Account,
     BurnConsentTx,
     BurnExecutionTx,
-    Transaction
+    Transaction,
+    Dispute
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from "../scripts/helpers/store";
-import { coordinatorPubkeyHash, MAX_DEPTH } from "../scripts/helpers/constants";
+import {
+    coordinatorPubkeyHash,
+    MAX_DEPTH,
+    DummyAccountMP
+} from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
@@ -194,6 +199,26 @@ contract("Reddit", async function() {
             { value: ethers.utils.parseEther("32").toString() }
         );
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+        const batchId = await utils.getBatchId();
+        const dispute: Dispute = {
+            batchId,
+            txs: [txBytes],
+            signatures: [],
+            batchProofs: {
+                accountProofs: [
+                    {
+                        from: DummyAccountMP,
+                        to: newAccountMP
+                    }
+                ],
+                pdaProof: [userPDAProof]
+            }
+        };
+        await utils.disputeBatch(dispute);
+
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 
     it("Should Airdrop some token to the User", async function() {
