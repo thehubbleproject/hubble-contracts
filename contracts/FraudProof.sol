@@ -48,7 +48,7 @@ contract FraudProofHelpers is FraudProofSetup {
                 _from_pda_proof._pda.pathToPubkey,
                 _from_pda_proof.siblings
             ),
-            "From PDA proof is incorrect"
+            "PDA proof is incorrect"
         );
 
         // convert pubkey path to ID

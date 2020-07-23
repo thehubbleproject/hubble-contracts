@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { Account, Transaction, Usage } from "./interfaces";
+import { Account, Transaction, Usage, Dispute } from "./interfaces";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
@@ -303,4 +303,20 @@ export async function AccountFromBytes(accountBytes: string): Promise<Account> {
         lastBurn: result["lastBurn"].toNumber()
     };
     return account;
+}
+
+export async function getBatchId() {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const batchLength = await rollupCoreInstance.numOfBatchesSubmitted();
+    return Number(batchLength) - 1;
+}
+
+export async function disputeBatch(dispute: Dispute) {
+    const rollupCoreInstance = await RollupCore.deployed();
+    await rollupCoreInstance.disputeBatch(
+        dispute.batchId,
+        dispute.txs,
+        dispute.signatures,
+        dispute.batchProofs
+    );
 }

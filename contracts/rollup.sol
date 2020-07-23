@@ -359,7 +359,7 @@ contract Rollup is RollupHelpers {
         (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
             .processBatch(
             batches[_batch_id - 1].stateRoot,
-            batches[_batch_id - 1].accountRoot,
+            batches[_batch_id].accountRoot,
             _txs,
             signatures,
             batchProofs,

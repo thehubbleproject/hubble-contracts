@@ -92,3 +92,18 @@ export interface BurnExecutionTx {
     fromIndex: number;
     signature: string;
 }
+
+export interface AccountProofs {
+    from: AccountMerkleProof;
+    to: AccountMerkleProof;
+}
+
+export interface Dispute {
+    batchId: number;
+    txs: string[];
+    signatures: string[];
+    batchProofs: {
+        accountProofs: AccountProofs[];
+        pdaProof: PDAMerkleProof[];
+    };
+}

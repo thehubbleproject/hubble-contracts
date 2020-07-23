@@ -9,10 +9,16 @@ import {
     Account,
     BurnConsentTx,
     BurnExecutionTx,
-    Transaction
+    Transaction,
+    Dispute
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from "../scripts/helpers/store";
-import { coordinatorPubkeyHash, MAX_DEPTH } from "../scripts/helpers/constants";
+import {
+    coordinatorPubkeyHash,
+    MAX_DEPTH,
+    DummyAccountMP,
+    DummyPDAMP
+} from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
@@ -194,6 +200,27 @@ contract("Reddit", async function() {
             { value: ethers.utils.parseEther("32").toString() }
         );
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+        // Run disputeBatch with no fraud
+        const batchId = await utils.getBatchId();
+        const dispute: Dispute = {
+            batchId,
+            txs: [txBytes],
+            signatures: [],
+            batchProofs: {
+                accountProofs: [
+                    {
+                        from: DummyAccountMP,
+                        to: newAccountMP
+                    }
+                ],
+                pdaProof: [userPDAProof]
+            }
+        };
+        await utils.disputeBatch(dispute);
+
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 
     it("Should Airdrop some token to the User", async function() {
@@ -279,6 +306,27 @@ contract("Reddit", async function() {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+        // Run disputeBatch with no fraud
+        const batchId = await utils.getBatchId();
+        const dispute: Dispute = {
+            batchId,
+            txs: [txBytes],
+            signatures: [tx.signature],
+            batchProofs: {
+                accountProofs: [
+                    {
+                        from: redditMP,
+                        to: userMP
+                    }
+                ],
+                pdaProof: [redditPDAProof]
+            }
+        };
+        await utils.disputeBatch(dispute);
+
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 
     it("let user transfer some token to Bob", async function() {
@@ -357,6 +405,27 @@ contract("Reddit", async function() {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+        // Run disputeBatch with no fraud
+        const batchId = await utils.getBatchId();
+        const dispute: Dispute = {
+            batchId,
+            txs: [txBytes],
+            signatures: [tx.signature],
+            batchProofs: {
+                accountProofs: [
+                    {
+                        from: userMP,
+                        to: bobMP
+                    }
+                ],
+                pdaProof: [userPDAProof]
+            }
+        };
+        await utils.disputeBatch(dispute);
+
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("lets user send burn consent", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
@@ -424,6 +493,27 @@ contract("Reddit", async function() {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+        // Run disputeBatch with no fraud
+        const batchId = await utils.getBatchId();
+        const dispute: Dispute = {
+            batchId,
+            txs: [txBytes],
+            signatures: [tx.signature],
+            batchProofs: {
+                accountProofs: [
+                    {
+                        from: userMP,
+                        to: DummyAccountMP
+                    }
+                ],
+                pdaProof: [userPDAProof]
+            }
+        };
+        await utils.disputeBatch(dispute);
+
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("lets Reddit to execute the burn", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
@@ -473,5 +563,26 @@ contract("Reddit", async function() {
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
+
+        // Run disputeBatch with no fraud
+        const batchId = await utils.getBatchId();
+        const dispute: Dispute = {
+            batchId,
+            txs: [txBytes],
+            signatures: [],
+            batchProofs: {
+                accountProofs: [
+                    {
+                        from: userMP,
+                        to: DummyAccountMP
+                    }
+                ],
+                pdaProof: [DummyPDAMP]
+            }
+        };
+        await utils.disputeBatch(dispute);
+
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 });
