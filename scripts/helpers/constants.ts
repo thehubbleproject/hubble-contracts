@@ -1,4 +1,9 @@
-import { Account, PDALeaf, AccountMerkleProof } from "./interfaces";
+import {
+    Account,
+    PDALeaf,
+    AccountMerkleProof,
+    PDAMerkleProof
+} from "./interfaces";
 
 export const DummyAccount: Account = {
     ID: 0,
@@ -24,6 +29,14 @@ export const DummyAccountMP: AccountMerkleProof = {
     accountIP: {
         pathToAccount: "0",
         account: DummyAccount
+    },
+    siblings: []
+};
+
+export const DummyPDAMP: PDAMerkleProof = {
+    _pda: {
+        pathToPubkey: "0",
+        pubkey_leaf: DummyPDA
     },
     siblings: []
 };
