@@ -1,5 +1,7 @@
 pragma solidity ^0.5.15;
 
+import { Types } from "./libs/Types.sol";
+
 contract Logger {
     /*********************
      * Rollup Contract *
@@ -8,16 +10,18 @@ contract Logger {
         address committer,
         bytes32 txroot,
         bytes32 updatedRoot,
-        uint256 index
+        uint256 index,
+        Types.Usage batchType
     );
 
     function logNewBatch(
         address committer,
         bytes32 txroot,
         bytes32 updatedRoot,
-        uint256 index
+        uint256 index,
+        Types.Usage batchType
     ) public {
-        emit NewBatch(committer, txroot, updatedRoot, index);
+        emit NewBatch(committer, txroot, updatedRoot, index, batchType);
     }
 
     event StakeWithdraw(address committed, uint256 amount, uint256 batch_id);
