@@ -1,16 +1,20 @@
 import { assert } from "chai";
-import { CreateAccount, Account, Transaction } from "../../scripts/helpers/interfaces";
+import {
+    CreateAccount,
+    Account,
+    Transaction,
+    DropTx
+} from "../../scripts/helpers/interfaces";
 
 const RollupUtils = artifacts.require("RollupUtils");
 
-contract("RollupUtils", async function (accounts) {
-
+contract("RollupUtils", async function(accounts) {
     let RollupUtilsInstance: any;
-    before(async function () {
+    before(async function() {
         RollupUtilsInstance = await RollupUtils.deployed();
     });
 
-    it("test account encoding and decoding", async function () {
+    it("test account encoding and decoding", async function() {
         const account: Account = {
             ID: 1,
             tokenType: 2,
@@ -71,27 +75,75 @@ contract("RollupUtils", async function (accounts) {
             tx.signature
         );
 
-        const decompressedTx = await RollupUtilsInstance.DecompressTx(compressedTx);
+        const decompressedTx = await RollupUtilsInstance.DecompressTx(
+            compressedTx
+        );
         assert.equal(decompressedTx[0].toNumber(), tx.fromIndex);
         assert.equal(decompressedTx[1].toNumber(), tx.toIndex);
         assert.equal(decompressedTx[2].toNumber(), tx.amount);
         assert.equal(decompressedTx[3].toString(), tx.signature);
     });
-    it("test createAccount utils", async function () {
+    it("test createAccount utils", async function() {
         const tx: CreateAccount = {
             toIndex: 1,
             tokenType: 1
-        }
+        };
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
             tx.toIndex,
             tx.tokenType
         );
-        await RollupUtilsInstance.CreateAccountFromBytes(txBytes)
+        const result = await RollupUtilsInstance.CreateAccountFromBytes(
+            txBytes
+        );
+        assert.equal(result.toIndex, tx.toIndex);
+        assert.equal(result.tokenType, tx.tokenType);
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
             tx.toIndex,
             tx.tokenType
         );
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
-
+    });
+    it("test airdrop utils", async function() {
+        const tx: DropTx = {
+            fromIndex: 1,
+            toIndex: 1,
+            tokenType: 1,
+            nonce: 2,
+            txType: 3,
+            amount: 10,
+            signature: "0xabcd"
+        };
+        const signBytes = await RollupUtilsInstance.AirdropSignBytes(
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
+        );
+        const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.txType,
+            tx.nonce,
+            tx.amount
+        );
+        const result = await RollupUtilsInstance.CreateAccountFromBytes(
+            txBytes
+        );
+        assert.equal(result.toIndex, tx.toIndex);
+        const compressedTx1 = await RollupUtilsInstance.CompressAirdropNoStruct(
+            tx.toIndex,
+            tx.amount,
+            tx.signature
+        );
+        const compressedTx2 = await RollupUtilsInstance.CompressAirdropTxWithMessage(
+            txBytes,
+            tx.signature
+        );
+        assert.equal(compressedTx1, compressedTx2);
+        await RollupUtilsInstance.DecompressCreateAccount(compressedTx1);
+        await RollupUtilsInstance.DecompressCreateAccount(compressedTx2);
     });
 });
