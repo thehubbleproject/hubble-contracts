@@ -10,15 +10,16 @@ import {RollupUtils} from "./libs/RollupUtils.sol";
 import {Tx} from "./libs/Tx.sol";
 import {Transfer} from "./Transfer.sol";
 import {Airdrop} from "./airdrop.sol";
+import {BurnConsent} from "./BurnConsent.sol";
 
 contract RollupReddit {
     Registry public nameRegistry;
     IReddit public createAccount;
-    IReddit public burnConsent;
     IReddit public burnExecution;
 
     Airdrop public airdrop;
     Transfer public transfer;
+    BurnConsent public burnConsent;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -32,7 +33,7 @@ contract RollupReddit {
         transfer = Transfer(
             nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
-        burnConsent = IReddit(
+        burnConsent = BurnConsent(
             nameRegistry.getContractDetails(ParamManager.BURN_CONSENT())
         );
         burnExecution = IReddit(
@@ -262,35 +263,51 @@ contract RollupReddit {
         return burnConsent.ApplyBurnConsentTx(_merkle_proof, transaction);
     }
 
-    function processBurnConsentTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        bytes memory sig,
-        bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountMerkleProof memory _fromAccountProof
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes memory,
-            Types.ErrorCode,
-            bool
-        )
-    {
-        Types.BurnConsent memory _tx = RollupUtils.BurnConsentTxFromBytes(
-            txBytes
+    function processBatch(
+        bytes32 stateRoot,
+        bytes memory txs,
+        Types.BurnConsentTransitionProof[] memory proofs
+    ) public view returns (bytes32, Types.ErrorCode) {
+        return burnConsent.processBatch(stateRoot, txs, proofs);
+    }
+
+    // Burn Consent Fraud Checks
+
+    function burnConsent_shouldRollBackSignerAccountCheck(
+        Types.SignerProof calldata proof,
+        bytes32 state,
+        bytes calldata signers,
+        bytes calldata txs
+    ) external view returns (bool) {
+        return 0 != burnConsent.signerAccountCheck(proof, state, signers, txs);
+    }
+
+    function burnConsent_shouldRollbackInvalidSignature(
+        uint256[2] calldata signature,
+        Types.PubkeyAccountProofs calldata proof,
+        bytes calldata txs,
+        bytes calldata signers
+    ) external view returns (bool) {
+        return 0 != burnConsent.signatureCheck(signature, proof, txs, signers);
+    }
+
+    function burnConsent_shouldRollbackInvalidStateTransition(
+        bytes32 stateRoot0,
+        bytes32 stateRoot10,
+        bytes memory txs,
+        Types.BurnConsentTransitionProof[] memory proofs
+    ) public view returns (bool) {
+        (bytes32 stateRoot11, Types.ErrorCode err) = burnConsent.processBatch(
+            stateRoot0,
+            txs,
+            proofs
         );
-        _tx.signature = sig;
-        return
-            burnConsent.processBurnConsentTx(
-                _balanceRoot,
-                _accountsRoot,
-                _tx,
-                _from_pda_proof,
-                _fromAccountProof
-            );
+        if (err != Types.ErrorCode.NoError) {
+            return true;
+        }
+        if (stateRoot11 != stateRoot10) {
+            return true;
+        }
     }
 
     //
