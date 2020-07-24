@@ -10,7 +10,7 @@ export enum Usage {
 export interface Account {
     ID: number;
     tokenType: number;
-    balance: number;
+    balance: number | string;
     nonce: number;
     burn: number;
     lastBurn: number;

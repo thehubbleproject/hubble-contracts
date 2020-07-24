@@ -1,5 +1,6 @@
 const fs = require("fs");
-var argv = require("minimist")(process.argv.slice(2));
+const argv = require("minimist")(process.argv.slice(2));
+const { ZERO_BYTES32_HASH } = require("../scripts/helpers/constants");
 
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
@@ -26,7 +27,6 @@ const rollupRedditContract = artifacts.require("RollupReddit");
 const testTokenContract = artifacts.require("TestToken");
 const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
 const POBContract = artifacts.require("POB");
-const utils = "../test/helpers/utils.ts";
 
 function writeContractAddresses(contractAddresses) {
     fs.writeFileSync(
@@ -148,8 +148,6 @@ async function deploy(deployer) {
         "TEST_TOKEN"
     );
 
-    const root = await getMerkleRootWithCoordinatorAccount(max_depth);
-
     // deploy deposit manager
     const depositManagerInstance = await deployAndRegister(
         deployer,
@@ -166,6 +164,8 @@ async function deploy(deployer) {
         [nameRegistryInstance.address],
         "ROLLUP_REDDIT"
     );
+
+    const root = await getMerkleRootWithCoordinatorAccount(max_depth);
 
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
@@ -204,26 +204,23 @@ module.exports = async function(deployer) {
 };
 
 async function getMerkleRootWithCoordinatorAccount(maxSize) {
-    var dataLeaves = [];
-    var rollupUtils = await rollupUtilsLib.deployed();
-    dataLeaves = await rollupUtils.GetGenesisLeaves();
-    var ZERO_BYTES32 =
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
-    var numOfAccsForCoord = dataLeaves.length;
+    const rollupUtils = await rollupUtilsLib.deployed();
+    const MTUtilsInstance = await merkleTreeUtilsContract.deployed();
+
+    const dataLeaves = await rollupUtils.GetGenesisLeaves();
+    const numOfAccsForCoord = dataLeaves.length;
     console.log(
         "Data leaves fetched from contract",
         dataLeaves,
         "count",
         dataLeaves.length
     );
-    var numberOfDataLeaves = 2 ** maxSize;
+    const numberOfDataLeaves = 2 ** maxSize;
     // create empty leaves
-    for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
-        dataLeaves[i] = ZERO_BYTES32;
+    for (let i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
+        dataLeaves[i] = ZERO_BYTES32_HASH;
     }
-    MTUtilsInstance = await merkleTreeUtilsContract.deployed();
-    var result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
-    console.log("result", result);
+    const result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
     return result;
 }
 

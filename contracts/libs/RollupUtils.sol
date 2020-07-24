@@ -113,8 +113,12 @@ library RollupUtils {
         }
     }
 
-    function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
-        Types.UserAccount memory account1 = Types.UserAccount({
+    function GetGenesisAccounts()
+        public
+        pure
+        returns (Types.UserAccount[2] memory accounts)
+    {
+        accounts[0] = Types.UserAccount({
             ID: 0,
             tokenType: 0,
             balance: 0,
@@ -122,16 +126,20 @@ library RollupUtils {
             burn: 0,
             lastBurn: 0
         });
-        Types.UserAccount memory account2 = Types.UserAccount({
+        accounts[1] = Types.UserAccount({
             ID: 1,
-            tokenType: 0,
-            balance: 0,
+            tokenType: 1,
+            balance: 1000000000000000,
             nonce: 0,
             burn: 0,
             lastBurn: 0
         });
-        leaves[0] = HashFromAccount(account1);
-        leaves[1] = HashFromAccount(account2);
+    }
+
+    function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
+        Types.UserAccount[2] memory accounts = GetGenesisAccounts();
+        leaves[0] = HashFromAccount(accounts[0]);
+        leaves[1] = HashFromAccount(accounts[1]);
     }
 
     function GetGenesisDataBlocks()
@@ -139,24 +147,9 @@ library RollupUtils {
         pure
         returns (bytes[2] memory dataBlocks)
     {
-        Types.UserAccount memory account1 = Types.UserAccount({
-            ID: 0,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        Types.UserAccount memory account2 = Types.UserAccount({
-            ID: 1,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        dataBlocks[0] = BytesFromAccount(account1);
-        dataBlocks[1] = BytesFromAccount(account2);
+        Types.UserAccount[2] memory accounts = GetGenesisAccounts();
+        dataBlocks[0] = BytesFromAccount(accounts[0]);
+        dataBlocks[1] = BytesFromAccount(accounts[1]);
     }
 
     // ---------- Tx Related Utils -------------------
