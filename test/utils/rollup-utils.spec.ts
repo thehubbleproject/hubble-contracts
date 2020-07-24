@@ -186,27 +186,23 @@ contract("RollupUtils", async function(accounts) {
             fromIndex: 1,
             amount: 5,
             nonce: 3,
-            cancel: false,
             signature: "0xabcd"
         };
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.fromIndex,
             tx.amount,
-            tx.nonce,
-            tx.cancel
+            tx.nonce
         );
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
             tx.fromIndex,
             tx.amount,
-            tx.nonce,
-            tx.cancel
+            tx.nonce
         );
         await RollupUtilsInstance.BurnConsentFromBytes(txBytes);
         const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
             tx.fromIndex,
             tx.amount,
             tx.nonce,
-            tx.cancel,
             tx.signature
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);

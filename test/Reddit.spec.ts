@@ -432,21 +432,18 @@ contract("Reddit", async function() {
         const tx = {
             fromIndex: User.AccID,
             amount: 5,
-            nonce: userMP.accountIP.account.nonce + 1,
-            cancel: false
+            nonce: userMP.accountIP.account.nonce + 1
         } as BurnConsentTx;
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.fromIndex,
             tx.amount,
-            tx.nonce,
-            tx.cancel
+            tx.nonce
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
             tx.fromIndex,
             tx.amount,
-            tx.nonce,
-            tx.cancel
+            tx.nonce
         );
         await RollupUtilsInstance.BurnConsentFromBytes(txBytes);
 
@@ -480,7 +477,6 @@ contract("Reddit", async function() {
             tx.fromIndex,
             tx.amount,
             tx.nonce,
-            tx.cancel,
             tx.signature
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
