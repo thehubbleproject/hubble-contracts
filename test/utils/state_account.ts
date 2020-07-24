@@ -60,6 +60,11 @@ export class Account {
     return signature;
   }
 
+  public signMsg(msg: string) {
+    const {signature, M} = mcl.sign(msg, this.secretKey);
+    return signature;
+  }
+
   public setStateID(stateID: number): Account {
     this.stateID = stateID;
     return this;

@@ -19,21 +19,22 @@ contract Airdrop is FraudProofHelpers {
 
     BLSAccountRegistry accountRegistry;
 
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
+    // FIX: commented out to test other components
+    // constructor(address _registryAddr) public {
+    //     nameRegistry = Registry(_registryAddr);
 
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
 
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
+    //     merkleUtils = MTUtils(
+    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+    //     );
 
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
+    //     tokenRegistry = ITokenRegistry(
+    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+    //     );
+    // }
 
     // TODO: consider whether we need tx root for airdrops
     // function generateTxRoot(Types.DropTx[] memory _txs)
@@ -53,13 +54,12 @@ contract Airdrop is FraudProofHelpers {
     function signatureCheck(
         uint256[2] calldata signature,
         Types.PubkeyAccountProof calldata proof,
-        bytes calldata txs,
+        uint256 signerAccountID,
         bytes32 txCommit
     ) external view returns (uint256) {
-        uint256 senderAccountID = txs.airdrop_senderAccountID();
         if (
             !accountRegistry.exists(
-                senderAccountID,
+                signerAccountID,
                 proof.pubkey,
                 proof.witness
             )
@@ -73,135 +73,163 @@ contract Airdrop is FraudProofHelpers {
         return 0;
     }
 
-    function processAirdropBatch(
+    function processBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AirDropTransitionProof memory senderProof,
-        Types.AirDropTransitionProof[] memory receiverProofs
-    ) public view returns (bytes32, uint256) {
+        Types.AirdropTransitionSenderProof memory senderProof,
+        Types.AirdropTransitionReceiverProof[] memory receiverProofs
+    ) public view returns (bytes32, Types.ErrorCode) {
         uint256 batchSize = txs.airdrop_size();
-        require(batchSize > 0, "Rollup: empty batch");
-        require(!txs.airdrop_hasExcessData(), "Rollup: excess tx data");
+        Tx.DropSender memory stx = txs.airdrop_senderDecode();
+        Types.ErrorCode err = processTxSenderPre(stateRoot, stx, senderProof);
         bytes32 acc = stateRoot;
         uint256 airdropAmount = 0;
         uint256 token = senderProof.account.tokenType;
-        for (uint256 i = 0; i < batchSize - 1; i++) {
-            (uint256 receiverID, uint256 amount) = txs.airdrop_decode(i);
-            uint256 fraudCode = 0;
-            airdropAmount += amount;
-            (acc, fraudCode) = processAirdropTxReceiverSide(
+        for (uint256 i = 0; i < batchSize; i++) {
+            Tx.DropReceiver memory _tx = txs.airdrop_receiverDecode(i);
+            airdropAmount += _tx.amount;
+            (acc, , err) = processTxReceiver(
                 acc,
-                receiverID,
-                amount,
                 token,
+                _tx,
                 receiverProofs[i]
             );
-            if (0 != fraudCode) {
-                return (bytes32(0x00), fraudCode);
+            if (Types.ErrorCode.NoError != err) {
+                return (bytes32(0x00), err);
             }
         }
-        uint256 fraudCode;
-        (acc, fraudCode) = processAirdropTxSenderSide(
+        (acc, , err) = processTxSenderPost(
             acc,
-            txs.airdrop_senderAccountID(),
-            txs.airdrop_senderStateID(),
             airdropAmount,
-            txs.airdrop_nonce(),
+            stx,
             senderProof
         );
-        if (0 != fraudCode) {
-            return (bytes32(0x00), fraudCode);
+        if (Types.ErrorCode.NoError != err) {
+            return (bytes32(0x00), err);
         }
-        return (acc, 0);
+        return (acc, Types.ErrorCode.NoError);
     }
 
-    function processAirdropTxReceiverSide(
+    function processTxReceiver(
         bytes32 stateRoot,
-        uint256 receiverID,
-        uint256 amount,
-        uint256 token,
-        Types.AirDropTransitionProof memory proof
-    ) public view returns (bytes32, uint256) {
+        uint256 tokenType,
+        Tx.DropReceiver memory _tx,
+        Types.AirdropTransitionReceiverProof memory proof
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes memory updatedReceiver,
+            Types.ErrorCode
+        )
+    {
         // A. check receiver inclusion in state
         Types.UserAccount memory account = proof.account;
-        ValidateAccountMP(stateRoot, receiverID, account, proof.witness);
+        ValidateAccountMP(stateRoot, _tx.receiverID, account, proof.witness);
         //
         //
         // FIX: cannot be an empty account
         //
         // if (proof.account.isEmptyAccount()) {
-        //   return bytes32(0x00), 1;
+        //   return err
         // }
         //
         //
         // B. apply diff for receiver
-        if (account.tokenType != token) {
+        if (account.tokenType != tokenType) {
             // token type mismatch
-            return (bytes32(0x00), 2);
+            return (bytes32(0x00), "", Types.ErrorCode.TokenMismatch);
         }
-        account.balance += amount;
+        account.balance += _tx.amount;
         if (account.balance >= 0x100000000) {
             // balance overflows
-            return (bytes32(0x00), 3);
+            return (bytes32(0x00), "", Types.ErrorCode.Overflow);
         }
+        updatedReceiver = RollupUtils.BytesFromAccount(account);
         return (
             merkleUtils.updateLeafWithSiblings(
                 keccak256(RollupUtils.BytesFromAccount(account)),
-                receiverID,
+                _tx.receiverID,
                 proof.witness
             ),
-            0
+            updatedReceiver,
+            Types.ErrorCode.NoError
         );
     }
 
-    function processAirdropTxSenderSide(
+    function processTxSenderPre(
         bytes32 stateRoot,
-        uint256 senderAccountID,
-        uint256 senderStateID,
-        uint256 amount,
-        uint256 nonce,
-        Types.AirDropTransitionProof memory proof
-    ) public view returns (bytes32, uint256) {
+        Tx.DropSender memory _tx,
+        Types.AirdropTransitionSenderProof memory proof
+    ) public view returns (Types.ErrorCode) {
         // A. check sender inclusion in state
         Types.UserAccount memory account = proof.account;
-        ValidateAccountMP(stateRoot, senderStateID, account, proof.witness);
-
+        ValidateAccountMP(stateRoot, _tx.stateID, account, proof.preWitness);
         //
         //
         // FIX: cannot be an empty account
         //
         // if (proof.senderAccounts.isEmptyAccount()) {
-        //   return bytes32(0x00), 4;
+        //   return err
         // }
         //
         //
-        // B. check account ID
-        if (senderAccountID != account.ID) {
-            // account id mismatch
-            return (bytes32(0x00), 5);
+        if (_tx.accountID != account.ID) {
+            return Types.ErrorCode.BadAccountID;
         }
-        // C. apply diff for sender
+        return Types.ErrorCode.NoError;
+    }
+
+    function processTxSenderPost(
+        bytes32 stateRoot,
+        uint256 amount,
+        Tx.DropSender memory _tx,
+        Types.AirdropTransitionSenderProof memory proof
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes memory updatedSender,
+            Types.ErrorCode
+        )
+    {
+        // A. check sender inclusion in state
+        Types.UserAccount memory account = proof.account;
+        ValidateAccountMP(stateRoot, _tx.stateID, account, proof.postWitness);
+        //
+        //
+        // FIX: cannot be an empty account
+        //
+        // if (proof.senderAccounts.isEmptyAccount()) {
+        //   return err
+        // }
+        //
+        //
+        //
+        // B. apply diff for sender
         if (account.balance < amount) {
-            // insufficient funds
-            return (bytes32(0x00), 6);
+            return (bytes32(0x00), "", Types.ErrorCode.NotEnoughTokenBalance);
         }
         account.balance -= amount;
-        if (account.nonce != nonce) {
-            // bad nonce
-            return (bytes32(0x00), 7);
+        if (account.nonce != _tx.nonce) {
+            return (bytes32(0x00), "", Types.ErrorCode.BadNonce);
         }
         account.nonce += 1;
         if (account.nonce == 0x100000000) {
             // nonce overflows
-            return (bytes32(0x00), 8);
+            return (bytes32(0x00), "", Types.ErrorCode.Overflow);
         }
+        updatedSender = RollupUtils.BytesFromAccount(account);
         return (
             merkleUtils.updateLeafWithSiblings(
-                keccak256(RollupUtils.BytesFromAccount(account)),
-                senderStateID,
-                proof.witness
+                keccak256(updatedSender),
+                _tx.stateID,
+                proof.postWitness
             ),
-            0
+            updatedSender,
+            Types.ErrorCode.NoError
         );
     }
 

@@ -112,8 +112,6 @@ contract("Rollup transfer", eth_accounts => {
         senderAccount.nonce
       );
       txs.push(tx);
-
-      console.log(senderAccount.accountID);
       // Collect sender public key and account witness
       pubkeys.push(senderAccount.encodePubkey());
       witnesses.push(registry.witness(senderAccount.accountID));
@@ -139,7 +137,7 @@ contract("Rollup transfer", eth_accounts => {
     );
     assert.equal(0, fraudCode.toNumber());
   });
-  it.only("Transfer: signer account check", async function() {
+  it("Transfer: signer account check", async function() {
     const batchSize = 16;
     const amount = 2;
     const txs: TxTransfer[] = [];

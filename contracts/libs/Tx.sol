@@ -57,11 +57,11 @@ library Tx {
     uint256 public constant TX_LEN_3b = 12;
     uint256 public constant MASK_TX_3b = 0xffffffffffff;
     // positions in bytes
-    uint256 public constant POSITION_STATE_3b = 4;
-    uint256 public constant POSITION_ACCOUNT_3b = 8;
+    uint256 public constant POSITION_ACCOUNT_3b = 4;
+    uint256 public constant POSITION_STATE_3b = 8;
     uint256 public constant POSITION_NONCE_3b = 12;
 
-    struct TransferDecoded {
+    struct Transfer {
         uint256 senderID;
         uint256 receiverID;
         uint256 amount;
@@ -81,17 +81,20 @@ library Tx {
         bool sign;
     }
 
-    struct DropDecodedReceiver {
+    struct DropReceiver {
         uint256 receiverID;
         uint256 amount;
     }
 
-    struct DropDecodedSender {
-        uint256 senderID;
+    struct DropSender {
+        uint256 accountID;
+        uint256 stateID;
         uint256 nonce;
     }
 
-    function serialize(TransferDecoded[] memory txs)
+    // Transfer
+
+    function serialize(Transfer[] memory txs)
         internal
         pure
         returns (bytes memory)
@@ -121,7 +124,7 @@ library Tx {
         return serialized;
     }
 
-    function transfer_decodedToLeafs(TransferDecoded[] memory txs)
+    function transfer_decodedToLeafs(Transfer[] memory txs)
         internal
         pure
         returns (bytes32[] memory)
@@ -144,13 +147,12 @@ library Tx {
     function transfer_decode(bytes memory txs, uint256 index)
         internal
         pure
-        returns (
-            uint256 sender,
-            uint256 receiver,
-            uint256 amount,
-            uint256 nonce
-        )
+        returns (Transfer memory _tx)
     {
+        uint256 sender;
+        uint256 receiver;
+        uint256 amount;
+        uint256 nonce;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
@@ -162,6 +164,7 @@ library Tx {
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
             nonce := and(mload(add(p_tx, POSITION_NONCE_0)), MASK_STATE_ID)
         }
+        return Transfer(sender, receiver, amount, nonce);
     }
 
     function transfer_hasExcessData(bytes memory txs)
@@ -265,6 +268,153 @@ library Tx {
             r := keccak256(p_tx, TX_LEN_0)
         }
         return BLS.mapToPoint(r);
+    }
+
+    // Airdrop
+
+    function serialize(DropSender memory stx, DropReceiver[] memory rtxs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = rtxs.length;
+
+        bytes memory serialized = new bytes(TX_LEN_3a * batchSize + TX_LEN_3b);
+        bytes memory _tx = abi.encodePacked(
+            uint32(stx.accountID),
+            uint32(stx.stateID),
+            uint32(stx.nonce)
+        );
+        for (uint256 j = 0; j < TX_LEN_3b; j++) {
+            serialized[j] = _tx[j];
+        }
+        uint256 off = TX_LEN_3b;
+        for (uint256 i = 0; i < batchSize; i++) {
+            _tx = abi.encodePacked(
+                uint32(rtxs[i].receiverID),
+                uint32(rtxs[i].amount)
+            );
+            for (uint256 j = 0; j < TX_LEN_3a; j++) {
+                serialized[j + off] = _tx[j];
+            }
+            off += TX_LEN_3a;
+        }
+        return serialized;
+    }
+
+    function airdrop_receiverDecode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (DropReceiver memory)
+    {
+        uint256 receiver;
+        uint256 amount;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_3a)),
+                MASK_STATE_ID
+            )
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
+        }
+        return DropReceiver(receiver, amount);
+    }
+
+    function airdrop_senderDecode(bytes memory txs)
+        internal
+        pure
+        returns (DropSender memory)
+    {
+        uint256 accountID;
+        uint256 stateID;
+        uint256 nonce;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            accountID := and(
+                mload(add(txs, POSITION_ACCOUNT_3b)),
+                MASK_ACCOUNT_ID
+            )
+            stateID := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
+            nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_NONCE)
+        }
+        return DropSender(accountID, stateID, nonce);
+    }
+
+    function airdrop_hasExcessData(bytes memory txs)
+        internal
+        pure
+        returns (bool)
+    {
+        return (txs.length - TX_LEN_3b) % TX_LEN_3a != 0;
+    }
+
+    function airdrop_size(bytes memory txs) internal pure returns (uint256) {
+        return (txs.length - TX_LEN_3b) / TX_LEN_3a;
+    }
+
+    function airdrop_senderAccountID(bytes memory txs)
+        internal
+        pure
+        returns (uint256 senderAccountID)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            senderAccountID := and(
+                mload(add(txs, POSITION_ACCOUNT_3b)),
+                MASK_ACCOUNT_ID
+            )
+        }
+    }
+
+    function airdrop_senderStateID(bytes memory txs)
+        internal
+        pure
+        returns (uint256 receiver)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            receiver := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
+        }
+    }
+
+    function airdrop_nonce(bytes memory txs)
+        internal
+        pure
+        returns (uint256 nonce)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_STATE_ID)
+        }
+    }
+
+    function airdrop_receiverOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 receiver)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_3a)),
+                MASK_STATE_ID
+            )
+        }
+    }
+
+    function airdrop_amountOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 amount)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
+        }
+        return amount;
     }
 
     function serialize(CreateDecoded[] memory txs)
@@ -503,127 +653,5 @@ library Tx {
             r := keccak256(p_tx, TX_LEN_2)
         }
         return BLS.mapToPoint(r);
-    }
-
-    function serialize(
-        DropDecodedSender memory stx,
-        DropDecodedReceiver[] memory rtxs
-    ) internal pure returns (bytes memory) {
-        uint256 batchSize = rtxs.length;
-
-        bytes memory serialized = new bytes(TX_LEN_3a * batchSize + TX_LEN_3b);
-        uint256 stateID = stx.senderID;
-        uint256 nonce = stx.nonce;
-        require(stateID < bound4Bytes, "invalid stateID");
-        require(nonce < bound4Bytes, "invalid nonce");
-        bytes memory _tx = abi.encodePacked(uint32(stateID), uint32(nonce));
-        for (uint256 j = 0; j < TX_LEN_3b; j++) {
-            serialized[j] = _tx[j];
-        }
-        uint256 off = TX_LEN_3b;
-        for (uint256 i = 0; i < batchSize; i++) {
-            stateID = rtxs[i].receiverID;
-            uint256 amount = rtxs[i].amount;
-            require(stateID < bound4Bytes, "invalid stateID");
-            require(amount < bound4Bytes, "invalid amount");
-            _tx = abi.encodePacked(uint32(stateID), uint32(amount));
-            for (uint256 j = 0; j < TX_LEN_3a; j++) {
-                serialized[j + off] = _tx[j];
-            }
-            off += TX_LEN_3a;
-        }
-        return serialized;
-    }
-
-    function airdrop_decode(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 receiver, uint256 amount)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
-            receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_3a)),
-                MASK_STATE_ID
-            )
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
-        }
-    }
-
-    function airdrop_hasExcessData(bytes memory txs)
-        internal
-        pure
-        returns (bool)
-    {
-        return (txs.length - TX_LEN_3b) % TX_LEN_3a != 0;
-    }
-
-    function airdrop_size(bytes memory txs) internal pure returns (uint256) {
-        return (txs.length - TX_LEN_3b) / TX_LEN_3a;
-    }
-
-    function airdrop_senderAccountID(bytes memory txs)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            receiver := and(
-                mload(add(txs, POSITION_ACCOUNT_3b)),
-                MASK_ACCOUNT_ID
-            )
-        }
-    }
-
-    function airdrop_senderStateID(bytes memory txs)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            receiver := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
-        }
-    }
-
-    function airdrop_nonce(bytes memory txs)
-        internal
-        pure
-        returns (uint256 nonce)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_STATE_ID)
-        }
-    }
-
-    function airdrop_receiverOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
-            receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_3a)),
-                MASK_STATE_ID
-            )
-        }
-    }
-
-    function airdrop_amountOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 amount)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
-        }
-        return amount;
     }
 }

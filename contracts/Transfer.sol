@@ -30,7 +30,7 @@ contract Transfer is FraudProofHelpers {
     //     );
     // }
 
-    function generateTxRoot(Tx.TransferDecoded[] memory _txs)
+    function generateTxRoot(Tx.Transfer[] memory _txs)
         public
         view
         returns (bytes32 txRoot)
@@ -135,40 +135,43 @@ contract Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         bytes memory txs,
         Types.TransferTransitionProof[] memory proofs
-    ) public view returns (bytes32, uint256) {
+    ) public view returns (bytes32, Types.ErrorCode) {
         uint256 batchSize = txs.transfer_size();
         require(batchSize > 0, "Transfer: empty batch");
         require(!txs.transfer_hasExcessData(), "Transfer: excess tx data");
         bytes32 acc = stateRoot;
+        Tx.Transfer memory _tx;
         for (uint256 i = 0; i < batchSize; i++) {
-            uint256 fraudCode = 0;
-            (acc, fraudCode) = processTx(acc, i, txs, proofs[i]);
-
-            if (0 != fraudCode) {
-                return (bytes32(0x00), fraudCode);
+            Types.ErrorCode err;
+            _tx = Tx.transfer_decode(txs, i);
+            (acc, , , err, ) = processTx(acc, _tx, proofs[i]);
+            if (Types.ErrorCode.NoError != err) {
+                return (bytes32(0x00), err);
             }
         }
-        return (acc, 0);
+        return (acc, Types.ErrorCode.NoError);
     }
 
     function processTx(
         bytes32 stateRoot,
-        uint256 index,
-        bytes memory txs,
+        Tx.Transfer memory _tx,
         Types.TransferTransitionProof memory proof
-    ) public view returns (bytes32, uint256) {
-        bytes32 acc = stateRoot;
-        (
-            uint256 senderID,
-            uint256 receiverID,
-            uint256 amount,
-            uint256 nonce
-        ) = txs.transfer_decode(index);
-
+    )
+        public
+        view
+        returns (
+            bytes32 acc,
+            bytes memory senderUpdated,
+            bytes memory receiverUpdated,
+            Types.ErrorCode,
+            bool
+        )
+    {
+        acc = stateRoot;
         // A. check sender inclusion in state
         ValidateAccountMP(
             acc,
-            senderID,
+            _tx.senderID,
             proof.senderAccount,
             proof.senderWitness
         );
@@ -183,23 +186,29 @@ contract Transfer is FraudProofHelpers {
         //
         // B. apply diff for sender
         Types.UserAccount memory account = proof.senderAccount;
+        uint256 amount = _tx.amount;
         if (account.balance < amount) {
-            // insufficient funds
-            return (bytes32(0x00), 2);
+            return (
+                bytes32(0x00),
+                "",
+                "",
+                Types.ErrorCode.NotEnoughTokenBalance,
+                false
+            );
         }
         account.balance -= amount;
-        if (account.nonce != nonce) {
-            // bad nonce
-            return (bytes32(0x00), 3);
+        if (account.nonce != _tx.nonce) {
+            return (bytes32(0x00), "", "", Types.ErrorCode.BadNonce, false);
         }
         account.nonce += 1;
         if (account.nonce == 0x100000000) {
             // nonce overflows
-            return (bytes32(0x00), 4);
+            return (bytes32(0x00), "", "", Types.ErrorCode.Overflow, false);
         }
+        receiverUpdated = RollupUtils.BytesFromAccount(account);
         acc = merkleUtils.updateLeafWithSiblings(
-            keccak256(RollupUtils.BytesFromAccount(account)),
-            senderID,
+            keccak256(receiverUpdated),
+            _tx.senderID,
             proof.senderWitness
         );
         uint256 token = account.tokenType;
@@ -207,7 +216,7 @@ contract Transfer is FraudProofHelpers {
         account = proof.receiverAccount;
         ValidateAccountMP(
             acc,
-            receiverID,
+            _tx.receiverID,
             proof.receiverAccount,
             proof.receiverWitness
         );
@@ -222,19 +231,50 @@ contract Transfer is FraudProofHelpers {
         //
         // D. apply diff for receiver
         if (account.tokenType != token) {
-            // token type mismatch
-            return (bytes32(0x00), 6);
+            return (
+                bytes32(0x00),
+                "",
+                "",
+                Types.ErrorCode.TokenMismatch,
+                false
+            );
         }
         account.balance += amount;
         if (account.balance >= 0x100000000) {
             // balance overflows
-            return (bytes32(0x00), 7);
+            return (bytes32(0x00), "", "", Types.ErrorCode.Overflow, false);
         }
+        senderUpdated = RollupUtils.BytesFromAccount(account);
         acc = merkleUtils.updateLeafWithSiblings(
-            keccak256(RollupUtils.BytesFromAccount(account)),
-            receiverID,
+            keccak256(senderUpdated),
+            _tx.receiverID,
             proof.receiverWitness
         );
-        return (acc, 0);
+        return (
+            acc,
+            senderUpdated,
+            receiverUpdated,
+            Types.ErrorCode.NoError,
+            true
+        );
+    }
+
+    function ApplyTx(
+        Tx.Transfer memory _tx,
+        Types.TransferTransitionProof memory proof
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        if (fromIndex == account.ID) {
+            account = RemoveTokensFromAccount(account, amount);
+            account.nonce++;
+        }
+
+        if (toIndex == account.ID) {
+            account = AddTokensToAccount(account, amount);
+        }
+
+        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
+
+        return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 }

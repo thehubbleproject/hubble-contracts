@@ -11,9 +11,15 @@ library Types {
         bytes32[] receiverWitness; // at state tree depth
     }
 
-    struct AirDropTransitionProof {
+    struct AirdropTransitionReceiverProof {
         UserAccount account;
-        bytes32[] witness; // at state tree depth
+        bytes32[] witness;
+    }
+
+    struct AirdropTransitionSenderProof {
+        UserAccount account;
+        bytes32[] preWitness;
+        bytes32[] postWitness;
     }
 
     struct SignerProof {
@@ -170,6 +176,9 @@ library Types {
         BurnAlreadyExecuted,
         NotCreatingOnZeroAccount,
         BadSignature,
-        BadNonce
+        BadNonce,
+        Overflow,
+        TokenMismatch,
+        BadAccountID
     }
 }

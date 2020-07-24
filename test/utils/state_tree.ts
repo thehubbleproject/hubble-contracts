@@ -1,6 +1,6 @@
 import {Tree} from "./tree";
 import {Account, EMPTY_ACCOUNT, StateAccountSolStruct} from "./state_account";
-import {TxTransfer} from "./tx";
+import {TxTransfer, TxAirdropReceiver, TxAirdropSender} from "./tx";
 
 interface ProofTransferTx {
   senderAccount: StateAccountSolStruct;
@@ -10,15 +10,25 @@ interface ProofTransferTx {
   safe: boolean;
 }
 
-type ProofTransferBatch = ProofTransferTx[];
+interface ProofAirdropTxReceiver {
+  account: StateAccountSolStruct;
+  witness: string[];
+  safe: boolean;
+}
 
-// interface ProofTransferBatch {
-//   senderAccounts: StateAccountSolStruct[];
-//   receiverAccounts: StateAccountSolStruct[];
-//   senderWitnesses: string[][];
-//   receiverWitnesses: string[][];
-//   safe: boolean;
-// }
+interface ProofAirdropTxSender {
+  account: StateAccountSolStruct;
+  preWitness: string[];
+  postWitness: string[];
+  safe: boolean;
+}
+
+interface ProofAirdropBatch {
+  receiverProofs: ProofAirdropTxReceiver[];
+  senderProof: ProofAirdropTxSender;
+  safe: boolean;
+}
+type ProofTransferBatch = ProofTransferTx[];
 
 const STATE_WITNESS_LENGHT = 32;
 const ZERO =
@@ -40,6 +50,12 @@ const PLACEHOLDER_TRANSFER_PROOF = {
   safe: false
 };
 
+const PLACEHOLDER_AIRDROP_PROOF = {
+  account: PLACEHOLDER_PROOF_ACC,
+  witness: PLACEHOLDER_PROOF_WITNESS,
+  safe: false
+};
+
 export class StateTree {
   public static new(stateDepth: number) {
     return new StateTree(stateDepth);
@@ -49,17 +65,6 @@ export class StateTree {
   constructor(stateDepth: number) {
     this.stateTree = Tree.new(stateDepth);
   }
-
-  // public getAccount(stateID: number) {
-  //   return {
-  //     encoded: this.accounts[stateID].encode(),
-  //     witness: this.stateTree.witness(stateID).nodes
-  //   };
-  // }
-
-  // public getAccountEncoded(stateID: number) {
-  //   return this.accounts[stateID].encode();
-  // }
 
   public getAccountWitness(stateID: number) {
     return this.stateTree.witness(stateID).nodes;
@@ -85,7 +90,7 @@ export class StateTree {
     let safe = true;
     let proofs: ProofTransferTx[] = [];
     for (let i = 0; i < txs.length; i++) {
-    // for (let i = 0; i < 1; i++) {
+      // for (let i = 0; i < 1; i++) {
       if (safe) {
         const proof = this.applyTxTransfer(txs[i]);
         proofs.push(proof);
@@ -95,6 +100,90 @@ export class StateTree {
       }
     }
     return {proof: proofs, safe};
+  }
+
+  public applyAirdropBatch(
+    stx: TxAirdropSender,
+    rtxs: TxAirdropReceiver[]
+  ): ProofAirdropBatch {
+    let safe = true;
+    let receiverProofs: ProofAirdropTxReceiver[] = [];
+    const senderID = stx.stateID;
+    const senderAccount = this.accounts[senderID];
+    const senderPreWitness = this.stateTree.witness(senderID).nodes;
+    if (!senderAccount) {
+      // FIX: this wont work
+      return {
+        receiverProofs: rtxs.map(_ => {
+          return {
+            account: PLACEHOLDER_PROOF_ACC,
+            witness: PLACEHOLDER_PROOF_WITNESS,
+            safe: false
+          };
+        }),
+        senderProof: {
+          account: EMPTY_ACCOUNT,
+          preWitness: senderPreWitness,
+          postWitness: PLACEHOLDER_PROOF_WITNESS,
+          safe: false
+        },
+        safe: false
+      };
+    } else {
+      const tokenType = senderAccount.tokenType;
+      let amount = 0;
+      for (let i = 0; i < rtxs.length; i++) {
+        if (safe) {
+          const proof = this.applyTxAirdropReceiver(rtxs[i], tokenType);
+          amount += rtxs[i].amount;
+          receiverProofs.push(proof);
+          safe = proof.safe;
+        } else {
+          receiverProofs.push(PLACEHOLDER_AIRDROP_PROOF);
+        }
+      }
+      if (!safe) {
+        return {
+          receiverProofs,
+          senderProof: {
+            account: PLACEHOLDER_PROOF_ACC,
+            preWitness: senderPreWitness,
+            postWitness: PLACEHOLDER_PROOF_WITNESS,
+            safe: false
+          },
+          safe: false
+        };
+      }
+      const senderAccStruct = senderAccount.toSolStruct();
+      const senderPostWitness = this.stateTree.witness(senderID).nodes;
+      senderAccount.balance -= amount;
+      senderAccount.nonce += 1;
+      this.accounts[senderID] = senderAccount;
+      this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
+      if (senderAccount.balance < amount) {
+        return {
+          receiverProofs,
+          senderProof: {
+            account: senderAccStruct,
+            preWitness: senderPreWitness,
+            postWitness: PLACEHOLDER_PROOF_WITNESS,
+            safe: false
+          },
+          safe: false
+        };
+      }
+      console.log("also here");
+      return {
+        receiverProofs,
+        senderProof: {
+          account: senderAccStruct,
+          preWitness: senderPreWitness,
+          postWitness: senderPostWitness,
+          safe: true
+        },
+        safe: true
+      };
+    }
   }
 
   public applyTxTransfer(tx: TxTransfer): ProofTransferTx {
@@ -157,6 +246,40 @@ export class StateTree {
         receiverAccount: EMPTY_ACCOUNT,
         receiverWitness: receiverWitness,
         safe: false
+      };
+    }
+  }
+
+  public applyTxAirdropReceiver(
+    tx: TxAirdropReceiver,
+    tokenType: number
+  ): ProofAirdropTxReceiver {
+    const receiverID = tx.receiverID;
+    const receiverAccount = this.accounts[receiverID];
+
+    const witness = this.stateTree.witness(receiverID).nodes;
+    if (receiverAccount) {
+      if (receiverAccount.tokenType != tokenType) {
+        return {
+          account: receiverAccount.toSolStruct(),
+          witness,
+          safe: false
+        };
+      }
+      const receiverAccStruct = receiverAccount.toSolStruct();
+      receiverAccount.balance += tx.amount;
+      this.accounts[receiverID] = receiverAccount;
+      this.stateTree.updateSingle(receiverID, receiverAccount.toStateLeaf());
+      return {
+        account: receiverAccStruct,
+        witness,
+        safe: true
+      };
+    } else {
+      return {
+        account: EMPTY_ACCOUNT,
+        witness,
+        safe: true
       };
     }
   }

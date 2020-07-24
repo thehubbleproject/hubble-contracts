@@ -7,15 +7,17 @@ import {Types} from "./libs/Types.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {RollupUtils} from "./libs/RollupUtils.sol";
 
+import {Tx} from "./libs/Tx.sol";
 import {Transfer} from "./Transfer.sol";
+import {Airdrop} from "./airdrop.sol";
 
 contract RollupReddit {
     Registry public nameRegistry;
     IReddit public createAccount;
-    IReddit public airdrop;
     IReddit public burnConsent;
     IReddit public burnExecution;
 
+    Airdrop public airdrop;
     Transfer public transfer;
 
     constructor(address _registryAddr) public {
@@ -24,7 +26,7 @@ contract RollupReddit {
         createAccount = IReddit(
             nameRegistry.getContractDetails(ParamManager.CREATE_ACCOUNT())
         );
-        airdrop = IReddit(
+        airdrop = Airdrop(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
         transfer = Transfer(
@@ -97,34 +99,83 @@ contract RollupReddit {
         return airdrop.ApplyAirdropTx(_merkle_proof, transaction);
     }
 
-    function processAirdropTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        bytes memory sig,
-        bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+    function processAirdropTxReceiver(
+        bytes32 stateRoot,
+        uint256 tokenType,
+        Tx.DropReceiver memory _tx,
+        Types.AirdropTransitionReceiverProof memory proof
     )
         public
         view
         returns (
             bytes32,
             bytes memory,
-            bytes memory,
-            Types.ErrorCode,
-            bool
+            Types.ErrorCode
         )
     {
-        Types.DropTx memory _tx = RollupUtils.AirdropFromBytes(txBytes);
-        _tx.signature = sig;
+        return airdrop.processTxReceiver(stateRoot, tokenType, _tx, proof);
+    }
+
+    function processAirdropTxSenderPre(
+        bytes32 stateRoot,
+        Tx.DropSender memory _tx,
+        Types.AirdropTransitionSenderProof memory proof
+    ) public view returns (Types.ErrorCode) {
+        return airdrop.processTxSenderPre(stateRoot, _tx, proof);
+    }
+
+    function processAirdropTxSenderPost(
+        bytes32 stateRoot,
+        uint256 amount,
+        Tx.DropSender memory _tx,
+        Types.AirdropTransitionSenderProof memory proof
+    )
+        public
+        view
+        returns (
+            bytes32,
+            bytes memory,
+            Types.ErrorCode
+        )
+    {
+        return airdrop.processTxSenderPost(stateRoot, amount, _tx, proof);
+    }
+
+    //
+    // Airdrop Fraud
+    //
+
+    function airdrop_shouldRollbackInvalidSignature(
+        uint256[2] calldata signature,
+        Types.PubkeyAccountProof calldata proof,
+        bytes calldata txs,
+        bytes32 txCommit
+    ) external view returns (bool) {
+        uint256 senderAccountID = Tx.airdrop_senderAccountID(txs);
         return
-            airdrop.processAirdropTx(
-                _balanceRoot,
-                _accountsRoot,
-                _tx,
-                _from_pda_proof,
-                accountProofs
-            );
+            0 !=
+            airdrop.signatureCheck(signature, proof, senderAccountID, txCommit);
+    }
+
+    function airdrop_shouldRollbackInvalidStateTransition(
+        bytes32 stateRoot0,
+        bytes32 stateRoot10,
+        bytes memory txs,
+        Types.AirdropTransitionSenderProof memory senderProof,
+        Types.AirdropTransitionReceiverProof[] memory receiverProofs
+    ) public view returns (bool) {
+        (bytes32 stateRoot11, Types.ErrorCode err) = airdrop.processBatch(
+            stateRoot0,
+            txs,
+            senderProof,
+            receiverProofs
+        );
+        if (err != Types.ErrorCode.NoError) {
+            return true;
+        }
+        if (stateRoot11 != stateRoot10) {
+            return true;
+        }
     }
 
     //
@@ -140,12 +191,9 @@ contract RollupReddit {
     }
 
     function processTransferTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        bytes memory sig,
-        bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        bytes32 stateRoot,
+        Tx.Transfer memory _tx,
+        Types.TransferTransitionProof memory proof
     )
         public
         view
@@ -157,17 +205,12 @@ contract RollupReddit {
             bool
         )
     {
-        Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
-        _tx.signature = sig;
-        return
-            transfer.processTx(
-                _balanceRoot,
-                _accountsRoot,
-                _tx,
-                _from_pda_proof,
-                accountProofs
-            );
+        return transfer.processTx(stateRoot, _tx, proof);
     }
+
+    //
+    // Transfer Fraud Checks
+    //
 
     function transfer_shouldRollBackSignerAccountCheck(
         Types.SignerProof calldata proof,
@@ -193,12 +236,12 @@ contract RollupReddit {
         bytes memory txs,
         Types.TransferTransitionProof[] memory proofs
     ) public view returns (bool) {
-        (bytes32 stateRoot11, uint256 safe) = transfer.processBatch(
+        (bytes32 stateRoot11, Types.ErrorCode err) = transfer.processBatch(
             stateRoot0,
             txs,
             proofs
         );
-        if (0 != safe) {
+        if (err != Types.ErrorCode.NoError) {
             return true;
         }
         if (stateRoot11 != stateRoot10) {
