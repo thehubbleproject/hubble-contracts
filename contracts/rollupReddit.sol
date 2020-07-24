@@ -11,20 +11,21 @@ import {Tx} from "./libs/Tx.sol";
 import {Transfer} from "./Transfer.sol";
 import {Airdrop} from "./airdrop.sol";
 import {BurnConsent} from "./BurnConsent.sol";
+import {CreateAccount} from "./CreateAccount.sol";
 
 contract RollupReddit {
     Registry public nameRegistry;
-    IReddit public createAccount;
     IReddit public burnExecution;
 
     Airdrop public airdrop;
     Transfer public transfer;
     BurnConsent public burnConsent;
+    CreateAccount public createAccount;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
 
-        createAccount = IReddit(
+        createAccount = CreateAccount(
             nameRegistry.getContractDetails(ParamManager.CREATE_ACCOUNT())
         );
         airdrop = Airdrop(
@@ -45,11 +46,6 @@ contract RollupReddit {
     // CreateAccount
     //
 
-    // TODO: should be routed to registry
-    // function createPublickeys(bytes[] memory publicKeys) public returns (uint256[] memory) {
-    //   return createAccount.createPublickeys(publicKeys);
-    // }
-
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
@@ -60,11 +56,9 @@ contract RollupReddit {
     }
 
     function processCreateAccountTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        bytes memory txBytes,
-        Types.PDAMerkleProof memory _to_pda_proof,
-        Types.AccountMerkleProof memory to_account_proof
+        bytes32 stateRoot,
+        Tx.CreateAccount memory _tx,
+        Types.CreateAccountTransitionProof memory proof
     )
         public
         view
@@ -75,17 +69,30 @@ contract RollupReddit {
             bool
         )
     {
-        Types.CreateAccount memory _tx = RollupUtils.CreateAccountFromBytes(
-            txBytes
+        return createAccount.processTx(stateRoot, _tx, proof);
+    }
+
+    //
+    // CreateAccount Fraud Checks
+    //
+
+    function create_shouldRollbackInvalidStateTransition(
+        bytes32 stateRoot0,
+        bytes32 stateRoot10,
+        bytes memory txs,
+        Types.CreateAccountTransitionProof[] memory proofs
+    ) public view returns (bool) {
+        (bytes32 stateRoot11, Types.ErrorCode err) = createAccount.processBatch(
+            stateRoot0,
+            txs,
+            proofs
         );
-        return
-            createAccount.processCreateAccountTx(
-                _balanceRoot,
-                _accountsRoot,
-                _tx,
-                _to_pda_proof,
-                to_account_proof
-            );
+        if (err != Types.ErrorCode.NoError) {
+            return true;
+        }
+        if (stateRoot11 != stateRoot10) {
+            return true;
+        }
     }
 
     //
