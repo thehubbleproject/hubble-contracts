@@ -118,8 +118,6 @@ contract("Tx Serialization", accounts => {
             assert.equal(amount, txs[i].amount);
             let nonce = (await c.burnConcent_nonceOf(serialized, i)).toNumber();
             assert.equal(nonce, txs[i].nonce);
-            let sign = await c.burnConcent_signOf(serialized, i);
-            assert.equal(sign, txs[i].sign);
             let h0 = txs[i].hash();
             let h1 = await c.burnConcent_hashOf(serialized, i);
             assert.equal(h0, h1);
@@ -160,8 +158,6 @@ contract("Tx Serialization", accounts => {
             assert.equal(amount, txs[i].amount);
             let nonce = (await c.burnConcent_nonceOf(serialized, i)).toNumber();
             assert.equal(nonce, txs[i].nonce);
-            let sign = await c.burnConcent_signOf(serialized, i);
-            assert.equal(sign, txs[i].sign);
             let h0 = txs[i].hash();
             let h1 = await c.burnConcent_hashOf(serialized, i);
             assert.equal(h0, h1);
