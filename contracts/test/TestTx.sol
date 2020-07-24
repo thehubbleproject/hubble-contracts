@@ -149,57 +149,65 @@ contract TestTx {
         return txs.airdrop_nonce();
     }
 
-    // function create_serialize(Tx.CreateDecoded[] calldata txs)
-    //     external
-    //     pure
-    //     returns (bytes memory)
-    // {
-    //     return Tx.serialize(txs);
-    // }
+    function create_serialize(Tx.CreateAccount[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
 
-    // function create_hasExcessData(bytes calldata txs)
-    //     external
-    //     pure
-    //     returns (bool)
-    // {
-    //     return txs.create_hasExcessData();
-    // }
+    function create_decode(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (Tx.CreateAccount memory)
+    {
+        return Tx.create_decode(txs, index);
+    }
 
-    // function create_size(bytes calldata txs) external pure returns (uint256) {
-    //     return txs.create_size();
-    // }
+    function create_hasExcessData(bytes calldata txs)
+        external
+        pure
+        returns (bool)
+    {
+        return txs.create_hasExcessData();
+    }
 
-    // function create_accountIdOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.create_accountIdOf(index);
-    // }
+    function create_size(bytes calldata txs) external pure returns (uint256) {
+        return txs.create_size();
+    }
 
-    // function create_stateIdOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.create_stateIdOf(index);
-    // }
+    function create_accountIdOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.create_accountIdOf(index);
+    }
 
-    // function create_tokenOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.create_tokenOf(index);
-    // }
+    function create_stateIdOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.create_stateIdOf(index);
+    }
 
-    // function create_hashOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (bytes32)
-    // {
-    //     return txs.create_hashOf(index);
-    // }
+    function create_tokenOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.create_tokenOf(index);
+    }
+
+    function create_hashOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (bytes32)
+    {
+        return txs.create_hashOf(index);
+    }
 
     function burnConsent_serialize(Tx.BurnConsent[] calldata txs)
         external

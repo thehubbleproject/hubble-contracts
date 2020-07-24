@@ -12,7 +12,7 @@ library Types {
     }
 
     struct CreateAccountTransitionProof {
-        UserAccount account;
+        bytes32[] witness; // at state tree depth
     }
 
     struct BurnConsentTransitionProof {

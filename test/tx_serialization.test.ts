@@ -6,6 +6,7 @@ import {
   TxAirdropReceiver,
   TxAirdropSender,
   TxBurnConsent,
+  TxCreate,
   Tx
 } from "./utils/tx";
 import {bnToHex, mclToHex, init as mclInit} from "./utils/mcl";
@@ -134,124 +135,36 @@ contract("Tx Serialization", accounts => {
     const _serialized = await c.burnConsent_serialize(txs);
     assert.equal(serialized, _serialized);
   });
-
-  // it("parse create transaction", async function() {
-  //   const txSize = 32;
-  //   const txs: TxCreate[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     txs.push(TxCreate.rand());
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   assert.equal(txSize, (await c.create_size(serialized)).toNumber());
-  //   assert.isFalse(await c.create_hasExcessData(serialized));
-  //   for (let i = 0; i < txSize; i++) {
-  //     let accountID = (await c.create_accountIdOf(serialized, i)).toNumber();
-  //     assert.equal(accountID, txs[i].accountID);
-  //     let stateID = (await c.create_stateIdOf(serialized, i)).toNumber();
-  //     assert.equal(stateID, txs[i].stateID);
-  //     let token = (await c.create_tokenOf(serialized, i)).toNumber();
-  //     assert.equal(token, txs[i].token);
-  //     let h0 = txs[i].hash();
-  //     let h1 = await c.create_hashOf(serialized, i);
-  //     assert.equal(h0, h1);
-  //   }
-  // });
-  // it("serialize create transaction", async function() {
-  //   const txSize = 32;
-  //   const txs: TxCreate[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     const tx = TxCreate.rand();
-  //     txs.push(tx);
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   const _serialized = await c.create_serialize(txs);
-  //   assert.equal(serialized, _serialized);
-  // });
-  // it("serialize transfer transaction", async function() {
-  //   const txSize = 32;
-  //   const txs: TxTransfer[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     const tx = TxTransfer.rand();
-  //     txs.push(tx);
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   const _serialized = await c.transfer_serialize(txs);
-  //   assert.equal(serialized, _serialized);
-  // });
-  // it("parse burn consent transaction", async function() {
-  //   const txSize = 32;
-  //   const txs: TxBurnConsent[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     txs.push(TxBurnConsent.rand());
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   assert.equal(txSize, (await c.burnConsent_size(serialized)).toNumber());
-  //   assert.isFalse(await c.burnConsent_hasExcessData(serialized));
-  //   for (let i = 0; i < txSize; i++) {
-  //     let stateID = (await c.burnConsent_stateIdOf(serialized, i)).toNumber();
-  //     assert.equal(stateID, txs[i].stateID);
-  //     let amount = (await c.burnConsent_amountOf(serialized, i)).toNumber();
-  //     assert.equal(amount, txs[i].amount);
-  //     let nonce = (await c.burnConsent_nonceOf(serialized, i)).toNumber();
-  //     assert.equal(nonce, txs[i].nonce);
-  //     let sign = await c.burnConsent_signOf(serialized, i);
-  //     assert.equal(sign, txs[i].sign);
-  //     let h0 = txs[i].hash();
-  //     let h1 = await c.burnConsent_hashOf(serialized, i);
-  //     assert.equal(h0, h1);
-  //     let p0 = await c.burnConsent_mapToPoint(serialized, i);
-  //     let p1 = txs[i].mapToPoint();
-  //     assert.equal(p1[0], bnToHex(p0[0].toString(16)));
-  //     assert.equal(p1[1], bnToHex(p0[1].toString(16)));
-  //   }
-  // });
-  // it("serialize burn consent transaction", async function() {
-  //   const txSize = 2;
-  //   const txs: TxBurnConsent[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     const tx = TxBurnConsent.rand();
-  //     txs.push(tx);
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   const _serialized = await c.burnConsent_serialize(txs);
-  //   assert.equal(serialized, _serialized);
-  // });
-  // it("parse burn consent transaction", async function() {
-  //   const txSize = 32;
-  //   const txs: TxBurnConsent[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     txs.push(TxBurnConsent.rand());
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   assert.equal(txSize, (await c.burnConsent_size(serialized)).toNumber());
-  //   assert.isFalse(await c.burnConsent_hasExcessData(serialized));
-  //   for (let i = 0; i < txSize; i++) {
-  //     let stateID = (await c.burnConsent_stateIdOf(serialized, i)).toNumber();
-  //     assert.equal(stateID, txs[i].stateID);
-  //     let amount = (await c.burnConsent_amountOf(serialized, i)).toNumber();
-  //     assert.equal(amount, txs[i].amount);
-  //     let nonce = (await c.burnConsent_nonceOf(serialized, i)).toNumber();
-  //     assert.equal(nonce, txs[i].nonce);
-  //     let sign = await c.burnConsent_signOf(serialized, i);
-  //     assert.equal(sign, txs[i].sign);
-  //     let h0 = txs[i].hash();
-  //     let h1 = await c.burnConsent_hashOf(serialized, i);
-  //     assert.equal(h0, h1);
-  //     let p0 = await c.burnConsent_mapToPoint(serialized, i);
-  //     let p1 = txs[i].mapToPoint();
-  //     assert.equal(p1[0], bnToHex(p0[0].toString(16)));
-  //     assert.equal(p1[1], bnToHex(p0[1].toString(16)));
-  //   }
-  // });
-  // it("serialize burn consent transaction", async function() {
-  //   const txSize = 2;
-  //   const txs: TxBurnConsent[] = [];
-  //   for (let i = 0; i < txSize; i++) {
-  //     const tx = TxBurnConsent.rand();
-  //     txs.push(tx);
-  //   }
-  //   const {serialized} = serialize(txs);
-  //   const _serialized = await c.burnConsent_serialize(txs);
-  //   assert.equal(serialized, _serialized);
-  // });
+  it("parse create transaction", async function() {
+    const txSize = 2;
+    const txs: TxCreate[] = [];
+    for (let i = 0; i < txSize; i++) {
+      txs.push(TxCreate.rand());
+    }
+    const {serialized} = serialize(txs);
+    assert.equal(txSize, (await c.create_size(serialized)).toNumber());
+    assert.isFalse(await c.create_hasExcessData(serialized));
+    for (let i = 0; i < txSize; i++) {
+      const accountID = (await c.create_accountIdOf(serialized, i)).toNumber();
+      assert.equal(accountID, txs[i].accountID);
+      const stateID = (await c.create_stateIdOf(serialized, i)).toNumber();
+      assert.equal(stateID, txs[i].stateID);
+      const token = (await c.create_tokenOf(serialized, i)).toNumber();
+      assert.equal(token, txs[i].tokenType);
+      const h0 = txs[i].hash();
+      const h1 = await c.create_hashOf(serialized, i);
+      assert.equal(h0, h1);
+    }
+  });
+  it("serialize create transaction", async function() {
+    const txSize = 32;
+    const txs: TxCreate[] = [];
+    for (let i = 0; i < txSize; i++) {
+      const tx = TxCreate.rand();
+      txs.push(tx);
+    }
+    const {serialized} = serialize(txs);
+    const _serialized = await c.create_serialize(txs);
+    assert.equal(serialized, _serialized);
+  });
 });

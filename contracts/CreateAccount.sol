@@ -10,39 +10,28 @@ import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 
+import {Tx} from "./libs/Tx.sol";
+
 contract CreateAccount is FraudProofHelpers {
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
+    using Tx for bytes;
 
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
+    // /*********************
+    //  * Constructor *
+    //  ********************/
+    // constructor(address _registryAddr) public {
+    //     nameRegistry = Registry(_registryAddr);
 
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
 
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
+    //     merkleUtils = MTUtils(
+    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+    //     );
 
-    modifier onlyReddit() {
-        // TODO: Add only Reddit check
-        _;
-    }
-
-    // function createPublickeys(bytes[] memory publicKeys) public onlyReddit returns (uint256[] memory) {
-    //   uint256[] memory pubkeyIDs = new uint256[](publicKeys.length);
-    //   for (uint256 i = 0; i < publicKeys.length; i++) {
-    //     Types.PDALeaf memory newPDALeaf;
-    //     newPDALeaf.pubkey = publicKeys[i];
-    //     pubkeyIDs[i] = accountsTree.appendLeaf(RollupUtils.PDALeafToHash(newPDALeaf));
-    //   }
-    //   return pubkeyIDs;
+    //     tokenRegistry = ITokenRegistry(
+    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+    //     );
     // }
 
     function generateTxRoot(Types.CreateAccount[] memory _txs)
@@ -59,55 +48,66 @@ contract CreateAccount is FraudProofHelpers {
         return txRoot;
     }
 
-    /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
-     * */
     function processBatch(
         bytes32 stateRoot,
-        bytes32 accountsRoot,
-        Types.CreateAccount[] memory _txs,
-        Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        bytes memory txs,
+        Types.CreateAccountTransitionProof[] memory proofs
+    ) public view returns (bytes32, Types.ErrorCode) {
+        uint256 batchSize = txs.create_size();
+        require(batchSize > 0, "CreateAccount: empty batch");
+        require(!txs.create_hasExcessData(), "CreateAccount: excess tx data");
+        bytes32 acc = stateRoot;
+        Tx.CreateAccount memory _tx;
+        for (uint256 i = 0; i < batchSize; i++) {
+            Types.ErrorCode err;
+            _tx = Tx.create_decode(txs, i);
+            (acc, , err, ) = processTx(acc, _tx, proofs[i]);
+            if (Types.ErrorCode.NoError != err) {
+                return (bytes32(0x00), err);
+            }
+        }
+        return (acc, Types.ErrorCode.NoError);
+    }
+
+    function processTx(
+        bytes32 stateRoot,
+        Tx.CreateAccount memory _tx,
+        Types.CreateAccountTransitionProof memory proof
     )
         public
         view
         returns (
             bytes32,
-            bytes32,
+            bytes memory created,
+            Types.ErrorCode,
             bool
         )
     {
-        bytes32 actualTxRoot = generateTxRoot(_txs);
-        // if there is an expectation set, revert if it's not met
-        if (expectedTxRoot == ZERO_BYTES32) {
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
-            require(
-                actualTxRoot == expectedTxRoot,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
+        uint256 stateID = _tx.stateID;
+        // if (!merkleUtils.verifyEmpty(stateRoot, stateID, proof.witness)) {
+        //     return (
+        //         bytes32(0x00),
+        //         "",
+        //         Types.ErrorCode.NotCreatingOnZeroAccount,
+        //         false
+        //     );
+        // }
 
-        bool isTxValid;
-        {
-            for (uint256 i = 0; i < _txs.length; i++) {
-                // call process tx update for every transaction to check if any
-                // tx evaluates correctly
-                (stateRoot, , , isTxValid) = processCreateAccountTx(
-                    stateRoot,
-                    accountsRoot,
-                    _txs[i],
-                    batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i].to
-                );
-
-                if (!isTxValid) {
-                    break;
-                }
-            }
-        }
-        return (stateRoot, actualTxRoot, !isTxValid);
+        Types.UserAccount memory account = Types.UserAccount(
+            _tx.accountID,
+            _tx.tokenType,
+            0,
+            0,
+            0,
+            0
+        );
+        created = RollupUtils.BytesFromAccount(account);
+        bytes32 updatedRoot = merkleUtils.updateLeafWithSiblings(
+            keccak256(created),
+            _tx.stateID,
+            proof.witness
+        );
+        return (updatedRoot, created, Types.ErrorCode.NoError, true);
     }
 
     function ApplyCreateAccountTx(
@@ -125,41 +125,5 @@ contract CreateAccount is FraudProofHelpers {
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
         updatedAccount = RollupUtils.BytesFromAccount(account);
         return (updatedAccount, newRoot);
-    }
-
-    function processCreateAccountTx(
-        bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
-        Types.CreateAccount memory _tx,
-        Types.PDAMerkleProof memory _to_pda_proof,
-        Types.AccountMerkleProof memory to_account_proof
-    )
-        public
-        view
-        returns (
-            bytes32 newRoot,
-            bytes memory createdAccountBytes,
-            Types.ErrorCode,
-            bool
-        )
-    {
-        // Validate we are creating on a zero account
-        if (
-            !merkleUtils.verifyLeaf(
-                _balanceRoot,
-                merkleUtils.defaultHashes(0), // Zero account leaf
-                to_account_proof.accountIP.pathToAccount,
-                to_account_proof.siblings
-            )
-        ) {
-            return ("", "", Types.ErrorCode.NotCreatingOnZeroAccount, false);
-        }
-
-        (createdAccountBytes, newRoot) = ApplyCreateAccountTx(
-            to_account_proof,
-            _tx
-        );
-
-        return (newRoot, createdAccountBytes, Types.ErrorCode.NoError, true);
     }
 }

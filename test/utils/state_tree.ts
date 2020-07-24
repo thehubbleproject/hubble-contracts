@@ -4,7 +4,8 @@ import {
   TxTransfer,
   TxAirdropReceiver,
   TxAirdropSender,
-  TxBurnConsent
+  TxBurnConsent,
+  TxCreate
 } from "./tx";
 
 interface ProofTransferTx {
@@ -40,6 +41,12 @@ interface ProofBurnConsentTx {
 }
 type ProofBurnConsentBatch = ProofBurnConsentTx[];
 
+interface ProofCreateAccountTx {
+  witness: string[];
+  safe: boolean;
+}
+type ProofCreateAccountBatch = ProofCreateAccountTx[];
+
 const STATE_WITNESS_LENGHT = 32;
 const ZERO =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -66,6 +73,10 @@ const PLACEHOLDER_AIRDROP_PROOF = {
 };
 const PLACEHOLDER_BURN_CONSENT_PROOF = {
   account: PLACEHOLDER_PROOF_ACC,
+  witness: PLACEHOLDER_PROOF_WITNESS,
+  safe: false
+};
+const PLACEHOLDER_CRATE_ACCOUNT_PROOF = {
   witness: PLACEHOLDER_PROOF_WITNESS,
   safe: false
 };
@@ -111,6 +122,23 @@ export class StateTree {
         safe = proof.safe;
       } else {
         proofs.push(PLACEHOLDER_TRANSFER_PROOF);
+      }
+    }
+    return {proof: proofs, safe};
+  }
+
+  public applyCreateBatch(
+    txs: TxCreate[]
+  ): {proof: ProofCreateAccountBatch; safe: boolean} {
+    let safe = true;
+    let proofs: ProofCreateAccountTx[] = [];
+    for (let i = 0; i < txs.length; i++) {
+      if (safe) {
+        const proof = this.applyTxCreate(txs[i]);
+        proofs.push(proof);
+        safe = proof.safe;
+      } else {
+        proofs.push(PLACEHOLDER_CRATE_ACCOUNT_PROOF);
       }
     }
     return {proof: proofs, safe};
@@ -214,6 +242,30 @@ export class StateTree {
         safe: true
       };
     }
+  }
+
+  public applyTxCreate(tx: TxCreate): ProofCreateAccountTx {
+    const stateID = tx.stateID;
+    const account = this.accounts[stateID];
+    const witness = this.stateTree.witness(stateID).nodes;
+    if (!account) {
+      const newAccount = Account.new(
+        tx.accountID,
+        tx.tokenType,
+        0,
+        0,
+        0
+      ).setStateID(stateID);
+      this.stateTree.updateSingle(stateID, newAccount.toStateLeaf());
+      return {
+        witness,
+        safe: true
+      };
+    }
+    return {
+      witness: PLACEHOLDER_PROOF_WITNESS,
+      safe: false
+    };
   }
 
   public applyTxTransfer(tx: TxTransfer): ProofTransferTx {

@@ -294,6 +294,19 @@ contract MerkleTreeUtils {
         return calculatedRoot == _root;
     }
 
+    function verifyEmpty(
+        bytes32 _root,
+        uint256 _path,
+        bytes32[] memory _siblings
+    ) public view returns (bool) {
+        bytes32 calculatedRoot = computeInclusionProofRootWithLeaf(
+            bytes32(0x00),
+            _path,
+            _siblings
+        );
+        return calculatedRoot == _root;
+    }
+
     /**
      * @notice Update a leaf using siblings and root
      *         This is a stateless operation

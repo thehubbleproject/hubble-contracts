@@ -67,10 +67,10 @@ library Tx {
         uint256 nonce;
     }
 
-    struct CreateDecoded {
+    struct CreateAccount {
         uint256 accountID;
         uint256 stateID;
-        uint256 token;
+        uint256 tokenType;
     }
 
     struct BurnConsent {
@@ -549,7 +549,7 @@ library Tx {
         return amount;
     }
 
-    function serialize(CreateDecoded[] memory txs)
+    function serialize(CreateAccount[] memory txs)
         internal
         pure
         returns (bytes memory)
@@ -560,10 +560,7 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 accountID = txs[i].accountID;
             uint256 stateID = txs[i].stateID;
-            uint256 token = txs[i].token;
-            require(accountID < bound4Bytes, "invalid accountID");
-            require(stateID < bound4Bytes, "invalid stateID");
-            require(token < bound2Bytes, "invalid amount");
+            uint256 token = txs[i].tokenType;
             bytes memory _tx = abi.encodePacked(
                 uint32(accountID),
                 uint32(stateID),
@@ -575,6 +572,27 @@ library Tx {
             }
         }
         return serialized;
+    }
+
+    function create_decode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (CreateAccount memory _tx)
+    {
+        uint256 accountID;
+        uint256 stateID;
+        uint256 tokenType;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_1))
+            accountID := and(
+                mload(add(p_tx, POSITION_ACCOUNT_1)),
+                MASK_ACCOUNT_ID
+            )
+            stateID := and(mload(add(p_tx, POSITION_STATE_1)), MASK_STATE_ID)
+            tokenType := and(mload(add(p_tx, POSITION_TOKEN_1)), MASK_TOKEN_ID)
+        }
+        return CreateAccount(accountID, stateID, tokenType);
     }
 
     function create_hasExcessData(bytes memory txs)
@@ -604,26 +622,26 @@ library Tx {
     function create_stateIdOf(bytes memory txs, uint256 index)
         internal
         pure
-        returns (uint256 sender)
+        returns (uint256 state)
     {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_1))
-            sender := and(mload(add(p_tx, POSITION_STATE_1)), MASK_STATE_ID)
+            state := and(mload(add(p_tx, POSITION_STATE_1)), MASK_STATE_ID)
         }
     }
 
     function create_tokenOf(bytes memory txs, uint256 index)
         internal
         pure
-        returns (uint256 amount)
+        returns (uint256 tokenType)
     {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_1))
-            amount := and(mload(add(p_tx, POSITION_TOKEN_1)), MASK_TOKEN_ID)
+            tokenType := and(mload(add(p_tx, POSITION_TOKEN_1)), MASK_TOKEN_ID)
         }
-        return amount;
+        return tokenType;
     }
 
     function create_hashOf(bytes memory txs, uint256 index)
