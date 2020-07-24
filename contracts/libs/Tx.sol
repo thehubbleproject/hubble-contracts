@@ -35,14 +35,13 @@ library Tx {
     uint256 public constant POSITION_TOKEN_1 = 10;
 
     // transaction_type: burn concent
-    // [burner_state_id<4>|amount<4>|nonce<4>|sign<1>]
-    uint256 public constant TX_LEN_2 = 13;
+    // [burner_state_id<4>|amount<4>|nonce<4>]
+    uint256 public constant TX_LEN_2 = 12;
     uint256 public constant MASK_TX_2 = 0xffffffffffffffffffffffffff;
     // positions in bytes
     uint256 public constant POSITION_STATE_2 = 4;
     uint256 public constant POSITION_AMOUNT_2 = 8;
     uint256 public constant POSITION_NONCE_2 = 12;
-    uint256 public constant POSITION_SIGN_2 = 13;
 
     // transaction_type: airdrop
     // [receiver_state_id<4>|amount<4>]
@@ -69,7 +68,6 @@ library Tx {
         uint256 stateID;
         uint256 amount;
         uint256 nonce;
-        bool sign;
     }
 
     struct DropDecoded {
@@ -324,16 +322,13 @@ library Tx {
             uint256 stateID = txs[i].stateID;
             uint256 amount = txs[i].amount;
             uint256 nonce = txs[i].nonce;
-            bool sign = txs[i].sign;
             require(stateID < bound4Bytes, "invalid stateID");
             require(amount < bound4Bytes, "invalid amount");
             require(nonce < bound4Bytes, "invalid nonce");
-            // require(sign < 2, "invalid sign");
             bytes memory _tx = abi.encodePacked(
                 uint32(stateID),
                 uint32(amount),
-                uint32(nonce),
-                sign
+                uint32(nonce)
             );
             require(_tx.length == TX_LEN_2, "TODO: rm, bad implementation");
             uint256 off = i * TX_LEN_2;
@@ -394,18 +389,6 @@ library Tx {
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_2))
             receiver := and(mload(add(p_tx, POSITION_NONCE_2)), MASK_STATE_ID)
-        }
-    }
-
-    function burnConcent_signOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (bool sign)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_2))
-            sign := and(mload(add(p_tx, POSITION_SIGN_2)), MASK_BYTE)
         }
     }
 

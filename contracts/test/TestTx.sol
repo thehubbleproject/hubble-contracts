@@ -166,14 +166,6 @@ contract TestTx {
         return txs.burnConcent_nonceOf(index);
     }
 
-    function burnConcent_signOf(bytes calldata txs, uint256 index)
-        external
-        pure
-        returns (bool)
-    {
-        return txs.burnConcent_signOf(index);
-    }
-
     function burnConcent_hashOf(bytes calldata txs, uint256 index)
         external
         pure
