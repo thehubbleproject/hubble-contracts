@@ -1,6 +1,7 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
 import { Account, Transaction, Usage, Dispute } from "./interfaces";
+import { StakingAmountString } from "./constants";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
@@ -267,7 +268,7 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
         compressedTxs,
         newRoot,
         Usage.Transfer,
-        { value: ethers.utils.parseEther("32").toString() }
+        { value: StakingAmountString }
     );
 }
 

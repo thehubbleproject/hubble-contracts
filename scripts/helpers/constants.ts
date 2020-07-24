@@ -4,6 +4,7 @@ import {
     AccountMerkleProof,
     PDAMerkleProof
 } from "./interfaces";
+import { ethers } from "ethers";
 
 export const DummyAccount: Account = {
     ID: 0,
@@ -40,3 +41,10 @@ export const DummyPDAMP: PDAMerkleProof = {
     },
     siblings: []
 };
+
+// Reflects contract Governance::STAKE_AMOUNT()
+export const StakingAmount = "0.1";
+
+export const StakingAmountString = ethers.utils
+    .parseEther(StakingAmount)
+    .toString();

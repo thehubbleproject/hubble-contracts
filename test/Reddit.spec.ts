@@ -17,7 +17,8 @@ import {
     coordinatorPubkeyHash,
     MAX_DEPTH,
     DummyAccountMP,
-    DummyPDAMP
+    DummyPDAMP,
+    StakingAmountString
 } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
@@ -104,7 +105,7 @@ contract("Reddit", async function() {
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             _zero_account_mp,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
         const RedditAccount: Account = {
             ID: Reddit.AccID,
@@ -199,7 +200,7 @@ contract("Reddit", async function() {
             [compressedTx],
             newBalanceRoot,
             Usage.CreateAccount,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
         assert.equal(newBalanceRoot, await accountStore.getRoot());
 
@@ -304,7 +305,7 @@ contract("Reddit", async function() {
             [compressedTx],
             newBalanceRoot,
             Usage.Airdrop,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
@@ -403,7 +404,7 @@ contract("Reddit", async function() {
             [compressedTx],
             newBalanceRoot,
             Usage.Transfer,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
@@ -490,7 +491,7 @@ contract("Reddit", async function() {
             [compressedTx],
             newBalanceRoot,
             Usage.BurnConsent,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
@@ -563,7 +564,7 @@ contract("Reddit", async function() {
             [compressedTx],
             newBalanceRoot,
             Usage.BurnExecution,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
 
         assert.equal(newBalanceRoot, await accountStore.getRoot());
