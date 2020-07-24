@@ -57,7 +57,6 @@ export enum ErrorCode {
     NotEnoughTokenBalance,
     BadFromTokenType,
     BadToTokenType,
-    InvalidCancelBurnAmount,
     BadFromIndex,
     BurnAlreadyExecuted,
     NotCreatingOnZeroAccount,
@@ -84,7 +83,6 @@ export interface BurnConsentTx {
     fromIndex: number;
     amount: number;
     nonce: number;
-    cancel: boolean;
     signature: string;
 }
 

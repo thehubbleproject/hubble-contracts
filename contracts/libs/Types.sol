@@ -66,7 +66,6 @@ library Types {
         uint256 fromIndex;
         uint256 amount;
         uint256 nonce;
-        bool cancel;
         bytes signature;
     }
 
@@ -135,7 +134,6 @@ library Types {
         NotEnoughTokenBalance,
         BadFromTokenType,
         BadToTokenType,
-        InvalidCancelBurnAmount,
         BadFromIndex,
         BurnAlreadyExecuted,
         NotCreatingOnZeroAccount,

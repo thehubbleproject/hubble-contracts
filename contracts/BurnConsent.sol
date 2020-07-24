@@ -112,11 +112,7 @@ contract BurnConsent is FraudProofHelpers {
         Types.BurnConsent memory _tx
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
-        if (_tx.cancel) {
-            account.burn -= _tx.amount;
-        } else {
-            account.burn += _tx.amount;
-        }
+        account.burn = _tx.amount;
         account.nonce++;
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
         updatedAccount = RollupUtils.BytesFromAccount(account);
@@ -163,14 +159,6 @@ contract BurnConsent is FraudProofHelpers {
                 ZERO_BYTES32,
                 "",
                 Types.ErrorCode.InvalidTokenAmount,
-                false
-            );
-        }
-        if (_tx.cancel && account.burn < _tx.amount) {
-            return (
-                ZERO_BYTES32,
-                "",
-                Types.ErrorCode.InvalidCancelBurnAmount,
                 false
             );
         }
