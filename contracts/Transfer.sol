@@ -258,23 +258,4 @@ contract Transfer is FraudProofHelpers {
             true
         );
     }
-
-    function ApplyTx(
-        Tx.Transfer memory _tx,
-        Types.TransferTransitionProof memory proof
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
-        if (fromIndex == account.ID) {
-            account = RemoveTokensFromAccount(account, amount);
-            account.nonce++;
-        }
-
-        if (toIndex == account.ID) {
-            account = AddTokensToAccount(account, amount);
-        }
-
-        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
-
-        return (RollupUtils.BytesFromAccount(account), newRoot);
-    }
 }

@@ -201,75 +201,75 @@ contract TestTx {
     //     return txs.create_hashOf(index);
     // }
 
-    // function burnConcent_serialize(Tx.BurnConcentDecoded[] calldata txs)
-    //     external
-    //     pure
-    //     returns (bytes memory)
-    // {
-    //     return Tx.serialize(txs);
-    // }
+    function burnConsent_serialize(Tx.BurnConsent[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
 
-    // function burnConcent_hasExcessData(bytes calldata txs)
-    //     external
-    //     pure
-    //     returns (bool)
-    // {
-    //     return txs.burnConcent_hasExcessData();
-    // }
+    function burnConsent_decode(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (Tx.BurnConsent memory)
+    {
+        return txs.burnConsent_decode(index);
+    }
 
-    // function burnConcent_size(bytes calldata txs)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.burnConcent_size();
-    // }
+    function burnConsent_hasExcessData(bytes calldata txs)
+        external
+        pure
+        returns (bool)
+    {
+        return txs.burnConsent_hasExcessData();
+    }
 
-    // function burnConcent_stateIdOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.burnConcent_stateIdOf(index);
-    // }
+    function burnConsent_size(bytes calldata txs)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConsent_size();
+    }
 
-    // function burnConcent_amountOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.burnConcent_amountOf(index);
-    // }
+    function burnConsent_stateIdOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConsent_stateIdOf(index);
+    }
 
-    // function burnConcent_nonceOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (uint256)
-    // {
-    //     return txs.burnConcent_nonceOf(index);
-    // }
+    function burnConsent_amountOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConsent_amountOf(index);
+    }
 
-    // function burnConcent_signOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (bool)
-    // {
-    //     return txs.burnConcent_signOf(index);
-    // }
+    function burnConsent_nonceOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnConsent_nonceOf(index);
+    }
 
-    // function burnConcent_hashOf(bytes calldata txs, uint256 index)
-    //     external
-    //     pure
-    //     returns (bytes32)
-    // {
-    //     return txs.burnConcent_hashOf(index);
-    // }
+    function burnConsent_hashOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (bytes32)
+    {
+        return txs.burnConsent_hashOf(index);
+    }
 
-    // function burnConcent_mapToPoint(bytes calldata txs, uint256 index)
-    //     external
-    //     view
-    //     returns (uint256[2] memory)
-    // {
-    //     return txs.burnConcent_mapToPoint(index);
-    // }
+    function burnConsent_mapToPoint(bytes calldata txs, uint256 index)
+        external
+        view
+        returns (uint256[2] memory)
+    {
+        return txs.burnConsent_mapToPoint(index);
+    }
 }

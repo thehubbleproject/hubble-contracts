@@ -1,6 +1,11 @@
 import {Tree} from "./tree";
 import {Account, EMPTY_ACCOUNT, StateAccountSolStruct} from "./state_account";
-import {TxTransfer, TxAirdropReceiver, TxAirdropSender} from "./tx";
+import {
+  TxTransfer,
+  TxAirdropReceiver,
+  TxAirdropSender,
+  TxBurnConsent
+} from "./tx";
 
 interface ProofTransferTx {
   senderAccount: StateAccountSolStruct;
@@ -9,26 +14,31 @@ interface ProofTransferTx {
   receiverWitness: string[];
   safe: boolean;
 }
+type ProofTransferBatch = ProofTransferTx[];
 
 interface ProofAirdropTxReceiver {
   account: StateAccountSolStruct;
   witness: string[];
   safe: boolean;
 }
-
 interface ProofAirdropTxSender {
   account: StateAccountSolStruct;
   preWitness: string[];
   postWitness: string[];
   safe: boolean;
 }
-
 interface ProofAirdropBatch {
   receiverProofs: ProofAirdropTxReceiver[];
   senderProof: ProofAirdropTxSender;
   safe: boolean;
 }
-type ProofTransferBatch = ProofTransferTx[];
+
+interface ProofBurnConsentTx {
+  account: StateAccountSolStruct;
+  witness: string[];
+  safe: boolean;
+}
+type ProofBurnConsentBatch = ProofBurnConsentTx[];
 
 const STATE_WITNESS_LENGHT = 32;
 const ZERO =
@@ -49,8 +59,12 @@ const PLACEHOLDER_TRANSFER_PROOF = {
   receiverWitness: PLACEHOLDER_PROOF_WITNESS,
   safe: false
 };
-
 const PLACEHOLDER_AIRDROP_PROOF = {
+  account: PLACEHOLDER_PROOF_ACC,
+  witness: PLACEHOLDER_PROOF_WITNESS,
+  safe: false
+};
+const PLACEHOLDER_BURN_CONSENT_PROOF = {
   account: PLACEHOLDER_PROOF_ACC,
   witness: PLACEHOLDER_PROOF_WITNESS,
   safe: false
@@ -97,6 +111,23 @@ export class StateTree {
         safe = proof.safe;
       } else {
         proofs.push(PLACEHOLDER_TRANSFER_PROOF);
+      }
+    }
+    return {proof: proofs, safe};
+  }
+
+  public applyBurnConsentBatch(
+    txs: TxBurnConsent[]
+  ): {proof: ProofBurnConsentBatch; safe: boolean} {
+    let safe = true;
+    let proofs: ProofBurnConsentTx[] = [];
+    for (let i = 0; i < txs.length; i++) {
+      if (safe) {
+        const proof = this.applyTxBurnConsent(txs[i]);
+        proofs.push(proof);
+        safe = proof.safe;
+      } else {
+        proofs.push(PLACEHOLDER_BURN_CONSENT_PROOF);
       }
     }
     return {proof: proofs, safe};
@@ -172,7 +203,6 @@ export class StateTree {
           safe: false
         };
       }
-      console.log("also here");
       return {
         receiverProofs,
         senderProof: {
@@ -280,6 +310,31 @@ export class StateTree {
         account: EMPTY_ACCOUNT,
         witness,
         safe: true
+      };
+    }
+  }
+
+  public applyTxBurnConsent(tx: TxBurnConsent): ProofBurnConsentTx {
+    const stateID = tx.stateID;
+    const account = this.accounts[stateID];
+
+    const witness = this.stateTree.witness(stateID).nodes;
+    if (account) {
+      const accountPreimage = account.toSolStruct();
+      account.burn = tx.amount;
+      account.nonce += 1;
+      this.accounts[stateID] = account;
+      this.stateTree.updateSingle(stateID, account.toStateLeaf());
+      return {
+        account: accountPreimage,
+        witness,
+        safe: true
+      };
+    } else {
+      return {
+        account: EMPTY_ACCOUNT,
+        witness,
+        safe: false
       };
     }
   }

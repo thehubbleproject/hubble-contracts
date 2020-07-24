@@ -11,6 +11,15 @@ library Types {
         bytes32[] receiverWitness; // at state tree depth
     }
 
+    struct CreateAccountTransitionProof {
+        UserAccount account;
+    }
+
+    struct BurnConsentTransitionProof {
+        UserAccount account;
+        bytes32[] witness;
+    }
+
     struct AirdropTransitionReceiverProof {
         UserAccount account;
         bytes32[] witness;

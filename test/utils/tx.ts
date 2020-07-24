@@ -125,27 +125,24 @@ export class TxCreate {
   }
 }
 
-export class TxBurnConcent {
-  public static rand(): TxBurnConcent {
+export class TxBurnConsent {
+  public static rand(): TxBurnConsent {
     const stateID = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
     const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
     const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-    const sign = Math.random() >= 0.5;
-    return new TxBurnConcent(stateID, amount, nonce, sign);
+    return new TxBurnConsent(stateID, amount, nonce);
   }
   constructor(
     public readonly stateID: number,
     public readonly amount: number,
-    public readonly nonce: number,
-    public readonly sign: boolean
+    public readonly nonce: number
   ) {}
 
   public hash(): string {
     return web3.utils.soliditySha3(
       {v: this.stateID, t: "uint32"},
       {v: this.amount, t: "uint32"},
-      {v: this.nonce, t: "uint32"},
-      {v: this.sign, t: "bool"}
+      {v: this.nonce, t: "uint32"}
     );
   }
 
@@ -164,11 +161,7 @@ export class TxBurnConcent {
       amountLen * 2
     );
     let nonce = web3.utils.padLeft(web3.utils.toHex(this.nonce), amountLen * 2);
-    let encoded =
-      stateID.slice(2) +
-      amount.slice(2) +
-      nonce.slice(2) +
-      (this.sign ? "01" : "00");
+    let encoded = stateID.slice(2) + amount.slice(2) + nonce.slice(2);
     if (prefix) {
       encoded = "0x" + encoded;
     }
