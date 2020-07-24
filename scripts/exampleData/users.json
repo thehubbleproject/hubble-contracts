@@ -1,0 +1,6 @@
+{
+  "users": [
+    { "address": "0xaaaa01", "pubkey": "0xaaaa02", "privkey": "0xaaaa03" },
+    { "address": "0xbbbb01", "pubkey": "0xbbbb02", "privkey": "0xbbbb03" }
+  ]
+}
