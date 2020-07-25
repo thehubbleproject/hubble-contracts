@@ -100,20 +100,22 @@ export class TxCreate {
         const stateID = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
         );
-        const token = web3.utils.hexToNumber(web3.utils.randomHex(tokenLen));
-        return new TxCreate(accountID, stateID, token);
+        const tokenType = web3.utils.hexToNumber(
+            web3.utils.randomHex(tokenLen)
+        );
+        return new TxCreate(accountID, stateID, tokenType);
     }
     constructor(
         public readonly accountID: number,
         public readonly stateID: number,
-        public readonly token: number
+        public readonly tokenType: number
     ) {}
 
     public hash(): string {
         return web3.utils.soliditySha3(
             { v: this.accountID, t: "uint32" },
             { v: this.stateID, t: "uint32" },
-            { v: this.token, t: "uint16" }
+            { v: this.tokenType, t: "uint16" }
         );
     }
 
@@ -126,11 +128,12 @@ export class TxCreate {
             web3.utils.toHex(this.stateID),
             stateIDLen * 2
         );
-        let token = web3.utils.padLeft(
-            web3.utils.toHex(this.token),
+        let tokenType = web3.utils.padLeft(
+            web3.utils.toHex(this.tokenType),
             tokenLen * 2
         );
-        let encoded = accountID.slice(2) + stateID.slice(2) + token.slice(2);
+        let encoded =
+            accountID.slice(2) + stateID.slice(2) + tokenType.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
@@ -138,14 +141,14 @@ export class TxCreate {
     }
 }
 
-export class TxBurnConcent {
-    public static rand(): TxBurnConcent {
+export class TxBurnConsent {
+    public static rand(): TxBurnConsent {
         const stateID = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
         );
         const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
         const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-        return new TxBurnConcent(stateID, amount, nonce);
+        return new TxBurnConsent(stateID, amount, nonce);
     }
     constructor(
         public readonly stateID: number,
@@ -187,13 +190,39 @@ export class TxBurnConcent {
     }
 }
 
-export class TxAirdrop {
-    public static rand(): TxAirdrop {
+export class TxBurnExecution {
+    public static rand(): TxBurnExecution {
+        const stateID = web3.utils.hexToNumber(
+            web3.utils.randomHex(stateIDLen)
+        );
+        return new TxBurnExecution(stateID);
+    }
+    constructor(public readonly stateID: number) {}
+
+    public hash(): string {
+        return web3.utils.soliditySha3({ v: this.stateID, t: "uint32" });
+    }
+
+    public encode(prefix: boolean = false): string {
+        let stateID = web3.utils.padLeft(
+            web3.utils.toHex(this.stateID),
+            stateIDLen * 2
+        );
+        let encoded = stateID.slice(2);
+        if (prefix) {
+            encoded = "0x" + encoded;
+        }
+        return encoded;
+    }
+}
+
+export class TxAirdropReceiver {
+    public static rand(): TxAirdropReceiver {
         const receiverID = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
         );
         const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
-        return new TxAirdrop(receiverID, amount);
+        return new TxAirdropReceiver(receiverID, amount);
     }
     constructor(
         public readonly receiverID: number,
@@ -217,6 +246,52 @@ export class TxAirdrop {
             amountLen * 2
         );
         let encoded = receiverID.slice(2) + amount.slice(2);
+        if (prefix) {
+            encoded = "0x" + encoded;
+        }
+        return encoded;
+    }
+}
+
+export class TxAirdropSender {
+    public static rand(): TxAirdropSender {
+        const accountID = web3.utils.hexToNumber(
+            web3.utils.randomHex(accountIDLen)
+        );
+        const stateID = web3.utils.hexToNumber(
+            web3.utils.randomHex(stateIDLen)
+        );
+        const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
+        return new TxAirdropSender(accountID, stateID, nonce);
+    }
+    constructor(
+        public readonly accountID: number,
+        public readonly stateID: number,
+        public readonly nonce: number
+    ) {}
+
+    public hash(): string {
+        return web3.utils.soliditySha3(
+            { v: this.accountID, t: "uint32" },
+            { v: this.stateID, t: "uint32" },
+            { v: this.nonce, t: "uint32" }
+        );
+    }
+
+    public encode(prefix: boolean = false): string {
+        let accountID = web3.utils.padLeft(
+            web3.utils.toHex(this.accountID),
+            stateIDLen * 2
+        );
+        let stateID = web3.utils.padLeft(
+            web3.utils.toHex(this.stateID),
+            stateIDLen * 2
+        );
+        let nonce = web3.utils.padLeft(
+            web3.utils.toHex(this.nonce),
+            amountLen * 2
+        );
+        let encoded = accountID.slice(2) + stateID.slice(2) + nonce.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
