@@ -13,7 +13,7 @@ import {
     Dispute,
     Wallet
 } from "../scripts/helpers/interfaces";
-import { PublicKeyStore, AccountStore } from "../scripts/helpers/store";
+import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import {
     coordinatorPubkeyHash,
     MAX_DEPTH,
@@ -40,7 +40,7 @@ contract("Reddit", async function() {
     let IMTInstance: any;
     let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
-    let accountStore: AccountStore;
+    let stateStore: StateStore;
     before(async function() {
         depositManagerInstance = await DepositManager.deployed();
         rollupCoreInstance = await RollupCore.deployed();
@@ -92,13 +92,13 @@ contract("Reddit", async function() {
             Bob.TokenType,
             Bob.Pubkey
         );
-        accountStore = new AccountStore(MAX_DEPTH);
+        stateStore = new StateStore(MAX_DEPTH);
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
-        accountStore.insertHash(coordinator_leaves[0]);
-        accountStore.insertHash(coordinator_leaves[1]);
+        stateStore.insertHash(coordinator_leaves[0]);
+        stateStore.insertHash(coordinator_leaves[1]);
 
         const subtreeDepth = 1;
-        const _zero_account_mp = await accountStore.getSubTreeMerkleProof(
+        const _zero_account_mp = await stateStore.getSubTreeMerkleProof(
             "001",
             subtreeDepth
         );
@@ -126,8 +126,8 @@ contract("Reddit", async function() {
         };
 
         // Insert Reddit's and Bob's account after finaliseDepositsAndSubmitBatch
-        await accountStore.insert(RedditAccount);
-        await accountStore.insert(BobAccount);
+        await stateStore.insert(RedditAccount);
+        await stateStore.insert(BobAccount);
 
         pubkeyStore = new PublicKeyStore(MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
@@ -148,7 +148,7 @@ contract("Reddit", async function() {
         );
         assert.equal(userPubkeyIdOffchain.toString(), userPubkeyId.toString());
 
-        const userStateID = accountStore.nextEmptyIndex();
+        const userStateID = stateStore.nextEmptyIndex();
         const tx = {
             txType: Usage.CreateAccount,
             accountID: userPubkeyId,
@@ -162,7 +162,7 @@ contract("Reddit", async function() {
             tx.tokenType
         );
 
-        const newAccountMP = await accountStore.getAccountMerkleProof(
+        const newAccountMP = await stateStore.getAccountMerkleProof(
             userStateID,
             true
         );
@@ -171,7 +171,7 @@ contract("Reddit", async function() {
             txBytes
         );
         const createdAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(userStateID, createdAccount);
+        await stateStore.update(userStateID, createdAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -202,7 +202,7 @@ contract("Reddit", async function() {
             Usage.CreateAccount,
             { value: StakingAmountString }
         );
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
         const batchId = await utils.getBatchId();
@@ -226,7 +226,7 @@ contract("Reddit", async function() {
     });
 
     it("Should Airdrop some token to the User", async function() {
-        const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
+        const redditMP = await stateStore.getAccountMerkleProof(Reddit.AccID);
         const tx = {
             txType: Usage.Airdrop,
             fromIndex: Reddit.AccID,
@@ -260,15 +260,15 @@ contract("Reddit", async function() {
         const redditUpdatedAccount: Account = await utils.AccountFromBytes(
             resultFrom[0]
         );
-        await accountStore.update(Reddit.AccID, redditUpdatedAccount);
+        await stateStore.update(Reddit.AccID, redditUpdatedAccount);
 
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const resultTo = await rollupRedditInstance.ApplyAirdropTx(
             userMP,
             txBytes
         );
         const userUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -301,7 +301,7 @@ contract("Reddit", async function() {
             { value: StakingAmountString }
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
         const batchId = await utils.getBatchId();
@@ -325,7 +325,7 @@ contract("Reddit", async function() {
     });
 
     it("let user transfer some token to Bob", async function() {
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const tx = {
             txType: Usage.Transfer,
             fromIndex: User.AccID,
@@ -357,15 +357,15 @@ contract("Reddit", async function() {
             txBytes
         );
         const userUpdatedAccount = await utils.AccountFromBytes(resultFrom[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
-        const bobMP = await accountStore.getAccountMerkleProof(Bob.AccID);
+        const bobMP = await stateStore.getAccountMerkleProof(Bob.AccID);
         const resultTo = await rollupRedditInstance.ApplyTransferTx(
             bobMP,
             txBytes
         );
         const bobUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
-        await accountStore.update(Bob.AccID, bobUpdatedAccount);
+        await stateStore.update(Bob.AccID, bobUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -398,7 +398,7 @@ contract("Reddit", async function() {
             { value: StakingAmountString }
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
         const batchId = await utils.getBatchId();
@@ -421,7 +421,7 @@ contract("Reddit", async function() {
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("lets user send burn consent", async function() {
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const tx = {
             txType: Usage.BurnConsent,
             fromIndex: User.AccID,
@@ -448,7 +448,7 @@ contract("Reddit", async function() {
             txBytes
         );
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -481,7 +481,7 @@ contract("Reddit", async function() {
             { value: StakingAmountString }
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
         const batchId = await utils.getBatchId();
@@ -504,7 +504,7 @@ contract("Reddit", async function() {
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("lets Reddit to execute the burn", async function() {
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const tx = {
             txType: Usage.BurnExecution,
             fromIndex: User.AccID
@@ -522,7 +522,7 @@ contract("Reddit", async function() {
 
         const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP);
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
 
@@ -548,7 +548,7 @@ contract("Reddit", async function() {
             { value: StakingAmountString }
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
         const batchId = await utils.getBatchId();

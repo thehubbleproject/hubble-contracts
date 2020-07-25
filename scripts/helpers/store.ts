@@ -124,7 +124,7 @@ abstract class AbstractStore<T> {
     }
 }
 
-export class AccountStore extends AbstractStore<Account> {
+export class StateStore extends AbstractStore<Account> {
     async compress(element: Account): Promise<string> {
         return await CreateAccountLeaf(element);
     }
