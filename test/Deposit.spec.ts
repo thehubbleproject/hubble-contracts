@@ -9,6 +9,7 @@ import { RollupContract } from "../types/truffle-contracts/index";
 const abiDecoder = require("abi-decoder"); // NodeJS
 
 import { ethers } from "ethers";
+import { StakingAmountString } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
@@ -182,7 +183,7 @@ contract("DepositManager", async function(accounts) {
         await rollupContractInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             _zero_account_mp,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
 
         //

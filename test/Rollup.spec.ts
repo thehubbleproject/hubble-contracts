@@ -2,6 +2,7 @@ import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 import { Transaction, ErrorCode, Usage } from "../scripts/helpers/interfaces";
+import { StakingAmountString } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -172,7 +173,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             _zero_account_mp,
-            { value: ethers.utils.parseEther("32").toString() }
+            { value: StakingAmountString }
         );
     });
 
