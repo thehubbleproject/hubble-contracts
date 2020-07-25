@@ -1,7 +1,7 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Transaction, ErrorCode } from "../scripts/helpers/interfaces";
+import { Transaction, ErrorCode, Usage } from "../scripts/helpers/interfaces";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -195,11 +195,11 @@ contract("Rollup", async function(accounts) {
         assert.equal(isValid, true, "pda proof wrong");
 
         var tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: Alice.TokenType,
             amount: tranferAmount,
-            txType: 1,
             nonce: 1
         };
 
@@ -339,12 +339,11 @@ contract("Rollup", async function(accounts) {
         assert.equal(isValid, true, "pda proof wrong");
 
         var tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
-            // tokenType: Alice.TokenType,
             tokenType: 2, // false token type (Token not valid)
             amount: tranferAmount,
-            txType: 1,
             nonce: 2
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
@@ -489,11 +488,11 @@ contract("Rollup", async function(accounts) {
         assert.equal(isValid, true, "pda proof wrong");
 
         var tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: Alice.TokenType,
             amount: 0, // Error
-            txType: 1,
             nonce: 2
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
@@ -671,11 +670,11 @@ contract("Rollup", async function(accounts) {
         assert.equal(isValid, true, "pda proof wrong");
 
         var tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 2, // error
             amount: tranferAmount,
-            txType: 1,
             nonce: 2
         };
 
@@ -836,11 +835,11 @@ contract("Rollup", async function(accounts) {
         };
 
         var tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 3, // false type
             amount: tranferAmount,
-            txType: 1,
             nonce: 2
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
@@ -966,11 +965,11 @@ contract("Rollup", async function(accounts) {
         assert.equal(isValid, true, "pda proof wrong");
 
         var tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: Alice.TokenType,
             amount: 0, // An invalid amount
-            txType: 1,
             nonce: Alice.nonce + 1
         };
         tx.signature = await utils.signTx(tx, wallets[0]);

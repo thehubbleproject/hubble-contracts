@@ -46,22 +46,22 @@ contract("RollupUtils", async function(accounts) {
         assert.equal(regeneratedAccount["5"].toNumber(), account.lastBurn);
 
         const tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: 1,
             toIndex: 2,
             tokenType: 1,
             amount: 10,
             signature:
                 "0x1ad4773ace8ee65b8f1d94a3ca7adba51ee2ca0bdb550907715b3b65f1e3ad9f69e610383dc9ceb8a50c882da4b1b98b96500bdf308c1bdce2187cb23b7d736f1b",
-            txType: 1,
             nonce: 0
         };
 
         const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
             tx.nonce,
-            tx.txType,
             tx.amount
         );
 
@@ -88,10 +88,12 @@ contract("RollupUtils", async function(accounts) {
     });
     it("test createAccount utils", async function() {
         const tx: CreateAccount = {
+            txType: Usage.CreateAccount,
             toIndex: 1,
             tokenType: 1
         };
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
+            tx.txType,
             tx.toIndex,
             tx.tokenType
         );
@@ -108,27 +110,27 @@ contract("RollupUtils", async function(accounts) {
     });
     it("test airdrop utils", async function() {
         const tx: DropTx = {
+            txType: Usage.Airdrop,
             fromIndex: 1,
             toIndex: 1,
             tokenType: 1,
             nonce: 2,
-            txType: 3,
             amount: 10,
             signature: "0xabcd"
         };
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
         const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
@@ -151,27 +153,27 @@ contract("RollupUtils", async function(accounts) {
     });
     it("test transfer utils", async function() {
         const tx: Transaction = {
+            txType: Usage.Transfer,
             fromIndex: 1,
             toIndex: 2,
             tokenType: 1,
             nonce: 3,
-            txType: Usage.Transfer,
             amount: 1,
             signature: "0xabcd"
         };
         const signBytes = await RollupUtilsInstance.getTxSignBytes(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
         const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
@@ -183,17 +185,20 @@ contract("RollupUtils", async function(accounts) {
     });
     it("test burn consent utils", async function() {
         const tx: BurnConsentTx = {
+            txType: Usage.BurnConsent,
             fromIndex: 1,
             amount: 5,
             nonce: 3,
             signature: "0xabcd"
         };
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
+            tx.txType,
             tx.fromIndex,
             tx.amount,
             tx.nonce
         );
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
+            tx.txType,
             tx.fromIndex,
             tx.amount,
             tx.nonce
@@ -209,12 +214,15 @@ contract("RollupUtils", async function(accounts) {
     });
     it("test burn execution utils", async function() {
         const tx = {
+            txType: Usage.BurnExecution,
             fromIndex: 5
         } as BurnExecutionTx;
         const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
+            tx.txType,
             tx.fromIndex
         );
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
+            tx.txType,
             tx.fromIndex
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);

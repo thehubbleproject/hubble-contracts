@@ -41,11 +41,11 @@ export interface PDAMerkleProof {
 }
 
 export interface Transaction {
+    txType: number;
     fromIndex: number;
     toIndex: number;
     tokenType: number;
     amount: number;
-    txType: number;
     nonce: number;
     signature?: string;
 }
@@ -65,21 +65,23 @@ export enum ErrorCode {
 }
 
 export interface CreateAccount {
+    txType: number;
     toIndex: number;
     tokenType: number;
 }
 
 export interface DropTx {
+    txType: number;
     fromIndex: number;
     toIndex: number;
     tokenType: number;
     nonce: number;
-    txType: number;
     amount: number;
     signature: string;
 }
 
 export interface BurnConsentTx {
+    txType: number;
     fromIndex: number;
     amount: number;
     nonce: number;
@@ -87,6 +89,7 @@ export interface BurnConsentTx {
 }
 
 export interface BurnExecutionTx {
+    txType: number;
     fromIndex: number;
     signature: string;
 }

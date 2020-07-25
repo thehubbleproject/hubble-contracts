@@ -38,31 +38,33 @@ library Types {
     // Transaction represents how each transaction looks like for
     // this rollup chain
     struct Transaction {
+        uint256 txType;
         uint256 fromIndex;
         uint256 toIndex;
         uint256 tokenType;
         uint256 nonce;
-        uint256 txType;
         uint256 amount;
         bytes signature;
     }
 
     struct CreateAccount {
+        uint256 txType;
         uint256 toIndex;
         uint256 tokenType;
     }
 
     struct DropTx {
+        uint256 txType;
         uint256 fromIndex;
         uint256 toIndex;
         uint256 tokenType;
         uint256 nonce;
-        uint256 txType;
         uint256 amount;
         bytes signature;
     }
 
     struct BurnConsent {
+        uint256 txType;
         uint256 fromIndex;
         uint256 amount;
         uint256 nonce;
@@ -70,6 +72,7 @@ library Types {
     }
 
     struct BurnExecution {
+        uint256 txType;
         uint256 fromIndex;
     }
 

@@ -183,15 +183,15 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(_tx.toIndex, _tx.tokenType);
+        return abi.encodePacked(_tx.txType, _tx.toIndex, _tx.tokenType);
     }
 
-    function BytesFromCreateAccountNoStruct(uint256 toIndex, uint256 tokenType)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encodePacked(toIndex, tokenType);
+    function BytesFromCreateAccountNoStruct(
+        uint256 txType,
+        uint256 toIndex,
+        uint256 tokenType
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(txType, toIndex, tokenType);
     }
 
     function CreateAccountFromBytes(bytes memory txBytes)
@@ -200,7 +200,10 @@ library RollupUtils {
         returns (Types.CreateAccount memory)
     {
         Types.CreateAccount memory _tx;
-        (_tx.toIndex, _tx.tokenType) = abi.decode(txBytes, (uint256, uint256));
+        (_tx.txType, _tx.toIndex, _tx.tokenType) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256)
+        );
         return _tx;
     }
 
@@ -248,24 +251,24 @@ library RollupUtils {
     {
         return
             abi.encodePacked(
+                _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
                 _tx.nonce,
-                _tx.txType,
                 _tx.amount
             );
     }
 
     function BytesFromAirdropNoStruct(
+        uint256 txType,
         uint256 from,
         uint256 to,
         uint256 tokenType,
         uint256 nonce,
-        uint256 txType,
         uint256 amount
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(from, to, tokenType, nonce, txType, amount);
+        return abi.encodePacked(txType, from, to, tokenType, nonce, amount);
     }
 
     function AirdropFromBytes(bytes memory txBytes)
@@ -275,11 +278,11 @@ library RollupUtils {
     {
         Types.DropTx memory transaction;
         (
+            transaction.txType,
             transaction.fromIndex,
             transaction.toIndex,
             transaction.tokenType,
             transaction.nonce,
-            transaction.txType,
             transaction.amount
         ) = abi.decode(
             txBytes,
@@ -292,11 +295,11 @@ library RollupUtils {
         public
         pure
         returns (
+            uint256 txType,
             uint256 from,
             uint256 to,
             uint256 tokenType,
             uint256 nonce,
-            uint256 txType,
             uint256 amount
         )
     {
@@ -308,21 +311,21 @@ library RollupUtils {
     }
 
     function AirdropSignBytes(
+        uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
         uint256 tokenType,
-        uint256 txType,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
         return
             keccak256(
                 BytesFromAirdropNoStruct(
+                    txType,
                     fromIndex,
                     toIndex,
                     tokenType,
                     nonce,
-                    txType,
                     amount
                 )
             );
@@ -375,24 +378,24 @@ library RollupUtils {
     {
         return
             abi.encode(
+                _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.tokenType,
                 _tx.nonce,
-                _tx.txType,
                 _tx.amount
             );
     }
 
     function BytesFromTxDeconstructed(
+        uint256 txType,
         uint256 from,
         uint256 to,
         uint256 tokenType,
         uint256 nonce,
-        uint256 txType,
         uint256 amount
     ) public pure returns (bytes memory) {
-        return abi.encode(from, to, tokenType, nonce, txType, amount);
+        return abi.encode(txType, from, to, tokenType, nonce, amount);
     }
 
     function TxFromBytes(bytes memory txBytes)
@@ -402,11 +405,11 @@ library RollupUtils {
     {
         Types.Transaction memory transaction;
         (
+            transaction.txType,
             transaction.fromIndex,
             transaction.toIndex,
             transaction.tokenType,
             transaction.nonce,
-            transaction.txType,
             transaction.amount
         ) = abi.decode(
             txBytes,
@@ -420,11 +423,11 @@ library RollupUtils {
         public
         pure
         returns (
+            uint256 txType,
             uint256 from,
             uint256 to,
             uint256 tokenType,
             uint256 nonce,
-            uint256 txType,
             uint256 amount
         )
     {
@@ -436,21 +439,21 @@ library RollupUtils {
     }
 
     function getTxSignBytes(
+        uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
         uint256 tokenType,
-        uint256 txType,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
         return
             keccak256(
                 BytesFromTxDeconstructed(
+                    txType,
                     fromIndex,
                     toIndex,
                     tokenType,
                     nonce,
-                    txType,
                     amount
                 )
             );
@@ -495,11 +498,11 @@ library RollupUtils {
         return
             keccak256(
                 BytesFromTxDeconstructed(
+                    _tx.txType,
                     _tx.fromIndex,
                     _tx.toIndex,
                     _tx.tokenType,
                     _tx.nonce,
-                    _tx.txType,
                     _tx.amount
                 )
             );
@@ -514,15 +517,17 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(_tx.fromIndex, _tx.amount, _tx.nonce);
+        return
+            abi.encodePacked(_tx.txType, _tx.fromIndex, _tx.amount, _tx.nonce);
     }
 
     function BytesFromBurnConsentNoStruct(
+        uint256 txType,
         uint256 fromIndex,
         uint256 amount,
         uint256 nonce
     ) public pure returns (bytes memory) {
-        return abi.encode(fromIndex, amount, nonce);
+        return abi.encode(txType, fromIndex, amount, nonce);
     }
 
     function BurnConsentFromBytes(bytes memory txBytes)
@@ -531,20 +536,23 @@ library RollupUtils {
         returns (Types.BurnConsent memory)
     {
         Types.BurnConsent memory _tx;
-        (_tx.fromIndex, _tx.amount, _tx.nonce) = abi.decode(
+        (_tx.txType, _tx.fromIndex, _tx.amount, _tx.nonce) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256)
         );
         return _tx;
     }
 
     function BurnConsentSignBytes(
+        uint256 txType,
         uint256 fromIndex,
         uint256 amount,
         uint256 nonce
     ) public pure returns (bytes32) {
         return
-            keccak256(BytesFromBurnConsentNoStruct(fromIndex, amount, nonce));
+            keccak256(
+                BytesFromBurnConsentNoStruct(txType, fromIndex, amount, nonce)
+            );
     }
 
     function CompressBurnConsent(Types.BurnConsent memory _tx)
@@ -602,15 +610,15 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(_tx.fromIndex);
+        return abi.encodePacked(_tx.txType, _tx.fromIndex);
     }
 
-    function BytesFromBurnExecutionNoStruct(uint256 fromIndex)
+    function BytesFromBurnExecutionNoStruct(uint256 txType, uint256 fromIndex)
         public
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(fromIndex);
+        return abi.encodePacked(txType, fromIndex);
     }
 
     function BurnExecutionFromBytes(bytes memory txBytes)
@@ -619,16 +627,16 @@ library RollupUtils {
         returns (Types.BurnExecution memory)
     {
         Types.BurnExecution memory _tx;
-        _tx.fromIndex = abi.decode(txBytes, (uint256));
+        (_tx.txType, _tx.fromIndex) = abi.decode(txBytes, (uint256, uint256));
         return _tx;
     }
 
-    function BurnExecutionSignBytes(uint256 fromIndex)
+    function BurnExecutionSignBytes(uint256 txBytes, uint256 fromIndex)
         public
         pure
         returns (bytes32)
     {
-        return keccak256(BytesFromBurnExecutionNoStruct(fromIndex));
+        return keccak256(BytesFromBurnExecutionNoStruct(txBytes, fromIndex));
     }
 
     function CompressBurnExecution(Types.BurnExecution memory _tx)
