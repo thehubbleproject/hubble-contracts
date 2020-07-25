@@ -134,7 +134,7 @@ contract Airdrop is FraudProofHelpers {
         ValidatePubkeyAvailability(
             _accountsRoot,
             _from_pda_proof,
-            _tx.fromIndex
+            accountProofs.from.accountIP.account.ID
         );
 
         // STEP:2 Ensure the transaction has been signed using the from public key
