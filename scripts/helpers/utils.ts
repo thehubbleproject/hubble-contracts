@@ -190,11 +190,11 @@ export async function compressTx(
 ) {
     var rollupUtils = await RollupUtils.deployed();
     var tx = {
+        txType: Usage.Transfer,
         fromIndex: from,
         toIndex: to,
         tokenType: token,
         nonce: nonce,
-        txType: 1,
         amount: amount,
         signature: sig
     };
@@ -216,10 +216,10 @@ export function sign(signBytes: string, wallet: any) {
 export async function signTx(tx: Transaction, wallet: any) {
     const RollupUtilsInstance = await RollupUtils.deployed();
     const dataToSign = await RollupUtilsInstance.getTxSignBytes(
+        tx.txType,
         tx.fromIndex,
         tx.toIndex,
         tx.tokenType,
-        tx.txType,
         tx.nonce,
         tx.amount
     );
@@ -228,12 +228,12 @@ export async function signTx(tx: Transaction, wallet: any) {
 
 export async function TxToBytes(tx: Transaction) {
     const RollupUtilsInstance = await RollupUtils.deployed();
-    var txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+    const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+        tx.txType,
         tx.fromIndex,
         tx.toIndex,
         tx.tokenType,
         tx.nonce,
-        tx.txType,
         tx.amount
     );
     return txBytes;

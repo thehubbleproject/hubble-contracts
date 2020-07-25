@@ -148,10 +148,12 @@ contract("Reddit", async function() {
 
         const userAccountID = accountStore.nextEmptyIndex();
         const tx = {
+            txType: Usage.CreateAccount,
             toIndex: userAccountID,
             tokenType: 1
         } as CreateAccount;
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
+            tx.txType,
             tx.toIndex,
             tx.tokenType
         );
@@ -226,27 +228,27 @@ contract("Reddit", async function() {
     it("Should Airdrop some token to the User", async function() {
         const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
         const tx = {
+            txType: Usage.Airdrop,
             fromIndex: Reddit.AccID,
             toIndex: User.AccID,
             tokenType: 1,
             nonce: redditMP.accountIP.account.nonce,
-            txType: Usage.Airdrop,
             amount: 10
         } as DropTx;
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
         tx.signature = utils.sign(signBytes, Reddit.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
@@ -332,27 +334,27 @@ contract("Reddit", async function() {
     it("let user transfer some token to Bob", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const tx = {
+            txType: Usage.Transfer,
             fromIndex: User.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
             nonce: userMP.accountIP.account.nonce + 1,
-            txType: Usage.Transfer,
             amount: 1
         } as Transaction;
         const signBytes = await RollupUtilsInstance.getTxSignBytes(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.txType,
             tx.fromIndex,
             tx.toIndex,
             tx.tokenType,
-            tx.txType,
             tx.nonce,
             tx.amount
         );
@@ -430,17 +432,20 @@ contract("Reddit", async function() {
     it("lets user send burn consent", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const tx = {
+            txType: Usage.BurnConsent,
             fromIndex: User.AccID,
             amount: 5,
             nonce: userMP.accountIP.account.nonce + 1
         } as BurnConsentTx;
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
+            tx.txType,
             tx.fromIndex,
             tx.amount,
             tx.nonce
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
+            tx.txType,
             tx.fromIndex,
             tx.amount,
             tx.nonce
@@ -514,13 +519,16 @@ contract("Reddit", async function() {
     it("lets Reddit to execute the burn", async function() {
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const tx = {
+            txType: Usage.BurnExecution,
             fromIndex: User.AccID
         } as BurnExecutionTx;
         const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
+            tx.txType,
             tx.fromIndex
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
+            tx.txType,
             tx.fromIndex
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
