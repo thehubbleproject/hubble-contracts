@@ -102,7 +102,7 @@ export interface AccountProofs {
 
 export interface Dispute {
     batchId: number;
-    txs: string[];
+    txs: string;
     batchProofs: {
         accountProofs: AccountProofs[];
         pdaProof: PDAMerkleProof[];
@@ -113,4 +113,9 @@ export interface Wallet {
     getAddressString(): string;
     getPublicKeyString(): string;
     getPrivateKey(): Buffer;
+}
+
+export interface ProcessTxResult {
+    newStateRoot: string;
+    error: ErrorCode;
 }
