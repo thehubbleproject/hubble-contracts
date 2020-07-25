@@ -631,12 +631,12 @@ library RollupUtils {
         return _tx;
     }
 
-    function BurnExecutionSignBytes(uint256 txBytes, uint256 fromIndex)
+    function BurnExecutionSignBytes(uint256 txType, uint256 fromIndex)
         public
         pure
         returns (bytes32)
     {
-        return keccak256(BytesFromBurnExecutionNoStruct(txBytes, fromIndex));
+        return keccak256(BytesFromBurnExecutionNoStruct(txType, fromIndex));
     }
 
     function CompressBurnExecution(Types.BurnExecution memory _tx)
