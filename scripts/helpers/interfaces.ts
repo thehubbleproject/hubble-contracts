@@ -59,6 +59,7 @@ export enum ErrorCode {
     BadToTokenType,
     BadFromIndex,
     BurnAlreadyExecuted,
+    NotOnDesignatedStateLeaf,
     NotCreatingOnZeroAccount,
     BadSignature,
     BadNonce
@@ -66,7 +67,8 @@ export enum ErrorCode {
 
 export interface CreateAccount {
     txType: number;
-    toIndex: number;
+    accountID: number;
+    stateID: number;
     tokenType: number;
 }
 

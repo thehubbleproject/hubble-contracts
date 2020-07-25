@@ -126,7 +126,7 @@ contract CreateAccount is FraudProofHelpers {
         Types.CreateAccount memory _tx
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account;
-        account.ID = _tx.toIndex;
+        account.ID = _tx.accountID;
         account.tokenType = _tx.tokenType;
         account.balance = 0;
         account.nonce = 0;
@@ -155,7 +155,11 @@ contract CreateAccount is FraudProofHelpers {
         )
     {
         // Assuming Reddit have run createPublickeys
-        ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.toIndex);
+        ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.accountID);
+
+        if (to_account_proof.accountIP.pathToAccount != _tx.stateID) {
+            return ("", "", Types.ErrorCode.NotOnDesignatedStateLeaf, false);
+        }
 
         // Validate we are creating on a zero account
         if (

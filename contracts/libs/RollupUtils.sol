@@ -183,15 +183,22 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encodePacked(_tx.txType, _tx.toIndex, _tx.tokenType);
+        return
+            abi.encodePacked(
+                _tx.txType,
+                _tx.accountID,
+                _tx.stateID,
+                _tx.tokenType
+            );
     }
 
     function BytesFromCreateAccountNoStruct(
         uint256 txType,
-        uint256 toIndex,
+        uint256 accountID,
+        uint256 stateID,
         uint256 tokenType
     ) public pure returns (bytes memory) {
-        return abi.encodePacked(txType, toIndex, tokenType);
+        return abi.encodePacked(txType, accountID, stateID, tokenType);
     }
 
     function CreateAccountFromBytes(bytes memory txBytes)
@@ -200,9 +207,9 @@ library RollupUtils {
         returns (Types.CreateAccount memory)
     {
         Types.CreateAccount memory _tx;
-        (_tx.txType, _tx.toIndex, _tx.tokenType) = abi.decode(
+        (_tx.txType, _tx.accountID, _tx.stateID, _tx.tokenType) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256)
         );
         return _tx;
     }
@@ -212,15 +219,15 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx.toIndex, _tx.tokenType);
+        return abi.encode(_tx.accountID, _tx.stateID, _tx.tokenType);
     }
 
-    function CompressCreateAccountNoStruct(uint256 toIndex, uint256 tokenType)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return abi.encode(toIndex, tokenType);
+    function CompressCreateAccountNoStruct(
+        uint256 accountID,
+        uint256 stateID,
+        uint256 tokenType
+    ) public pure returns (bytes memory) {
+        return abi.encode(accountID, stateID, tokenType);
     }
 
     function CompressCreateAccountWithMessage(bytes memory message)
@@ -229,15 +236,19 @@ library RollupUtils {
         returns (bytes memory)
     {
         Types.CreateAccount memory _tx = CreateAccountFromBytes(message);
-        return abi.encode(_tx.toIndex, _tx.tokenType);
+        return abi.encode(_tx.accountID, _tx.stateID, _tx.tokenType);
     }
 
     function DecompressCreateAccount(bytes memory txBytes)
         public
         pure
-        returns (uint256 toIndex, uint256 tokenType)
+        returns (
+            uint256 accountID,
+            uint256 stateID,
+            uint256 tokenType
+        )
     {
-        return abi.decode(txBytes, (uint256, uint256));
+        return abi.decode(txBytes, (uint256, uint256, uint256));
     }
 
     //

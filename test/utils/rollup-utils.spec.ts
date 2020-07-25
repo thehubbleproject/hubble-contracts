@@ -89,21 +89,25 @@ contract("RollupUtils", async function(accounts) {
     it("test createAccount utils", async function() {
         const tx: CreateAccount = {
             txType: Usage.CreateAccount,
-            toIndex: 1,
+            accountID: 1,
+            stateID: 1,
             tokenType: 1
         };
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
             tx.txType,
-            tx.toIndex,
+            tx.accountID,
+            tx.stateID,
             tx.tokenType
         );
         const result = await RollupUtilsInstance.CreateAccountFromBytes(
             txBytes
         );
-        assert.equal(result.toIndex, tx.toIndex);
+        assert.equal(result.accountID, tx.accountID);
+        assert.equal(result.stateID, tx.stateID);
         assert.equal(result.tokenType, tx.tokenType);
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.toIndex,
+            tx.accountID,
+            tx.stateID,
             tx.tokenType
         );
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
@@ -134,9 +138,7 @@ contract("RollupUtils", async function(accounts) {
             tx.nonce,
             tx.amount
         );
-        const result = await RollupUtilsInstance.CreateAccountFromBytes(
-            txBytes
-        );
+        const result = await RollupUtilsInstance.AirdropFromBytes(txBytes);
         assert.equal(result.toIndex, tx.toIndex);
         const compressedTx1 = await RollupUtilsInstance.CompressAirdropNoStruct(
             tx.toIndex,
