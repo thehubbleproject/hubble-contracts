@@ -11,16 +11,17 @@ import {Tx} from "./libs/Tx.sol";
 import {Transfer} from "./Transfer.sol";
 import {Airdrop} from "./airdrop.sol";
 import {BurnConsent} from "./BurnConsent.sol";
+import {BurnExecution} from "./BurnExecution.sol";
 import {CreateAccount} from "./CreateAccount.sol";
 
 contract RollupReddit {
     Registry public nameRegistry;
-    IReddit public burnExecution;
 
     Airdrop public airdrop;
     Transfer public transfer;
     BurnConsent public burnConsent;
     CreateAccount public createAccount;
+    BurnExecution public burnExecution;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -37,7 +38,7 @@ contract RollupReddit {
         burnConsent = BurnConsent(
             nameRegistry.getContractDetails(ParamManager.BURN_CONSENT())
         );
-        burnExecution = IReddit(
+        burnExecution = BurnExecution(
             nameRegistry.getContractDetails(ParamManager.BURN_EXECUTION())
         );
     }
@@ -331,9 +332,9 @@ contract RollupReddit {
     }
 
     function processBurnExecutionTx(
-        bytes32 _balanceRoot,
-        bytes memory txBytes,
-        Types.AccountMerkleProof memory _fromAccountProof
+        bytes32 stateRoot,
+        uint256 stateID,
+        Types.BurnExecutionProof memory proof
     )
         public
         view
@@ -344,14 +345,29 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnExecution memory _tx = RollupUtils.BurnExecutionFromBytes(
-            txBytes
+        return burnExecution.processTx(stateRoot, stateID, proof);
+    }
+
+    //
+    // Burn Execution Fraud Checks
+    //
+
+    function burnExecution_shouldRollbackInvalidStateTransition(
+        bytes32 stateRoot0,
+        bytes32 stateRoot10,
+        bytes memory txs,
+        Types.BurnExecutionProof[] memory proofs
+    ) public view returns (bool) {
+        (bytes32 stateRoot11, Types.ErrorCode err) = burnExecution.processBatch(
+            stateRoot0,
+            txs,
+            proofs
         );
-        return
-            burnExecution.processBurnExecutionTx(
-                _balanceRoot,
-                _tx,
-                _fromAccountProof
-            );
+        if (err != Types.ErrorCode.NoError) {
+            return true;
+        }
+        if (stateRoot11 != stateRoot10) {
+            return true;
+        }
     }
 }

@@ -5,7 +5,8 @@ import {
   TxAirdropReceiver,
   TxAirdropSender,
   TxBurnConsent,
-  TxCreate
+  TxCreate,
+  TxBurnExecution
 } from "./tx";
 
 interface ProofTransferTx {
@@ -40,6 +41,13 @@ interface ProofBurnConsentTx {
   safe: boolean;
 }
 type ProofBurnConsentBatch = ProofBurnConsentTx[];
+
+interface ProofBurnExecutionTx {
+  account: StateAccountSolStruct;
+  witness: string[];
+  safe: boolean;
+}
+type ProofBurnExecutionBatch = ProofBurnExecutionTx[];
 
 interface ProofCreateAccountTx {
   witness: string[];
@@ -152,6 +160,24 @@ export class StateTree {
     for (let i = 0; i < txs.length; i++) {
       if (safe) {
         const proof = this.applyTxBurnConsent(txs[i]);
+        proofs.push(proof);
+        safe = proof.safe;
+      } else {
+        proofs.push(PLACEHOLDER_BURN_CONSENT_PROOF);
+      }
+    }
+    return {proof: proofs, safe};
+  }
+
+  public applyBurnExecutionBatch(
+    txs: TxBurnExecution[],
+    updateDate: number
+  ): {proof: ProofBurnExecutionBatch; safe: boolean} {
+    let safe = true;
+    let proofs: ProofBurnExecutionTx[] = [];
+    for (let i = 0; i < txs.length; i++) {
+      if (safe) {
+        const proof = this.applyTxBurnExecution(txs[i], updateDate);
         proofs.push(proof);
         safe = proof.safe;
       } else {
@@ -375,6 +401,48 @@ export class StateTree {
       const accountPreimage = account.toSolStruct();
       account.burn = tx.amount;
       account.nonce += 1;
+      this.accounts[stateID] = account;
+      this.stateTree.updateSingle(stateID, account.toStateLeaf());
+      return {
+        account: accountPreimage,
+        witness,
+        safe: true
+      };
+    } else {
+      return {
+        account: EMPTY_ACCOUNT,
+        witness,
+        safe: false
+      };
+    }
+  }
+
+  public applyTxBurnExecution(
+    tx: TxBurnExecution,
+    updateDate: number
+  ): ProofBurnExecutionTx {
+    const stateID = tx.stateID;
+    const account = this.accounts[stateID];
+
+    const witness = this.stateTree.witness(stateID).nodes;
+    if (account) {
+      const accountPreimage = account.toSolStruct();
+      if (account.balance < account.burn) {
+        return {
+          account: accountPreimage,
+          witness: PLACEHOLDER_PROOF_WITNESS,
+          safe: false
+        };
+      }
+      if (account.lastBurn >= updateDate) {
+        return {
+          account: accountPreimage,
+          witness: PLACEHOLDER_PROOF_WITNESS,
+          safe: false
+        };
+      }
+      account.lastBurn = updateDate;
+      account.balance -= account.burn;
       this.accounts[stateID] = account;
       this.stateTree.updateSingle(stateID, account.toStateLeaf());
       return {

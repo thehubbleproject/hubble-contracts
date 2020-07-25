@@ -116,7 +116,10 @@ export class TxCreate {
       web3.utils.toHex(this.stateID),
       stateIDLen * 2
     );
-    let tokenType = web3.utils.padLeft(web3.utils.toHex(this.tokenType), tokenLen * 2);
+    let tokenType = web3.utils.padLeft(
+      web3.utils.toHex(this.tokenType),
+      tokenLen * 2
+    );
     let encoded = accountID.slice(2) + stateID.slice(2) + tokenType.slice(2);
     if (prefix) {
       encoded = "0x" + encoded;
@@ -169,40 +172,29 @@ export class TxBurnConsent {
   }
 }
 
-// export class TxAirdrop {
-//   public static rand(): TxAirdrop {
-//     const receiverID = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
-//     const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
-//     return new TxAirdrop(receiverID, amount);
-//   }
-//   constructor(
-//     public readonly receiverID: number,
-//     public readonly amount: number
-//   ) {}
+export class TxBurnExecution {
+  public static rand(): TxBurnExecution {
+    const stateID = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
+    return new TxBurnExecution(stateID);
+  }
+  constructor(public readonly stateID: number) {}
 
-//   public hash(): string {
-//     return web3.utils.soliditySha3(
-//       {v: this.receiverID, t: "uint32"},
-//       {v: this.amount, t: "uint32"}
-//     );
-//   }
+  public hash(): string {
+    return web3.utils.soliditySha3({v: this.stateID, t: "uint32"});
+  }
 
-//   public encode(prefix: boolean = false): string {
-//     let receiverID = web3.utils.padLeft(
-//       web3.utils.toHex(this.receiverID),
-//       stateIDLen * 2
-//     );
-//     let amount = web3.utils.padLeft(
-//       web3.utils.toHex(this.amount),
-//       amountLen * 2
-//     );
-//     let encoded = receiverID.slice(2) + amount.slice(2);
-//     if (prefix) {
-//       encoded = "0x" + encoded;
-//     }
-//     return encoded;
-//   }
-// }
+  public encode(prefix: boolean = false): string {
+    let stateID = web3.utils.padLeft(
+      web3.utils.toHex(this.stateID),
+      stateIDLen * 2
+    );
+    let encoded = stateID.slice(2);
+    if (prefix) {
+      encoded = "0x" + encoded;
+    }
+    return encoded;
+  }
+}
 
 export class TxAirdropReceiver {
   public static rand(): TxAirdropReceiver {

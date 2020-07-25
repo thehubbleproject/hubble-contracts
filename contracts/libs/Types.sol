@@ -20,6 +20,11 @@ library Types {
         bytes32[] witness;
     }
 
+    struct BurnExecutionProof {
+        UserAccount account;
+        bytes32[] witness;
+    }
+
     struct AirdropTransitionReceiverProof {
         UserAccount account;
         bytes32[] witness;

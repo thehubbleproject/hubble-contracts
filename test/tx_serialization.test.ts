@@ -1,11 +1,15 @@
 const TestTx = artifacts.require("TestTx");
-import {TestTxInstance} from "../types/truffle-contracts";
+import {
+  TestTxInstance,
+  BurnExecutionContract
+} from "../types/truffle-contracts";
 import {
   TxTransfer,
   serialize,
   TxAirdropReceiver,
   TxAirdropSender,
   TxBurnConsent,
+  TxBurnExecution,
   TxCreate,
   Tx
 } from "./utils/tx";
@@ -165,6 +169,36 @@ contract("Tx Serialization", accounts => {
     }
     const {serialized} = serialize(txs);
     const _serialized = await c.create_serialize(txs);
+    assert.equal(serialized, _serialized);
+  });
+  it.only("parse burn execution transaction", async function() {
+    const txSize = 2;
+    const txs: TxBurnExecution[] = [];
+    for (let i = 0; i < txSize; i++) {
+      txs.push(TxBurnExecution.rand());
+    }
+    const {serialized} = serialize(txs);
+    assert.equal(txSize, (await c.burnExecution_size(serialized)).toNumber());
+    assert.isFalse(await c.burnExecution_hasExcessData(serialized));
+    for (let i = 0; i < txSize; i++) {
+      const stateID = (
+        await c.burnExecution_stateIdOf(serialized, i)
+      ).toNumber();
+      assert.equal(stateID, txs[i].stateID);
+      const h0 = txs[i].hash();
+      const h1 = await c.burnExecution_hashOf(serialized, i);
+      assert.equal(h0, h1);
+    }
+  });
+  it.only("serialize burn execution transaction", async function() {
+    const txSize = 32;
+    const txs: TxBurnExecution[] = [];
+    for (let i = 0; i < txSize; i++) {
+      const tx = TxBurnExecution.rand();
+      txs.push(tx);
+    }
+    const {serialized} = serialize(txs);
+    const _serialized = await c.burnExecution_serialize(txs);
     assert.equal(serialized, _serialized);
   });
 });

@@ -280,4 +280,44 @@ contract TestTx {
     {
         return txs.burnConsent_mapToPoint(index);
     }
+
+    function burnExecution_serialize(Tx.BurnExecution[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function burnExecution_hasExcessData(bytes calldata txs)
+        external
+        pure
+        returns (bool)
+    {
+        return txs.burnExecution_hasExcessData();
+    }
+
+    function burnExecution_size(bytes calldata txs)
+        external
+        pure
+        returns (uint256)
+    {
+        return txs.burnExecution_size();
+    }
+
+    function burnExecution_stateIdOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (uint256 sender)
+    {
+        return txs.burnExecution_stateIdOf(index);
+    }
+
+    function burnExecution_hashOf(bytes calldata txs, uint256 index)
+        external
+        pure
+        returns (bytes32 result)
+    {
+        return txs.burnExecution_hashOf(index);
+    }
 }

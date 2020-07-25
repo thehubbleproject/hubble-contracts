@@ -10,25 +10,29 @@ import {Governance} from "./Governance.sol";
 import {NameRegistry as Registry} from "./NameRegistry.sol";
 import {ParamManager} from "./libs/ParamManager.sol";
 
+import {Tx} from "./libs/Tx.sol";
+
 contract BurnExecution is FraudProofHelpers {
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
+    using Tx for bytes;
 
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
+    // /*********************
+    //  * Constructor *
+    //  ********************/
+    // constructor(address _registryAddr) public {
+    //     nameRegistry = Registry(_registryAddr);
 
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
 
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
+    //     merkleUtils = MTUtils(
+    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+    //     );
+
+    //     tokenRegistry = ITokenRegistry(
+    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+    //     );
+    // }
 
     function generateTxRoot(Types.BurnExecution[] memory _txs)
         public
@@ -44,53 +48,82 @@ contract BurnExecution is FraudProofHelpers {
         return txRoot;
     }
 
-    /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
-     * */
     function processBatch(
         bytes32 stateRoot,
-        bytes32 accountsRoot,
-        Types.BurnExecution[] memory _txs,
-        Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        bytes memory txs,
+        Types.BurnExecutionProof[] memory proofs
+    ) public view returns (bytes32, Types.ErrorCode) {
+        uint256 batchSize = txs.burnExecution_size();
+        require(batchSize > 0, "Transfer: empty batch");
+        require(!txs.burnExecution_hasExcessData(), "Transfer: excess tx data");
+        bytes32 acc = stateRoot;
+        for (uint256 i = 0; i < batchSize; i++) {
+            Types.ErrorCode err;
+            (acc, , err, ) = processTx(
+                acc,
+                txs.burnExecution_stateIdOf(i),
+                proofs[i]
+            );
+            if (Types.ErrorCode.NoError != err) {
+                return (bytes32(0x00), err);
+            }
+        }
+        return (acc, Types.ErrorCode.NoError);
+    }
+
+    function processTx(
+        bytes32 stateRoot,
+        uint256 stateID,
+        Types.BurnExecutionProof memory proof
     )
         public
         view
         returns (
             bytes32,
-            bytes32,
+            bytes memory updated,
+            Types.ErrorCode,
             bool
         )
     {
-        bytes32 actualTxRoot = generateTxRoot(_txs);
-        // if there is an expectation set, revert if it's not met
-        if (expectedTxRoot == ZERO_BYTES32) {
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
-            require(
-                actualTxRoot == expectedTxRoot,
-                "Invalid dispute, tx root doesn't match"
+        // A. check burner inclusion in state
+        ValidateAccountMP(stateRoot, stateID, proof.account, proof.witness);
+        //
+        //
+        // FIX: cannot be an empty account
+        //
+        // if (proof.senderAccounts.isEmptyAccount()) {
+        //   return bytes32(0x00), 1;
+        // }
+        //
+        //
+        // B. apply diff for burner
+        Types.UserAccount memory account = proof.account;
+        if (account.balance < account.burn) {
+            return (
+                bytes32(0x00),
+                "",
+                Types.ErrorCode.NotEnoughTokenBalance,
+                false
             );
         }
-
-        bool isTxValid;
-        {
-            for (uint256 i = 0; i < _txs.length; i++) {
-                // call process tx update for every transaction to check if any
-                // tx evaluates correctly
-                (stateRoot, , , isTxValid) = processBurnExecutionTx(
-                    stateRoot,
-                    _txs[i],
-                    batchProofs.accountProofs[i].from
-                );
-
-                if (!isTxValid) {
-                    break;
-                }
-            }
+        account.balance -= account.burn;
+        uint256 yearMonth = RollupUtils.GetYearMonth();
+        if (account.lastBurn == yearMonth) {
+            return (
+                ZERO_BYTES32,
+                "",
+                Types.ErrorCode.BurnAlreadyExecuted,
+                false
+            );
         }
-        return (stateRoot, actualTxRoot, !isTxValid);
+        account.lastBurn = yearMonth;
+        updated = RollupUtils.BytesFromAccount(account);
+        bytes32 acc = merkleUtils.updateLeafWithSiblings(
+            keccak256(updated),
+            stateID,
+            proof.witness
+        );
+        return (acc, updated, Types.ErrorCode.NoError, true);
     }
 
     function ApplyBurnExecutionTx(
@@ -105,58 +138,5 @@ contract BurnExecution is FraudProofHelpers {
         updatedAccount = RollupUtils.BytesFromAccount(account);
         newRoot = UpdateAccountWithSiblings(account, _fromAccountProof);
         return (updatedAccount, newRoot);
-    }
-
-    /**
-     * @notice Overrides processTx in FraudProof
-     */
-    function processBurnExecutionTx(
-        bytes32 _balanceRoot,
-        Types.BurnExecution memory _tx,
-        Types.AccountMerkleProof memory _fromAccountProof
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes memory,
-            Types.ErrorCode,
-            bool
-        )
-    {
-        // FIX: commented out to test other components
-        // ValidateAccountMP(_balanceRoot, _fromAccountProof);
-
-        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-        if (_tx.fromIndex != account.ID) {
-            return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);
-        }
-        if (account.balance < account.burn) {
-            return (
-                ZERO_BYTES32,
-                "",
-                Types.ErrorCode.NotEnoughTokenBalance,
-                false
-            );
-        }
-
-        uint256 yearMonth = RollupUtils.GetYearMonth();
-        if (account.lastBurn == yearMonth) {
-            return (
-                ZERO_BYTES32,
-                "",
-                Types.ErrorCode.BurnAlreadyExecuted,
-                false
-            );
-        }
-
-        bytes32 newRoot;
-        bytes memory new_from_account;
-        (new_from_account, newRoot) = ApplyBurnExecutionTx(
-            _fromAccountProof,
-            _tx
-        );
-
-        return (newRoot, new_from_account, Types.ErrorCode.NoError, true);
     }
 }

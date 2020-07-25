@@ -34,9 +34,10 @@ export class Account {
     tokenType: number,
     balance: number,
     nonce: number,
-    burn: number = 0
+    burn: number = 0,
+    lastBurn: number = 0
   ): Account {
-    return new Account(accountID, tokenType, balance, nonce, burn);
+    return new Account(accountID, tokenType, balance, nonce, burn, lastBurn);
   }
 
   public stateID = -1;
@@ -45,7 +46,8 @@ export class Account {
     public tokenType: number,
     public balance: number,
     public nonce: number,
-    public burn: number
+    public burn: number,
+    public lastBurn: number
   ) {}
 
   public newKeyPair(): Account {
@@ -86,8 +88,8 @@ export class Account {
       {v: this.balance, t: "uint256"},
       {v: this.nonce, t: "uint256"},
       {v: this.tokenType, t: "uint256"},
-      {v: this.burn, t: "uint256"}, // burn
-      {v: 0, t: "uint256"} // lastBurn
+      {v: this.burn, t: "uint256"},
+      {v: this.lastBurn, t: "uint256"}
     );
   }
 
@@ -98,7 +100,7 @@ export class Account {
       balance: this.balance,
       nonce: this.nonce,
       burn: this.burn,
-      lastBurn: 0
+      lastBurn: this.lastBurn
     };
   }
 
