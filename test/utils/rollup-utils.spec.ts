@@ -134,9 +134,7 @@ contract("RollupUtils", async function(accounts) {
             tx.nonce,
             tx.amount
         );
-        const result = await RollupUtilsInstance.CreateAccountFromBytes(
-            txBytes
-        );
+        const result = await RollupUtilsInstance.AirdropFromBytes(txBytes);
         assert.equal(result.toIndex, tx.toIndex);
         const compressedTx1 = await RollupUtilsInstance.CompressAirdropNoStruct(
             tx.toIndex,
