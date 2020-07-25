@@ -49,7 +49,8 @@ library Types {
 
     struct CreateAccount {
         uint256 txType;
-        uint256 toIndex;
+        uint256 accountID;
+        uint256 stateID;
         uint256 tokenType;
     }
 
@@ -139,6 +140,7 @@ library Types {
         BadToTokenType,
         BadFromIndex,
         BurnAlreadyExecuted,
+        NotOnDesignatedStateLeaf,
         NotCreatingOnZeroAccount,
         BadSignature,
         BadNonce

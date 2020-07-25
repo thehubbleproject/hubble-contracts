@@ -146,20 +146,22 @@ contract("Reddit", async function() {
         );
         assert.equal(userPubkeyIdOffchain.toString(), userPubkeyId.toString());
 
-        const userAccountID = accountStore.nextEmptyIndex();
+        const userStateID = accountStore.nextEmptyIndex();
         const tx = {
             txType: Usage.CreateAccount,
-            toIndex: userAccountID,
+            accountID: userPubkeyId,
+            stateID: userStateID,
             tokenType: 1
         } as CreateAccount;
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
             tx.txType,
-            tx.toIndex,
+            tx.accountID,
+            tx.stateID,
             tx.tokenType
         );
 
         const newAccountMP = await accountStore.getAccountMerkleProof(
-            userAccountID,
+            userStateID,
             true
         );
         const result = await rollupRedditInstance.ApplyCreateAccountTx(
@@ -167,7 +169,7 @@ contract("Reddit", async function() {
             txBytes
         );
         const createdAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(userAccountID, createdAccount);
+        await accountStore.update(userStateID, createdAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -190,7 +192,8 @@ contract("Reddit", async function() {
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.toIndex,
+            tx.accountID,
+            tx.stateID,
             tx.tokenType
         );
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
