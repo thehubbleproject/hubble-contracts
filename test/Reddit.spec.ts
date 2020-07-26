@@ -1,5 +1,4 @@
 import * as utils from "../scripts/helpers/utils";
-import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 import {
     Usage,
@@ -19,7 +18,9 @@ import {
     MAX_DEPTH,
     DummyAccountMP,
     DummyPDAMP,
-    StakingAmountString
+    StakingAmountString,
+    RedditGenesisAccount,
+    RedditProfile
 } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
@@ -29,16 +30,14 @@ const RollupReddit = artifacts.require("RollupReddit");
 
 contract("Reddit", async function() {
     let wallets: Wallet[];
-    let Reddit: any;
     let User: any;
+    let Alice: any;
     let Bob: any;
-    let testTokenInstance;
     let depositManagerInstance;
     let rollupCoreInstance: any;
     let rollupRedditInstance: any;
     let RollupUtilsInstance: any;
     let IMTInstance: any;
-    let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
     let accountStore: AccountStore;
     before(async function() {
@@ -48,43 +47,42 @@ contract("Reddit", async function() {
         IMTInstance = await IMT.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-        Reddit = {
-            Wallet: wallets[0],
-            Address: wallets[0].getAddressString(),
-            Pubkey: wallets[0].getPublicKeyString(),
-            Amount: 50,
+        Alice = {
+            Wallet: wallets[2],
+            Address: wallets[2].getAddressString(),
+            Pubkey: wallets[2].getPublicKeyString(),
+            Amount: 0,
             TokenType: 1,
             AccID: 2,
             Path: 2,
             nonce: 0
         };
         Bob = {
-            Wallet: wallets[1],
-            Address: wallets[1].getAddressString(),
-            Pubkey: wallets[1].getPublicKeyString(),
-            Amount: 1,
+            Wallet: wallets[3],
+            Address: wallets[3].getAddressString(),
+            Pubkey: wallets[3].getPublicKeyString(),
+            Amount: 0,
             TokenType: 1,
             AccID: 3,
             Path: 3,
             nonce: 0
         };
         User = {
-            Wallet: wallets[2],
-            Address: wallets[2].getAddressString(),
-            Pubkey: wallets[2].getPublicKeyString(),
+            Wallet: wallets[4],
+            Address: wallets[4].getAddressString(),
+            Pubkey: wallets[4].getPublicKeyString(),
             Amount: 10,
             TokenType: 1,
             AccID: 4,
             Path: 4,
             nonce: 0
         };
-        testTokenInstance = await utils.registerToken(wallets[0]);
-        await testTokenInstance.transfer(Reddit.Address, 100);
+        await utils.registerToken(wallets[0]);
         await depositManagerInstance.depositFor(
-            Reddit.Address,
-            Reddit.Amount,
-            Reddit.TokenType,
-            Reddit.Pubkey
+            Alice.Address,
+            Alice.Amount,
+            Alice.TokenType,
+            Alice.Pubkey
         );
         await depositManagerInstance.depositFor(
             Bob.Address,
@@ -93,9 +91,9 @@ contract("Reddit", async function() {
             Bob.Pubkey
         );
         accountStore = new AccountStore(MAX_DEPTH);
-        coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
+        const coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
         accountStore.insertHash(coordinator_leaves[0]);
-        accountStore.insertHash(coordinator_leaves[1]);
+        await accountStore.insert(RedditGenesisAccount);
 
         const subtreeDepth = 1;
         const _zero_account_mp = await accountStore.getSubTreeMerkleProof(
@@ -108,11 +106,11 @@ contract("Reddit", async function() {
             _zero_account_mp,
             { value: StakingAmountString }
         );
-        const RedditAccount: Account = {
-            ID: Reddit.AccID,
-            tokenType: Reddit.TokenType,
-            balance: Reddit.Amount,
-            nonce: Reddit.nonce,
+        const AliceAccount: Account = {
+            ID: Alice.AccID,
+            tokenType: Alice.TokenType,
+            balance: Alice.Amount,
+            nonce: Alice.nonce,
             burn: 0,
             lastBurn: 0
         };
@@ -125,14 +123,14 @@ contract("Reddit", async function() {
             lastBurn: 0
         };
 
-        // Insert Reddit's and Bob's account after finaliseDepositsAndSubmitBatch
-        await accountStore.insert(RedditAccount);
+        // Insert Alice's and Bob's account after finaliseDepositsAndSubmitBatch
+        await accountStore.insert(AliceAccount);
         await accountStore.insert(BobAccount);
 
         pubkeyStore = new PublicKeyStore(MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
-        pubkeyStore.insertHash(coordinatorPubkeyHash);
-        pubkeyStore.insertPublicKey(Reddit.Pubkey);
+        pubkeyStore.insertHash(RedditProfile.pubkeyHash);
+        pubkeyStore.insertPublicKey(Alice.Pubkey);
         pubkeyStore.insertPublicKey(Bob.Pubkey);
     });
     it("Should Create Account for the User", async function() {
@@ -231,10 +229,12 @@ contract("Reddit", async function() {
     });
 
     it("Should Airdrop some token to the User", async function() {
-        const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
+        const redditMP = await accountStore.getAccountMerkleProof(
+            RedditProfile.stateID
+        );
         const tx = {
             txType: Usage.Airdrop,
-            fromIndex: Reddit.AccID,
+            fromIndex: RedditProfile.stateID,
             toIndex: User.AccID,
             tokenType: 1,
             nonce: redditMP.accountIP.account.nonce,
@@ -248,7 +248,7 @@ contract("Reddit", async function() {
             tx.nonce,
             tx.amount
         );
-        tx.signature = utils.sign(signBytes, Reddit.Wallet);
+        tx.signature = utils.sign(signBytes, wallets[RedditProfile.walletID]);
         const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
             tx.txType,
             tx.fromIndex,
@@ -265,7 +265,7 @@ contract("Reddit", async function() {
         const redditUpdatedAccount: Account = await utils.AccountFromBytes(
             resultFrom[0]
         );
-        await accountStore.update(Reddit.AccID, redditUpdatedAccount);
+        await accountStore.update(RedditProfile.stateID, redditUpdatedAccount);
 
         const userMP = await accountStore.getAccountMerkleProof(User.AccID);
         const resultTo = await rollupRedditInstance.ApplyAirdropTx(
@@ -277,7 +277,9 @@ contract("Reddit", async function() {
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
-        const redditPDAProof = await pubkeyStore.getPDAMerkleProof(Reddit.Path);
+        const redditPDAProof = await pubkeyStore.getPDAMerkleProof(
+            RedditGenesisAccount.ID
+        );
 
         const resultProcessTx = await rollupRedditInstance.processAirdropTx(
             balanceRoot,

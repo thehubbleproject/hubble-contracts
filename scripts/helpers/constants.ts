@@ -28,6 +28,7 @@ export const RedditGenesisAccount: Account = {
 };
 
 export const RedditProfile = {
+    stateID: 1,
     walletID: 1,
     // ethers.utils.keccak256(wallet[1].getPublicKey())
     pubkeyHash:
