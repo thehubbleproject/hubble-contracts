@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { Account, Transaction, Usage, Dispute } from "./interfaces";
 import { StakingAmountString } from "./constants";
+import { Account, Transaction, Usage, Dispute, Wallet } from "./interfaces";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
@@ -208,13 +208,13 @@ export async function compressTx(
     return result;
 }
 
-export function sign(signBytes: string, wallet: any) {
+export function sign(signBytes: string, wallet: Wallet) {
     const h = ethUtils.toBuffer(signBytes);
     const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
     return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
 }
 
-export async function signTx(tx: Transaction, wallet: any) {
+export async function signTx(tx: Transaction, wallet: Wallet) {
     const RollupUtilsInstance = await RollupUtils.deployed();
     const dataToSign = await RollupUtilsInstance.getTxSignBytes(
         tx.txType,
@@ -272,7 +272,7 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     );
 }
 
-export async function registerToken(wallet: any) {
+export async function registerToken(wallet: Wallet) {
     const testTokenInstance = await TestToken.deployed();
     const tokenRegistryInstance = await TokenRegistry.deployed();
     const depositManagerInstance = await DepositManager.deployed();

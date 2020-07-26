@@ -4,10 +4,11 @@ const nameRegistry = artifacts.require("NameRegistry");
 const ParamManager = artifacts.require("ParamManager");
 import * as walletHelper from "../../scripts/helpers/wallet";
 import * as utils from "../../scripts/helpers/utils";
+import { Wallet } from "../../scripts/helpers/interfaces";
 const BN = require("bn.js");
 
 contract("IncrementalTree", async function(accounts) {
-    var wallets: any;
+    let wallets: Wallet[];
     var depth: number = 2;
     var firstDataBlock = utils.StringToBytes32("0x123");
     var secondDataBlock = utils.StringToBytes32("0x334");
