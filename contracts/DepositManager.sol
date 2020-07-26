@@ -63,7 +63,7 @@ contract DepositManager {
         _;
     }
 
-    constructor(address _registryAddr) public {
+    constructor(address _registryAddr, bytes32 redditPubkeyHash) public {
         nameRegistry = Registry(_registryAddr);
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
@@ -79,13 +79,10 @@ contract DepositManager {
             nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
         );
 
-        AddCoordinatorLeaves();
-    }
-
-    function AddCoordinatorLeaves() internal {
-        // first 2 leaves belong to coordinator
+        // Coordinator
         accountsTree.appendLeaf(ZERO_BYTES32);
-        accountsTree.appendLeaf(ZERO_BYTES32);
+        // Reddit
+        accountsTree.appendLeaf(redditPubkeyHash);
     }
 
     /**

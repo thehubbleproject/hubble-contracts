@@ -1,6 +1,7 @@
 const fs = require("fs");
 const argv = require("minimist")(process.argv.slice(2));
 const { ZERO_BYTES32_HASH } = require("../scripts/helpers/constants");
+const { RedditProfile } = require("../scripts/helpers/constants");
 
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
@@ -153,7 +154,7 @@ async function deploy(deployer) {
         deployer,
         depositManagerContract,
         [Types, paramManagerLib, rollupUtilsLib],
-        [nameRegistryInstance.address],
+        [nameRegistryInstance.address, RedditProfile.pubkeyHash],
         "DEPOSIT_MANAGER"
     );
 
