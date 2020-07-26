@@ -9,13 +9,13 @@ contract Governance {
         _MAX_DEPOSIT_SUBTREE = maxDepositSubTree;
     }
 
-    uint256 public _MAX_DEPTH = 4;
+    uint256 public _MAX_DEPTH = 17;
 
     function MAX_DEPTH() public view returns (uint256) {
         return _MAX_DEPTH;
     }
 
-    uint256 public _MAX_DEPOSIT_SUBTREE = 2;
+    uint256 public _MAX_DEPOSIT_SUBTREE = 1;
 
     function MAX_DEPOSIT_SUBTREE() public view returns (uint256) {
         return _MAX_DEPOSIT_SUBTREE;
@@ -36,7 +36,7 @@ contract Governance {
         return _MIN_GAS_LIMIT_LEFT;
     }
 
-    uint256 public _MAX_TXS_PER_BATCH = 10;
+    uint256 public _MAX_TXS_PER_BATCH = 32;
 
     function MAX_TXS_PER_BATCH() public view returns (uint256) {
         return _MAX_TXS_PER_BATCH;

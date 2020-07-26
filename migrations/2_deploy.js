@@ -1,6 +1,6 @@
 const fs = require("fs");
 var argv = require("minimist")(process.argv.slice(2));
-
+const ethers = require("ethers");
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
@@ -36,7 +36,7 @@ function writeContractAddresses(contractAddresses) {
 }
 
 async function deploy(deployer) {
-    var max_depth = 4;
+    var max_depth = 17;
     var maxDepositSubtreeDepth = 1;
 
     // deploy libs
@@ -158,6 +158,7 @@ async function deploy(deployer) {
         [nameRegistryInstance.address],
         "DEPOSIT_MANAGER"
     );
+    console.log("deplpyed deposit");
 
     const rollupRedditInstance = await deployAndRegister(
         deployer,
@@ -167,6 +168,7 @@ async function deploy(deployer) {
         "ROLLUP_REDDIT"
     );
 
+    console.log("deplpyed rollup reddit");
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
         deployer,
@@ -175,7 +177,7 @@ async function deploy(deployer) {
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
     );
-
+    console.log("deplpyed rollup reddit");
     const contractAddresses = {
         AccountTree: accountsTreeInstance.address,
         ParamManager: paramManagerInstance.address,
@@ -206,6 +208,49 @@ module.exports = async function(deployer) {
     }
 };
 
+// returns parent node hash given child node hashes
+function getParentLeaf(left, right) {
+    var abiCoder = ethers.utils.defaultAbiCoder;
+    var hash = ethers.utils.keccak256(
+        abiCoder.encode(["bytes32", "bytes32"], [left, right])
+    );
+    return hash;
+}
+async function getZeroHash(zeroValue) {
+    const abiCoder = ethers.utils.defaultAbiCoder;
+    return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
+}
+async function defaultHashes(depth) {
+    const zeroValue = 0;
+    const hashes = [];
+    hashes[0] = getZeroHash(zeroValue);
+    for (let i = 1; i < depth; i++) {
+        hashes[i] = getParentLeaf(hashes[i - 1], hashes[i - 1]);
+    }
+
+    return hashes;
+}
+async function getMerkleRoot(dataLeaves, maxDepth) {
+    var nextLevelLength = dataLeaves.length;
+    var currentLevel = 0;
+    var nodes = dataLeaves.slice();
+    var defaultHashesForLeaves = defaultHashes(maxDepth);
+    // create a merkle root to see if this is valid
+    while (nextLevelLength > 1) {
+        currentLevel += 1;
+        // Calculate the nodes for the currentLevel
+        for (var i = 0; i < nextLevelLength / 2; i++) {
+            nodes[i] = getParentLeaf(nodes[i * 2], nodes[i * 2 + 1]);
+        }
+        nextLevelLength = nextLevelLength / 2;
+        // Check if we will need to add an extra node
+        if (nextLevelLength % 2 == 1 && nextLevelLength != 1) {
+            nodes[nextLevelLength] = defaultHashesForLeaves[currentLevel];
+            nextLevelLength += 1;
+        }
+    }
+    return nodes[0];
+}
 async function getMerkleRootWithCoordinatorAccount(maxSize) {
     var dataLeaves = [];
     var rollupUtils = await rollupUtilsLib.deployed();
@@ -225,7 +270,7 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
         dataLeaves[i] = ZERO_BYTES32;
     }
     MTUtilsInstance = await merkleTreeUtilsContract.deployed();
-    var result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
+    var result = await getMerkleRoot(dataLeaves, maxSize);
     console.log("result", result);
     return result;
 }
@@ -233,7 +278,6 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
 async function deployAndRegister(deployer, contract, libs, args, name) {
     var nameRegistryInstance = await nameRegistryContract.deployed();
     var paramManagerInstance = await paramManagerLib.deployed();
-
     for (let i = 0; i < libs.length; i++) {
         await deployer.link(libs[i], contract);
     }
