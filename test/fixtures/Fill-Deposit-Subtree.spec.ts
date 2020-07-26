@@ -5,11 +5,12 @@ const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
 import * as utils from "../../scripts/helpers/utils";
 import { ethers } from "ethers";
+import { Wallet } from "../../scripts/helpers/interfaces";
 
 chai.use(chaiAsPromised);
 
 contract("DepositManager", async function(accounts) {
-    var wallets: any;
+    let wallets: Wallet[];
     before(async function() {
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
     });

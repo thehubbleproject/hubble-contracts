@@ -110,3 +110,9 @@ export interface Dispute {
         pdaProof: PDAMerkleProof[];
     };
 }
+
+export interface Wallet {
+    getAddressString(): string;
+    getPublicKeyString(): string;
+    getPrivateKey(): Buffer;
+}

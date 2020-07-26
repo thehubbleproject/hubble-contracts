@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Account } from "../scripts/helpers/interfaces";
+import { Wallet } from "../scripts/helpers/interfaces";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
@@ -18,7 +18,7 @@ chai.use(chaiAsPromised);
 const truffleAssert = require("truffle-assertions");
 
 contract("DepositManager", async function(accounts) {
-    var wallets: any;
+    let wallets: Wallet[];
     before(async function() {
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
     });

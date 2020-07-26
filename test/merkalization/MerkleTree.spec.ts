@@ -6,10 +6,11 @@ const RollupUtils = artifacts.require("RollupUtils");
 const Types = artifacts.require("Types");
 import * as walletHelper from "../../scripts/helpers/wallet";
 import * as utils from "../../scripts/helpers/utils";
+import { Wallet } from "../../scripts/helpers/interfaces";
 
 // Test all stateless operations
 contract("MerkleTreeUtils", async function(accounts) {
-    var wallets: any;
+    let wallets: Wallet[];
     var firstDataBlock = utils.StringToBytes32("0x123");
     var secondDataBlock = utils.StringToBytes32("0x334");
     var thirdDataBlock = utils.StringToBytes32("0x4343");

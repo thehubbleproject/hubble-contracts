@@ -1,7 +1,12 @@
 import * as utils from "../scripts/helpers/utils";
 import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Transaction, ErrorCode, Usage } from "../scripts/helpers/interfaces";
+import {
+    Transaction,
+    ErrorCode,
+    Usage,
+    Wallet
+} from "../scripts/helpers/interfaces";
 import { StakingAmountString } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
@@ -11,7 +16,7 @@ const RollupUtils = artifacts.require("RollupUtils");
 const RollupReddit = artifacts.require("RollupReddit");
 
 contract("Rollup", async function(accounts) {
-    var wallets: any;
+    let wallets: Wallet[];
 
     let depositManagerInstance: any;
     let testTokenInstance: any;

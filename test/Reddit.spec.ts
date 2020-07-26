@@ -10,7 +10,8 @@ import {
     BurnConsentTx,
     BurnExecutionTx,
     Transaction,
-    Dispute
+    Dispute,
+    Wallet
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, AccountStore } from "../scripts/helpers/store";
 import {
@@ -27,7 +28,7 @@ const RollupUtils = artifacts.require("RollupUtils");
 const RollupReddit = artifacts.require("RollupReddit");
 
 contract("Reddit", async function() {
-    let wallets: any;
+    let wallets: Wallet[];
     let Reddit: any;
     let User: any;
     let Bob: any;
