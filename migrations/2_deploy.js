@@ -191,7 +191,9 @@ async function deploy(deployer) {
         Airdrop: airdropInstance.address,
         BurnConsent: burnConsentInstance.address,
         BurnExecution: burnExecutionInstance.address,
-        RollupReddit: rollupRedditInstance.address
+        RollupReddit: rollupRedditInstance.address,
+        TokenRegistry: tokenRegistryInstance.address,
+        TestToken: testTokenInstance.address
     };
 
     writeContractAddresses(contractAddresses);
