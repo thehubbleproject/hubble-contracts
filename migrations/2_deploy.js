@@ -154,7 +154,7 @@ async function deploy(deployer) {
         deployer,
         depositManagerContract,
         [Types, paramManagerLib, rollupUtilsLib],
-        [nameRegistryInstance.address, RedditProfile.pubkeyHash],
+        [nameRegistryInstance.address, RedditProfile.pubkey],
         "DEPOSIT_MANAGER"
     );
 

@@ -30,9 +30,9 @@ export const RedditGenesisAccount: Account = {
 export const RedditProfile = {
     stateID: 1,
     walletID: 1,
-    // ethers.utils.keccak256(wallet[1].getPublicKey())
-    pubkeyHash:
-        "0x19a7ff246d1020ddef20f5fa96c42c56fdb78294f96b0cfa33c92bed7d75f96a"
+    // wallet[1].getPublicKey()
+    pubkey:
+        "0x90718dcbc2477c86294742fb72bf098ba85ff671b88c8d79b2e09ce19bdbd88fd87047aaebc775b168372752aa8bc4e5be1ca5d39284fed00722f341927888c3"
 };
 
 export const DummyPDA: PDALeaf = {

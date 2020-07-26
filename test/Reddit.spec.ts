@@ -129,7 +129,7 @@ contract("Reddit", async function() {
 
         pubkeyStore = new PublicKeyStore(MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
-        pubkeyStore.insertHash(RedditProfile.pubkeyHash);
+        pubkeyStore.insertPublicKey(RedditProfile.pubkey);
         pubkeyStore.insertPublicKey(Alice.Pubkey);
         pubkeyStore.insertPublicKey(Bob.Pubkey);
     });

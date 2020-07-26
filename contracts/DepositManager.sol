@@ -44,9 +44,6 @@ contract DepositManager {
     IERC20 public tokenContract;
     IncrementalTree public accountsTree;
 
-    bytes32
-        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
-
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.POB())
@@ -63,7 +60,7 @@ contract DepositManager {
         _;
     }
 
-    constructor(address _registryAddr, bytes32 redditPubkeyHash) public {
+    constructor(address _registryAddr, bytes memory redditPubkey) public {
         nameRegistry = Registry(_registryAddr);
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
@@ -80,9 +77,9 @@ contract DepositManager {
         );
 
         // Coordinator
-        accountsTree.appendLeaf(ZERO_BYTES32);
+        accountsTree.appendLeaf(bytes32(0x00));
         // Reddit
-        accountsTree.appendLeaf(redditPubkeyHash);
+        accountsTree.appendDataBlock(redditPubkey);
     }
 
     /**
