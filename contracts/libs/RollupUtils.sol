@@ -571,7 +571,7 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx.fromIndex, _tx.amount, _tx.signature);
+        return abi.encode(_tx.fromIndex, _tx.amount, _tx.nonce, _tx.signature);
     }
 
     function CompressBurnConsentNoStruct(
