@@ -1,9 +1,12 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
+import { Tx } from "./Tx.sol";
 import { Types } from "./Types.sol";
 
 library RollupUtils {
+    using Tx for bytes;
+
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
@@ -251,6 +254,14 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, uint256));
     }
 
+    function serialize(Tx.CreateAccount[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
     //
     // Airdrop
     //
@@ -376,6 +387,13 @@ library RollupUtils {
         )
     {
         return abi.decode(txBytes, (uint256, uint256, bytes));
+    }
+
+    function serialize(
+        Tx.DropSender calldata stx,
+        Tx.DropReceiver[] calldata rtxs
+    ) external pure returns (bytes memory) {
+        return Tx.serialize(stx, rtxs);
     }
 
     //
@@ -519,6 +537,14 @@ library RollupUtils {
             );
     }
 
+    function serialize(Tx.Transfer[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
     //
     // Burn Consent
     //
@@ -612,6 +638,14 @@ library RollupUtils {
         return keccak256(CompressBurnConsent(_tx));
     }
 
+    function serialize(Tx.BurnConsent[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
     //
     // Burn Execution
     //
@@ -689,6 +723,14 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(CompressBurnExecution(_tx));
+    }
+
+    function serialize(Tx.BurnExecution[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {
