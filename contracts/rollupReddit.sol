@@ -274,7 +274,7 @@ contract RollupReddit {
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    _txs[0],
                     batchProofs,
                     expectedTxRoot
                 );
