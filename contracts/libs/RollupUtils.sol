@@ -1,9 +1,11 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
+import { Tx } from "./Tx.sol";
 import { Types } from "./Types.sol";
 
 library RollupUtils {
+    using Tx for bytes;
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
