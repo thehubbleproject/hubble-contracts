@@ -283,7 +283,7 @@ contract RollupReddit {
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    _txs[0],
                     signatures,
                     batchProofs,
                     expectedTxRoot
