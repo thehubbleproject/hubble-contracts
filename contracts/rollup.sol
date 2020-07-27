@@ -325,7 +325,7 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        bytes[] memory _txs,
+        bytes memory txs,
         bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs
     ) public {
@@ -360,7 +360,7 @@ contract Rollup is RollupHelpers {
             .processBatch(
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id].accountRoot,
-            _txs,
+            txs,
             signatures,
             batchProofs,
             batches[_batch_id].txRoot,

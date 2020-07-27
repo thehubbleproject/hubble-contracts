@@ -255,7 +255,7 @@ contract RollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txs,
+        bytes memory txs,
         bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot,
@@ -274,7 +274,7 @@ contract RollupReddit {
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs[0],
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -283,7 +283,7 @@ contract RollupReddit {
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs[0],
+                    txs,
                     signatures,
                     batchProofs,
                     expectedTxRoot
@@ -293,7 +293,7 @@ contract RollupReddit {
                 transfer.processTransferBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs[0],
+                    txs,
                     signatures,
                     batchProofs,
                     expectedTxRoot
@@ -303,7 +303,7 @@ contract RollupReddit {
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs[0],
+                    txs,
                     signatures,
                     batchProofs,
                     expectedTxRoot
@@ -313,7 +313,7 @@ contract RollupReddit {
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs[0],
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );
