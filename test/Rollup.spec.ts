@@ -1072,11 +1072,6 @@ contract("Rollup", async function(accounts) {
             "false ErrorId. it should be `2`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
-
-        falseBatchComb.txs.push(txByte);
-        falseBatchComb.signatures.push(tx.signature);
-        falseBatchComb.batchProofs.accountProofs.push(accountProofs);
-        falseBatchComb.batchProofs.pdaProof.push(alicePDAProof);
     });
 
     it("dispute batch false Combo batch", async function() {
@@ -1095,17 +1090,5 @@ contract("Rollup", async function(accounts) {
             falseBatchComb.batchId - 1,
             "batchId doesnt match"
         );
-        const tx0 = await RollupUtilsInstance.TxFromBytes(
-            falseBatchComb.txs[0]
-        );
-        const tx1 = await RollupUtilsInstance.TxFromBytes(
-            falseBatchComb.txs[1]
-        );
-        Alice.Amount += Number(tx0.amount);
-        Alice.Amount += Number(tx1.amount);
-        Bob.Amount -= Number(tx0.amount);
-        Bob.Amount -= Number(tx1.amount);
-        Alice.nonce--;
-        Alice.nonce--;
     });
 });

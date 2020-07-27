@@ -75,10 +75,7 @@ contract Transfer is FraudProofHelpers {
             _txs[i].signature = signatures[i];
         }
         bytes32 actualTxRoot = generateTxRoot(_txs);
-        // if there is an expectation set, revert if it's not met
-        if (expectedTxRoot == ZERO_BYTES32) {
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
+        if (expectedTxRoot != ZERO_BYTES32) {
             require(
                 actualTxRoot == expectedTxRoot,
                 "Invalid dispute, tx root doesn't match"
@@ -86,21 +83,20 @@ contract Transfer is FraudProofHelpers {
         }
 
         bool isTxValid;
-        {
-            for (uint256 i = 0; i < _txs.length; i++) {
-                // call process tx update for every transaction to check if any
-                // tx evaluates correctly
-                (stateRoot, , , , isTxValid) = processTx(
-                    stateRoot,
-                    accountsRoot,
-                    _txs[i],
-                    batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i]
-                );
 
-                if (!isTxValid) {
-                    break;
-                }
+        for (uint256 i = 0; i < _txs.length; i++) {
+            // call process tx update for every transaction to check if any
+            // tx evaluates correctly
+            (stateRoot, , , , isTxValid) = processTx(
+                stateRoot,
+                accountsRoot,
+                _txs[i],
+                batchProofs.pdaProof[i],
+                batchProofs.accountProofs[i]
+            );
+
+            if (!isTxValid) {
+                break;
             }
         }
         return (stateRoot, actualTxRoot, !isTxValid);
