@@ -30,20 +30,6 @@ contract BurnExecution is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.BurnExecution[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressBurnExecution(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -51,7 +37,7 @@ contract BurnExecution is FraudProofHelpers {
     function processBurnExecutionBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txBytes,
+        bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -63,13 +49,11 @@ contract BurnExecution is FraudProofHelpers {
             bool
         )
     {
-        Types.BurnExecution[] memory _txs = new Types.BurnExecution[](
-            _txBytes.length
+        uint256 length = txs.burnExecution_size();
+
+        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
+            txs.burnExecution_toLeafs()
         );
-        for (uint256 i = 0; i < _txBytes.length; i++) {
-            _txs[i] = RollupUtils.BurnExecutionFromBytes(_txBytes[i]);
-        }
-        bytes32 actualTxRoot = generateTxRoot(_txs);
         if (expectedTxRoot != ZERO_BYTES32) {
             require(
                 actualTxRoot == expectedTxRoot,
@@ -78,12 +62,14 @@ contract BurnExecution is FraudProofHelpers {
         }
 
         bool isTxValid;
-        for (uint256 i = 0; i < _txs.length; i++) {
+
+        for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
             (stateRoot, , , isTxValid) = processBurnExecutionTx(
                 stateRoot,
-                _txs[i],
+                txs,
+                i,
                 batchProofs.accountProofs[i].from
             );
 
@@ -91,12 +77,12 @@ contract BurnExecution is FraudProofHelpers {
                 break;
             }
         }
+
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
     function ApplyBurnExecutionTx(
-        Types.AccountMerkleProof memory _fromAccountProof,
-        Types.BurnExecution memory _tx
+        Types.AccountMerkleProof memory _fromAccountProof
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
 
@@ -113,7 +99,8 @@ contract BurnExecution is FraudProofHelpers {
      */
     function processBurnExecutionTx(
         bytes32 _balanceRoot,
-        Types.BurnExecution memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.AccountMerkleProof memory _fromAccountProof
     )
         public
@@ -127,7 +114,7 @@ contract BurnExecution is FraudProofHelpers {
     {
         ValidateAccountMP(_balanceRoot, _fromAccountProof);
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-        if (_tx.fromIndex != account.ID) {
+        if (txs.burnExecution_stateIdOf(i) != account.ID) {
             return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);
         }
         if (account.balance < account.burn) {
@@ -151,10 +138,7 @@ contract BurnExecution is FraudProofHelpers {
 
         bytes32 newRoot;
         bytes memory new_from_account;
-        (new_from_account, newRoot) = ApplyBurnExecutionTx(
-            _fromAccountProof,
-            _tx
-        );
+        (new_from_account, newRoot) = ApplyBurnExecutionTx(_fromAccountProof);
 
         return (newRoot, new_from_account, Types.ErrorCode.NoError, true);
     }

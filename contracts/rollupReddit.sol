@@ -293,7 +293,7 @@ contract RollupReddit {
                 transfer.processTransferBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    _txs[0],
                     signatures,
                     batchProofs,
                     expectedTxRoot
@@ -313,7 +313,7 @@ contract RollupReddit {
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    _txs[0],
                     batchProofs,
                     expectedTxRoot
                 );

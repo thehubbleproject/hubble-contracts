@@ -108,14 +108,15 @@ contract FraudProofHelpers is FraudProofSetup {
     }
 
     function validateTxBasic(
-        Types.Transaction memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.UserAccount memory _from_account
     ) public view returns (Types.ErrorCode) {
-        if (_tx.nonce != _from_account.nonce.add(1)) {
+        if (txs.transfer_nonceOf(i) != _from_account.nonce.add(1)) {
             return Types.ErrorCode.BadNonce;
         }
 
-        return _validateTxBasic(_tx.amount, _from_account);
+        return _validateTxBasic(txs.transfer_amountOf(i), _from_account);
     }
 
     function RemoveTokensFromAccount(
@@ -169,14 +170,15 @@ contract FraudProofHelpers is FraudProofSetup {
      * */
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.Transaction memory transaction
+        bytes memory txs,
+        uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         return
             _ApplyTx(
                 _merkle_proof,
-                transaction.fromIndex,
-                transaction.toIndex,
-                transaction.amount
+                txs.transfer_senderOf(i),
+                txs.transfer_receiverOf(i),
+                txs.transfer_amountOf(i)
             );
     }
 

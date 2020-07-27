@@ -166,7 +166,7 @@ interface IReddit {
     function processTransferBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
+        bytes calldata _txs,
         bytes[] calldata signatures,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
@@ -198,7 +198,7 @@ interface IReddit {
     function processBurnExecutionBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
+        bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )

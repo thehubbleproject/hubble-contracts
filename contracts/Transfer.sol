@@ -50,7 +50,7 @@ contract Transfer is FraudProofHelpers {
     function processTransferBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txBytes,
+        bytes memory txs,
         bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
@@ -63,18 +63,14 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
+        uint256 length = txs.transfer_size();
         require(
-            _txBytes.length == signatures.length,
+            signatures.length == length,
             "Mismatch length of signature and txs"
         );
-        Types.Transaction[] memory _txs = new Types.Transaction[](
-            _txBytes.length
+        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
+            txs.transfer_toLeafs()
         );
-        for (uint256 i = 0; i < _txBytes.length; i++) {
-            _txs[i] = RollupUtils.TxFromBytes(_txBytes[i]);
-            _txs[i].signature = signatures[i];
-        }
-        bytes32 actualTxRoot = generateTxRoot(_txs);
         if (expectedTxRoot != ZERO_BYTES32) {
             require(
                 actualTxRoot == expectedTxRoot,
@@ -84,13 +80,14 @@ contract Transfer is FraudProofHelpers {
 
         bool isTxValid;
 
-        for (uint256 i = 0; i < _txs.length; i++) {
+        for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
                 accountsRoot,
-                _txs[i],
+                txs,
+                i,
                 batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i]
             );
@@ -99,6 +96,7 @@ contract Transfer is FraudProofHelpers {
                 break;
             }
         }
+
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
@@ -112,7 +110,8 @@ contract Transfer is FraudProofHelpers {
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -140,20 +139,17 @@ contract Transfer is FraudProofHelpers {
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
         Types.ErrorCode err_code = validateTxBasic(
-            _tx,
+            txs,
+            i,
             accountProofs.from.accountIP.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
-        // account holds the token type in the tx
         if (
             accountProofs.from.accountIP.account.tokenType !=
             accountProofs.to.accountIP.account.tokenType
         )
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
             return (
                 ZERO_BYTES32,
                 "",
@@ -166,12 +162,12 @@ contract Transfer is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyTx(accountProofs.from, _tx);
+        (new_from_account, newRoot) = ApplyTx(accountProofs.from, txs, i);
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
 
-        (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
+        (new_to_account, newRoot) = ApplyTx(accountProofs.to, txs, i);
 
         return (
             newRoot,
