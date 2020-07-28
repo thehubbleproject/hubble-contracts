@@ -155,6 +155,9 @@ contract CreateAccount is FraudProofHelpers {
         if (to_account_proof.accountIP.pathToAccount != _tx.stateID) {
             return ("", "", Types.ErrorCode.NotOnDesignatedStateLeaf, false);
         }
+        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
+            return ("", "", Types.ErrorCode.InvalidTokenAddress, false);
+        }
 
         // Validate we are creating on a zero account
         if (

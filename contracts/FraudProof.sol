@@ -110,13 +110,6 @@ contract FraudProofHelpers is FraudProofSetup {
         Types.Transaction memory _tx,
         Types.UserAccount memory _from_account
     ) public view returns (Types.ErrorCode) {
-        // verify that tokens are registered
-        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
-            // invalid state transition
-            // to be slashed because the submitted transaction
-            // had invalid token type
-            return Types.ErrorCode.InvalidTokenAddress;
-        }
         if (_tx.nonce != _from_account.nonce.add(1)) {
             return Types.ErrorCode.BadNonce;
         }
