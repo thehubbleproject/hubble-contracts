@@ -531,6 +531,19 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, uint256, bytes));
     }
 
+    function DecompressTransfers(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory)
+    {
+        uint256 length = txs.transfer_size();
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](length);
+        for (uint256 i = 0; i < length; i++) {
+            _txs[i] = txs.transfer_decode(i);
+        }
+        return _txs;
+    }
+
     function HashFromTx(Types.Transaction memory _tx)
         public
         pure
