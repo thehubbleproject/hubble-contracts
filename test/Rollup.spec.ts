@@ -293,10 +293,13 @@ contract("Rollup", async function(accounts) {
 
         console.log("result from processTx: " + JSON.stringify(result));
         await utils.compressAndSubmitBatch(tx, result[0]);
+        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+            txByte
+        );
 
         falseBatchZero = {
             batchId: 0,
-            txs: [txByte],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
@@ -438,10 +441,13 @@ contract("Rollup", async function(accounts) {
             "False error ID. It should be `1`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
+        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+            txByte
+        );
 
         falseBatchOne = {
             batchId: 0,
-            txs: [txByte],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
@@ -596,10 +602,13 @@ contract("Rollup", async function(accounts) {
         );
 
         await utils.compressAndSubmitBatch(tx, falseResult);
+        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+            txByte
+        );
 
         falseBatchTwo = {
             batchId: 0,
-            txs: [txByte],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
@@ -778,10 +787,13 @@ contract("Rollup", async function(accounts) {
             "False ErrorId. It should be `4`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
+        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+            txByte
+        );
 
         falseBatchFive = {
             batchId: 0,
-            txs: [txByte],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
@@ -937,10 +949,13 @@ contract("Rollup", async function(accounts) {
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
         assert.equal(result[3], ErrorCode.BadNonce, "Wrong ErrorId");
         await utils.compressAndSubmitBatch(tx, falseResult);
+        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+            txByte
+        );
 
         falseBatchComb = {
             batchId: 0,
-            txs: [txByte],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [accountProofs],
