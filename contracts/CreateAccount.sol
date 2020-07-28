@@ -105,7 +105,7 @@ contract CreateAccount is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
         uint256 i
-    ) internal view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account;
         account.ID = txs.create_accountIdOf(i);
         account.tokenType = txs.create_tokenOf(i);
@@ -127,7 +127,7 @@ contract CreateAccount is FraudProofHelpers {
         Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
-        internal
+        public
         view
         returns (
             bytes32 newRoot,
