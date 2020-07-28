@@ -111,6 +111,7 @@ contract("RollupUtils", async function(accounts) {
             tx.tokenType
         );
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
+        await RollupUtilsInstance.CompressCreateAccountFromEncoded(txBytes);
     });
     it("test airdrop utils", async function() {
         const tx: DropTx = {

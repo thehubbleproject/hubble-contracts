@@ -6,6 +6,7 @@ import { Types } from "./Types.sol";
 
 library RollupUtils {
     using Tx for bytes;
+
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
@@ -251,6 +252,17 @@ library RollupUtils {
         )
     {
         return abi.decode(txBytes, (uint256, uint256, uint256));
+    }
+
+    function CompressCreateAccountFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.CreateAccount memory _tx = CreateAccountFromBytes(txBytes);
+        Tx.CreateAccount[] memory _txs = new Tx.CreateAccount[](1);
+        _txs[0] = Tx.CreateAccount(_tx.accountID, _tx.stateID, _tx.tokenType);
+        return Tx.serialize(_txs);
     }
 
     //

@@ -51,9 +51,10 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.CreateAccount memory transaction = RollupUtils
-            .CreateAccountFromBytes(txBytes);
-        return createAccount.ApplyCreateAccountTx(_merkle_proof, transaction);
+        bytes memory txs = RollupUtils.CompressCreateAccountFromEncoded(
+            txBytes
+        );
+        return createAccount.ApplyCreateAccountTx(_merkle_proof, txs, 0);
     }
 
     function processCreateAccountTx(
@@ -72,14 +73,15 @@ contract RollupReddit {
             bool
         )
     {
-        Types.CreateAccount memory _tx = RollupUtils.CreateAccountFromBytes(
+        bytes memory txs = RollupUtils.CompressCreateAccountFromEncoded(
             txBytes
         );
         return
             createAccount.processCreateAccountTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _to_pda_proof,
                 to_account_proof
             );

@@ -105,7 +105,7 @@ contract CreateAccount is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
         uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) internal view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account;
         account.ID = txs.create_accountIdOf(i);
         account.tokenType = txs.create_tokenOf(i);
@@ -127,7 +127,7 @@ contract CreateAccount is FraudProofHelpers {
         Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
-        public
+        internal
         view
         returns (
             bytes32 newRoot,
@@ -164,7 +164,7 @@ contract CreateAccount is FraudProofHelpers {
             return ("", "", Types.ErrorCode.NotCreatingOnZeroAccount, false);
         }
 
-        (createdAccountBytes, newRoot) = ApplyCreateAccountTx(
+        (createdAccountBytes, newRoot) = _ApplyCreateAccountTx(
             to_account_proof,
             txs,
             i

@@ -13,13 +13,15 @@ interface IReddit {
 
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.CreateAccount calldata _tx
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory, bytes32 newRoot);
 
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.CreateAccount calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _to_pda_proof,
         Types.AccountMerkleProof calldata to_account_proof
     )
