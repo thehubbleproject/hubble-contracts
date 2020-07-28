@@ -181,10 +181,8 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.BurnConsent memory transaction = RollupUtils.BurnConsentFromBytes(
-            txBytes
-        );
-        return burnConsent.ApplyBurnConsentTx(_merkle_proof, transaction);
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(txBytes);
+        return burnConsent.ApplyBurnConsentTx(_merkle_proof, txs, 0);
     }
 
     function processBurnConsentTx(
@@ -204,15 +202,13 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnConsent memory _tx = RollupUtils.BurnConsentFromBytes(
-            txBytes
-        );
-        _tx.signature = sig;
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(txBytes);
         return
             burnConsent.processBurnConsentTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _from_pda_proof,
                 _fromAccountProof
             );
@@ -226,9 +222,10 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.BurnExecution memory transaction = RollupUtils
-            .BurnExecutionFromBytes(txBytes);
-        return burnExecution.ApplyBurnExecutionTx(_merkle_proof, transaction);
+        bytes memory txs = RollupUtils.CompressBurnExecutionFromEncoded(
+            txBytes
+        );
+        return burnExecution.ApplyBurnExecutionTx(_merkle_proof, txs, 0);
     }
 
     function processBurnExecutionTx(
@@ -245,13 +242,14 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnExecution memory _tx = RollupUtils.BurnExecutionFromBytes(
+        bytes memory txs = RollupUtils.CompressBurnExecutionFromEncoded(
             txBytes
         );
         return
             burnExecution.processBurnExecutionTx(
                 _balanceRoot,
-                _tx,
+                txs,
+                0,
                 _fromAccountProof
             );
     }

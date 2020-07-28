@@ -96,13 +96,15 @@ interface IReddit {
 
     function ApplyBurnConsentTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.BurnConsent calldata _tx
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.BurnConsent calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountMerkleProof calldata _fromAccountProof
     )
@@ -121,12 +123,14 @@ interface IReddit {
 
     function ApplyBurnExecutionTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.BurnExecution calldata _tx
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnExecutionTx(
         bytes32 _balanceRoot,
-        Types.BurnExecution calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.AccountMerkleProof calldata _fromAccountProof
     )
         external

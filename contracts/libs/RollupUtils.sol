@@ -556,7 +556,12 @@ library RollupUtils {
     {
         Types.Transaction memory _tx = TxFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.nonce);
+        _txs[0] = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount,
+            _tx.nonce
+        );
         return Tx.serialize(_txs);
     }
 
@@ -653,6 +658,17 @@ library RollupUtils {
         return keccak256(CompressBurnConsent(_tx));
     }
 
+    function CompressBurnConsentFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes);
+        Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](1);
+        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.nonce);
+        return Tx.serialize(_txs);
+    }
+
     //
     // Burn Execution
     //
@@ -730,6 +746,17 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(CompressBurnExecution(_tx));
+    }
+
+    function CompressBurnExecutionFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.BurnExecution memory _tx = BurnExecutionFromBytes(txBytes);
+        Tx.BurnExecution[] memory _txs = new Tx.BurnExecution[](1);
+        _txs[0] = Tx.BurnExecution(_tx.fromIndex);
+        return Tx.serialize(_txs);
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {
