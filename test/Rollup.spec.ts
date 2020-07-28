@@ -459,7 +459,7 @@ contract("Rollup", async function(accounts) {
         falseBatchOne.batchId = Number(batchId) - 1;
         // console.log(falseBatchOne)
     });
-    it("dispute batch false 2nd batch(Tx Token Type not valid)", async function() {
+    it("dispute batch false 2nd batch", async function() {
         await rollupCoreInstance.disputeBatch(
             falseBatchOne.batchId,
             falseBatchOne.txs,
@@ -475,9 +475,11 @@ contract("Rollup", async function(accounts) {
             falseBatchOne.batchId - 1,
             "batchId doesnt match"
         );
-        const tx = await RollupUtilsInstance.TxFromBytes(falseBatchOne.txs[0]);
-        Alice.Amount += Number(tx.amount);
-        Bob.Amount -= Number(tx.amount);
+        const txs = await RollupUtilsInstance.DecompressTransfers(
+            falseBatchOne.txs
+        );
+        Alice.Amount += Number(txs[0].amount);
+        Bob.Amount -= Number(txs[0].amount);
         Alice.nonce--;
     });
 
@@ -636,9 +638,11 @@ contract("Rollup", async function(accounts) {
             falseBatchTwo.batchId - 1,
             "batchId doesnt match"
         );
-        const tx = await RollupUtilsInstance.TxFromBytes(falseBatchTwo.txs[0]);
-        Alice.Amount += Number(tx.amount);
-        Bob.Amount -= Number(tx.amount);
+        const txs = await RollupUtilsInstance.DecompressTransfers(
+            falseBatchTwo.txs
+        );
+        Alice.Amount += Number(txs[0].amount);
+        Bob.Amount -= Number(txs[0].amount);
         Alice.nonce--;
     });
 
@@ -820,9 +824,11 @@ contract("Rollup", async function(accounts) {
             falseBatchFive.batchId - 1,
             "batchId doesnt match"
         );
-        const tx = await RollupUtilsInstance.TxFromBytes(falseBatchFive.txs[0]);
-        Alice.Amount += Number(tx.amount);
-        Bob.Amount -= Number(tx.amount);
+        const txs = await RollupUtilsInstance.DecompressTransfers(
+            falseBatchFive.txs
+        );
+        Alice.Amount += Number(txs[0].amount);
+        Bob.Amount -= Number(txs[0].amount);
         Alice.nonce--;
     });
 
