@@ -115,7 +115,7 @@ async function depositForReddit(
     await testTokenInstance.transfer(redditAddress, amount);
     console.log("redditAddress", redditAddress);
     console.log("redditPubkey", redditPubkey);
-  console.log("depositing", redditAddress, amount, tokenId, redditPubkey)
+    console.log("depositing", redditAddress, amount, tokenId, redditPubkey);
     const tx = await depositManagerInstance.depositFor(
         redditAddress,
         amount,
