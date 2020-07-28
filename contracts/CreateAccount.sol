@@ -148,7 +148,9 @@ contract CreateAccount is FraudProofHelpers {
         ) {
             return ("", "", Types.ErrorCode.NotOnDesignatedStateLeaf, false);
         }
-        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
+        if (
+            tokenRegistry.registeredTokens(txs.create_tokenOf(i)) == address(0)
+        ) {
             return ("", "", Types.ErrorCode.InvalidTokenAddress, false);
         }
 
