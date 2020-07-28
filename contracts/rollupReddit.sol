@@ -218,14 +218,12 @@ contract RollupReddit {
     // Burn Execution
     //
 
-    function ApplyBurnExecutionTx(
-        Types.AccountMerkleProof memory _merkle_proof,
-        bytes memory txBytes
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        bytes memory txs = RollupUtils.CompressBurnExecutionFromEncoded(
-            txBytes
-        );
-        return burnExecution.ApplyBurnExecutionTx(_merkle_proof, txs, 0);
+    function ApplyBurnExecutionTx(Types.AccountMerkleProof memory _merkle_proof)
+        public
+        view
+        returns (bytes memory updatedAccount, bytes32 newRoot)
+    {
+        return burnExecution.ApplyBurnExecutionTx(_merkle_proof);
     }
 
     function processBurnExecutionTx(

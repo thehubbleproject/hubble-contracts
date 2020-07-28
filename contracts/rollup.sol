@@ -281,28 +281,23 @@ contract Rollup is RollupHelpers {
         );
 
         bytes32[] memory leaves;
-        uint256 length;
         if (batchType == Types.Usage.CreateAccount) {
             leaves = txs.create_toLeafs();
-            length = txs.create_size();
         } else if (
             batchType == Types.Usage.Airdrop ||
             batchType == Types.Usage.Transfer
         ) {
             leaves = txs.transfer_toLeafs();
-            length = txs.transfer_size();
         } else if (batchType == Types.Usage.BurnConsent) {
             leaves = txs.burnConsent_toLeafs();
-            length = txs.burnConsent_size();
         } else if (batchType == Types.Usage.BurnExecution) {
             leaves = txs.burnExecution_toLeafs();
-            length = txs.burnExecution_size();
         }
+
         require(
-            length <= governance.MAX_TXS_PER_BATCH(),
+            leaves.length <= governance.MAX_TXS_PER_BATCH(),
             "Batch contains more transations than the limit"
         );
-
         bytes32 txRoot = merkleUtils.getMerkleRootFromLeaves(leaves);
         require(
             txRoot != ZERO_BYTES32,

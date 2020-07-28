@@ -122,9 +122,7 @@ interface IReddit {
     //
 
     function ApplyBurnExecutionTx(
-        Types.AccountMerkleProof calldata _merkle_proof,
-        bytes calldata txs,
-        uint256 i
+        Types.AccountMerkleProof calldata _merkle_proof
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnExecutionTx(

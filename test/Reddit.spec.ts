@@ -521,10 +521,7 @@ contract("Reddit", async function() {
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
 
-        const result = await rollupRedditInstance.ApplyBurnExecutionTx(
-            userMP,
-            txBytes
-        );
+        const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP);
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
