@@ -164,7 +164,7 @@ contract CreateAccount is FraudProofHelpers {
             return ("", "", Types.ErrorCode.NotCreatingOnZeroAccount, false);
         }
 
-        (createdAccountBytes, newRoot) = _ApplyCreateAccountTx(
+        (createdAccountBytes, newRoot) = ApplyCreateAccountTx(
             to_account_proof,
             txs,
             i

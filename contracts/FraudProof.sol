@@ -111,7 +111,7 @@ contract FraudProofHelpers is FraudProofSetup {
         bytes memory txs,
         uint256 i,
         Types.UserAccount memory _from_account
-    ) public view returns (Types.ErrorCode) {
+    ) public pure returns (Types.ErrorCode) {
         if (txs.transfer_nonceOf(i) != _from_account.nonce.add(1)) {
             return Types.ErrorCode.BadNonce;
         }
@@ -161,13 +161,6 @@ contract FraudProofHelpers is FraudProofSetup {
         return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 
-    /**
-     * @notice ApplyTx applies the transaction on the account. This is where
-     * people need to define the logic for the application
-     * @param _merkle_proof contains the siblings and path to the account
-     * @param transaction is the transaction that needs to be applied
-     * @return returns updated account and updated state root
-     * */
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
