@@ -20,8 +20,8 @@ library Tx {
     uint256 public constant POSITION_SENDER_0 = 4;
     uint256 public constant POSITION_RECEIVER_0 = 8;
     uint256 public constant POSITION_AMOUNT_0 = 12;
-    uint256 public constant POSITION_SIGNATURE_X = 44;
-    uint256 public constant POSITION_SIGNATURE_Y = 76;
+    uint256 public constant POSITION_SIGNATURE_X_0 = 44;
+    uint256 public constant POSITION_SIGNATURE_Y_0 = 76;
 
     // transaction_type: airdrop_reciver_side
     // [receiver_state_id<4>|amount<4>]
@@ -56,7 +56,8 @@ library Tx {
     // positions in bytes
     uint256 public constant POSITION_STATE_2 = 4;
     uint256 public constant POSITION_AMOUNT_2 = 8;
-    uint256 public constant POSITION_NONCE_2 = 12;
+    uint256 public constant POSITION_SIGNATURE_X_2 = 40;
+    uint256 public constant POSITION_SIGNATURE_Y_2 = 72;
 
     // transaction_type: burn exec
     // [burner_state_id<4>]
@@ -81,7 +82,7 @@ library Tx {
     struct BurnConsent {
         uint256 stateID;
         uint256 amount;
-        uint256 nonce;
+        bytes signature;
     }
 
     struct BurnExecution {
@@ -127,6 +128,30 @@ library Tx {
         return serialized;
     }
 
+    function serialize(Types.CreateAccount[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 accountID = txs[i].accountID;
+            uint256 stateID = txs[i].stateID;
+            uint256 tokenType = txs[i].tokenType;
+            bytes memory _tx = abi.encodePacked(
+                uint32(accountID),
+                uint32(stateID),
+                uint32(tokenType)
+            );
+            uint256 off = i * TX_LEN_0;
+            for (uint256 j = 0; j < TX_LEN_0; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
     function serialize(CreateAccount[] memory txs)
         internal
         pure
@@ -146,30 +171,6 @@ library Tx {
             );
             uint256 off = i * TX_LEN_1;
             for (uint256 j = 0; j < TX_LEN_1; j++) {
-                serialized[j + off] = _tx[j];
-            }
-        }
-        return serialized;
-    }
-
-    function serialize(Types.CreateAccount[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        uint256 batchSize = txs.length;
-        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            uint256 accountID = txs[i].accountID;
-            uint256 stateID = txs[i].stateID;
-            uint256 tokenType = txs[i].tokenType;
-            bytes memory _tx = abi.encodePacked(
-                uint32(accountID),
-                uint32(stateID),
-                uint32(tokenType)
-            );
-            uint256 off = i * TX_LEN_0;
-            for (uint256 j = 0; j < TX_LEN_0; j++) {
                 serialized[j + off] = _tx[j];
             }
         }
@@ -387,8 +388,8 @@ library Tx {
                 MASK_STATE_ID
             )
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
-            let x := mload(add(p_tx, POSITION_SIGNATURE_X))
-            let y := mload(add(p_tx, POSITION_SIGNATURE_Y))
+            let x := mload(add(p_tx, POSITION_SIGNATURE_X_0))
+            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_0))
             mstore(add(signature, 32), x)
             mstore(add(signature, 64), y)
         }
@@ -466,8 +467,8 @@ library Tx {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
-            let x := mload(add(p_tx, POSITION_SIGNATURE_X))
-            let y := mload(add(p_tx, POSITION_SIGNATURE_Y))
+            let x := mload(add(p_tx, POSITION_SIGNATURE_X_0))
+            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_0))
             mstore(add(signature, 32), x)
             mstore(add(signature, 64), y)
         }
@@ -476,152 +477,218 @@ library Tx {
 
     // Airdrop
 
-    function serialize(DropSender memory stx, DropReceiver[] memory rtxs)
+    // function serialize(DropSender memory stx, DropReceiver[] memory rtxs)
+    //     internal
+    //     pure
+    //     returns (bytes memory)
+    // {
+    //     uint256 batchSize = rtxs.length;
+
+    //     bytes memory serialized = new bytes(TX_LEN_3a * batchSize + TX_LEN_3b);
+    //     bytes memory _tx = abi.encodePacked(
+    //         uint32(stx.accountID),
+    //         uint32(stx.stateID),
+    //         uint32(stx.nonce)
+    //     );
+    //     for (uint256 j = 0; j < TX_LEN_3b; j++) {
+    //         serialized[j] = _tx[j];
+    //     }
+    //     uint256 off = TX_LEN_3b;
+    //     for (uint256 i = 0; i < batchSize; i++) {
+    //         _tx = abi.encodePacked(
+    //             uint32(rtxs[i].receiverID),
+    //             uint32(rtxs[i].amount)
+    //         );
+    //         for (uint256 j = 0; j < TX_LEN_3a; j++) {
+    //             serialized[j + off] = _tx[j];
+    //         }
+    //         off += TX_LEN_3a;
+    //     }
+    //     return serialized;
+    // }
+
+    // function airdrop_receiverDecode(bytes memory txs, uint256 index)
+    //     internal
+    //     pure
+    //     returns (DropReceiver memory)
+    // {
+    //     uint256 receiver;
+    //     uint256 amount;
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+    //         receiver := and(
+    //             mload(add(p_tx, POSITION_RECEIVER_3a)),
+    //             MASK_STATE_ID
+    //         )
+    //         amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
+    //     }
+    //     return DropReceiver(receiver, amount);
+    // }
+
+    // function airdrop_senderDecode(bytes memory txs)
+    //     internal
+    //     pure
+    //     returns (DropSender memory)
+    // {
+    //     uint256 accountID;
+    //     uint256 stateID;
+    //     uint256 nonce;
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         accountID := and(
+    //             mload(add(txs, POSITION_ACCOUNT_3b)),
+    //             MASK_ACCOUNT_ID
+    //         )
+    //         stateID := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
+    //         nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_NONCE)
+    //     }
+    //     return DropSender(accountID, stateID, nonce);
+    // }
+
+    // function airdrop_hasExcessData(bytes memory txs)
+    //     internal
+    //     pure
+    //     returns (bool)
+    // {
+    //     return (txs.length - TX_LEN_3b) % TX_LEN_3a != 0;
+    // }
+
+    // function airdrop_size(bytes memory txs) internal pure returns (uint256) {
+    //     return (txs.length - TX_LEN_3b) / TX_LEN_3a;
+    // }
+
+    // function airdrop_senderAccountID(bytes memory txs)
+    //     internal
+    //     pure
+    //     returns (uint256 senderAccountID)
+    // {
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         senderAccountID := and(
+    //             mload(add(txs, POSITION_ACCOUNT_3b)),
+    //             MASK_ACCOUNT_ID
+    //         )
+    //     }
+    // }
+
+    // function airdrop_senderStateID(bytes memory txs)
+    //     internal
+    //     pure
+    //     returns (uint256 receiver)
+    // {
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         receiver := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
+    //     }
+    // }
+
+    // function airdrop_nonce(bytes memory txs)
+    //     internal
+    //     pure
+    //     returns (uint256 nonce)
+    // {
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_STATE_ID)
+    //     }
+    // }
+
+    // function airdrop_receiverOf(bytes memory txs, uint256 index)
+    //     internal
+    //     pure
+    //     returns (uint256 receiver)
+    // {
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+    //         receiver := and(
+    //             mload(add(p_tx, POSITION_RECEIVER_3a)),
+    //             MASK_STATE_ID
+    //         )
+    //     }
+    // }
+
+    // function airdrop_amountOf(bytes memory txs, uint256 index)
+    //     internal
+    //     pure
+    //     returns (uint256 amount)
+    // {
+    //     // solium-disable-next-line security/no-inline-assembly
+    //     assembly {
+    //         let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
+    //         amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
+    //     }
+    //     return amount;
+    // }
+
+    // Burn Consent
+
+    //     struct BurnConsent {
+    //     uint256 txType;
+    //     uint256 fromIndex;
+    //     uint256 amount;
+    //     uint256 nonce;
+    //     bytes signature;
+    // }
+
+    //     struct BurnConsent {
+    //     uint256 stateID;
+    //     uint256 amount;
+    //     uint256 nonce;
+    // }
+
+    function burnConcent_serializeFromEncoded(bytes[] memory txs)
         internal
         pure
         returns (bytes memory)
     {
-        uint256 batchSize = rtxs.length;
-
-        bytes memory serialized = new bytes(TX_LEN_3a * batchSize + TX_LEN_3b);
-        bytes memory _tx = abi.encodePacked(
-            uint32(stx.accountID),
-            uint32(stx.stateID),
-            uint32(stx.nonce)
-        );
-        for (uint256 j = 0; j < TX_LEN_3b; j++) {
-            serialized[j] = _tx[j];
-        }
-        uint256 off = TX_LEN_3b;
-        for (uint256 i = 0; i < batchSize; i++) {
-            _tx = abi.encodePacked(
-                uint32(rtxs[i].receiverID),
-                uint32(rtxs[i].amount)
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_2 * batchSize);
+        for (uint256 i = 0; i < txs.length; i++) {
+            uint256 fromIndex;
+            uint256 amount;
+            bytes memory signature;
+            (, fromIndex, amount, , signature) = abi.decode(
+                txs[i],
+                (uint256, uint256, uint256, uint256, bytes)
             );
-            for (uint256 j = 0; j < TX_LEN_3a; j++) {
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(amount),
+                signature
+            );
+            uint256 off = i * TX_LEN_2;
+            for (uint256 j = 0; j < TX_LEN_2; j++) {
                 serialized[j + off] = _tx[j];
             }
-            off += TX_LEN_3a;
         }
         return serialized;
     }
 
-    function airdrop_receiverDecode(bytes memory txs, uint256 index)
+    function serialize(Types.BurnConsent[] memory txs)
         internal
         pure
-        returns (DropReceiver memory)
+        returns (bytes memory)
     {
-        uint256 receiver;
-        uint256 amount;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
-            receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_3a)),
-                MASK_STATE_ID
-            )
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_2 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 amount = txs[i].amount;
+            bytes memory signature = txs[i].signature;
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(amount),
+                signature
+            );
+            uint256 off = i * TX_LEN_2;
+            for (uint256 j = 0; j < TX_LEN_2; j++) {
+                serialized[j + off] = _tx[j];
+            }
         }
-        return DropReceiver(receiver, amount);
+        return serialized;
     }
-
-    function airdrop_senderDecode(bytes memory txs)
-        internal
-        pure
-        returns (DropSender memory)
-    {
-        uint256 accountID;
-        uint256 stateID;
-        uint256 nonce;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            accountID := and(
-                mload(add(txs, POSITION_ACCOUNT_3b)),
-                MASK_ACCOUNT_ID
-            )
-            stateID := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
-            nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_NONCE)
-        }
-        return DropSender(accountID, stateID, nonce);
-    }
-
-    function airdrop_hasExcessData(bytes memory txs)
-        internal
-        pure
-        returns (bool)
-    {
-        return (txs.length - TX_LEN_3b) % TX_LEN_3a != 0;
-    }
-
-    function airdrop_size(bytes memory txs) internal pure returns (uint256) {
-        return (txs.length - TX_LEN_3b) / TX_LEN_3a;
-    }
-
-    function airdrop_senderAccountID(bytes memory txs)
-        internal
-        pure
-        returns (uint256 senderAccountID)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            senderAccountID := and(
-                mload(add(txs, POSITION_ACCOUNT_3b)),
-                MASK_ACCOUNT_ID
-            )
-        }
-    }
-
-    function airdrop_senderStateID(bytes memory txs)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            receiver := and(mload(add(txs, POSITION_STATE_3b)), MASK_STATE_ID)
-        }
-    }
-
-    function airdrop_nonce(bytes memory txs)
-        internal
-        pure
-        returns (uint256 nonce)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            nonce := and(mload(add(txs, POSITION_NONCE_3b)), MASK_STATE_ID)
-        }
-    }
-
-    function airdrop_receiverOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
-            receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_3a)),
-                MASK_STATE_ID
-            )
-        }
-    }
-
-    function airdrop_amountOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 amount)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_3a), TX_LEN_3b))
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_3a)), MASK_AMOUNT)
-        }
-        return amount;
-    }
-
-    // Burn Consent
 
     function serialize(BurnConsent[] memory txs)
         internal
@@ -634,11 +701,11 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 stateID = txs[i].stateID;
             uint256 amount = txs[i].amount;
-            uint256 nonce = txs[i].nonce;
+            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
                 uint32(stateID),
                 uint32(amount),
-                uint32(nonce)
+                signature
             );
             uint256 off = i * TX_LEN_2;
             for (uint256 j = 0; j < TX_LEN_2; j++) {
@@ -655,15 +722,18 @@ library Tx {
     {
         uint256 stateID;
         uint256 amount;
-        uint256 nonce;
+        bytes memory signature;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_2))
             stateID := and(mload(add(p_tx, POSITION_STATE_2)), MASK_STATE_ID)
             amount := and(mload(add(p_tx, POSITION_AMOUNT_2)), MASK_AMOUNT)
-            nonce := and(mload(add(p_tx, POSITION_NONCE_2)), MASK_NONCE)
+            let x := mload(add(p_tx, POSITION_SIGNATURE_X_2))
+            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_2))
+            mstore(add(signature, 32), x)
+            mstore(add(signature, 64), y)
         }
-        return BurnConsent(stateID, amount, nonce);
+        return BurnConsent(stateID, amount, signature);
     }
 
     function burnConsent_hasExcessData(bytes memory txs)
@@ -707,16 +777,21 @@ library Tx {
         return amount;
     }
 
-    function burnConsent_nonceOf(bytes memory txs, uint256 index)
+    function burnConsent_signatureOf(bytes memory txs, uint256 index)
         internal
         pure
-        returns (uint256 receiver)
+        returns (bytes memory)
     {
+        bytes memory signature = new bytes(64);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_2))
-            receiver := and(mload(add(p_tx, POSITION_NONCE_2)), MASK_STATE_ID)
+            let x := mload(add(p_tx, POSITION_SIGNATURE_X_2))
+            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_2))
+            mstore(add(signature, 32), x)
+            mstore(add(signature, 64), y)
         }
+        return signature;
     }
 
     function burnConsent_hashOf(bytes memory txs, uint256 index)
