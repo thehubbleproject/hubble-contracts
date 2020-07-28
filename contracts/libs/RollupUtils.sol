@@ -392,6 +392,22 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, bytes));
     }
 
+    function CompressAirdropFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.DropTx memory _tx = AirdropFromBytes(txBytes);
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
+        _txs[0] = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount,
+            _tx.nonce
+        );
+        return Tx.serialize(_txs);
+    }
+
     //
     // Transfer
     //

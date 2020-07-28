@@ -40,13 +40,15 @@ interface IReddit {
 
     function ApplyAirdropTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.DropTx calldata _transaction
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory, bytes32);
 
     function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.DropTx calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )

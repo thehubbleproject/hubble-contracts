@@ -96,7 +96,7 @@ contract Airdrop is FraudProofHelpers {
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
-        public
+        internal
         view
         returns (
             bytes32,
@@ -171,7 +171,7 @@ contract Airdrop is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
         uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) internal view returns (bytes memory updatedAccount, bytes32 newRoot) {
         return
             _ApplyTx(
                 _merkle_proof,

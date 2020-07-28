@@ -153,6 +153,7 @@ contract("RollupUtils", async function(accounts) {
         assert.equal(compressedTx1, compressedTx2);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx1);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx2);
+        await RollupUtilsInstance.CompressAirdropFromEncoded(txBytes);
     });
     it("test transfer utils", async function() {
         const tx: Transaction = {

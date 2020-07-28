@@ -95,8 +95,8 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.DropTx memory transaction = RollupUtils.AirdropFromBytes(txBytes);
-        return airdrop.ApplyAirdropTx(_merkle_proof, transaction);
+        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes);
+        return airdrop.ApplyAirdropTx(_merkle_proof, txs, 0);
     }
 
     function processAirdropTx(
@@ -117,13 +117,14 @@ contract RollupReddit {
             bool
         )
     {
-        Types.DropTx memory _tx = RollupUtils.AirdropFromBytes(txBytes);
-        _tx.signature = sig;
+        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes);
+        // Validate ECDSA sig
         return
             airdrop.processAirdropTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _from_pda_proof,
                 accountProofs
             );
