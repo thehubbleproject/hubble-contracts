@@ -459,8 +459,22 @@ library RollupUtils {
                 _tx.toIndex,
                 _tx.tokenType,
                 _tx.nonce,
-                _tx.amount
+                _tx.amount,
+                _tx.signature
             );
+    }
+
+    function BytesFromTxDeconstructed(
+        uint256 txType,
+        uint256 from,
+        uint256 to,
+        uint256 tokenType,
+        uint256 nonce,
+        uint256 amount,
+        bytes memory signature
+    ) public pure returns (bytes memory) {
+        return
+            abi.encode(txType, from, to, tokenType, nonce, amount, signature);
     }
 
     function BytesFromTxDeconstructed(
@@ -479,6 +493,7 @@ library RollupUtils {
         pure
         returns (Types.Transaction memory)
     {
+        // TODO: use txBytes.transfer_transfer_encodedFromBytes(...)
         Types.Transaction memory transaction;
         (
             transaction.txType,

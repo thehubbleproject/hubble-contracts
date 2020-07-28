@@ -37,6 +37,16 @@ library Types {
 
     // Transaction represents how each transaction looks like for
     // this rollup chain
+    struct Transfer {
+        uint256 txType;
+        uint256 fromIndex;
+        uint256 toIndex;
+        uint256 tokenType;
+        uint256 nonce;
+        uint256 amount;
+        bytes signature;
+    }
+
     struct Transaction {
         uint256 txType;
         uint256 fromIndex;
