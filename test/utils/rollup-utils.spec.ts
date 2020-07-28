@@ -186,6 +186,7 @@ contract("RollupUtils", async function(accounts) {
             tx.signature
         );
         await RollupUtilsInstance.DecompressTx(compressedTx);
+        await RollupUtilsInstance.CompressTransferFromEncoded(txBytes);
     });
     it("test burn consent utils", async function() {
         const tx: BurnConsentTx = {
@@ -215,6 +216,7 @@ contract("RollupUtils", async function(accounts) {
             tx.signature
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
+        await RollupUtilsInstance.CompressBurnConsentFromEncoded(txBytes);
     });
     it("test burn execution utils", async function() {
         const tx = {
@@ -234,5 +236,6 @@ contract("RollupUtils", async function(accounts) {
             tx.fromIndex
         );
         await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
+        await RollupUtilsInstance.CompressBurnExecutionFromEncoded(txBytes);
     });
 });
