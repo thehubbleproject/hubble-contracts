@@ -146,7 +146,10 @@ contract Airdrop is FraudProofHelpers {
             return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
-        if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
+        if (
+            accountProofs.from.accountIP.account.tokenType !=
+            accountProofs.to.accountIP.account.tokenType
+        )
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
@@ -166,19 +169,6 @@ contract Airdrop is FraudProofHelpers {
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
-
-        // account holds the token type in the tx
-        if (accountProofs.to.accountIP.account.tokenType != _tx.tokenType)
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (
-                ZERO_BYTES32,
-                "",
-                "",
-                Types.ErrorCode.BadFromTokenType,
-                false
-            );
 
         (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, _tx);
 
@@ -215,14 +205,6 @@ contract Airdrop is FraudProofHelpers {
         Types.DropTx memory _tx,
         Types.UserAccount memory _from_account
     ) public view returns (Types.ErrorCode) {
-        // verify that tokens are registered
-        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
-            // invalid state transition
-            // to be slashed because the submitted transaction
-            // had invalid token type
-            return Types.ErrorCode.InvalidTokenAddress;
-        }
-
         return _validateTxBasic(_tx.amount, _from_account);
     }
 }

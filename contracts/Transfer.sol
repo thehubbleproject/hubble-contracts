@@ -147,7 +147,10 @@ contract Transfer is FraudProofHelpers {
             return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
-        if (accountProofs.from.accountIP.account.tokenType != _tx.tokenType)
+        if (
+            accountProofs.from.accountIP.account.tokenType !=
+            accountProofs.to.accountIP.account.tokenType
+        )
             // invalid state transition
             // needs to be slashed because the submitted transaction
             // had invalid token type
@@ -167,19 +170,6 @@ contract Transfer is FraudProofHelpers {
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
-
-        // account holds the token type in the tx
-        if (accountProofs.to.accountIP.account.tokenType != _tx.tokenType)
-            // invalid state transition
-            // needs to be slashed because the submitted transaction
-            // had invalid token type
-            return (
-                ZERO_BYTES32,
-                "",
-                "",
-                Types.ErrorCode.BadFromTokenType,
-                false
-            );
 
         (new_to_account, newRoot) = ApplyTx(accountProofs.to, _tx);
 

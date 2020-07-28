@@ -348,9 +348,9 @@ contract("Rollup", async function(accounts) {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
-            tokenType: 2, // false token type (Token not valid)
+            tokenType: 1,
             amount: tranferAmount,
-            nonce: 2
+            nonce: 100 // BadNonce
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
 
@@ -434,7 +434,7 @@ contract("Rollup", async function(accounts) {
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
         assert.equal(
             result[3],
-            ErrorCode.InvalidTokenAddress,
+            ErrorCode.BadNonce,
             "False error ID. It should be `1`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
@@ -679,9 +679,9 @@ contract("Rollup", async function(accounts) {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
-            tokenType: 2, // error
+            tokenType: 1,
             amount: tranferAmount,
-            nonce: 2
+            nonce: 100 // bad nonce
         };
 
         tx.signature = await utils.signTx(tx, wallets[0]);
@@ -774,7 +774,7 @@ contract("Rollup", async function(accounts) {
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
         assert.equal(
             result[3],
-            ErrorCode.BadFromTokenType,
+            ErrorCode.BadNonce,
             "False ErrorId. It should be `4`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
@@ -792,7 +792,7 @@ contract("Rollup", async function(accounts) {
         let batchId = await rollupCoreInstance.numOfBatchesSubmitted();
         falseBatchFive.batchId = Number(batchId) - 1;
     });
-    it("dispute batch false 5th batch(From Token Type)", async function() {
+    it("dispute batch false 5th batch", async function() {
         await rollupCoreInstance.disputeBatch(
             falseBatchFive.batchId,
             falseBatchFive.txs,
@@ -844,9 +844,9 @@ contract("Rollup", async function(accounts) {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
-            tokenType: 3, // false type
+            tokenType: 1,
             amount: tranferAmount,
-            nonce: 2
+            nonce: 100 // bad nonce
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
         // alice balance tree merkle proof
@@ -935,7 +935,7 @@ contract("Rollup", async function(accounts) {
         );
 
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
-        assert.equal(result[3], 1, "Wrong ErrorId");
+        assert.equal(result[3], ErrorCode.BadNonce, "Wrong ErrorId");
         await utils.compressAndSubmitBatch(tx, falseResult);
 
         falseBatchComb = {
