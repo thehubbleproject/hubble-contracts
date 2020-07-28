@@ -21,8 +21,11 @@ const DefaultRedditAmount = "1,000,000,000".split(",").join("");
 /*
     $ node ./scripts/depositForReddit.js \
     --addr=0x316b2Fa7C8a2ab7E21110a4B3f58771C01A71344 \
-    --pubkey=0x4fd501917bfc23a84b78ce094c8ac84780d3b058873c8c86247014eda9fa572f02e42ce02ab45eb7b1b72ec0b43ff1e3e59c74be93322161e7124a0dbfcdfd24 \
-    --tokenId=1
+    --pubkey=0x4fd501917bfc23a84b78ce094c8ac84780d3b058873c8c86247014eda9fa572f02e42ce02ab45eb7b1b72ec0b43ff1e3e59c74be93322161e7124a0dbfcdfd24
+    $ node ./scripts/depositForReddit.js \
+    --addr=0x5C7adb8588e005DAeB797c14eF19A3FC9e302A47 \
+    --pubkey=0x0c5f4fb45dd97f599bbba3b11351cc71bf39f7870b2f453c490fdfef4fa492e801f8f1f7ac123f2cdd1098ccb312c8da74d241847ce2e2432ddd3ac7522332cd \
+    --tokenId=1 --amount=10
 */
 
 async function main() {
@@ -112,6 +115,7 @@ async function depositForReddit(
     await testTokenInstance.transfer(redditAddress, amount);
     console.log("redditAddress", redditAddress);
     console.log("redditPubkey", redditPubkey);
+    console.log("depositing", redditAddress, amount, tokenId, redditPubkey);
     const tx = await depositManagerInstance.depositFor(
         redditAddress,
         amount,
@@ -119,7 +123,6 @@ async function depositForReddit(
         redditPubkey
     );
     const parsedLogs = await waitLog(tx, depositQueuedEvent);
-
     console.log("Queued Deposit");
     console.log("PubkeyID", parsedLogs[0].values[0].toString());
     console.log("Pubkey", parsedLogs[0].values[1]);
