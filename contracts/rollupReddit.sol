@@ -138,8 +138,8 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes);
-        return transfer.ApplyTx(_merkle_proof, transaction);
+        bytes memory txs = RollupUtils.CompressTransferFromEncoded(txBytes);
+        return transfer.ApplyTx(_merkle_proof, txs, 0);
     }
 
     function processTransferTx(
@@ -160,13 +160,14 @@ contract RollupReddit {
             bool
         )
     {
-        Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
-        _tx.signature = sig;
+        bytes memory txs = RollupUtils.CompressTransferFromEncoded(txBytes);
+        // Validate ECDSA sig
         return
             transfer.processTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _from_pda_proof,
                 accountProofs
             );

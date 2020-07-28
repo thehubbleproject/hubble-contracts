@@ -68,13 +68,15 @@ interface IReddit {
 
     function ApplyTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.Transaction calldata transaction
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory, bytes32 newRoot);
 
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )

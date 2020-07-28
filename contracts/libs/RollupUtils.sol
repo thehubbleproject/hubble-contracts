@@ -549,6 +549,17 @@ library RollupUtils {
             );
     }
 
+    function CompressTransferFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.Transaction memory _tx = TxFromBytes(txBytes);
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.nonce);
+        return Tx.serialize(_txs);
+    }
+
     //
     // Burn Consent
     //
