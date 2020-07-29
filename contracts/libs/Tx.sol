@@ -705,10 +705,10 @@ library Tx {
         pure
         returns (bytes32[] memory)
     {
-        uint256 batchSize = burnConsent_size(txs);
+        uint256 batchSize = burnExecution_size(txs);
         bytes32[] memory buf = new bytes32[](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = burnConsent_hashOf(txs, i);
+            buf[i] = burnExecution_hashOf(txs, i);
         }
         return buf;
     }
