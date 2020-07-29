@@ -352,8 +352,8 @@ contract("Rollup", async function(accounts) {
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
-            amount: tranferAmount,
-            nonce: 100 // BadNonce
+            amount: 0, // InvalidTokenAmount
+            nonce: 2
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
 
@@ -437,7 +437,7 @@ contract("Rollup", async function(accounts) {
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
         assert.equal(
             result[3],
-            ErrorCode.BadNonce,
+            ErrorCode.InvalidTokenAmount,
             "False error ID. It should be `1`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
@@ -674,8 +674,6 @@ contract("Rollup", async function(accounts) {
         var AliceAccountLeaf = await utils.createLeaf(Alice);
         var BobAccountLeaf = await utils.createLeaf(Bob);
 
-        // make a transfer between alice and bob's account
-        var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         var accountRoot = await IMTInstance.getTreeRoot();
@@ -693,8 +691,8 @@ contract("Rollup", async function(accounts) {
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
-            amount: tranferAmount,
-            nonce: 100 // bad nonce
+            amount: 0, // InvalidTokenAmount
+            nonce: 2
         };
 
         tx.signature = await utils.signTx(tx, wallets[0]);
@@ -785,11 +783,7 @@ contract("Rollup", async function(accounts) {
         );
 
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
-        assert.equal(
-            result[3],
-            ErrorCode.BadNonce,
-            "False ErrorId. It should be `4`"
-        );
+        assert.equal(result[3], ErrorCode.InvalidTokenAmount, "False ErrorId.");
         await utils.compressAndSubmitBatch(tx, falseResult);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txByte]
@@ -835,9 +829,6 @@ contract("Rollup", async function(accounts) {
     it("submit new batch 6nd(False Batch)", async function() {
         var AliceAccountLeaf = await utils.createLeaf(Alice);
         var BobAccountLeaf = await utils.createLeaf(Bob);
-
-        // make a transfer between alice and bob's account
-        var tranferAmount = 1;
         // prepare data for process Tx
         var currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         var accountRoot = await IMTInstance.getTreeRoot();
@@ -863,8 +854,8 @@ contract("Rollup", async function(accounts) {
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
-            amount: tranferAmount,
-            nonce: 100 // bad nonce
+            amount: 0, // InvalidTokenAmount
+            nonce: 2
         };
         tx.signature = await utils.signTx(tx, wallets[0]);
         // alice balance tree merkle proof
@@ -953,7 +944,7 @@ contract("Rollup", async function(accounts) {
         );
 
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
-        assert.equal(result[3], ErrorCode.BadNonce, "Wrong ErrorId");
+        assert.equal(result[3], ErrorCode.InvalidTokenAmount, "Wrong ErrorId");
         await utils.compressAndSubmitBatch(tx, falseResult);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txByte]
