@@ -114,9 +114,10 @@ contract BurnExecution is FraudProofHelpers {
     {
         ValidateAccountMP(_balanceRoot, _fromAccountProof);
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-        if (txs.burnExecution_stateIdOf(i) != account.ID) {
-            return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);
-        }
+        // FIX:
+        // if (txs.burnExecution_fromIndexOf(i) != account.ID) {
+        //     return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);
+        // }
         if (account.balance < account.burn) {
             return (
                 ZERO_BYTES32,
