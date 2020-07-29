@@ -112,10 +112,6 @@ contract FraudProofHelpers is FraudProofSetup {
         uint256 i,
         Types.UserAccount memory _from_account
     ) public pure returns (Types.ErrorCode) {
-        if (txs.transfer_nonceOf(i) != _from_account.nonce.add(1)) {
-            return Types.ErrorCode.BadNonce;
-        }
-
         return _validateTxBasic(txs.transfer_amountOf(i), _from_account);
     }
 
