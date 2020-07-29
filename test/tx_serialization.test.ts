@@ -1,7 +1,5 @@
 const TestTx = artifacts.require("TestTx");
-import {
-    TestTxInstance
-} from "../types/truffle-contracts";
+import { TestTxInstance } from "../types/truffle-contracts";
 import {
     TxTransfer,
     serialize,
