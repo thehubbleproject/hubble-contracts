@@ -256,7 +256,8 @@ export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     const RollupUtilsInstance = await RollupUtils.deployed();
     const txBytes = await TxToBytes(tx);
     const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-        txBytes
+        txBytes,
+        tx.signature
     );
 
     // submit batch for that transactions

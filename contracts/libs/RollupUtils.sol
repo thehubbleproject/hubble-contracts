@@ -453,8 +453,7 @@ library RollupUtils {
                 _tx.toIndex,
                 _tx.tokenType,
                 _tx.nonce,
-                _tx.amount,
-                _tx.signature
+                _tx.amount
             );
     }
 
