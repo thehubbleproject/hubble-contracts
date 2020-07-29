@@ -409,27 +409,21 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, bytes));
     }
 
-    function CompressAirdropFromEncoded(bytes memory txBytes)
+    function CompressAirdropFromEncoded(bytes memory txBytes, bytes memory sig)
         public
         pure
         returns (bytes memory)
     {
         Types.DropTx memory _tx = AirdropFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.amount,
-            _tx.signature
-        );
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
         return Tx.serialize(_txs);
     }
 
-    function CompressManyAirdropFromEncoded(bytes[] memory txBytes)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function CompressManyAirdropFromEncoded(
+        bytes[] memory txBytes,
+        bytes[] memory sigs
+    ) public pure returns (bytes memory) {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.DropTx memory _tx = AirdropFromBytes(txBytes[i]);
@@ -437,7 +431,7 @@ library RollupUtils {
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.amount,
-                _tx.signature
+                sigs[i]
             );
         }
         return Tx.serialize(_txs);
@@ -612,27 +606,21 @@ library RollupUtils {
             );
     }
 
-    function CompressTransferFromEncoded(bytes memory txBytes)
+    function CompressTransferFromEncoded(bytes memory txBytes, bytes memory sig)
         public
         pure
         returns (bytes memory)
     {
         Types.Transaction memory _tx = TxFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.amount,
-            _tx.signature
-        );
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
         return Tx.serialize(_txs);
     }
 
-    function CompressManyTransferFromEncoded(bytes[] memory txBytes)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function CompressManyTransferFromEncoded(
+        bytes[] memory txBytes,
+        bytes[] memory sigs
+    ) public pure returns (bytes memory) {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.Transaction memory _tx = TxFromBytes(txBytes[i]);
@@ -640,7 +628,7 @@ library RollupUtils {
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.amount,
-                _tx.signature
+                sigs[i]
             );
         }
         return Tx.serialize(_txs);

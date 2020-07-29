@@ -95,7 +95,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes);
+        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes, "");
         return airdrop.ApplyAirdropTx(_merkle_proof, txs, 0);
     }
 
@@ -117,7 +117,7 @@ contract RollupReddit {
             bool
         )
     {
-        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes);
+        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes, sig);
         // Validate ECDSA sig
         return
             airdrop.processAirdropTx(
@@ -138,7 +138,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        bytes memory txs = RollupUtils.CompressTransferFromEncoded(txBytes);
+        bytes memory txs = RollupUtils.CompressTransferFromEncoded(txBytes, "");
         return transfer.ApplyTx(_merkle_proof, txs, 0);
     }
 
@@ -160,7 +160,10 @@ contract RollupReddit {
             bool
         )
     {
-        bytes memory txs = RollupUtils.CompressTransferFromEncoded(txBytes);
+        bytes memory txs = RollupUtils.CompressTransferFromEncoded(
+            txBytes,
+            sig
+        );
         // Validate ECDSA sig
         return
             transfer.processTx(
