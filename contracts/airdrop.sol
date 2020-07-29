@@ -119,9 +119,8 @@ contract Airdrop is FraudProofHelpers {
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
-        Types.ErrorCode err_code = validateAirDropTxBasic(
-            txs,
-            i,
+        Types.ErrorCode err_code = validateTxBasic(
+            txs.transfer_amountOf(i),
             accountProofs.from.accountIP.account
         );
         if (err_code != Types.ErrorCode.NoError)
@@ -179,13 +178,5 @@ contract Airdrop is FraudProofHelpers {
                 txs.transfer_receiverOf(i),
                 txs.transfer_amountOf(i)
             );
-    }
-
-    function validateAirDropTxBasic(
-        bytes memory txs,
-        uint256 i,
-        Types.UserAccount memory _from_account
-    ) public pure returns (Types.ErrorCode) {
-        return _validateTxBasic(txs.transfer_amountOf(i), _from_account);
     }
 }

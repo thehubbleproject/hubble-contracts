@@ -85,7 +85,7 @@ contract FraudProofHelpers is FraudProofSetup {
         );
     }
 
-    function _validateTxBasic(
+    function validateTxBasic(
         uint256 amount,
         Types.UserAccount memory _from_account
     ) public pure returns (Types.ErrorCode) {
@@ -105,14 +105,6 @@ contract FraudProofHelpers is FraudProofSetup {
         }
 
         return Types.ErrorCode.NoError;
-    }
-
-    function validateTxBasic(
-        bytes memory txs,
-        uint256 i,
-        Types.UserAccount memory _from_account
-    ) public pure returns (Types.ErrorCode) {
-        return _validateTxBasic(txs.transfer_amountOf(i), _from_account);
     }
 
     function RemoveTokensFromAccount(
