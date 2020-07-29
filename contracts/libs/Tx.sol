@@ -101,7 +101,7 @@ library Tx {
             bytes memory _tx = abi.encodePacked(
                 uint32(accountID),
                 uint32(stateID),
-                uint32(tokenType)
+                uint16(tokenType)
             );
             uint256 off = i * TX_LEN_1;
             for (uint256 j = 0; j < TX_LEN_1; j++) {
@@ -320,7 +320,7 @@ library Tx {
         return serialized;
     }
 
-    function serialize(Types.Transfer[] memory txs)
+    function transfer_serializeFromEncoded(Types.Transfer[] memory txs)
         internal
         pure
         returns (bytes memory)
@@ -708,32 +708,7 @@ library Tx {
         uint256 batchSize = burnConsent_size(txs);
         bytes32[] memory buf = new bytes32[](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = burnConsent_hashOf(txs, i);
-        }
-        return buf;
-    }
-
-    function burnConsent_hashOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (bytes32 result)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_2), 32))
-            result := keccak256(p_tx, TX_LEN_2)
-        }
-    }
-
-    function burnConsent_toLeafs(bytes memory txs)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
-        uint256 batchSize = burnConsent_size(txs);
-        bytes32[] memory buf = new bytes32[](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = burnConsent_hashOf(txs, i);
+            buf[i] = burnExecution_hashOf(txs, i);
         }
         return buf;
     }
@@ -784,6 +759,31 @@ library Tx {
         bytes32[] memory buf = new bytes32[](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
             buf[i] = create_hashOf(txs, i);
+        }
+        return buf;
+    }
+
+    function burnConsent_hashOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_2), 32))
+            result := keccak256(p_tx, TX_LEN_2)
+        }
+    }
+
+    function burnConsent_toLeafs(bytes memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = burnConsent_size(txs);
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = burnConsent_hashOf(txs, i);
         }
         return buf;
     }
