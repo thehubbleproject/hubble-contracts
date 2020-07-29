@@ -420,7 +420,7 @@ library RollupUtils {
             _tx.fromIndex,
             _tx.toIndex,
             _tx.amount,
-            _tx.nonce
+            _tx.signature
         );
         return Tx.serialize(_txs);
     }
@@ -437,7 +437,7 @@ library RollupUtils {
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.amount,
-                _tx.nonce
+                _tx.signature
             );
         }
         return Tx.serialize(_txs);
@@ -623,7 +623,7 @@ library RollupUtils {
             _tx.fromIndex,
             _tx.toIndex,
             _tx.amount,
-            _tx.nonce
+            _tx.signature
         );
         return Tx.serialize(_txs);
     }
@@ -640,7 +640,7 @@ library RollupUtils {
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.amount,
-                _tx.nonce
+                _tx.signature
             );
         }
         return Tx.serialize(_txs);
