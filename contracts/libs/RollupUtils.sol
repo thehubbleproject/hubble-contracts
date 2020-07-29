@@ -458,7 +458,7 @@ library RollupUtils {
             );
     }
 
-    function BytesFromTxDeconstructed(
+    function BytesFromTxDeconstructedWithSig(
         uint256 txType,
         uint256 from,
         uint256 to,
@@ -641,6 +641,16 @@ library RollupUtils {
         uint256 nonce
     ) public pure returns (bytes memory) {
         return abi.encode(txType, fromIndex, amount, nonce);
+    }
+
+    function BytesFromBurnConsentNoStructWithSig(
+        uint256 txType,
+        uint256 fromIndex,
+        uint256 amount,
+        uint256 nonce,
+        bytes memory signature
+    ) public pure returns (bytes memory) {
+        return abi.encode(txType, fromIndex, amount, nonce, signature);
     }
 
     function BurnConsentFromBytes(bytes memory txBytes)

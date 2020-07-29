@@ -60,14 +60,6 @@ contract TestTx {
         return Tx.transfer_decode(txs, index);
     }
 
-    function transfer_hashOf(bytes memory txs, uint256 index)
-        public
-        pure
-        returns (bytes32)
-    {
-        return txs.transfer_hashOf(index);
-    }
-
     function transfer_amountOf(bytes calldata txs, uint256 index)
         external
         pure
@@ -98,5 +90,161 @@ contract TestTx {
         returns (bytes memory)
     {
         return txs.transfer_signatureOf(index);
+    }
+
+    function create_serializeFromEncoded(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.create_serializeFromEncoded(txs);
+    }
+
+    function create_serialize(Tx.CreateAccount[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function create_decode(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (Tx.CreateAccount memory)
+    {
+        return Tx.create_decode(txs, index);
+    }
+
+    function create_hasExcessData(bytes memory txs) public pure returns (bool) {
+        return txs.create_hasExcessData();
+    }
+
+    function create_size(bytes memory txs) public pure returns (uint256) {
+        return txs.create_size();
+    }
+
+    function create_accountIdOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.create_accountIdOf(index);
+    }
+
+    function create_stateIdOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.create_stateIdOf(index);
+    }
+
+    function create_tokenOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.create_tokenOf(index);
+    }
+
+    function burnConsent_serializeFromEncoded(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.burnConsent_serializeFromEncoded(txs);
+    }
+
+    function burnConsent_serialize(Tx.BurnConsent[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function burnConsent_decode(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (Tx.BurnConsent memory)
+    {
+        return txs.burnConsent_decode(index);
+    }
+
+    function burnConsent_hasExcessData(bytes memory txs)
+        public
+        pure
+        returns (bool)
+    {
+        return txs.burnConsent_hasExcessData();
+    }
+
+    function burnConsent_size(bytes memory txs) public pure returns (uint256) {
+        return txs.burnConsent_size();
+    }
+
+    function burnConsent_fromIndexOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.burnConsent_fromIndexOf(index);
+    }
+
+    function burnConsent_amountOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.burnConsent_amountOf(index);
+    }
+
+    function burnConsent_signatureOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return txs.burnConsent_signatureOf(index);
+    }
+
+    function burnExecution_serializeFromEncoded(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.burnExecution_serializeFromEncoded(txs);
+    }
+
+    function burnExecution_serialize(Tx.BurnExecution[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function burnExecution_hasExcessData(bytes memory txs)
+        public
+        pure
+        returns (bool)
+    {
+        return txs.burnExecution_hasExcessData();
+    }
+
+    function burnExecution_size(bytes memory txs)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.burnExecution_size();
+    }
+
+    function burnExecution_fromIndexOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256 sender)
+    {
+        return txs.burnExecution_fromIndexOf(index);
     }
 }
