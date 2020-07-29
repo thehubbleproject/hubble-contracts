@@ -713,26 +713,24 @@ library RollupUtils {
         return keccak256(CompressBurnConsent(_tx));
     }
 
-    function CompressBurnConsentFromEncoded(bytes memory txBytes)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function CompressBurnConsentFromEncoded(
+        bytes memory txBytes,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
         Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes);
         Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](1);
-        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.signature);
+        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, sig);
         return Tx.serialize(_txs);
     }
 
-    function CompressManyBurnConsentFromEncoded(bytes[] memory txBytes)
-        public
-        pure
-        returns (bytes memory)
-    {
+    function CompressManyBurnConsentFromEncoded(
+        bytes[] memory txBytes,
+        bytes[] memory sigs
+    ) public pure returns (bytes memory) {
         Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes[i]);
-            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.signature);
+            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, sigs[i]);
         }
         return Tx.serialize(_txs);
     }
