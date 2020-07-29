@@ -61,6 +61,7 @@ contract RollupSetup {
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
+    uint256 STAKE_AMOUNT;
     Governance public governance;
 
     // this variable will be greater than 0 if
@@ -113,8 +114,8 @@ contract RollupHelpers is RollupSetup {
             depositTree: ZERO_BYTES32,
             committer: msg.sender,
             txRoot: txRoot,
-            stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            withdrawn: false,
             batchType: batchType
         });
 
@@ -137,8 +138,8 @@ contract RollupHelpers is RollupSetup {
             depositTree: depositRoot,
             committer: msg.sender,
             txRoot: ZERO_BYTES32,
-            stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            withdrawn: false,
             batchType: Types.Usage.Transfer
         });
 
@@ -189,11 +190,9 @@ contract RollupHelpers is RollupSetup {
             Types.Batch memory batch = batches[i];
 
             // calculate challeger's reward
-            uint256 _challengerReward = (batch.stakeCommitted.mul(2)).div(3);
+            uint256 _challengerReward = (STAKE_AMOUNT.mul(2)).div(3);
             challengerRewards += _challengerReward;
-            burnedAmount += batch.stakeCommitted.sub(_challengerReward);
-
-            batches[i].stakeCommitted = 0;
+            burnedAmount += STAKE_AMOUNT.sub(_challengerReward);
 
             // delete batch
             delete batches[i];
@@ -207,8 +206,7 @@ contract RollupHelpers is RollupSetup {
                 i,
                 batch.committer,
                 batch.stateRoot,
-                batch.txRoot,
-                batch.stakeCommitted
+                batch.txRoot
             );
             if (i == invalidBatchMarker) {
                 // we have completed rollback
@@ -260,6 +258,8 @@ contract Rollup is RollupHelpers {
         rollupReddit = IRollupReddit(
             nameRegistry.getContractDetails(ParamManager.ROLLUP_REDDIT())
         );
+        STAKE_AMOUNT = governance.STAKE_AMOUNT();
+
         addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
     }
 
@@ -273,10 +273,7 @@ contract Rollup is RollupHelpers {
         bytes32 _updatedRoot,
         Types.Usage batchType
     ) external payable onlyCoordinator isNotRollingBack {
-        require(
-            msg.value >= governance.STAKE_AMOUNT(),
-            "Not enough stake committed"
-        );
+        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
 
         bytes32[] memory leaves;
         if (batchType == Types.Usage.CreateAccount) {
@@ -344,13 +341,11 @@ contract Rollup is RollupHelpers {
         Types.BatchValidationProofs memory batchProofs
     ) public {
         {
-            // load batch
-            require(
-                batches[_batch_id].stakeCommitted != 0,
-                "Batch doesnt exist or is slashed already"
-            );
-
             // check if batch is disputable
+            require(
+                !batches[_batch_id].withdrawn,
+                "No point dispute a withdrawn batch"
+            );
             require(
                 block.number < batches[_batch_id].finalisesOn,
                 "Batch already finalised"
@@ -406,7 +401,7 @@ contract Rollup is RollupHelpers {
     function WithdrawStake(uint256 batch_id) public {
         Types.Batch memory committedBatch = batches[batch_id];
         require(
-            committedBatch.stakeCommitted != 0,
+            !committedBatch.withdrawn,
             "Stake has been already withdrawn!!"
         );
         require(
@@ -417,13 +412,9 @@ contract Rollup is RollupHelpers {
             block.number > committedBatch.finalisesOn,
             "This batch is not yet finalised, check back soon!"
         );
+        committedBatch.withdrawn = true;
 
-        msg.sender.transfer(committedBatch.stakeCommitted);
-        logger.logStakeWithdraw(
-            msg.sender,
-            committedBatch.stakeCommitted,
-            batch_id
-        );
-        committedBatch.stakeCommitted = 0;
+        msg.sender.transfer(STAKE_AMOUNT);
+        logger.logStakeWithdraw(msg.sender, batch_id);
     }
 }

@@ -29,8 +29,8 @@ library Types {
         bytes32 depositTree;
         address committer;
         bytes32 txRoot;
-        uint256 stakeCommitted;
         uint256 finalisesOn;
+        bool withdrawn;
         Usage batchType;
     }
 
