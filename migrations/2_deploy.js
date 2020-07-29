@@ -158,7 +158,6 @@ async function deploy(deployer) {
         [nameRegistryInstance.address],
         "DEPOSIT_MANAGER"
     );
-    console.log("deplpyed deposit");
 
     const rollupRedditInstance = await deployAndRegister(
         deployer,
@@ -168,7 +167,6 @@ async function deploy(deployer) {
         "ROLLUP_REDDIT"
     );
 
-    console.log("deplpyed rollup reddit");
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
         deployer,
@@ -177,7 +175,6 @@ async function deploy(deployer) {
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
     );
-    console.log("deplpyed rollup reddit");
     const contractAddresses = {
         AccountTree: accountsTreeInstance.address,
         ParamManager: paramManagerInstance.address,
@@ -210,6 +207,9 @@ module.exports = async function(deployer) {
 
 // returns parent node hash given child node hashes
 function getParentLeaf(left, right) {
+    if (left == "" || right == "") {
+        return;
+    }
     var abiCoder = ethers.utils.defaultAbiCoder;
     var hash = ethers.utils.keccak256(
         abiCoder.encode(["bytes32", "bytes32"], [left, right])
@@ -269,7 +269,6 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
     for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
-    MTUtilsInstance = await merkleTreeUtilsContract.deployed();
     var result = await getMerkleRoot(dataLeaves, maxSize);
     console.log("result", result);
     return result;
