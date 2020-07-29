@@ -1,8 +1,6 @@
 const TestTx = artifacts.require("TestTx");
-const RollupUtilsLib = artifacts.require("RollupUtils");
 import {
-    TestTxInstance,
-    RollupUtilsInstance
+    TestTxInstance
 } from "../types/truffle-contracts";
 import {
     TxTransfer,
@@ -14,9 +12,7 @@ import {
 
 contract("Tx Serialization", accounts => {
     let c: TestTxInstance;
-    let rollupUtils: RollupUtilsInstance;
     before(async function() {
-        rollupUtils = await RollupUtilsLib.new();
         c = await TestTx.new();
     });
     it("parse transfer transaction", async function() {
@@ -119,12 +115,7 @@ contract("Tx Serialization", accounts => {
         for (let i = 0; i < txSize; i++) {
             const tx = TxCreate.rand();
             const extended = tx.extended();
-            const bytes = await rollupUtils.BytesFromCreateAccountNoStruct(
-                extended.txType,
-                extended.accountID,
-                extended.stateID,
-                extended.tokenType
-            );
+            const bytes = await c.create_bytesFromEncoded(extended);
             txs.push(tx);
             txsInBytes.push(bytes);
         }
@@ -172,13 +163,7 @@ contract("Tx Serialization", accounts => {
         for (let i = 0; i < txSize; i++) {
             const tx = TxBurnConsent.rand();
             const extended = tx.extended();
-            const bytes = await rollupUtils.BytesFromBurnConsentNoStructWithSig(
-                extended.txType,
-                extended.fromIndex,
-                extended.amount,
-                extended.nonce,
-                extended.signature
-            );
+            const bytes = await c.burnConsent_bytesFromEncoded(extended);
             txs.push(tx);
             txsInBytes.push(bytes);
         }
@@ -225,10 +210,7 @@ contract("Tx Serialization", accounts => {
         for (let i = 0; i < txSize; i++) {
             const tx = TxBurnExecution.rand();
             const extended = tx.extended();
-            const bytes = await rollupUtils.BytesFromBurnExecutionNoStruct(
-                extended.txType,
-                extended.fromIndex
-            );
+            const bytes = await c.burnExecution_bytesFromEncoded(extended);
             txs.push(tx);
             txsInBytes.push(bytes);
         }
