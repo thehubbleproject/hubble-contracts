@@ -464,19 +464,6 @@ library RollupUtils {
         uint256 to,
         uint256 tokenType,
         uint256 nonce,
-        uint256 amount,
-        bytes memory signature
-    ) public pure returns (bytes memory) {
-        return
-            abi.encode(txType, from, to, tokenType, nonce, amount, signature);
-    }
-
-    function BytesFromTxDeconstructed(
-        uint256 txType,
-        uint256 from,
-        uint256 to,
-        uint256 tokenType,
-        uint256 nonce,
         uint256 amount
     ) public pure returns (bytes memory) {
         return abi.encode(txType, from, to, tokenType, nonce, amount);

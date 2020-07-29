@@ -2,6 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { Tx } from "../libs/Tx.sol";
+import { Types } from "../libs/Types.sol";
 
 contract TestTx {
     using Tx for bytes;
@@ -20,6 +21,23 @@ contract TestTx {
         returns (bytes memory)
     {
         return Tx.serialize(txs);
+    }
+
+    function transfer_bytesFromEncoded(Types.Transfer memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                Types.Usage.Transfer,
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.nonce,
+                _tx.amount,
+                _tx.signature
+            );
     }
 
     function transfer_hasExcessData(bytes memory txs)

@@ -65,15 +65,7 @@ contract("Tx Serialization", accounts => {
         for (let i = 0; i < txSize; i++) {
             const tx = TxTransfer.rand();
             const extended = tx.extended();
-            const bytes = await rollupUtils.BytesFromTxDeconstructed(
-                extended.txType,
-                extended.fromIndex,
-                extended.toIndex,
-                extended.tokenType,
-                extended.nonce,
-                extended.amount,
-                extended.signature
-            );
+            const bytes = await c.transfer_bytesFromEncoded(extended);
             txs.push(tx);
             txsInBytes.push(bytes);
         }
