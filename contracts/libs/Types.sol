@@ -31,7 +31,6 @@ library Types {
         bytes32 txRoot;
         uint256 stakeCommitted;
         uint256 finalisesOn;
-        uint256 timestamp;
         Usage batchType;
     }
 

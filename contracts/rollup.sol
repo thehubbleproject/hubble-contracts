@@ -115,7 +115,6 @@ contract RollupHelpers is RollupSetup {
             txRoot: txRoot,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            timestamp: now,
             batchType: batchType
         });
 
@@ -140,7 +139,6 @@ contract RollupHelpers is RollupSetup {
             txRoot: ZERO_BYTES32,
             stakeCommitted: msg.value,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            timestamp: now,
             batchType: Types.Usage.Transfer
         });
 
