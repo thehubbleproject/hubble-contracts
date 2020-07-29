@@ -125,7 +125,7 @@ library Tx {
             bytes memory _tx = abi.encodePacked(
                 uint32(accountID),
                 uint32(stateID),
-                uint32(tokenType)
+                uint16(tokenType)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -146,11 +146,11 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 accountID = txs[i].accountID;
             uint256 stateID = txs[i].stateID;
-            uint256 token = txs[i].tokenType;
+            uint256 tokenType = txs[i].tokenType;
             bytes memory _tx = abi.encodePacked(
                 uint32(accountID),
                 uint32(stateID),
-                uint16(token)
+                uint16(tokenType)
             );
             uint256 off = i * TX_LEN_1;
             for (uint256 j = 0; j < TX_LEN_1; j++) {
@@ -686,5 +686,105 @@ library Tx {
             let p_tx := add(txs, mul(index, TX_LEN_4))
             sender := and(mload(add(p_tx, POSITION_STATE_4)), MASK_STATE_ID)
         }
+    }
+
+    function burnExecution_hashOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_4), 32))
+            result := keccak256(p_tx, TX_LEN_4)
+        }
+    }
+
+    function burnExecution_toLeafs(bytes memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = burnConsent_size(txs);
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = burnConsent_hashOf(txs, i);
+        }
+        return buf;
+    }
+
+    function burnConsent_hashOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_2), 32))
+            result := keccak256(p_tx, TX_LEN_2)
+        }
+    }
+
+    function burnConsent_toLeafs(bytes memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = burnConsent_size(txs);
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = burnConsent_hashOf(txs, i);
+        }
+        return buf;
+    }
+
+    function transfer_hashOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_0), 32))
+            result := keccak256(p_tx, TX_LEN_0)
+        }
+    }
+
+    function transfer_toLeafs(bytes memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = transfer_size(txs);
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = transfer_hashOf(txs, i);
+        }
+        return buf;
+    }
+
+    function create_hashOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (bytes32 result)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, add(mul(index, TX_LEN_1), 32))
+            result := keccak256(p_tx, TX_LEN_1)
+        }
+    }
+
+    function create_toLeafs(bytes memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = create_size(txs);
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = create_hashOf(txs, i);
+        }
+        return buf;
     }
 }
