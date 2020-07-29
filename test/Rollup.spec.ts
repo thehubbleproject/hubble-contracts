@@ -294,7 +294,8 @@ contract("Rollup", async function(accounts) {
         console.log("result from processTx: " + JSON.stringify(result));
         await utils.compressAndSubmitBatch(tx, result[0]);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte]
+            [txByte],
+            [tx.signature]
         );
 
         falseBatchZero = {
@@ -442,7 +443,8 @@ contract("Rollup", async function(accounts) {
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte]
+            [txByte],
+            [tx.signature]
         );
 
         falseBatchOne = {
@@ -605,7 +607,8 @@ contract("Rollup", async function(accounts) {
 
         await utils.compressAndSubmitBatch(tx, falseResult);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte]
+            [txByte],
+            [tx.signature]
         );
 
         falseBatchTwo = {
@@ -786,7 +789,8 @@ contract("Rollup", async function(accounts) {
         assert.equal(result[3], ErrorCode.InvalidTokenAmount, "False ErrorId.");
         await utils.compressAndSubmitBatch(tx, falseResult);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte]
+            [txByte],
+            [tx.signature]
         );
 
         falseBatchFive = {
@@ -947,7 +951,8 @@ contract("Rollup", async function(accounts) {
         assert.equal(result[3], ErrorCode.InvalidTokenAmount, "Wrong ErrorId");
         await utils.compressAndSubmitBatch(tx, falseResult);
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte]
+            [txByte],
+            [tx.signature]
         );
 
         falseBatchComb = {

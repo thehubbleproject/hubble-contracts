@@ -2,6 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { BLS } from "./BLS.sol";
+import { Types } from "./Types.sol";
 
 library Tx {
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
@@ -11,19 +12,16 @@ library Tx {
     uint256 public constant MASK_TOKEN_ID = 0xffff;
     uint256 public constant MASK_BYTE = 0xff;
 
-    uint256 constant bound4Bytes = 0x10000000000000000;
-    uint256 constant bound2Bytes = 0x100000000;
-    uint256 constant bound1Bytes = 0x10000;
-
     // transaction_type: transfer
-    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|nonce<4>]
-    uint256 public constant TX_LEN_0 = 16;
+    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|signature<64>]
+    uint256 public constant TX_LEN_0 = 76;
     uint256 public constant MASK_TX_0 = 0xffffffffffffffffffffffffffffffff;
     // positions in bytes
     uint256 public constant POSITION_SENDER_0 = 4;
     uint256 public constant POSITION_RECEIVER_0 = 8;
     uint256 public constant POSITION_AMOUNT_0 = 12;
-    uint256 public constant POSITION_NONCE_0 = 16;
+    uint256 public constant POSITION_SIGNATURE_X = 44;
+    uint256 public constant POSITION_SIGNATURE_Y = 76;
 
     // transaction_type: airdrop_reciver_side
     // [receiver_state_id<4>|amount<4>]
@@ -68,10 +66,10 @@ library Tx {
     uint256 public constant POSITION_STATE_4 = 4;
 
     struct Transfer {
-        uint256 senderID;
-        uint256 receiverID;
+        uint256 fromIndex;
+        uint256 toIndex;
         uint256 amount;
-        uint256 nonce;
+        bytes signature;
     }
 
     struct CreateAccount {
@@ -103,6 +101,68 @@ library Tx {
 
     // Transfer
 
+    function transfer_hasExcessData(bytes memory txs)
+        internal
+        pure
+        returns (bool)
+    {
+        return txs.length % TX_LEN_0 != 0;
+    }
+
+    function transfer_size(bytes memory txs) internal pure returns (uint256) {
+        return txs.length / TX_LEN_0;
+    }
+
+    function transfer_encodedFromBytes(bytes memory txBytes)
+        internal
+        pure
+        returns (Types.Transfer memory)
+    {
+        Types.Transfer memory _tx;
+        (
+            _tx.txType,
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.tokenType,
+            _tx.nonce,
+            _tx.amount
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256)
+        );
+        return _tx;
+    }
+
+    function serialize(bytes[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
+        for (uint256 i = 0; i < txs.length; i++) {
+            uint256 fromIndex;
+            uint256 toIndex;
+            uint256 amount;
+            bytes memory signature;
+            (, fromIndex, toIndex, , , amount, signature) = abi.decode(
+                txs[i],
+                (uint256, uint256, uint256, uint256, uint256, uint256, bytes)
+            );
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint32(amount),
+                signature
+            );
+            uint256 off = i * TX_LEN_0;
+            for (uint256 j = 0; j < TX_LEN_0; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
     function serialize(Transfer[] memory txs)
         internal
         pure
@@ -111,15 +171,41 @@ library Tx {
         uint256 batchSize = txs.length;
         bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            uint256 sender = txs[i].senderID;
-            uint256 receiver = txs[i].receiverID;
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 toIndex = txs[i].toIndex;
             uint256 amount = txs[i].amount;
-            uint256 nonce = txs[i].nonce;
+            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
-                uint32(sender),
-                uint32(receiver),
+                uint32(fromIndex),
+                uint32(toIndex),
                 uint32(amount),
-                uint32(nonce)
+                signature
+            );
+            uint256 off = i * TX_LEN_0;
+            for (uint256 j = 0; j < TX_LEN_0; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
+    function serialize(Types.Transfer[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 toIndex = txs[i].toIndex;
+            uint256 amount = txs[i].amount;
+            bytes memory signature = txs[i].signature;
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint32(amount),
+                signature
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -139,10 +225,9 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             buf[i] = keccak256(
                 abi.encodePacked(
-                    uint32(txs[i].senderID),
-                    uint32(txs[i].receiverID),
-                    uint32(txs[i].amount),
-                    uint32(txs[i].nonce)
+                    uint32(txs[i].fromIndex),
+                    uint32(txs[i].toIndex),
+                    uint32(txs[i].amount)
                 )
             );
         }
@@ -157,7 +242,7 @@ library Tx {
         uint256 sender;
         uint256 receiver;
         uint256 amount;
-        uint256 nonce;
+        bytes memory signature = new bytes(64);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
@@ -167,73 +252,12 @@ library Tx {
                 MASK_STATE_ID
             )
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
-            nonce := and(mload(add(p_tx, POSITION_NONCE_0)), MASK_STATE_ID)
+            let x := mload(add(p_tx, POSITION_SIGNATURE_X))
+            let y := mload(add(p_tx, POSITION_SIGNATURE_Y))
+            mstore(add(signature, 32), x)
+            mstore(add(signature, 64), y)
         }
-        return Transfer(sender, receiver, amount, nonce);
-    }
-
-    function transfer_hasExcessData(bytes memory txs)
-        internal
-        pure
-        returns (bool)
-    {
-        return txs.length % TX_LEN_0 != 0;
-    }
-
-    function transfer_size(bytes memory txs) internal pure returns (uint256) {
-        return txs.length / TX_LEN_0;
-    }
-
-    function transfer_senderOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 sender)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            sender := and(mload(add(p_tx, POSITION_SENDER_0)), MASK_STATE_ID)
-        }
-    }
-
-    function transfer_receiverOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_0)),
-                MASK_STATE_ID
-            )
-        }
-    }
-
-    function transfer_amountOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 amount)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
-        }
-        return amount;
-    }
-
-    function transfer_nonceOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 nonce)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            nonce := and(mload(add(p_tx, POSITION_NONCE_0)), MASK_STATE_ID)
-        }
+        return Transfer(sender, receiver, amount, signature);
     }
 
     function transfer_hashOf(bytes memory txs, uint256 index)
@@ -261,18 +285,58 @@ library Tx {
         return buf;
     }
 
-    function transfer_mapToPoint(bytes memory txs, uint256 index)
+    function transfer_fromIndexOf(bytes memory txs, uint256 index)
         internal
-        view
-        returns (uint256[2] memory)
+        pure
+        returns (uint256 receiver)
     {
-        bytes32 r;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_0), 32))
-            r := keccak256(p_tx, TX_LEN_0)
+            let p_tx := add(txs, mul(index, TX_LEN_0))
+            receiver := and(mload(add(p_tx, POSITION_SENDER_0)), MASK_STATE_ID)
         }
-        return BLS.mapToPoint(r);
+    }
+
+    function transfer_toIndexOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 sender)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_0))
+            sender := and(mload(add(p_tx, POSITION_RECEIVER_0)), MASK_STATE_ID)
+        }
+    }
+
+    function transfer_amountOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 amount)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_0))
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
+        }
+        return amount;
+    }
+
+    function transfer_signatureOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        bytes memory signature = new bytes(64);
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_0))
+            let x := mload(add(p_tx, POSITION_SIGNATURE_X))
+            let y := mload(add(p_tx, POSITION_SIGNATURE_Y))
+            mstore(add(signature, 32), x)
+            mstore(add(signature, 64), y)
+        }
+        return signature;
     }
 
     // Airdrop

@@ -174,8 +174,8 @@ contract Airdrop is FraudProofHelpers {
         return
             _ApplyTx(
                 _merkle_proof,
-                txs.transfer_senderOf(i),
-                txs.transfer_receiverOf(i),
+                txs.transfer_fromIndexOf(i),
+                txs.transfer_toIndexOf(i),
                 txs.transfer_amountOf(i)
             );
     }

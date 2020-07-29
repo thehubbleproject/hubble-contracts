@@ -2,36 +2,70 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { Tx } from "../libs/Tx.sol";
+import { Types } from "../libs/Types.sol";
 
 contract TestTx {
     using Tx for bytes;
 
-    function transfer_serialize(Tx.Transfer[] calldata txs)
-        external
+    function transfer_serialize(Tx.Transfer[] memory txs)
+        public
         pure
         returns (bytes memory)
     {
         return Tx.serialize(txs);
     }
 
-    function transfer_hasExcessData(bytes calldata txs)
-        external
+    function transfer_serializeFromEncodedBytes(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function transfer_bytesFromEncoded(Types.Transfer memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                Types.Usage.Transfer,
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.nonce,
+                _tx.amount,
+                _tx.signature
+            );
+    }
+
+    function transfer_hasExcessData(bytes memory txs)
+        public
         pure
         returns (bool)
     {
         return txs.transfer_hasExcessData();
     }
 
-    function transfer_size(bytes calldata txs) external pure returns (uint256) {
+    function transfer_size(bytes memory txs) public pure returns (uint256) {
         return txs.transfer_size();
     }
 
-    function transfer_decode(bytes calldata txs, uint256 index)
-        external
+    function transfer_decode(bytes memory txs, uint256 index)
+        public
         pure
         returns (Tx.Transfer memory)
     {
         return Tx.transfer_decode(txs, index);
+    }
+
+    function transfer_hashOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (bytes32)
+    {
+        return txs.transfer_hashOf(index);
     }
 
     function transfer_amountOf(bytes calldata txs, uint256 index)
@@ -42,35 +76,27 @@ contract TestTx {
         return txs.transfer_amountOf(index);
     }
 
-    function transfer_senderOf(bytes calldata txs, uint256 index)
+    function transfer_fromIndexOf(bytes calldata txs, uint256 index)
         external
         pure
         returns (uint256)
     {
-        return txs.transfer_senderOf(index);
+        return txs.transfer_fromIndexOf(index);
     }
 
-    function transfer_receiverOf(bytes calldata txs, uint256 index)
+    function transfer_toIndexOf(bytes calldata txs, uint256 index)
         external
         pure
         returns (uint256)
     {
-        return txs.transfer_receiverOf(index);
+        return txs.transfer_toIndexOf(index);
     }
 
-    function transfer_hashOf(bytes calldata txs, uint256 index)
+    function transfer_signatureOf(bytes calldata txs, uint256 index)
         external
         pure
-        returns (bytes32)
+        returns (bytes memory)
     {
-        return txs.transfer_hashOf(index);
-    }
-
-    function transfer_mapToPoint(bytes calldata txs, uint256 index)
-        external
-        view
-        returns (uint256[2] memory)
-    {
-        return txs.transfer_mapToPoint(index);
+        return txs.transfer_signatureOf(index);
     }
 }

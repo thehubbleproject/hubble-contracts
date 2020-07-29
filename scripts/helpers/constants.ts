@@ -48,3 +48,5 @@ export const StakingAmount = "0.1";
 export const StakingAmountString = ethers.utils
     .parseEther(StakingAmount)
     .toString();
+
+export const DummyECDSASignature = `0x${"ab".repeat(64)}`;
