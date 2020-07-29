@@ -108,6 +108,20 @@ contract TestTx {
         return Tx.serialize(txs);
     }
 
+    function create_bytesFromEncoded(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                Types.Usage.CreateAccount,
+                _tx.accountID,
+                _tx.stateID,
+                _tx.tokenType
+            );
+    }
+
     function create_decode(bytes memory txs, uint256 index)
         public
         pure
@@ -146,6 +160,21 @@ contract TestTx {
         returns (uint256)
     {
         return txs.create_tokenOf(index);
+    }
+
+    function burnConsent_bytesFromEncoded(Types.BurnConsent memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                Types.Usage.BurnConsent,
+                _tx.fromIndex,
+                _tx.amount,
+                _tx.nonce,
+                _tx.signature
+            );
     }
 
     function burnConsent_serializeFromEncoded(bytes[] memory txs)
@@ -206,6 +235,14 @@ contract TestTx {
         returns (bytes memory)
     {
         return txs.burnConsent_signatureOf(index);
+    }
+
+    function burnExecution_bytesFromEncoded(Types.BurnExecution memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return abi.encode(Types.Usage.BurnExecution, _tx.fromIndex);
     }
 
     function burnExecution_serializeFromEncoded(bytes[] memory txs)
