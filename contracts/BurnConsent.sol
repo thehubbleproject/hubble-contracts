@@ -135,14 +135,6 @@ contract BurnConsent is FraudProofHelpers {
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
 
         // TODO: Validate only certain token is allow to burn
-        if (txs.burnConsent_amountOf(i) == 0) {
-            return (
-                ZERO_BYTES32,
-                "",
-                Types.ErrorCode.InvalidTokenAmount,
-                false
-            );
-        }
 
         if (txs.burnConsent_nonceOf(i) != account.nonce.add(1)) {
             return (ZERO_BYTES32, "", Types.ErrorCode.BadNonce, false);
