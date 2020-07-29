@@ -291,7 +291,8 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, resultTo[1]);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
-            [txBytes]
+            [txBytes],
+            [tx.signature]
         );
 
         await rollupCoreInstance.submitBatch(
@@ -388,7 +389,8 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, resultTo[1]);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txBytes]
+            [txBytes],
+            [tx.signature]
         );
 
         await rollupCoreInstance.submitBatch(
