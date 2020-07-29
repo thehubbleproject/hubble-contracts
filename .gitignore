@@ -3,5 +3,6 @@ logs
 contractAddresses.json
 types
 build
+users.json
 test-blockchain/data
 .env

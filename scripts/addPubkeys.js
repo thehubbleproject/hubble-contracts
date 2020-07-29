@@ -6,7 +6,7 @@ const paramManagerLib = require("../build/contracts/ParamManager.json");
 
 const rollupReddit = require("../build/contracts/RollupReddit.json");
 const iface = new ethers.utils.Interface([
-    "event NewPubkeyAdded(uint256,bytes)",
+    "event NewPubkeyAdded(uint256,bytes)"
 ]);
 
 /* 
@@ -24,7 +24,7 @@ async function addPubkeys() {
     const dataPath = process.argv[2];
     console.log("dataPath", dataPath);
     const userData = JSON.parse(fs.readFileSync(dataPath));
-    const pubkeys = userData.users.map((u) => u.pubkey);
+    const pubkeys = userData.users.map(u => u.pubkey);
     var i,
         j,
         temparray,
@@ -34,8 +34,8 @@ async function addPubkeys() {
         console.log("Sending a chunk", temparray.length);
         const tx = await rollupRedditInstance.createPublickeys(temparray);
         const receipt = await tx.wait();
-        const parsedLogs = receipt.logs.map((log) => iface.parseLog(log));
-        parsedLogs.forEach((log) => {
+        const parsedLogs = receipt.logs.map(log => iface.parseLog(log));
+        parsedLogs.forEach(log => {
             const pubkeyID = log.values[0].toString();
             const pubkey = log.values[1].toString();
             console.log("pubkey", pubkey, "pubkeyID", pubkeyID);

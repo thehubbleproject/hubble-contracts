@@ -85,10 +85,8 @@ contract BurnExecution is FraudProofHelpers {
         Types.AccountMerkleProof memory _fromAccountProof
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-
         account.balance -= account.burn;
         account.lastBurn = RollupUtils.GetYearMonth();
-
         updatedAccount = RollupUtils.BytesFromAccount(account);
         newRoot = UpdateAccountWithSiblings(account, _fromAccountProof);
         return (updatedAccount, newRoot);
