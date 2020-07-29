@@ -730,7 +730,7 @@ library RollupUtils {
     {
         Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes);
         Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](1);
-        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.nonce);
+        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.signature);
         return Tx.serialize(_txs);
     }
 
@@ -742,7 +742,7 @@ library RollupUtils {
         Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes[i]);
-            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.nonce);
+            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.signature);
         }
         return Tx.serialize(_txs);
     }
