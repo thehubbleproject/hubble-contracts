@@ -142,7 +142,6 @@ library Types {
         BurnAlreadyExecuted,
         NotOnDesignatedStateLeaf,
         NotCreatingOnZeroAccount,
-        BadSignature,
-        BadNonce
+        BadSignature
     }
 }

@@ -139,8 +139,7 @@ contract Transfer is FraudProofHelpers {
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
         Types.ErrorCode err_code = validateTxBasic(
-            txs,
-            i,
+            txs.transfer_amountOf(i),
             accountProofs.from.accountIP.account
         );
         if (err_code != Types.ErrorCode.NoError)

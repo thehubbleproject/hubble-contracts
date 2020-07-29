@@ -61,8 +61,7 @@ export enum ErrorCode {
     BurnAlreadyExecuted,
     NotOnDesignatedStateLeaf,
     NotCreatingOnZeroAccount,
-    BadSignature,
-    BadNonce
+    BadSignature
 }
 
 export interface CreateAccount {
