@@ -473,7 +473,8 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, result[1]);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
-            [txBytes]
+            [txBytes],
+            [tx.signature]
         );
 
         await rollupCoreInstance.submitBatch(

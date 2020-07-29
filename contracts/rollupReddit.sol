@@ -192,7 +192,11 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(txBytes);
+        bytes memory emptySig = abi.encodePacked(bytes32(""), bytes32(""));
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
+            txBytes,
+            emptySig
+        );
         return burnConsent.ApplyBurnConsentTx(_merkle_proof, txs, 0);
     }
 
@@ -213,7 +217,10 @@ contract RollupReddit {
             bool
         )
     {
-        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(txBytes);
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
+            txBytes,
+            sig
+        );
         return
             burnConsent.processBurnConsentTx(
                 _balanceRoot,
