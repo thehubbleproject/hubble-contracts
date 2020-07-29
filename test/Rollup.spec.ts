@@ -293,8 +293,8 @@ contract("Rollup", async function(accounts) {
 
         console.log("result from processTx: " + JSON.stringify(result));
         await utils.compressAndSubmitBatch(tx, result[0]);
-        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-            txByte
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txByte]
         );
 
         falseBatchZero = {
@@ -441,8 +441,8 @@ contract("Rollup", async function(accounts) {
             "False error ID. It should be `1`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
-        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-            txByte
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txByte]
         );
 
         falseBatchOne = {
@@ -604,8 +604,8 @@ contract("Rollup", async function(accounts) {
         );
 
         await utils.compressAndSubmitBatch(tx, falseResult);
-        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-            txByte
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txByte]
         );
 
         falseBatchTwo = {
@@ -791,8 +791,8 @@ contract("Rollup", async function(accounts) {
             "False ErrorId. It should be `4`"
         );
         await utils.compressAndSubmitBatch(tx, falseResult);
-        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-            txByte
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txByte]
         );
 
         falseBatchFive = {
@@ -955,8 +955,8 @@ contract("Rollup", async function(accounts) {
         var falseResult = await utils.falseProcessTx(tx, accountProofs);
         assert.equal(result[3], ErrorCode.BadNonce, "Wrong ErrorId");
         await utils.compressAndSubmitBatch(tx, falseResult);
-        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-            txByte
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txByte]
         );
 
         falseBatchComb = {

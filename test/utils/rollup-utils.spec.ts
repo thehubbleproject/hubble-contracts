@@ -112,6 +112,10 @@ contract("RollupUtils", async function(accounts) {
         );
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
         await RollupUtilsInstance.CompressCreateAccountFromEncoded(txBytes);
+        await RollupUtilsInstance.CompressManyCreateAccountFromEncoded([
+            txBytes,
+            txBytes
+        ]);
     });
     it("test airdrop utils", async function() {
         const tx: DropTx = {
@@ -154,6 +158,10 @@ contract("RollupUtils", async function(accounts) {
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx1);
         await RollupUtilsInstance.DecompressCreateAccount(compressedTx2);
         await RollupUtilsInstance.CompressAirdropFromEncoded(txBytes);
+        await RollupUtilsInstance.CompressManyAirdropFromEncoded([
+            txBytes,
+            txBytes
+        ]);
     });
     it("test transfer utils", async function() {
         const tx: Transaction = {
@@ -187,6 +195,10 @@ contract("RollupUtils", async function(accounts) {
         );
         await RollupUtilsInstance.DecompressTx(compressedTx);
         await RollupUtilsInstance.CompressTransferFromEncoded(txBytes);
+        await RollupUtilsInstance.CompressManyTransferFromEncoded([
+            txBytes,
+            txBytes
+        ]);
     });
     it("test burn consent utils", async function() {
         const tx: BurnConsentTx = {
@@ -217,6 +229,10 @@ contract("RollupUtils", async function(accounts) {
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
         await RollupUtilsInstance.CompressBurnConsentFromEncoded(txBytes);
+        await RollupUtilsInstance.CompressManyBurnConsentFromEncoded([
+            txBytes,
+            txBytes
+        ]);
     });
     it("test burn execution utils", async function() {
         const tx = {
@@ -237,5 +253,9 @@ contract("RollupUtils", async function(accounts) {
         );
         await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
         await RollupUtilsInstance.CompressBurnExecutionFromEncoded(txBytes);
+        await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded([
+            txBytes,
+            txBytes
+        ]);
     });
 });

@@ -193,8 +193,8 @@ contract("Reddit", async function() {
         ];
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
-        const compressedTxs = await RollupUtilsInstance.CompressCreateAccountFromEncoded(
-            txBytes
+        const compressedTxs = await RollupUtilsInstance.CompressManyCreateAccountFromEncoded(
+            [txBytes]
         );
         await rollupCoreInstance.submitBatch(
             compressedTxs,
@@ -290,8 +290,8 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTxs = await RollupUtilsInstance.CompressAirdropFromEncoded(
-            txBytes
+        const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
+            [txBytes]
         );
 
         await rollupCoreInstance.submitBatch(
@@ -387,8 +387,8 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-            txBytes
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txBytes]
         );
 
         await rollupCoreInstance.submitBatch(
@@ -470,8 +470,8 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
 
-        const compressedTxs = await RollupUtilsInstance.CompressBurnConsentFromEncoded(
-            txBytes
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
+            [txBytes]
         );
 
         await rollupCoreInstance.submitBatch(
@@ -539,8 +539,8 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError, "processTx returns error");
         assert.equal(newBalanceRoot, result[1], "mismatch balance root");
 
-        const compressedTxs = await RollupUtilsInstance.CompressBurnExecutionFromEncoded(
-            txBytes
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded(
+            [txBytes]
         );
         await rollupCoreInstance.submitBatch(
             compressedTxs,
