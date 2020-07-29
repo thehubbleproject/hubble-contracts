@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-
+import { Tx } from "./libs/Tx.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 
@@ -18,6 +18,7 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 contract FraudProofSetup {
     using SafeMath for uint256;
     using ECVerify for bytes32;
+    using Tx for bytes;
 
     MTUtils public merkleUtils;
     ITokenRegistry public tokenRegistry;
@@ -107,14 +108,15 @@ contract FraudProofHelpers is FraudProofSetup {
     }
 
     function validateTxBasic(
-        Types.Transaction memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.UserAccount memory _from_account
-    ) public view returns (Types.ErrorCode) {
-        if (_tx.nonce != _from_account.nonce.add(1)) {
+    ) public pure returns (Types.ErrorCode) {
+        if (txs.transfer_nonceOf(i) != _from_account.nonce.add(1)) {
             return Types.ErrorCode.BadNonce;
         }
 
-        return _validateTxBasic(_tx.amount, _from_account);
+        return _validateTxBasic(txs.transfer_amountOf(i), _from_account);
     }
 
     function RemoveTokensFromAccount(
@@ -159,23 +161,17 @@ contract FraudProofHelpers is FraudProofSetup {
         return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 
-    /**
-     * @notice ApplyTx applies the transaction on the account. This is where
-     * people need to define the logic for the application
-     * @param _merkle_proof contains the siblings and path to the account
-     * @param transaction is the transaction that needs to be applied
-     * @return returns updated account and updated state root
-     * */
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.Transaction memory transaction
+        bytes memory txs,
+        uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         return
             _ApplyTx(
                 _merkle_proof,
-                transaction.fromIndex,
-                transaction.toIndex,
-                transaction.amount
+                txs.transfer_senderOf(i),
+                txs.transfer_receiverOf(i),
+                txs.transfer_amountOf(i)
             );
     }
 

@@ -1,9 +1,12 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
+import { Tx } from "./Tx.sol";
 import { Types } from "./Types.sol";
 
 library RollupUtils {
+    using Tx for bytes;
+
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
@@ -251,6 +254,17 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, uint256));
     }
 
+    function CompressCreateAccountFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.CreateAccount memory _tx = CreateAccountFromBytes(txBytes);
+        Tx.CreateAccount[] memory _txs = new Tx.CreateAccount[](1);
+        _txs[0] = Tx.CreateAccount(_tx.accountID, _tx.stateID, _tx.tokenType);
+        return Tx.serialize(_txs);
+    }
+
     //
     // Airdrop
     //
@@ -378,6 +392,22 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, bytes));
     }
 
+    function CompressAirdropFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.DropTx memory _tx = AirdropFromBytes(txBytes);
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
+        _txs[0] = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount,
+            _tx.nonce
+        );
+        return Tx.serialize(_txs);
+    }
+
     //
     // Transfer
     //
@@ -501,6 +531,19 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, uint256, bytes));
     }
 
+    function DecompressTransfers(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory)
+    {
+        uint256 length = txs.transfer_size();
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](length);
+        for (uint256 i = 0; i < length; i++) {
+            _txs[i] = txs.transfer_decode(i);
+        }
+        return _txs;
+    }
+
     function HashFromTx(Types.Transaction memory _tx)
         public
         pure
@@ -517,6 +560,22 @@ library RollupUtils {
                     _tx.amount
                 )
             );
+    }
+
+    function CompressTransferFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.Transaction memory _tx = TxFromBytes(txBytes);
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
+        _txs[0] = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount,
+            _tx.nonce
+        );
+        return Tx.serialize(_txs);
     }
 
     //
@@ -612,6 +671,17 @@ library RollupUtils {
         return keccak256(CompressBurnConsent(_tx));
     }
 
+    function CompressBurnConsentFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes);
+        Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](1);
+        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, _tx.nonce);
+        return Tx.serialize(_txs);
+    }
+
     //
     // Burn Execution
     //
@@ -689,6 +759,17 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(CompressBurnExecution(_tx));
+    }
+
+    function CompressBurnExecutionFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.BurnExecution memory _tx = BurnExecutionFromBytes(txBytes);
+        Tx.BurnExecution[] memory _txs = new Tx.BurnExecution[](1);
+        _txs[0] = Tx.BurnExecution(_tx.fromIndex);
+        return Tx.serialize(_txs);
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {

@@ -7,10 +7,10 @@ const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
-const Transfer = artifacts.require("Transfer");
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
+const RollupReddit = artifacts.require("RollupReddit");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -241,27 +241,23 @@ export async function TxToBytes(tx: Transaction) {
 }
 
 export async function falseProcessTx(_tx: any, accountProofs: any) {
-    const transferInstance = await Transfer.deployed();
+    const rollupRedditInstance = await RollupReddit.deployed();
     const _to_merkle_proof = accountProofs.to;
-    const new_to_txApply = await transferInstance.ApplyTx(
+    const txBytes = await TxToBytes(_tx);
+    const new_to_txApply = await rollupRedditInstance.ApplyTransferTx(
         _to_merkle_proof,
-        _tx
+        txBytes
     );
     return new_to_txApply.newRoot;
 }
 
 export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     const rollupCoreInstance = await RollupCore.deployed();
-    const compressedTx = await compressTx(
-        tx.fromIndex,
-        tx.toIndex,
-        tx.nonce,
-        tx.amount,
-        tx.tokenType,
-        tx.signature
+    const RollupUtilsInstance = await RollupUtils.deployed();
+    const txBytes = await TxToBytes(tx);
+    const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+        txBytes
     );
-
-    const compressedTxs = [compressedTx];
 
     // submit batch for that transactions
     await rollupCoreInstance.submitBatch(

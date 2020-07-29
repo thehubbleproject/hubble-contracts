@@ -30,20 +30,6 @@ contract Airdrop is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.DropTx[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressAirdrop(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -51,7 +37,7 @@ contract Airdrop is FraudProofHelpers {
     function processAirdropBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txBytes,
+        bytes memory txs,
         bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
@@ -64,17 +50,10 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        require(
-            _txBytes.length == signatures.length,
-            "Mismatch length of signature and txs"
+        uint256 length = txs.transfer_size();
+        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
+            txs.transfer_toLeafs()
         );
-
-        Types.DropTx[] memory _txs = new Types.DropTx[](_txBytes.length);
-        for (uint256 i = 0; i < _txBytes.length; i++) {
-            _txs[i] = RollupUtils.AirdropFromBytes(_txBytes[i]);
-            _txs[i].signature = signatures[i];
-        }
-        bytes32 actualTxRoot = generateTxRoot(_txs);
         if (expectedTxRoot != ZERO_BYTES32) {
             require(
                 actualTxRoot == expectedTxRoot,
@@ -83,13 +62,14 @@ contract Airdrop is FraudProofHelpers {
         }
 
         bool isTxValid;
-        for (uint256 i = 0; i < _txs.length; i++) {
+        for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
             (stateRoot, , , , isTxValid) = processAirdropTx(
                 stateRoot,
                 accountsRoot,
-                _txs[i],
+                txs,
+                i,
                 batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i]
             );
@@ -111,7 +91,8 @@ contract Airdrop is FraudProofHelpers {
     function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.DropTx memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
@@ -139,7 +120,8 @@ contract Airdrop is FraudProofHelpers {
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
         Types.ErrorCode err_code = validateAirDropTxBasic(
-            _tx,
+            txs,
+            i,
             accountProofs.from.accountIP.account
         );
         if (err_code != Types.ErrorCode.NoError)
@@ -165,12 +147,16 @@ contract Airdrop is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyAirdropTx(accountProofs.from, _tx);
+        (new_from_account, newRoot) = ApplyAirdropTx(
+            accountProofs.from,
+            txs,
+            i
+        );
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
 
-        (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, _tx);
+        (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, txs, i);
 
         return (
             newRoot,
@@ -181,30 +167,25 @@ contract Airdrop is FraudProofHelpers {
         );
     }
 
-    /**
-     * @notice ApplyTx applies the transaction on the account. This is where
-     * people need to define the logic for the application
-     * @param _merkle_proof contains the siblings and path to the account
-     * @param transaction is the transaction that needs to be applied
-     * @return returns updated account and updated state root
-     * */
     function ApplyAirdropTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.DropTx memory transaction
+        bytes memory txs,
+        uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         return
             _ApplyTx(
                 _merkle_proof,
-                transaction.fromIndex,
-                transaction.toIndex,
-                transaction.amount
+                txs.transfer_senderOf(i),
+                txs.transfer_receiverOf(i),
+                txs.transfer_amountOf(i)
             );
     }
 
     function validateAirDropTxBasic(
-        Types.DropTx memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.UserAccount memory _from_account
-    ) public view returns (Types.ErrorCode) {
-        return _validateTxBasic(_tx.amount, _from_account);
+    ) public pure returns (Types.ErrorCode) {
+        return _validateTxBasic(txs.transfer_amountOf(i), _from_account);
     }
 }

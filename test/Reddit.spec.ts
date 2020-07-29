@@ -193,15 +193,11 @@ contract("Reddit", async function() {
         ];
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
-        const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.accountID,
-            tx.stateID,
-            tx.tokenType
+        const compressedTxs = await RollupUtilsInstance.CompressCreateAccountFromEncoded(
+            txBytes
         );
-        await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
-
         await rollupCoreInstance.submitBatch(
-            [compressedTx],
+            compressedTxs,
             newBalanceRoot,
             Usage.CreateAccount,
             { value: StakingAmountString }
@@ -212,7 +208,7 @@ contract("Reddit", async function() {
         const batchId = await utils.getBatchId();
         const dispute: Dispute = {
             batchId,
-            txs: [txBytes],
+            txs: compressedTxs,
             signatures: [],
             batchProofs: {
                 accountProofs: [
@@ -294,19 +290,12 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressAirdropNoStruct(
-            tx.toIndex,
-            tx.amount,
-            tx.signature
+        const compressedTxs = await RollupUtilsInstance.CompressAirdropFromEncoded(
+            txBytes
         );
-        await RollupUtilsInstance.CompressAirdropTxWithMessage(
-            txBytes,
-            tx.signature
-        );
-        await RollupUtilsInstance.DecompressAirdrop(compressedTx);
 
         await rollupCoreInstance.submitBatch(
-            [compressedTx],
+            compressedTxs,
             newBalanceRoot,
             Usage.Airdrop,
             { value: StakingAmountString }
@@ -318,7 +307,7 @@ contract("Reddit", async function() {
         const batchId = await utils.getBatchId();
         const dispute: Dispute = {
             batchId,
-            txs: [txBytes],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [
@@ -398,14 +387,12 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
-            txBytes,
-            tx.signature
+        const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+            txBytes
         );
-        await RollupUtilsInstance.DecompressTx(compressedTx);
 
         await rollupCoreInstance.submitBatch(
-            [compressedTx],
+            compressedTxs,
             newBalanceRoot,
             Usage.Transfer,
             { value: StakingAmountString }
@@ -417,7 +404,7 @@ contract("Reddit", async function() {
         const batchId = await utils.getBatchId();
         const dispute: Dispute = {
             batchId,
-            txs: [txBytes],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [
@@ -483,16 +470,12 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
-            tx.fromIndex,
-            tx.amount,
-            tx.nonce,
-            tx.signature
+        const compressedTxs = await RollupUtilsInstance.CompressBurnConsentFromEncoded(
+            txBytes
         );
-        await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
 
         await rollupCoreInstance.submitBatch(
-            [compressedTx],
+            compressedTxs,
             newBalanceRoot,
             Usage.BurnConsent,
             { value: StakingAmountString }
@@ -504,7 +487,7 @@ contract("Reddit", async function() {
         const batchId = await utils.getBatchId();
         const dispute: Dispute = {
             batchId,
-            txs: [txBytes],
+            txs: compressedTxs,
             signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [
@@ -538,10 +521,7 @@ contract("Reddit", async function() {
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
 
-        const result = await rollupRedditInstance.ApplyBurnExecutionTx(
-            userMP,
-            txBytes
-        );
+        const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP);
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
         await accountStore.update(User.AccID, userUpdatedAccount);
 
@@ -559,13 +539,11 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError, "processTx returns error");
         assert.equal(newBalanceRoot, result[1], "mismatch balance root");
 
-        const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
-            tx.fromIndex
+        const compressedTxs = await RollupUtilsInstance.CompressBurnExecutionFromEncoded(
+            txBytes
         );
-        await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
-
         await rollupCoreInstance.submitBatch(
-            [compressedTx],
+            compressedTxs,
             newBalanceRoot,
             Usage.BurnExecution,
             { value: StakingAmountString }
@@ -577,7 +555,7 @@ contract("Reddit", async function() {
         const batchId = await utils.getBatchId();
         const dispute: Dispute = {
             batchId,
-            txs: [txBytes],
+            txs: compressedTxs,
             signatures: [],
             batchProofs: {
                 accountProofs: [

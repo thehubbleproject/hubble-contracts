@@ -7,6 +7,7 @@ import { IERC20 } from "./interfaces/IERC20.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
+import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ECVerify } from "./libs/ECVerify.sol";
 import { IncrementalTree } from "./IncrementalTree.sol";
@@ -21,7 +22,7 @@ interface IRollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
+        bytes calldata _txs,
         bytes[] calldata signatures,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot,
@@ -40,6 +41,7 @@ contract RollupSetup {
     using SafeMath for uint256;
     using BytesLib for bytes;
     using ECVerify for bytes32;
+    using Tx for bytes;
 
     /*********************
      * Variable Declarations *
@@ -265,11 +267,11 @@ contract Rollup is RollupHelpers {
 
     /**
      * @notice Submits a new batch to batches
-     * @param _txs Compressed transactions .
+     * @param txs Compressed transactions .
      * @param _updatedRoot New balance tree root after processing all the transactions
      */
     function submitBatch(
-        bytes[] calldata _txs,
+        bytes calldata txs,
         bytes32 _updatedRoot,
         Types.Usage batchType
     ) external payable onlyCoordinator isNotRollingBack {
@@ -278,11 +280,25 @@ contract Rollup is RollupHelpers {
             "Not enough stake committed"
         );
 
+        bytes32[] memory leaves;
+        if (batchType == Types.Usage.CreateAccount) {
+            leaves = txs.create_toLeafs();
+        } else if (
+            batchType == Types.Usage.Airdrop ||
+            batchType == Types.Usage.Transfer
+        ) {
+            leaves = txs.transfer_toLeafs();
+        } else if (batchType == Types.Usage.BurnConsent) {
+            leaves = txs.burnConsent_toLeafs();
+        } else if (batchType == Types.Usage.BurnExecution) {
+            leaves = txs.burnExecution_toLeafs();
+        }
+
         require(
-            _txs.length <= governance.MAX_TXS_PER_BATCH(),
+            leaves.length <= governance.MAX_TXS_PER_BATCH(),
             "Batch contains more transations than the limit"
         );
-        bytes32 txRoot = merkleUtils.getMerkleRoot(_txs);
+        bytes32 txRoot = merkleUtils.getMerkleRootFromLeaves(leaves);
         require(
             txRoot != ZERO_BYTES32,
             "Cannot submit a transaction with no transactions"
@@ -325,7 +341,7 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        bytes[] memory _txs,
+        bytes memory txs,
         bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs
     ) public {
@@ -360,7 +376,7 @@ contract Rollup is RollupHelpers {
             .processBatch(
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id].accountRoot,
-            _txs,
+            txs,
             signatures,
             batchProofs,
             batches[_batch_id].txRoot,
