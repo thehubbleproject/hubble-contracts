@@ -422,19 +422,6 @@ library Tx {
         return amount;
     }
 
-    function airdrop_toLeafs(bytes memory txs)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
-        uint256 batchSize = create_size(txs);
-        bytes32[] memory buf = new bytes32[](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = create_hashOf(txs, i);
-        }
-        return buf;
-    }
-
     function serialize(CreateAccount[] memory txs)
         internal
         pure
