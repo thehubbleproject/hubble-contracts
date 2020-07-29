@@ -457,7 +457,7 @@ library RollupUtils {
             );
     }
 
-    function BytesFromTxDeconstructedWithSig(
+    function BytesFromTxDeconstructed(
         uint256 txType,
         uint256 from,
         uint256 to,

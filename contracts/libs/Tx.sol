@@ -83,7 +83,7 @@ library Tx {
         uint256 nonce;
     }
 
-    function serializeCreateAccountFromEncoded(bytes[] memory txs)
+    function create_serializeFromEncoded(bytes[] memory txs)
         internal
         pure
         returns (bytes memory)
