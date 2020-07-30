@@ -106,16 +106,15 @@ contract RollupHelpers is RollupSetup {
         bytes32 _updatedRoot,
         Types.Usage batchType
     ) internal {
-        Types.Batch memory newBatch = Types.Batch({
-            stateRoot: _updatedRoot,
-            accountRoot: accountsTree.getTreeRoot(),
-            depositTree: bytes32(0x00),
-            committer: msg.sender,
-            txRoot: txRoot,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            withdrawn: false,
-            batchType: batchType
-        });
+        Types.Batch memory newBatch;
+        newBatch.stateRoot = _updatedRoot;
+        newBatch.accountRoot = accountsTree.getTreeRoot();
+        // newBatch.depositTree default initialized to 0 bytes
+        newBatch.committer = msg.sender;
+        newBatch.txRoot = txRoot;
+        newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
+        // newBatch.withdrawn default initialized to false
+        newBatch.batchType = batchType;
 
         batches.push(newBatch);
         logger.logNewBatch(
@@ -130,16 +129,15 @@ contract RollupHelpers is RollupSetup {
     function addNewBatchWithDeposit(bytes32 _updatedRoot, bytes32 depositRoot)
         internal
     {
-        Types.Batch memory newBatch = Types.Batch({
-            stateRoot: _updatedRoot,
-            accountRoot: accountsTree.getTreeRoot(),
-            depositTree: depositRoot,
-            committer: msg.sender,
-            txRoot: bytes32(0x00),
-            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            withdrawn: false,
-            batchType: Types.Usage.Transfer
-        });
+        Types.Batch memory newBatch;
+        newBatch.stateRoot = _updatedRoot;
+        newBatch.accountRoot = accountsTree.getTreeRoot();
+        newBatch.depositTree = depositRoot;
+        newBatch.committer = msg.sender;
+        // newBatch.txRoot default initialized to 0 bytes
+        newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
+        // newBatch.withdrawn default initialized to false
+        newBatch.batchType = Types.Usage.Deposit;
 
         batches.push(newBatch);
         logger.logNewBatch(
