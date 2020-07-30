@@ -58,8 +58,6 @@ contract RollupSetup {
 
     IRollupReddit public rollupReddit;
 
-    bytes32
-        public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     uint256 STAKE_AMOUNT;
     Governance public governance;
@@ -111,7 +109,7 @@ contract RollupHelpers is RollupSetup {
         Types.Batch memory newBatch = Types.Batch({
             stateRoot: _updatedRoot,
             accountRoot: accountsTree.getTreeRoot(),
-            depositTree: ZERO_BYTES32,
+            depositTree: bytes32(0x00),
             committer: msg.sender,
             txRoot: txRoot,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
@@ -137,7 +135,7 @@ contract RollupHelpers is RollupSetup {
             accountRoot: accountsTree.getTreeRoot(),
             depositTree: depositRoot,
             committer: msg.sender,
-            txRoot: ZERO_BYTES32,
+            txRoot: bytes32(0x00),
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             withdrawn: false,
             batchType: Types.Usage.Transfer
@@ -146,7 +144,7 @@ contract RollupHelpers is RollupSetup {
         batches.push(newBatch);
         logger.logNewBatch(
             newBatch.committer,
-            ZERO_BYTES32,
+            bytes32(0x00),
             _updatedRoot,
             batches.length - 1,
             Types.Usage.Deposit
@@ -260,7 +258,7 @@ contract Rollup is RollupHelpers {
         );
         STAKE_AMOUNT = governance.STAKE_AMOUNT();
 
-        addNewBatch(ZERO_BYTES32, genesisStateRoot, Types.Usage.Genesis);
+        addNewBatch(bytes32(0x00), genesisStateRoot, Types.Usage.Genesis);
     }
 
     /**
@@ -295,7 +293,7 @@ contract Rollup is RollupHelpers {
         );
         bytes32 txRoot = merkleUtils.getMerkleRootFromLeaves(leaves);
         require(
-            txRoot != ZERO_BYTES32,
+            txRoot != bytes32(0x00),
             "Cannot submit a transaction with no transactions"
         );
         addNewBatch(txRoot, _updatedRoot, batchType);
@@ -357,7 +355,7 @@ contract Rollup is RollupHelpers {
             );
 
             require(
-                batches[_batch_id].txRoot != ZERO_BYTES32,
+                batches[_batch_id].txRoot != bytes32(0x00),
                 "Cannot dispute blocks with no transaction"
             );
         }
