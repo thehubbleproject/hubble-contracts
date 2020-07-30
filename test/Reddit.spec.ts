@@ -350,16 +350,10 @@ contract("Reddit", async function() {
         );
         const bobUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
         await stateStore.update(Bob.AccID, bobUpdatedAccount);
-
-        const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
 
         const resultProcessTx = await rollupRedditInstance.processTransferTx(
-            balanceRoot,
-            accountRoot,
-            tx.signature,
-            txBytes,
+            tx,
             userPDAProof,
             { from: userMP, to: bobMP }
         );

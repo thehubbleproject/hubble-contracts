@@ -17,7 +17,6 @@ import { MAX_DEPTH } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
-const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
 
 contract("Rollup", async function(accounts) {
@@ -28,7 +27,6 @@ contract("Rollup", async function(accounts) {
     let rollupCoreInstance: any;
     let RollupUtilsInstance: any;
     let tokenRegistryInstance: any;
-    let IMTInstance: any;
 
     let Alice: any;
     let Bob: any;
@@ -48,7 +46,6 @@ contract("Rollup", async function(accounts) {
         rollupCoreInstance = await RollupCore.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
         tokenRegistryInstance = await utils.getTokenRegistry();
-        IMTInstance = await IMT.deployed();
 
         Alice = {
             Address: wallets[0].getAddressString(),
@@ -134,9 +131,6 @@ contract("Rollup", async function(accounts) {
     });
 
     it("submit new batch 1st", async function() {
-        const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
-
         const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
@@ -156,10 +150,7 @@ contract("Rollup", async function(accounts) {
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
-            currentRoot,
-            accountRoot,
-            tx.signature,
-            txByte,
+            tx,
             alicePDAProof,
             accountProofs
         );
@@ -184,10 +175,6 @@ contract("Rollup", async function(accounts) {
     });
 
     it("submit new batch 2nd(False Batch)", async function() {
-        // prepare data for process Tx
-        const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
-
         const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
@@ -208,10 +195,7 @@ contract("Rollup", async function(accounts) {
         const txByte = await utils.TxToBytes(tx);
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
-            currentRoot,
-            accountRoot,
-            tx.signature,
-            txByte,
+            tx,
             alicePDAProof,
             accountProofs
         );
@@ -241,10 +225,6 @@ contract("Rollup", async function(accounts) {
     });
 
     it("submit new batch 3rd", async function() {
-        // prepare data for process Tx
-        const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
-
         const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
@@ -266,10 +246,7 @@ contract("Rollup", async function(accounts) {
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
-            currentRoot,
-            accountRoot,
-            tx.signature,
-            txByte,
+            tx,
             alicePDAProof,
             accountProofs
         );
@@ -319,8 +296,6 @@ contract("Rollup", async function(accounts) {
     });
 
     it("submit new batch 5nd", async function() {
-        const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
         const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
@@ -342,10 +317,7 @@ contract("Rollup", async function(accounts) {
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
-            currentRoot,
-            accountRoot,
-            tx.signature,
-            txByte,
+            tx,
             alicePDAProof,
             accountProofs
         );
@@ -375,9 +347,6 @@ contract("Rollup", async function(accounts) {
     });
 
     it("submit new batch 6nd(False Batch)", async function() {
-        const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
-
         const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
@@ -397,10 +366,7 @@ contract("Rollup", async function(accounts) {
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
-            currentRoot,
-            accountRoot,
-            tx.signature,
-            txByte,
+            tx,
             alicePDAProof,
             accountProofs
         );
@@ -429,8 +395,6 @@ contract("Rollup", async function(accounts) {
     });
 
     it("submit new batch 7th(false batch)", async function() {
-        const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-        const accountRoot = await IMTInstance.getTreeRoot();
         const aliceState = stateStore.items[Alice.Path];
         const tx = {
             txType: Usage.Transfer,
@@ -447,13 +411,9 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
         stateStore.restoreCheckpoint();
 
-        const txByte = await utils.TxToBytes(tx);
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
-            currentRoot,
-            accountRoot,
-            tx.signature,
-            txByte,
+            tx,
             alicePDAProof,
             accountProofs
         );

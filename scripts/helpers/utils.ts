@@ -23,6 +23,7 @@ const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
 const RollupReddit = artifacts.require("RollupReddit");
+const IMT = artifacts.require("IncrementalTree");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -310,11 +311,7 @@ export async function disputeBatch(
         accountProofs,
         pdaProof
     };
-    await rollupCoreInstance.disputeBatch(
-        batchId,
-        compressedTxs,
-        batchProofs
-    );
+    await rollupCoreInstance.disputeBatch(batchId, compressedTxs, batchProofs);
 }
 
 export async function ApplyTransferTx(
@@ -335,19 +332,22 @@ export async function ApplyTransferTx(
 }
 
 export async function processTransferTx(
-    currentRoot: string,
-    accountRoot: string,
-    sig: string,
-    txByte: string,
+    tx: Transaction,
     alicePDAProof: PDAMerkleProof,
     accountProofs: AccountProofs
 ): Promise<ProcessTxResult> {
+    const rollupCoreInstance = await RollupCore.deployed();
     const rollupRedditInstance = await RollupReddit.deployed();
+    const IMTInstance = await IMT.deployed();
+
+    const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    const accountRoot = await IMTInstance.getTreeRoot();
+    const txByte = await TxToBytes(tx);
 
     const result = await rollupRedditInstance.processTransferTx(
         currentRoot,
         accountRoot,
-        sig,
+        tx.signature,
         txByte,
         alicePDAProof,
         accountProofs
