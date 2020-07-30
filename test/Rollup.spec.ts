@@ -26,7 +26,6 @@ contract("Rollup", async function(accounts) {
     let testTokenInstance: any;
     let rollupCoreInstance: any;
     let RollupUtilsInstance: any;
-    let tokenRegistryInstance: any;
 
     let Alice: any;
     let Bob: any;
@@ -45,7 +44,6 @@ contract("Rollup", async function(accounts) {
         testTokenInstance = await TestToken.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
-        tokenRegistryInstance = await utils.getTokenRegistry();
 
         Alice = {
             Address: wallets[0].getAddressString(),
@@ -258,26 +256,6 @@ contract("Rollup", async function(accounts) {
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker is not zero");
         assert.equal(batchIdPost, batchIdPre - 1, "mismatch batchId");
-    });
-
-    it("Registring new token", async function() {
-        await TestToken.new().then(async (instance: any) => {
-            let testToken2Instance = instance;
-            await tokenRegistryInstance.requestTokenRegistration(
-                testToken2Instance.address,
-                {
-                    from: wallets[0].getAddressString()
-                }
-            );
-            await tokenRegistryInstance.finaliseTokenRegistration(
-                testToken2Instance.address,
-                {
-                    from: wallets[0].getAddressString()
-                }
-            );
-        });
-        await tokenRegistryInstance.registeredTokens(2);
-        // TODO
     });
 
     it("submit new batch 5nd", async function() {
