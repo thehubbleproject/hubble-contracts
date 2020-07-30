@@ -22,11 +22,13 @@ abstract class AbstractStore<T> {
     items: LeafItem<T>[];
     size: number;
     level: number;
+    stashedItems: LeafItem<T>[];
 
     constructor(level: number) {
         this.level = level;
         this.size = 2 ** level;
         this.items = [];
+        this.stashedItems = [];
     }
     abstract async compress(element: T): Promise<string>;
 
@@ -121,6 +123,14 @@ abstract class AbstractStore<T> {
     positionToPath(position: number): string {
         // Convert to binary and pad 0s so that the output has length of this.level -1
         return position.toString(2).padStart(this.level, "0");
+    }
+    setCheckpoint() {
+        // deep copy
+        this.stashedItems = JSON.parse(JSON.stringify(this.items));
+    }
+    restoreCheckpoint() {
+        // deep copy
+        this.items = JSON.parse(JSON.stringify(this.stashedItems));
     }
 }
 

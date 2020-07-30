@@ -11,7 +11,9 @@ import {
     PDAMerkleProof,
     ErrorCode,
     ProcessTxResult,
-    AccountProofs
+    AccountProofs,
+    ApplyTxResult,
+    ApplyTxOffchainResult
 } from "./interfaces";
 import { StateStore } from "./store";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
@@ -333,14 +335,18 @@ export async function disputeBatch(dispute: Dispute) {
 export async function ApplyTransferTx(
     encodedTx: string,
     merkleProof: AccountMerkleProof
-): Promise<Account> {
+): Promise<ApplyTxResult> {
     const rollupRedditInstance = await RollupReddit.deployed();
     const result = await rollupRedditInstance.ApplyTransferTx(
         merkleProof,
         encodedTx
     );
     const newState = await AccountFromBytes(result[0]);
-    return newState;
+    const newStateRoot = result[1];
+    return {
+        newState,
+        newStateRoot
+    };
 }
 
 export async function processTransferTx(
@@ -372,17 +378,20 @@ export async function processTransferTx(
 export async function processTransferTxOffchain(
     stateStore: StateStore,
     tx: Transaction
-): Promise<AccountProofs> {
+): Promise<ApplyTxOffchainResult> {
     const txByte = await TxToBytes(tx);
     const fromAccountMP = await stateStore.getAccountMerkleProof(tx.fromIndex);
-    const newFromState = await ApplyTransferTx(txByte, fromAccountMP);
-    await stateStore.update(tx.fromIndex, newFromState);
+    const fromResult = await ApplyTransferTx(txByte, fromAccountMP);
+    await stateStore.update(tx.fromIndex, fromResult.newState);
 
     const toAccountMP = await stateStore.getAccountMerkleProof(tx.toIndex);
-    const newToState = await ApplyTransferTx(txByte, toAccountMP);
-    await stateStore.update(tx.toIndex, newToState);
+    const toResult = await ApplyTransferTx(txByte, toAccountMP);
+    await stateStore.update(tx.toIndex, toResult.newState);
     return {
-        from: fromAccountMP,
-        to: toAccountMP
+        accountProofs: {
+            from: fromAccountMP,
+            to: toAccountMP
+        },
+        newStateRoot: toResult.newStateRoot
     };
 }

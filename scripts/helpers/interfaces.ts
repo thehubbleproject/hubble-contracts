@@ -115,6 +115,16 @@ export interface Wallet {
     getPrivateKey(): Buffer;
 }
 
+export interface ApplyTxResult {
+    newState: Account;
+    newStateRoot: string;
+}
+
+export interface ApplyTxOffchainResult {
+    accountProofs: AccountProofs;
+    newStateRoot: string;
+}
+
 export interface ProcessTxResult {
     newStateRoot: string;
     error: ErrorCode;
