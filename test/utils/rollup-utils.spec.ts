@@ -213,7 +213,7 @@ contract("RollupUtils", async function(accounts) {
             fromIndex: 1,
             amount: 5,
             nonce: 3,
-            signature: "0xabcd"
+            signature: DummyECDSASignature
         };
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.txType,
@@ -235,11 +235,14 @@ contract("RollupUtils", async function(accounts) {
             tx.signature
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
-        await RollupUtilsInstance.CompressBurnConsentFromEncoded(txBytes);
-        await RollupUtilsInstance.CompressManyBurnConsentFromEncoded([
+        await RollupUtilsInstance.CompressBurnConsentFromEncoded(
             txBytes,
-            txBytes
-        ]);
+            tx.signature
+        );
+        await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
+            [txBytes, txBytes],
+            [tx.signature, tx.signature]
+        );
     });
     it("test burn execution utils", async function() {
         const tx = {

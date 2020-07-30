@@ -1,16 +1,16 @@
 const TestTx = artifacts.require("TestTx");
-const RollupUtilsLib = artifacts.require("RollupUtils");
+import { TestTxInstance } from "../types/truffle-contracts";
 import {
-    TestTxInstance,
-    RollupUtilsInstance
-} from "../types/truffle-contracts";
-import { TxTransfer, serialize } from "./utils/tx";
+    TxTransfer,
+    serialize,
+    TxCreate,
+    TxBurnConsent,
+    TxBurnExecution
+} from "./utils/tx";
 
 contract("Tx Serialization", accounts => {
     let c: TestTxInstance;
-    let rollupUtils: RollupUtilsInstance;
     before(async function() {
-        rollupUtils = await RollupUtilsLib.new();
         c = await TestTx.new();
     });
     it("parse transfer transaction", async function() {
@@ -70,7 +70,150 @@ contract("Tx Serialization", accounts => {
             txsInBytes.push(bytes);
         }
         const { serialized } = serialize(txs);
-        const _serialized = await c.transfer_serializeFromEncodedBytes(
+        const _serialized = await c.transfer_serializeFromEncoded(txsInBytes);
+        assert.equal(serialized, _serialized);
+    });
+    it("parse create transaction", async function() {
+        const txSize = 16;
+        const txs: TxCreate[] = [];
+        for (let i = 0; i < txSize; i++) {
+            txs.push(TxCreate.rand());
+        }
+        const { serialized } = serialize(txs);
+        assert.equal(txSize, (await c.create_size(serialized)).toNumber());
+        assert.isFalse(await c.create_hasExcessData(serialized));
+        for (let i = 0; i < txSize; i++) {
+            const accountID = (
+                await c.create_accountIdOf(serialized, i)
+            ).toNumber();
+            const stateID = (
+                await c.create_stateIdOf(serialized, i)
+            ).toNumber();
+            const token = (await c.create_tokenOf(serialized, i)).toNumber();
+            assert.equal(accountID, txs[i].accountID);
+            assert.equal(stateID, txs[i].stateID);
+            assert.equal(token, txs[i].tokenType);
+        }
+    });
+    it("serialize create transaction", async function() {
+        const txSize = 16;
+        const txs: TxCreate[] = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxCreate.rand();
+            txs.push(tx);
+        }
+        const { serialized } = serialize(txs);
+        const _serialized = await c.create_serialize(txs);
+        assert.equal(serialized, _serialized);
+    });
+    it("create transaction casting", async function() {
+        const txSize = 16;
+        const txs = [];
+        const txsInBytes = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxCreate.rand();
+            const extended = tx.extended();
+            const bytes = await c.create_bytesFromEncoded(extended);
+            txs.push(tx);
+            txsInBytes.push(bytes);
+        }
+        const { serialized } = serialize(txs);
+        const _serialized = await c.create_serializeFromEncoded(txsInBytes);
+        assert.equal(serialized, _serialized);
+    });
+    it("parse burn consent transaction", async function() {
+        const txSize = 2;
+        const txs: TxBurnConsent[] = [];
+        for (let i = 0; i < txSize; i++) {
+            txs.push(TxBurnConsent.rand());
+        }
+        const { serialized } = serialize(txs);
+        assert.equal(txSize, (await c.burnConsent_size(serialized)).toNumber());
+        assert.isFalse(await c.burnConsent_hasExcessData(serialized));
+        for (let i = 0; i < txSize; i++) {
+            const fromIndex = (
+                await c.burnConsent_fromIndexOf(serialized, i)
+            ).toNumber();
+            const amount = (
+                await c.burnConsent_amountOf(serialized, i)
+            ).toNumber();
+            const signature = await c.burnConsent_signatureOf(serialized, i);
+            assert.equal(fromIndex, txs[i].fromIndex);
+            assert.equal(amount, txs[i].amount);
+            assert.equal(signature, txs[i].signature);
+        }
+    });
+    it("serialize burn consent transaction", async function() {
+        const txSize = 2;
+        const txs: TxBurnConsent[] = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxBurnConsent.rand();
+            txs.push(tx);
+        }
+        const { serialized } = serialize(txs);
+        const _serialized = await c.burnConsent_serialize(txs);
+        assert.equal(serialized, _serialized);
+    });
+    it("burn consent transaction casting", async function() {
+        const txSize = 16;
+        const txs = [];
+        const txsInBytes = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxBurnConsent.rand();
+            const extended = tx.extended();
+            const bytes = await c.burnConsent_bytesFromEncoded(extended);
+            txs.push(tx);
+            txsInBytes.push(bytes);
+        }
+        const { serialized } = serialize(txs);
+        const _serialized = await c.burnConsent_serializeFromEncoded(
+            txsInBytes
+        );
+        assert.equal(serialized, _serialized);
+    });
+    it("parse burn execution transaction", async function() {
+        const txSize = 2;
+        const txs: TxBurnExecution[] = [];
+        for (let i = 0; i < txSize; i++) {
+            txs.push(TxBurnExecution.rand());
+        }
+        const { serialized } = serialize(txs);
+        assert.equal(
+            txSize,
+            (await c.burnExecution_size(serialized)).toNumber()
+        );
+        assert.isFalse(await c.burnExecution_hasExcessData(serialized));
+        for (let i = 0; i < txSize; i++) {
+            const fromIndex = (
+                await c.burnExecution_fromIndexOf(serialized, i)
+            ).toNumber();
+            assert.equal(fromIndex, txs[i].fromIndex);
+        }
+    });
+    it("serialize burn execution transaction", async function() {
+        const txSize = 32;
+        const txs: TxBurnExecution[] = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxBurnExecution.rand();
+            txs.push(tx);
+        }
+        const { serialized } = serialize(txs);
+        const _serialized = await c.burnExecution_serialize(txs);
+        assert.equal(serialized, _serialized);
+    });
+    it("burn execution transaction casting", async function() {
+        const txSize = 16;
+        const txs = [];
+        const txsInBytes = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxBurnExecution.rand();
+            const extended = tx.extended();
+            const bytes = await c.burnExecution_bytesFromEncoded(extended);
+            txs.push(tx);
+            txsInBytes.push(bytes);
+        }
+        const { serialized } = serialize(txs);
+        const _serialized = await c.burnExecution_serializeFromEncoded(
             txsInBytes
         );
         assert.equal(serialized, _serialized);
