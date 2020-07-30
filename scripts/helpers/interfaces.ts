@@ -103,7 +103,6 @@ export interface AccountProofs {
 export interface Dispute {
     batchId: number;
     txs: string[];
-    signatures: string[];
     batchProofs: {
         accountProofs: AccountProofs[];
         pdaProof: PDAMerkleProof[];

@@ -314,7 +314,6 @@ export async function disputeBatch(dispute: Dispute) {
     await rollupCoreInstance.disputeBatch(
         dispute.batchId,
         dispute.txs,
-        dispute.signatures,
         dispute.batchProofs
     );
 }

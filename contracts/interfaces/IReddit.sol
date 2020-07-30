@@ -159,7 +159,6 @@ interface IReddit {
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         bytes calldata txs,
-        bytes[] calldata signatures,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
@@ -175,7 +174,6 @@ interface IReddit {
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         bytes calldata txs,
-        bytes[] calldata signatures,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
@@ -191,7 +189,6 @@ interface IReddit {
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         bytes calldata txs,
-        bytes[] calldata signatures,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )

@@ -316,7 +316,6 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchZero.batchId,
             falseBatchZero.txs,
-            falseBatchZero.signatures,
             falseBatchZero.batchProofs
         );
 
@@ -465,7 +464,6 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchOne.batchId,
             falseBatchOne.txs,
-            falseBatchOne.signatures,
             falseBatchOne.batchProofs
         );
 
@@ -629,7 +627,6 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchTwo.batchId,
             falseBatchTwo.txs,
-            falseBatchTwo.signatures,
             falseBatchTwo.batchProofs
         );
 
@@ -810,7 +807,6 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchFive.batchId,
             falseBatchFive.txs,
-            falseBatchFive.signatures,
             falseBatchFive.batchProofs
         );
 
@@ -1095,7 +1091,6 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.disputeBatch(
             falseBatchComb.batchId,
             falseBatchComb.txs,
-            falseBatchComb.signatures,
             falseBatchComb.batchProofs
         );
 

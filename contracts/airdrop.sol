@@ -38,7 +38,6 @@ contract Airdrop is FraudProofHelpers {
         bytes32 stateRoot,
         bytes32 accountsRoot,
         bytes memory txs,
-        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )

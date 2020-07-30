@@ -51,7 +51,6 @@ contract Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         bytes32 accountsRoot,
         bytes memory txs,
-        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -64,10 +63,6 @@ contract Transfer is FraudProofHelpers {
         )
     {
         uint256 length = txs.transfer_size();
-        require(
-            signatures.length == length,
-            "Mismatch length of signature and txs"
-        );
         bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
             txs.transfer_toLeafs()
         );
