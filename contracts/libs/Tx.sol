@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { BLS } from "./BLS.sol";
 import { Types } from "./Types.sol";
+import { ECVerify } from "./ECVerify.sol";
 
 library Tx {
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
@@ -743,6 +744,25 @@ library Tx {
             );
     }
 
+    function transfer_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) internal pure returns (bool) {
+        Transfer memory _tx = transfer_decode(txs, index);
+        bytes32 message = keccak256(
+            abi.encodePacked(
+                Types.Usage.Transfer,
+                _tx.fromIndex,
+                _tx.toIndex,
+                nonce,
+                _tx.amount
+            )
+        );
+        return ECVerify.ecverify(message, _tx.signature, signer);
+    }
+
     function transfer_toLeafs(bytes memory txs)
         internal
         pure
@@ -822,5 +842,24 @@ library Tx {
                     _tx.amount
                 )
             );
+    }
+
+    function burnConsent_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) internal pure returns (bool) {
+        Transfer memory _tx = transfer_decode(txs, index);
+        bytes32 message = keccak256(
+            abi.encodePacked(
+                Types.Usage.BurnConsent,
+                _tx.fromIndex,
+                _tx.toIndex,
+                nonce,
+                _tx.amount
+            )
+        );
+        return ECVerify.ecverify(message, _tx.signature, signer);
     }
 }

@@ -9,7 +9,7 @@ import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { ECVerify } from "./libs/ECVerify.sol";
+// import { ECVerify } from "./libs/ECVerify.sol";
 
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
@@ -17,7 +17,7 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 
 contract FraudProofSetup {
     using SafeMath for uint256;
-    using ECVerify for bytes32;
+    // using ECVerify for bytes32;
     using Tx for bytes;
 
     MTUtils public merkleUtils;
@@ -198,31 +198,32 @@ contract FraudProofHelpers is FraudProofSetup {
         return (newRoot);
     }
 
-    function ValidateSignature(
-        Types.Transaction memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof
-    ) public pure returns (bool) {
-        require(
-            RollupUtils.calculateAddress(
-                _from_pda_proof._pda.pubkey_leaf.pubkey
-            ) ==
-                RollupUtils
-                    .getTxSignBytes(
-                    _tx
-                        .fromIndex,
-                    _tx
-                        .toIndex,
-                    _tx
-                        .tokenType,
-                    _tx
-                        .txType,
-                    _tx
-                        .nonce,
-                    _tx
-                        .amount
-                )
-                    .ecrecovery(_tx.signature),
-            "Signature is incorrect"
-        );
-    }
+    // TODO: do we need this?
+    // function ValidateSignature(
+    //     Types.Transaction memory _tx,
+    //     Types.PDAMerkleProof memory _from_pda_proof
+    // ) public pure returns (bool) {
+    //     require(
+    //         RollupUtils.calculateAddress(
+    //             _from_pda_proof._pda.pubkey_leaf.pubkey
+    //         ) ==
+    //             RollupUtils
+    //                 .getTxSignBytes(
+    //                 _tx
+    //                     .fromIndex,
+    //                 _tx
+    //                     .toIndex,
+    //                 _tx
+    //                     .tokenType,
+    //                 _tx
+    //                     .txType,
+    //                 _tx
+    //                     .nonce,
+    //                 _tx
+    //                     .amount
+    //             )
+    //                 .ecrecovery(_tx.signature),
+    //         "Signature is incorrect"
+    //     );
+    // }
 }
