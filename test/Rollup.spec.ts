@@ -139,14 +139,14 @@ contract("Rollup", async function(accounts) {
         const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
 
-        const tx: Transaction = {
+        const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: Alice.TokenType,
             amount: 1,
             nonce: 1
-        };
+        } as Transaction;
 
         tx.signature = await utils.signTx(tx, wallets[0]);
         const txByte = await utils.TxToBytes(tx);
@@ -202,14 +202,14 @@ contract("Rollup", async function(accounts) {
         const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
 
-        const tx: Transaction = {
+        const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
             amount: 0, // InvalidTokenAmount
             nonce: 2
-        };
+        } as Transaction;
         tx.signature = await utils.signTx(tx, wallets[0]);
 
         stateStore.setCheckpoint();
@@ -270,14 +270,14 @@ contract("Rollup", async function(accounts) {
         const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
 
-        const tx: Transaction = {
+        const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: Alice.TokenType,
             amount: 0, // Error
             nonce: 2
-        };
+        } as Transaction;
         tx.signature = await utils.signTx(tx, wallets[0]);
 
         stateStore.setCheckpoint();
@@ -358,14 +358,14 @@ contract("Rollup", async function(accounts) {
     it("submit new batch 5nd", async function() {
         const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
-        const tx: Transaction = {
+        const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
             amount: 0, // InvalidTokenAmount
             nonce: 2
-        };
+        } as Transaction;
 
         tx.signature = await utils.signTx(tx, wallets[0]);
         stateStore.setCheckpoint();
@@ -426,14 +426,14 @@ contract("Rollup", async function(accounts) {
         const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
 
-        const tx: Transaction = {
+        const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: 1,
             amount: 0, // InvalidTokenAmount
             nonce: 2
-        };
+        } as Transaction;
         tx.signature = await utils.signTx(tx, wallets[0]);
         stateStore.setCheckpoint();
         const {
@@ -481,19 +481,15 @@ contract("Rollup", async function(accounts) {
         const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
         const aliceState = stateStore.items[Alice.Path];
-        console.log("currentRoot", currentRoot, await stateStore.getRoot());
-
-        console.log("aliceState", aliceState);
-        const tx: Transaction = {
+        const tx = {
             txType: Usage.Transfer,
             fromIndex: Alice.AccID,
             toIndex: Bob.AccID,
             tokenType: Alice.TokenType,
             amount: 0, // An invalid amount
             nonce: aliceState.data!.nonce + 1
-        };
+        } as Transaction;
         tx.signature = await utils.signTx(tx, wallets[0]);
-        console.log("tx", tx);
         const {
             accountProofs,
             newStateRoot

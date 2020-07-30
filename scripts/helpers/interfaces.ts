@@ -47,7 +47,7 @@ export interface Transaction {
     tokenType: number;
     amount: number;
     nonce: number;
-    signature?: string;
+    signature: string;
 }
 
 export enum ErrorCode {
