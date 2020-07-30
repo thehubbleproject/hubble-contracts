@@ -141,7 +141,6 @@ contract("Rollup", async function(accounts) {
         } as Transaction;
 
         tx.signature = await utils.signTx(tx, wallets[0]);
-        const txByte = await utils.TxToBytes(tx);
 
         const { accountProofs } = await utils.processTransferTxOffchain(
             stateStore,
@@ -156,14 +155,10 @@ contract("Rollup", async function(accounts) {
         );
 
         await utils.compressAndSubmitBatch(tx, result.newStateRoot);
-        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte],
-            [tx.signature]
-        );
         const batchIdPre = await utils.getBatchId();
 
-        await utils.disputeBatch(
-            compressedTxs,
+        await utils.disputeTransferBatch(
+            [tx],
             [accountProofs],
             [alicePDAProof]
         );
@@ -192,7 +187,6 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
         stateStore.restoreCheckpoint();
 
-        const txByte = await utils.TxToBytes(tx);
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             tx,
@@ -206,14 +200,11 @@ contract("Rollup", async function(accounts) {
             "False error code."
         );
         await utils.compressAndSubmitBatch(tx, newStateRoot);
-        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte],
-            [tx.signature]
-        );
+
         const batchIdPre = await utils.getBatchId();
 
-        await utils.disputeBatch(
-            compressedTxs,
+        await utils.disputeTransferBatch(
+            [tx],
             [accountProofs],
             [alicePDAProof]
         );
@@ -242,8 +233,6 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
         stateStore.restoreCheckpoint();
 
-        const txByte = await utils.TxToBytes(tx);
-
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             tx,
@@ -257,14 +246,10 @@ contract("Rollup", async function(accounts) {
         );
 
         await utils.compressAndSubmitBatch(tx, newStateRoot);
-        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte],
-            [tx.signature]
-        );
         const batchIdPre = await utils.getBatchId();
 
-        await utils.disputeBatch(
-            compressedTxs,
+        await utils.disputeTransferBatch(
+            [tx],
             [accountProofs],
             [alicePDAProof]
         );
@@ -313,8 +298,6 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
         stateStore.restoreCheckpoint();
 
-        const txByte = await utils.TxToBytes(tx);
-
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             tx,
@@ -328,14 +311,10 @@ contract("Rollup", async function(accounts) {
             "False ErrorId."
         );
         await utils.compressAndSubmitBatch(tx, newStateRoot);
-        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte],
-            [tx.signature]
-        );
         const batchIdPre = await utils.getBatchId();
 
-        await utils.disputeBatch(
-            compressedTxs,
+        await utils.disputeTransferBatch(
+            [tx],
             [accountProofs],
             [alicePDAProof]
         );
@@ -362,8 +341,6 @@ contract("Rollup", async function(accounts) {
             newStateRoot
         } = await utils.processTransferTxOffchain(stateStore, tx);
 
-        const txByte = await utils.TxToBytes(tx);
-
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             tx,
@@ -377,16 +354,11 @@ contract("Rollup", async function(accounts) {
             "Wrong ErrorId"
         );
         await utils.compressAndSubmitBatch(tx, newStateRoot);
-        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
-            [txByte],
-            [tx.signature]
-        );
         const batchId = await utils.getBatchId();
 
         falseBatchComb = {
             batchId,
-            txs: compressedTxs,
-            signatures: [tx.signature],
+            txs: [tx],
             batchProofs: {
                 accountProofs: [accountProofs],
                 pdaProof: [alicePDAProof]
@@ -427,7 +399,7 @@ contract("Rollup", async function(accounts) {
     });
 
     it("dispute batch false Combo batch", async function() {
-        await utils.disputeBatch(
+        await utils.disputeTransferBatch(
             falseBatchComb.txs,
             falseBatchComb.batchProofs.accountProofs,
             falseBatchComb.batchProofs.pdaProof,

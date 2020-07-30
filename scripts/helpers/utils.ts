@@ -314,6 +314,25 @@ export async function disputeBatch(
     await rollupCoreInstance.disputeBatch(batchId, compressedTxs, batchProofs);
 }
 
+export async function disputeTransferBatch(
+    transactions: Transaction[],
+    accountProofs: AccountProofs[],
+    pdaProof: PDAMerkleProof[],
+    _batchId?: number
+) {
+    const rollupUtilsInstance = await RollupUtils.deployed();
+    const encodedTxs: string[] = [];
+    for (const tx of transactions) {
+        encodedTxs.push(await TxToBytes(tx));
+    }
+    const sigs = transactions.map(tx => tx.signature);
+    const compressedTxs = await rollupUtilsInstance.CompressManyTransferFromEncoded(
+        encodedTxs,
+        sigs
+    );
+    await disputeBatch(compressedTxs, accountProofs, pdaProof, _batchId);
+}
+
 export async function ApplyTransferTx(
     encodedTx: string,
     merkleProof: AccountMerkleProof
