@@ -10,7 +10,6 @@ import {
     BurnConsentTx,
     BurnExecutionTx,
     Transaction,
-    Dispute,
     Wallet
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
@@ -205,21 +204,13 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: DummyAccountMP,
-                        to: newAccountMP
-                    }
-                ],
-                pdaProof: [userPDAProof]
+        const accountProofs = [
+            {
+                from: DummyAccountMP,
+                to: newAccountMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
@@ -303,22 +294,15 @@ contract("Reddit", async function() {
 
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
-        // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: redditMP,
-                        to: userMP
-                    }
-                ],
-                pdaProof: [redditPDAProof]
+        const accountProofs = [
+            {
+                from: redditMP,
+                to: userMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [
+            redditPDAProof
+        ]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
@@ -401,21 +385,13 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: userMP,
-                        to: bobMP
-                    }
-                ],
-                pdaProof: [userPDAProof]
+        const accountProofs = [
+            {
+                from: userMP,
+                to: bobMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
@@ -484,21 +460,14 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: userMP,
-                        to: DummyAccountMP
-                    }
-                ],
-                pdaProof: [userPDAProof]
+        const accountProofs = [
+            {
+                from: userMP,
+                to: DummyAccountMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+
+        await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
@@ -551,21 +520,13 @@ contract("Reddit", async function() {
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: userMP,
-                        to: DummyAccountMP
-                    }
-                ],
-                pdaProof: [DummyPDAMP]
+        const accountProofs = [
+            {
+                from: userMP,
+                to: DummyAccountMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [DummyPDAMP]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");

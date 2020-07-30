@@ -100,15 +100,6 @@ export interface AccountProofs {
     to: AccountMerkleProof;
 }
 
-export interface Dispute {
-    batchId: number;
-    txs: string;
-    batchProofs: {
-        accountProofs: AccountProofs[];
-        pdaProof: PDAMerkleProof[];
-    };
-}
-
 export interface Wallet {
     getAddressString(): string;
     getPublicKeyString(): string;

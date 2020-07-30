@@ -5,11 +5,9 @@ import {
     Account,
     Transaction,
     Usage,
-    Dispute,
     Wallet,
     AccountMerkleProof,
     PDAMerkleProof,
-    ErrorCode,
     ProcessTxResult,
     AccountProofs,
     ApplyTxResult,
@@ -60,18 +58,6 @@ export async function CreateAccountLeaf(account: Account) {
         account.lastBurn
     );
     return result;
-}
-
-export async function createLeaf(accountAlias: any) {
-    const account: Account = {
-        ID: accountAlias.AccID,
-        balance: accountAlias.Amount,
-        tokenType: accountAlias.TokenType,
-        nonce: accountAlias.nonce,
-        burn: 0,
-        lastBurn: 0
-    };
-    return await CreateAccountLeaf(account);
 }
 
 export async function BytesFromTx(
@@ -254,17 +240,6 @@ export async function TxToBytes(tx: Transaction) {
     return txBytes;
 }
 
-export async function falseProcessTx(_tx: any, accountProofs: any) {
-    const rollupRedditInstance = await RollupReddit.deployed();
-    const _to_merkle_proof = accountProofs.to;
-    const txBytes = await TxToBytes(_tx);
-    const new_to_txApply = await rollupRedditInstance.ApplyTransferTx(
-        _to_merkle_proof,
-        txBytes
-    );
-    return new_to_txApply.newRoot;
-}
-
 export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     const rollupCoreInstance = await RollupCore.deployed();
     const RollupUtilsInstance = await RollupUtils.deployed();
@@ -323,12 +298,22 @@ export async function getBatchId() {
     return Number(batchLength) - 1;
 }
 
-export async function disputeBatch(dispute: Dispute) {
+export async function disputeBatch(
+    compressedTxs: string,
+    accountProofs: AccountProofs[],
+    pdaProof: PDAMerkleProof[],
+    _batchId?: number
+) {
     const rollupCoreInstance = await RollupCore.deployed();
+    const batchId = _batchId ? _batchId : await getBatchId();
+    const batchProofs = {
+        accountProofs,
+        pdaProof
+    };
     await rollupCoreInstance.disputeBatch(
-        dispute.batchId,
-        dispute.txs,
-        dispute.batchProofs
+        batchId,
+        compressedTxs,
+        batchProofs
     );
 }
 

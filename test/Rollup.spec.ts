@@ -1,5 +1,4 @@
 import * as utils from "../scripts/helpers/utils";
-import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 import {
     Transaction,
@@ -7,9 +6,12 @@ import {
     Usage,
     Account,
     Wallet,
-    Dispute
+    PDAMerkleProof
 } from "../scripts/helpers/interfaces";
-import { StakingAmountString } from "../scripts/helpers/constants";
+import {
+    StakingAmountString,
+    coordinatorPubkeyHash
+} from "../scripts/helpers/constants";
 import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import { MAX_DEPTH } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
@@ -32,13 +34,8 @@ contract("Rollup", async function(accounts) {
     let Bob: any;
 
     let coordinator_leaves: any;
+    let alicePDAProof: PDAMerkleProof;
 
-    let falseBatchZero: Dispute;
-    let falseBatchOne: any;
-    let falseBatchTwo: any;
-    let falseBatchThree: any;
-    let falseBatchFour: any;
-    let falseBatchFive: any;
     let falseBatchComb: any;
 
     let pubkeyStore: PublicKeyStore;
@@ -79,10 +76,11 @@ contract("Rollup", async function(accounts) {
         stateStore.insertHash(coordinator_leaves[1]);
 
         pubkeyStore = new PublicKeyStore(MAX_DEPTH);
-        pubkeyStore.insertHash(coordinator_leaves[0]);
-        pubkeyStore.insertHash(coordinator_leaves[1]);
-        pubkeyStore.insertPublicKey(Alice.Pubkey);
-        pubkeyStore.insertPublicKey(Bob.Pubkey);
+        pubkeyStore.insertHash(coordinatorPubkeyHash);
+        pubkeyStore.insertHash(coordinatorPubkeyHash);
+        const AliceKeyIndex = await pubkeyStore.insertPublicKey(Alice.Pubkey);
+        await pubkeyStore.insertPublicKey(Bob.Pubkey);
+        alicePDAProof = await pubkeyStore.getPDAMerkleProof(AliceKeyIndex);
     });
 
     // test if we are able to create append a leaf
@@ -155,7 +153,6 @@ contract("Rollup", async function(accounts) {
             stateStore,
             tx
         );
-        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -172,29 +169,18 @@ contract("Rollup", async function(accounts) {
             [txByte],
             [tx.signature]
         );
-        const batchId = await utils.getBatchId();
+        const batchIdPre = await utils.getBatchId();
 
-        falseBatchZero = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [accountProofs],
-                pdaProof: [alicePDAProof]
-            }
-        };
-    });
+        await utils.disputeBatch(
+            compressedTxs,
+            [accountProofs],
+            [alicePDAProof]
+        );
 
-    it("dispute batch correct 1th batch(no error)", async function() {
-        await utils.disputeBatch(falseBatchZero);
-
-        const batchId = await utils.getBatchId();
+        const batchIdPost = await utils.getBatchId();
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker is not zero");
-        assert.equal(
-            batchId,
-            falseBatchZero.batchId,
-            "dispute shouldnt happen"
-        );
+        assert.equal(batchIdPost, batchIdPre, "dispute shouldnt happen");
     });
 
     it("submit new batch 2nd(False Batch)", async function() {
@@ -220,7 +206,6 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
-        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             currentRoot,
@@ -241,28 +226,18 @@ contract("Rollup", async function(accounts) {
             [txByte],
             [tx.signature]
         );
-        const batchId = await utils.getBatchId();
+        const batchIdPre = await utils.getBatchId();
 
-        falseBatchOne = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [accountProofs],
-                pdaProof: [alicePDAProof]
-            }
-        };
-    });
-    it("dispute batch false 2nd batch", async function() {
-        await utils.disputeBatch(falseBatchOne);
-
-        const batchId = await utils.getBatchId();
-        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
-        assert.equal(batchMarker, "0", "invalidBatchMarker is not zero");
-        assert.equal(
-            batchId,
-            falseBatchOne.batchId - 1,
-            "batchId doesnt match"
+        await utils.disputeBatch(
+            compressedTxs,
+            [accountProofs],
+            [alicePDAProof]
         );
+
+        const batchIdPost = await utils.getBatchId();
+        const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+        assert.equal(batchMarker, "0", "batchMarker is not zero");
+        assert.equal(batchIdPost, batchIdPre - 1, "mismatch batchId");
     });
 
     it("submit new batch 3rd", async function() {
@@ -288,7 +263,6 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
-        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -310,29 +284,18 @@ contract("Rollup", async function(accounts) {
             [txByte],
             [tx.signature]
         );
-        const batchId = await utils.getBatchId();
+        const batchIdPre = await utils.getBatchId();
 
-        falseBatchTwo = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [accountProofs],
-                pdaProof: [alicePDAProof]
-            }
-        };
-    });
+        await utils.disputeBatch(
+            compressedTxs,
+            [accountProofs],
+            [alicePDAProof]
+        );
 
-    it("dispute batch false 3rd batch(Tx amount 0)", async function() {
-        await utils.disputeBatch(falseBatchTwo);
-
-        const batchId = await utils.getBatchId();
+        const batchIdPost = await utils.getBatchId();
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker is not zero");
-        assert.equal(
-            batchId,
-            falseBatchTwo.batchId - 1,
-            "batchId doesnt match"
-        );
+        assert.equal(batchIdPost, batchIdPre - 1, "mismatch batchId");
     });
 
     it("Registring new token", async function() {
@@ -376,7 +339,6 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
-        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -398,28 +360,18 @@ contract("Rollup", async function(accounts) {
             [txByte],
             [tx.signature]
         );
-        const batchId = await utils.getBatchId();
+        const batchIdPre = await utils.getBatchId();
 
-        falseBatchFive = {
-            batchId,
-            txs: compressedTxs,
-            batchProofs: {
-                accountProofs: [accountProofs],
-                pdaProof: [alicePDAProof]
-            }
-        };
-    });
-    it("dispute batch false 5th batch", async function() {
-        await utils.disputeBatch(falseBatchFive);
+        await utils.disputeBatch(
+            compressedTxs,
+            [accountProofs],
+            [alicePDAProof]
+        );
 
-        const batchId = await utils.getBatchId();
+        const batchIdPost = await utils.getBatchId();
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker is not zero");
-        assert.equal(
-            batchId,
-            falseBatchFive.batchId - 1,
-            "batchId doesnt match"
-        );
+        assert.equal(batchIdPost, batchIdPre - 1, "mismatch batchId");
     });
 
     it("submit new batch 6nd(False Batch)", async function() {
@@ -442,7 +394,6 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
 
         const txByte = await utils.TxToBytes(tx);
-        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -497,7 +448,6 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
-        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             currentRoot,
@@ -517,7 +467,12 @@ contract("Rollup", async function(accounts) {
     });
 
     it("dispute batch false Combo batch", async function() {
-        await utils.disputeBatch(falseBatchComb);
+        await utils.disputeBatch(
+            falseBatchComb.txs,
+            falseBatchComb.batchProofs.accountProofs,
+            falseBatchComb.batchProofs.pdaProof,
+            falseBatchComb.batchId
+        );
 
         const batchId = await utils.getBatchId();
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
