@@ -30,7 +30,6 @@ contract("Rollup", async function(accounts) {
     let Alice: any;
     let Bob: any;
 
-    let coordinator_leaves: any;
     let alicePDAProof: PDAMerkleProof;
 
     let falseBatchComb: any;
@@ -64,7 +63,7 @@ contract("Rollup", async function(accounts) {
             nonce: 0
         };
 
-        coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
+        const coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
 
         stateStore = new StateStore(MAX_DEPTH);
         stateStore.insertHash(coordinator_leaves[0]);
