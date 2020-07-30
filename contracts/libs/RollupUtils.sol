@@ -282,6 +282,19 @@ library RollupUtils {
         return Tx.serialize(_txs);
     }
 
+    function DecompressManyCreateAccount(bytes memory txs)
+        public
+        pure
+        returns (Tx.CreateAccount[] memory structTxs)
+    {
+        uint256 length = txs.create_size();
+        structTxs = new Tx.CreateAccount[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = txs.create_decode(i);
+        }
+        return structTxs;
+    }
+
     //
     // Airdrop
     //
@@ -435,6 +448,14 @@ library RollupUtils {
             );
         }
         return Tx.serialize(_txs);
+    }
+
+    function DecompressManyAirdrop(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory structTxs)
+    {
+        return DecompressManyTransfer(txs);
     }
 
     //
@@ -620,6 +641,19 @@ library RollupUtils {
         return Tx.serialize(_txs);
     }
 
+    function DecompressManyTransfer(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory structTxs)
+    {
+        uint256 length = txs.transfer_size();
+        structTxs = new Tx.Transfer[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = txs.transfer_decode(i);
+        }
+        return structTxs;
+    }
+
     //
     // Burn Consent
     //
@@ -735,6 +769,19 @@ library RollupUtils {
         return Tx.serialize(_txs);
     }
 
+    function DecompressManyBurnConsent(bytes memory txs)
+        public
+        pure
+        returns (Tx.BurnConsent[] memory structTxs)
+    {
+        uint256 length = txs.burnConsent_size();
+        structTxs = new Tx.BurnConsent[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = txs.burnConsent_decode(i);
+        }
+        return structTxs;
+    }
+
     //
     // Burn Execution
     //
@@ -836,6 +883,19 @@ library RollupUtils {
             _txs[i] = Tx.BurnExecution(_tx.fromIndex);
         }
         return Tx.serialize(_txs);
+    }
+
+    function DecompressManyBurnExecution(bytes memory txs)
+        public
+        pure
+        returns (Tx.BurnExecution[] memory structTxs)
+    {
+        uint256 length = txs.burnExecution_size();
+        structTxs = new Tx.BurnExecution[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = Tx.BurnExecution(txs.burnExecution_fromIndexOf(i));
+        }
+        return structTxs;
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {
