@@ -61,6 +61,18 @@ export async function CreateAccountLeaf(account: Account) {
     return result;
 }
 
+export async function createLeaf(accountAlias: any) {
+    const account: Account = {
+        ID: accountAlias.AccID,
+        balance: accountAlias.Amount,
+        tokenType: accountAlias.TokenType,
+        nonce: accountAlias.nonce,
+        burn: 0,
+        lastBurn: 0
+    };
+    return await CreateAccountLeaf(account);
+}
+
 export async function BytesFromTx(
     from: number,
     to: number,
