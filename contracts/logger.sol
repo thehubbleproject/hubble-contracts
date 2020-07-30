@@ -24,38 +24,26 @@ contract Logger {
         emit NewBatch(committer, txroot, updatedRoot, index, batchType);
     }
 
-    event StakeWithdraw(address committed, uint256 amount, uint256 batch_id);
+    event StakeWithdraw(address committed, uint256 batch_id);
 
-    function logStakeWithdraw(
-        address committed,
-        uint256 amount,
-        uint256 batch_id
-    ) public {
-        emit StakeWithdraw(committed, amount, batch_id);
+    function logStakeWithdraw(address committed, uint256 batch_id) public {
+        emit StakeWithdraw(committed, batch_id);
     }
 
     event BatchRollback(
         uint256 batch_id,
         address committer,
         bytes32 stateRoot,
-        bytes32 txRoot,
-        uint256 stakeSlashed
+        bytes32 txRoot
     );
 
     function logBatchRollback(
         uint256 batch_id,
         address committer,
         bytes32 stateRoot,
-        bytes32 txRoot,
-        uint256 stakeSlashed
+        bytes32 txRoot
     ) public {
-        emit BatchRollback(
-            batch_id,
-            committer,
-            stateRoot,
-            txRoot,
-            stakeSlashed
-        );
+        emit BatchRollback(batch_id, committer, stateRoot, txRoot);
     }
 
     event RollbackFinalisation(uint256 totalBatchesSlashed);
