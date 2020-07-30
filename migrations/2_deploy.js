@@ -1,6 +1,6 @@
 const fs = require("fs");
 var argv = require("minimist")(process.argv.slice(2));
-const ethers = require("ethers");
+const { ethers } = require("ethers");
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
@@ -149,7 +149,7 @@ async function deploy(deployer) {
     );
 
     const root = await getMerkleRootWithCoordinatorAccount(max_depth);
-
+    console.log("root", root);
     // deploy deposit manager
     const depositManagerInstance = await deployAndRegister(
         deployer,
@@ -159,6 +159,7 @@ async function deploy(deployer) {
         "DEPOSIT_MANAGER"
     );
 
+    console.log("here");
     const rollupRedditInstance = await deployAndRegister(
         deployer,
         rollupRedditContract,
@@ -166,6 +167,7 @@ async function deploy(deployer) {
         [nameRegistryInstance.address],
         "ROLLUP_REDDIT"
     );
+    console.log("here");
 
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
@@ -175,6 +177,8 @@ async function deploy(deployer) {
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
     );
+    console.log("here");
+
     const contractAddresses = {
         AccountTree: accountsTreeInstance.address,
         ParamManager: paramManagerInstance.address,
@@ -265,11 +269,19 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
         dataLeaves.length
     );
     var numberOfDataLeaves = 2 ** maxSize;
+
     // create empty leaves
     for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
-    var result = await getMerkleRoot(dataLeaves, maxSize);
+    var result;
+    if ((maxSize = 17)) {
+        result =
+            "0x1d730588ec5ed60b391cd47b05eea169e15b4a5277d7378e0cb07826fca897c6";
+    } else {
+        MTUtilsInstance = await merkleTreeUtilsContract.deployed();
+        result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
+    }
     console.log("result", result);
     return result;
 }
