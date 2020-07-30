@@ -725,6 +725,24 @@ library Tx {
         }
     }
 
+    function transfer_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) internal pure returns (bytes32) {
+        Transfer memory _tx = transfer_decode(txs, index);
+        return
+            keccak256(
+                abi.encodePacked(
+                    Types.Usage.Transfer,
+                    _tx.fromIndex,
+                    _tx.toIndex,
+                    nonce,
+                    _tx.amount
+                )
+            );
+    }
+
     function transfer_toLeafs(bytes memory txs)
         internal
         pure
@@ -786,5 +804,23 @@ library Tx {
             buf[i] = burnConsent_hashOf(txs, i);
         }
         return buf;
+    }
+
+    function burnConsent_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) internal pure returns (bytes32) {
+        Transfer memory _tx = transfer_decode(txs, index);
+        return
+            keccak256(
+                abi.encodePacked(
+                    Types.Usage.BurnConsent,
+                    _tx.fromIndex,
+                    _tx.toIndex,
+                    nonce,
+                    _tx.amount
+                )
+            );
     }
 }

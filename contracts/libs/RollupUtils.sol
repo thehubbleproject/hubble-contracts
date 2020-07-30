@@ -531,20 +531,17 @@ library RollupUtils {
     }
 
     function getTxSignBytes(
-        uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
-        uint256 tokenType,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromTxDeconstructed(
-                    txType,
+                abi.encode(
+                    Types.Usage.Transfer,
                     fromIndex,
                     toIndex,
-                    tokenType,
                     nonce,
                     amount
                 )
@@ -690,14 +687,20 @@ library RollupUtils {
     }
 
     function BurnConsentSignBytes(
-        uint256 txType,
         uint256 fromIndex,
-        uint256 amount,
-        uint256 nonce
+        uint256 toIndex,
+        uint256 nonce,
+        uint256 amount
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromBurnConsentNoStruct(txType, fromIndex, amount, nonce)
+                abi.encode(
+                    Types.Usage.BurnConsent,
+                    fromIndex,
+                    toIndex,
+                    nonce,
+                    amount
+                )
             );
     }
 
@@ -810,14 +813,6 @@ library RollupUtils {
         Types.BurnExecution memory _tx;
         (_tx.txType, _tx.fromIndex) = abi.decode(txBytes, (uint256, uint256));
         return _tx;
-    }
-
-    function BurnExecutionSignBytes(uint256 txType, uint256 fromIndex)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(BytesFromBurnExecutionNoStruct(txType, fromIndex));
     }
 
     function CompressBurnExecution(Types.BurnExecution memory _tx)
