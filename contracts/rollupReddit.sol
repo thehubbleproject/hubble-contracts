@@ -274,7 +274,6 @@ contract RollupReddit {
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         bytes memory txs,
-        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot,
         Types.Usage batchType
@@ -302,7 +301,6 @@ contract RollupReddit {
                     initialStateRoot,
                     accountsRoot,
                     txs,
-                    signatures,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -312,7 +310,6 @@ contract RollupReddit {
                     initialStateRoot,
                     accountsRoot,
                     txs,
-                    signatures,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -322,7 +319,6 @@ contract RollupReddit {
                     initialStateRoot,
                     accountsRoot,
                     txs,
-                    signatures,
                     batchProofs,
                     expectedTxRoot
                 );

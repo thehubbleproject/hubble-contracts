@@ -23,7 +23,6 @@ interface IRollupReddit {
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
         bytes calldata _txs,
-        bytes[] calldata signatures,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot,
         Types.Usage batchType
@@ -333,7 +332,6 @@ contract Rollup is RollupHelpers {
     function disputeBatch(
         uint256 _batch_id,
         bytes memory txs,
-        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs
     ) public {
         {
@@ -366,7 +364,6 @@ contract Rollup is RollupHelpers {
             batches[_batch_id - 1].stateRoot,
             batches[_batch_id].accountRoot,
             txs,
-            signatures,
             batchProofs,
             batches[_batch_id].txRoot,
             batches[_batch_id].batchType

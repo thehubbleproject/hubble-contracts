@@ -209,7 +209,6 @@ contract("Reddit", async function() {
         const dispute: Dispute = {
             batchId,
             txs: compressedTxs,
-            signatures: [],
             batchProofs: {
                 accountProofs: [
                     {
@@ -309,7 +308,6 @@ contract("Reddit", async function() {
         const dispute: Dispute = {
             batchId,
             txs: compressedTxs,
-            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [
                     {
@@ -407,7 +405,6 @@ contract("Reddit", async function() {
         const dispute: Dispute = {
             batchId,
             txs: compressedTxs,
-            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [
                     {
@@ -491,7 +488,6 @@ contract("Reddit", async function() {
         const dispute: Dispute = {
             batchId,
             txs: compressedTxs,
-            signatures: [tx.signature],
             batchProofs: {
                 accountProofs: [
                     {
@@ -559,7 +555,6 @@ contract("Reddit", async function() {
         const dispute: Dispute = {
             batchId,
             txs: compressedTxs,
-            signatures: [],
             batchProofs: {
                 accountProofs: [
                     {

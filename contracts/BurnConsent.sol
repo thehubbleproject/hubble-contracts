@@ -38,7 +38,6 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 stateRoot,
         bytes32 accountsRoot,
         bytes memory txs,
-        bytes[] memory signatures,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -51,10 +50,6 @@ contract BurnConsent is FraudProofHelpers {
         )
     {
         uint256 length = txs.burnConsent_size();
-        require(
-            signatures.length == length,
-            "Mismatch length of signature and txs"
-        );
         bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
             txs.burnConsent_toLeafs()
         );
