@@ -17,7 +17,6 @@ const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
 const RollupUtils = artifacts.require("RollupUtils");
-const RollupReddit = artifacts.require("RollupReddit");
 
 contract("Rollup", async function(accounts) {
     let wallets: Wallet[];
@@ -25,18 +24,14 @@ contract("Rollup", async function(accounts) {
     let depositManagerInstance: any;
     let testTokenInstance: any;
     let rollupCoreInstance: any;
-    let MTutilsInstance: any;
     let RollupUtilsInstance: any;
     let tokenRegistryInstance: any;
     let IMTInstance: any;
-    let RollupRedditInstance: any;
 
     let Alice: any;
     let Bob: any;
 
     let coordinator_leaves: any;
-    let coordinatorPubkeyHash: any;
-    var zeroHashes: any;
 
     let falseBatchZero: Dispute;
     let falseBatchOne: any;
@@ -46,11 +41,6 @@ contract("Rollup", async function(accounts) {
     let falseBatchFive: any;
     let falseBatchComb: any;
 
-    let AlicePDAsiblings: any;
-
-    let BobPDAsiblings: any;
-
-    let alicePDAProof: any;
     let pubkeyStore: PublicKeyStore;
     let stateStore: StateStore;
 
@@ -59,11 +49,9 @@ contract("Rollup", async function(accounts) {
         depositManagerInstance = await DepositManager.deployed();
         testTokenInstance = await TestToken.deployed();
         rollupCoreInstance = await RollupCore.deployed();
-        MTutilsInstance = await utils.getMerkleTreeUtils();
         RollupUtilsInstance = await RollupUtils.deployed();
         tokenRegistryInstance = await utils.getTokenRegistry();
         IMTInstance = await IMT.deployed();
-        RollupRedditInstance = await RollupReddit.deployed();
 
         Alice = {
             Address: wallets[0].getAddressString(),
@@ -85,9 +73,6 @@ contract("Rollup", async function(accounts) {
         };
 
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
-        coordinatorPubkeyHash =
-            "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
-        zeroHashes = await utils.defaultHashes(MAX_DEPTH);
 
         stateStore = new StateStore(MAX_DEPTH);
         stateStore.insertHash(coordinator_leaves[0]);
@@ -98,31 +83,6 @@ contract("Rollup", async function(accounts) {
         pubkeyStore.insertHash(coordinator_leaves[1]);
         pubkeyStore.insertPublicKey(Alice.Pubkey);
         pubkeyStore.insertPublicKey(Bob.Pubkey);
-
-        AlicePDAsiblings = [
-            utils.PubKeyHash(Bob.Pubkey),
-            utils.getParentLeaf(coordinatorPubkeyHash, coordinatorPubkeyHash),
-            zeroHashes[2],
-            zeroHashes[3]
-        ];
-
-        BobPDAsiblings = [
-            utils.PubKeyHash(Alice.Pubkey),
-            utils.getParentLeaf(
-                coordinatorPubkeyHash,
-                utils.PubKeyHash(Alice.Pubkey)
-            ),
-            zeroHashes[2],
-            zeroHashes[3]
-        ];
-
-        alicePDAProof = {
-            _pda: {
-                pathToPubkey: "2",
-                pubkey_leaf: { pubkey: Alice.Pubkey }
-            },
-            siblings: AlicePDAsiblings
-        };
     });
 
     // test if we are able to create append a leaf
@@ -195,6 +155,7 @@ contract("Rollup", async function(accounts) {
             stateStore,
             tx
         );
+        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -259,6 +220,7 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
+        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             currentRoot,
@@ -326,6 +288,7 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
+        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -413,6 +376,7 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
+        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -478,6 +442,7 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
 
         const txByte = await utils.TxToBytes(tx);
+        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
 
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
@@ -536,6 +501,7 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         const txByte = await utils.TxToBytes(tx);
+        const alicePDAProof = await pubkeyStore.getPDAMerkleProof(Alice.Path)
         // process transaction validity with process tx
         const result = await utils.processTransferTx(
             currentRoot,
