@@ -73,40 +73,6 @@ export async function createLeaf(accountAlias: any) {
     return await CreateAccountLeaf(account);
 }
 
-export async function BytesFromTx(
-    from: number,
-    to: number,
-    token: number,
-    amount: number,
-    type: number,
-    nonce: number
-) {
-    var rollupUtils = await RollupUtils.deployed();
-    var tx = {
-        fromIndex: from,
-        toIndex: to,
-        tokenType: token,
-        nonce: nonce,
-        txType: type,
-        amount: amount,
-        signature: ""
-    };
-    var result = await rollupUtils.BytesFromTx(tx);
-    return result;
-}
-
-export async function HashFromTx(
-    from: number,
-    to: number,
-    token: number,
-    amount: number,
-    type: number,
-    nonce: number
-) {
-    var data = await BytesFromTx(from, to, token, amount, type, nonce);
-    return Hash(data);
-}
-
 // returns parent node hash given child node hashes
 // are structured in a way that the leaf are at index 0 and index increases layer by layer to root
 // for depth =2
@@ -144,11 +110,6 @@ export async function getMerkleTreeUtils() {
     return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
 
-export async function getRollupUtils() {
-    var rollupUtils: any = await rollupUtils.deployed();
-    return rollupUtils;
-}
-
 export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
     var nextLevelLength = dataLeaves.length;
     var currentLevel = 0;
@@ -172,53 +133,8 @@ export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
     return nodes[0];
 }
 
-export async function genMerkleRootFromSiblings(
-    siblings: any,
-    path: string,
-    leaf: string
-) {
-    var computedNode: any = leaf;
-    var splitPath = path.split("");
-    for (var i = 0; i < siblings.length; i++) {
-        var sibling = siblings[i];
-        if (splitPath[splitPath.length - i - 1] == "0") {
-            computedNode = getParentLeaf(computedNode, sibling);
-        } else {
-            computedNode = getParentLeaf(sibling, computedNode);
-        }
-    }
-    return computedNode;
-}
-
 export async function getTokenRegistry() {
     return TokenRegistry.deployed();
-}
-
-export async function compressTx(
-    from: number,
-    to: number,
-    nonce: number,
-    amount: number,
-    token: number,
-    sig: any
-) {
-    var rollupUtils = await RollupUtils.deployed();
-    var tx = {
-        txType: Usage.Transfer,
-        fromIndex: from,
-        toIndex: to,
-        tokenType: token,
-        nonce: nonce,
-        amount: amount,
-        signature: sig
-    };
-
-    // TODO find out why this fails
-    // await rollupUtils.CompressTx(tx);
-
-    var message = await TxToBytes(tx);
-    var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
-    return result;
 }
 
 export function sign(signBytes: string, wallet: Wallet) {
