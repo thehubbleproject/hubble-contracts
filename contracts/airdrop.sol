@@ -114,7 +114,7 @@ contract Airdrop is FraudProofHelpers {
 
         // STEP:2 Ensure the transaction has been signed using the from public key
         if (
-            !txs.transfer_verify(
+            !txs.airdrop_verify(
                 i,
                 accountProofs.from.accountIP.account.nonce + 1,
                 RollupUtils.calculateAddress(

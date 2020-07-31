@@ -791,6 +791,43 @@ library Tx {
         return ECVerify._ecverify(message, _tx.signature, signer);
     }
 
+    function airdrop_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) internal pure returns (bytes32) {
+        Transfer memory _tx = transfer_decode(txs, index);
+        return
+            keccak256(
+                abi.encodePacked(
+                    AIRDROP,
+                    _tx.fromIndex,
+                    _tx.toIndex,
+                    nonce,
+                    _tx.amount
+                )
+            );
+    }
+
+    function airdrop_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) internal pure returns (bool) {
+        Transfer memory _tx = transfer_decode(txs, index);
+        bytes32 message = keccak256(
+            abi.encodePacked(
+                AIRDROP,
+                _tx.fromIndex,
+                _tx.toIndex,
+                nonce,
+                _tx.amount
+            )
+        );
+        return ECVerify._ecverify(message, _tx.signature, signer);
+    }
+
     function transfer_toLeafs(bytes memory txs)
         internal
         pure

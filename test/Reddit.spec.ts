@@ -229,6 +229,7 @@ contract("Reddit", async function() {
             nonce: redditMP.accountIP.account.nonce + 1,
             amount: 10
         } as DropTx;
+
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
             tx.txType,
             tx.fromIndex,
@@ -290,7 +291,7 @@ contract("Reddit", async function() {
             redditPDAProof,
             { from: redditMP, to: userMP }
         );
-        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
+        assert.equal(resultBadSig[3], ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
             [txBytes],
@@ -383,7 +384,7 @@ contract("Reddit", async function() {
             userPDAProof,
             { from: userMP, to: bobMP }
         );
-        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
+        assert.equal(resultBadSig[3], ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes],

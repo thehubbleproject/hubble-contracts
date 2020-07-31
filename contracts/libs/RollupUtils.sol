@@ -369,7 +369,6 @@ library RollupUtils {
         uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
-        // uint256 tokenType,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {

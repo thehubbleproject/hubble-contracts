@@ -93,11 +93,32 @@ contract("Tx Serialization", accounts => {
             const tx = TxTransfer.rand();
             let { serialized } = serialize([tx]);
             const msg = await c.transfer_messageOf(serialized, 0, tx.nonce);
-            const extended = tx.extended();
             const signature = utils.sign(msg, wallet);
             tx.signature = signature;
             serialized = serialize([tx]).serialized;
             const verified = await c.transfer_verify(
+                serialized,
+                0,
+                tx.nonce,
+                wallet.getAddressString()
+            );
+            assert.isTrue(verified);
+        }
+    });
+
+    it("airdrop trasaction signature verification", async function() {
+        for (let i = 0; i < 10; i++) {
+            const wallet = walletHelper.generateFirstWallets(
+                walletHelper.mnemonics,
+                1
+            )[0];
+            const tx = TxTransfer.rand();
+            let { serialized } = serialize([tx]);
+            const msg = await c.airdrop_messageOf(serialized, 0, tx.nonce);
+            const signature = utils.sign(msg, wallet);
+            tx.signature = signature;
+            serialized = serialize([tx]).serialized;
+            const verified = await c.airdrop_verify(
                 serialized,
                 0,
                 tx.nonce,
