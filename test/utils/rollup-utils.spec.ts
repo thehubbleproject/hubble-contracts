@@ -182,7 +182,6 @@ contract("RollupUtils", async function(accounts) {
             tx.txType,
             tx.fromIndex,
             tx.toIndex,
-            tx.tokenType,
             tx.nonce,
             tx.amount
         );
