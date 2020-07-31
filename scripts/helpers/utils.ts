@@ -11,7 +11,8 @@ import {
     ProcessTxResult,
     AccountProofs,
     ApplyTxResult,
-    ApplyTxOffchainResult
+    ApplyTxOffchainResult,
+    GovConstants
 } from "./interfaces";
 import { StateStore } from "./store";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
@@ -24,6 +25,7 @@ const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
 const RollupReddit = artifacts.require("RollupReddit");
 const IMT = artifacts.require("IncrementalTree");
+const Governance = artifacts.require("Governance");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -325,5 +327,15 @@ export async function processTransferTxOffchain(
             to: toAccountMP
         },
         newStateRoot: toResult.newStateRoot
+    };
+}
+
+export async function getGovConstants(): Promise<GovConstants> {
+    const govInstance = await Governance.deployed();
+    const MAX_DEPTH = Number(await govInstance.MAX_DEPTH());
+    const STAKE_AMOUNT = Number(await govInstance.STAKE_AMOUNT());
+    return {
+        MAX_DEPTH,
+        STAKE_AMOUNT
     };
 }

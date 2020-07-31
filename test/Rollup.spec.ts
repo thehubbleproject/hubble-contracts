@@ -6,14 +6,14 @@ import {
     Usage,
     Account,
     Wallet,
-    PDAMerkleProof
+    PDAMerkleProof,
+    GovConstants
 } from "../scripts/helpers/interfaces";
 import {
     StakingAmountString,
     coordinatorPubkeyHash
 } from "../scripts/helpers/constants";
 import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
-import { MAX_DEPTH } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
@@ -26,6 +26,7 @@ contract("Rollup", async function(accounts) {
     let testTokenInstance: any;
     let rollupCoreInstance: any;
     let RollupUtilsInstance: any;
+    let govConstants: GovConstants;
 
     let Alice: any;
     let Bob: any;
@@ -43,6 +44,8 @@ contract("Rollup", async function(accounts) {
         testTokenInstance = await TestToken.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
+
+        govConstants = await utils.getGovConstants();
 
         Alice = {
             Address: wallets[0].getAddressString(),
@@ -65,11 +68,11 @@ contract("Rollup", async function(accounts) {
 
         const coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
 
-        stateStore = new StateStore(MAX_DEPTH);
+        stateStore = new StateStore(govConstants.MAX_DEPTH);
         stateStore.insertHash(coordinator_leaves[0]);
         stateStore.insertHash(coordinator_leaves[1]);
 
-        pubkeyStore = new PublicKeyStore(MAX_DEPTH);
+        pubkeyStore = new PublicKeyStore(govConstants.MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         const AliceKeyIndex = await pubkeyStore.insertPublicKey(Alice.Pubkey);

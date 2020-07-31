@@ -120,3 +120,8 @@ export interface ProcessTxResult {
     newStateRoot: string;
     error: ErrorCode;
 }
+
+export interface GovConstants {
+    MAX_DEPTH: number;
+    STAKE_AMOUNT: number;
+}

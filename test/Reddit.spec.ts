@@ -10,12 +10,12 @@ import {
     BurnConsentTx,
     BurnExecutionTx,
     Transaction,
-    Wallet
+    Wallet,
+    GovConstants
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import {
     coordinatorPubkeyHash,
-    MAX_DEPTH,
     DummyAccountMP,
     DummyPDAMP,
     StakingAmountString
@@ -40,12 +40,14 @@ contract("Reddit", async function() {
     let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
     let stateStore: StateStore;
+    let govConstants: GovConstants;
     before(async function() {
         depositManagerInstance = await DepositManager.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         rollupRedditInstance = await RollupReddit.deployed();
         IMTInstance = await IMT.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
+        govConstants = await utils.getGovConstants();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
         Reddit = {
             Wallet: wallets[0],
@@ -91,7 +93,7 @@ contract("Reddit", async function() {
             Bob.TokenType,
             Bob.Pubkey
         );
-        stateStore = new StateStore(MAX_DEPTH);
+        stateStore = new StateStore(govConstants.MAX_DEPTH);
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
         stateStore.insertHash(coordinator_leaves[0]);
         stateStore.insertHash(coordinator_leaves[1]);
@@ -129,7 +131,7 @@ contract("Reddit", async function() {
         await stateStore.insert(RedditAccount);
         await stateStore.insert(BobAccount);
 
-        pubkeyStore = new PublicKeyStore(MAX_DEPTH);
+        pubkeyStore = new PublicKeyStore(govConstants.MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertPublicKey(Reddit.Pubkey);

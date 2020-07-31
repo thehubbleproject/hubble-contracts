@@ -193,7 +193,8 @@ async function deploy(deployer) {
         BurnExecution: burnExecutionInstance.address,
         RollupReddit: rollupRedditInstance.address,
         TokenRegistry: tokenRegistryInstance.address,
-        TestToken: testTokenInstance.address
+        TestToken: testTokenInstance.address,
+        Governance: governanceInstance.address
     };
 
     writeContractAddresses(contractAddresses);
