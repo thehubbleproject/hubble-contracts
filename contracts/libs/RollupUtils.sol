@@ -373,11 +373,7 @@ library RollupUtils {
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(txType, fromIndex, toIndex, nonce, amount)
-
-            );
+        return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
     }
 
     function CompressAirdrop(Types.DropTx memory _tx)
