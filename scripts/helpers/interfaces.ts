@@ -123,5 +123,5 @@ export interface ProcessTxResult {
 
 export interface GovConstants {
     MAX_DEPTH: number;
-    STAKE_AMOUNT: number;
+    STAKE_AMOUNT: string;
 }

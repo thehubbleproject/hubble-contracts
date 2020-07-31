@@ -9,10 +9,7 @@ import {
     PDAMerkleProof,
     GovConstants
 } from "../scripts/helpers/interfaces";
-import {
-    StakingAmountString,
-    coordinatorPubkeyHash
-} from "../scripts/helpers/constants";
+import { coordinatorPubkeyHash } from "../scripts/helpers/constants";
 import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 const RollupCore = artifacts.require("Rollup");
 const TestToken = artifacts.require("TestToken");
@@ -108,7 +105,7 @@ contract("Rollup", async function(accounts) {
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             subtreeIsEmptyProof,
-            { value: StakingAmountString }
+            { value: govConstants.STAKE_AMOUNT }
         );
         const AliceAccount: Account = {
             ID: Alice.AccID,

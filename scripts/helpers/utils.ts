@@ -1,6 +1,5 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { StakingAmountString } from "./constants";
 import {
     Account,
     Transaction,
@@ -172,21 +171,25 @@ export async function TxToBytes(tx: Transaction) {
 }
 
 export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
-    const rollupCoreInstance = await RollupCore.deployed();
     const RollupUtilsInstance = await RollupUtils.deployed();
     const txBytes = await TxToBytes(tx);
     const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
         txBytes,
         tx.signature
     );
-
-    // submit batch for that transactions
-    await rollupCoreInstance.submitBatch(
-        compressedTxs,
-        newRoot,
-        Usage.Transfer,
-        { value: StakingAmountString }
-    );
+    await submitBatch(compressedTxs, newRoot, Usage.Transfer);
+}
+export async function submitBatch(
+    compressedTxs: string,
+    newRoot: string,
+    usage: Usage
+) {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const govInstance = await Governance.deployed();
+    const stakeAmount = (await govInstance.STAKE_AMOUNT()).toString();
+    await rollupCoreInstance.submitBatch(compressedTxs, newRoot, usage, {
+        value: stakeAmount
+    });
 }
 
 export async function registerToken(wallet: Wallet) {
@@ -333,7 +336,7 @@ export async function processTransferTxOffchain(
 export async function getGovConstants(): Promise<GovConstants> {
     const govInstance = await Governance.deployed();
     const MAX_DEPTH = Number(await govInstance.MAX_DEPTH());
-    const STAKE_AMOUNT = Number(await govInstance.STAKE_AMOUNT());
+    const STAKE_AMOUNT = (await govInstance.STAKE_AMOUNT()).toString();
     return {
         MAX_DEPTH,
         STAKE_AMOUNT

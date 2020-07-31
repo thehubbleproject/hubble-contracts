@@ -7,7 +7,6 @@ const DepositManager = artifacts.require("DepositManager");
 import * as utils from "../scripts/helpers/utils";
 
 import { ethers } from "ethers";
-import { StakingAmountString } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const RollupUtils = artifacts.require("RollupUtils");
 import { StateStore } from "../scripts/helpers/store";
@@ -161,7 +160,7 @@ contract("DepositManager", async function(accounts) {
         await rollupContractInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             subTreeIsEmptyProof,
-            { value: StakingAmountString }
+            { value: govConstants.STAKE_AMOUNT }
         );
 
         //
