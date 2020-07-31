@@ -38,4 +38,4 @@ export const DummyPDAMP: PDAMerkleProof = {
     siblings: []
 };
 
-export const DummyECDSASignature = `0x${"ab".repeat(64)}`;
+export const DummyECDSASignature = `0x${"ab".repeat(65)}`;
