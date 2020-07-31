@@ -85,17 +85,13 @@ contract RollupSetup {
 
 contract RollupHelpers is RollupSetup {
     /**
-     * @notice Returns the latest state root
-     */
-    function getLatestBalanceTreeRoot() public view returns (bytes32) {
-        return batches[batches.length - 1].stateRoot;
-    }
-
-    /**
      * @notice Returns the total number of batches submitted
      */
     function numOfBatchesSubmitted() public view returns (uint256) {
         return batches.length;
+    }
+    function getCommitment() internal pure returns (bytes32){
+
     }
 
     function addNewBatch(
@@ -104,20 +100,26 @@ contract RollupHelpers is RollupSetup {
         Types.Usage batchType
     ) internal {
         Types.Batch memory newBatch;
-        newBatch.stateRoot = _updatedRoot;
-        newBatch.accountRoot = accountsTree.getTreeRoot();
-        // newBatch.depositTree default initialized to 0 bytes
+        bytes32 pubkeyRoot = accountsTree.getTreeRoot();
+        newBatch.commitment = keccak256(
+            abi.encodePacked(
+                _updatedRoot,
+                pubkeyRoot,
+                txRoot,
+                bytes32(0x00)
+            )
+        );
         newBatch.committer = msg.sender;
-        newBatch.txRoot = txRoot;
         newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
         // newBatch.withdrawn default initialized to false
         newBatch.batchType = batchType;
 
         batches.push(newBatch);
-        logger.logNewBatch(
+        emit logger.NewBatch(
             newBatch.committer,
             txRoot,
             _updatedRoot,
+            pubkeyRoot,
             batches.length - 1,
             batchType
         );
@@ -127,20 +129,26 @@ contract RollupHelpers is RollupSetup {
         internal
     {
         Types.Batch memory newBatch;
-        newBatch.stateRoot = _updatedRoot;
-        newBatch.accountRoot = accountsTree.getTreeRoot();
-        newBatch.depositTree = depositRoot;
+        bytes32 pubkeyRoot = accountsTree.getTreeRoot();
+        newBatch.commitment = keccak256(
+            abi.encodePacked(
+                _updatedRoot,
+                pubkeyRoot,
+                bytes32(0x00),
+                depositRoot
+            )
+        );
         newBatch.committer = msg.sender;
-        // newBatch.txRoot default initialized to 0 bytes
         newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
         // newBatch.withdrawn default initialized to false
         newBatch.batchType = Types.Usage.Deposit;
 
         batches.push(newBatch);
-        logger.logNewBatch(
+        emit logger.NewBatch(
             newBatch.committer,
-            bytes32(0x00),
+            depositRoot,
             _updatedRoot,
+            pubkeyRoot,
             batches.length - 1,
             Types.Usage.Deposit
         );

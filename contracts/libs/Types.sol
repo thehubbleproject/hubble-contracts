@@ -24,11 +24,8 @@ library Types {
 
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
-        bytes32 stateRoot;
-        bytes32 accountRoot;
-        bytes32 depositTree;
+        bytes32 commitment;
         address committer;
-        bytes32 txRoot;
         uint256 finalisesOn;
         bool withdrawn;
         Usage batchType;
