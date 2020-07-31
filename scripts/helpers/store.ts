@@ -6,6 +6,7 @@ import {
 } from "./interfaces";
 import {
     getZeroHash,
+    defaultHashes,
     getMerkleTreeUtils,
     getParentLeaf,
     CreateAccountLeaf,
@@ -120,9 +121,17 @@ abstract class AbstractStore<T> {
     getSiblings(position: number): string[] {
         return this.getSubTreeSiblings(position, 0);
     }
-    positionToPath(position: number): string {
-        // Convert to binary and pad 0s so that the output has length of this.level -1
-        return position.toString(2).padStart(this.level, "0");
+
+    findEmptySubTreePosition(subtreeDepth: number): number {
+        const zeroHashAtLevel = defaultHashes(subtreeDepth + 1)[subtreeDepth];
+        const allBranches = this._allBranches();
+        const leavesAtLevel = allBranches[subtreeDepth];
+        for (let i = 0; i < leavesAtLevel.length; i++) {
+            if (leavesAtLevel[i] == zeroHashAtLevel) {
+                return i;
+            }
+        }
+        throw Error("No empty leaf can be found");
     }
     setCheckpoint() {
         // deep copy
@@ -139,16 +148,13 @@ export class StateStore extends AbstractStore<Account> {
         return await CreateAccountLeaf(element);
     }
     async getSubTreeMerkleProof(
-        pathToAccount: string,
+        pathToAccount: number,
         level: number
     ): Promise<AccountMerkleProof> {
-        const siblings = this.getSubTreeSiblings(
-            parseInt(pathToAccount, 2),
-            level
-        );
+        const siblings = this.getSubTreeSiblings(pathToAccount, level);
         return {
             accountIP: {
-                pathToAccount,
+                pathToAccount: pathToAccount.toString(),
                 account: DummyAccount
             },
             siblings

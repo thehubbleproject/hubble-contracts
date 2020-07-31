@@ -95,14 +95,16 @@ contract("Rollup", async function(accounts) {
         );
 
         const subtreeDepth = 1;
-        const _zero_account_mp = await stateStore.getSubTreeMerkleProof(
-            "001",
+        const position = stateStore.findEmptySubTreePosition(subtreeDepth);
+        assert.equal(position, 1, "Wrong deposit subtree position");
+        const subtreeIsEmptyProof = await stateStore.getSubTreeMerkleProof(
+            position,
             subtreeDepth
         );
 
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
-            _zero_account_mp,
+            subtreeIsEmptyProof,
             { value: StakingAmountString }
         );
         const AliceAccount: Account = {

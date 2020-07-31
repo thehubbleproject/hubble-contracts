@@ -78,7 +78,7 @@ export async function createLeaf(accountAlias: any) {
 // for depth =2
 // defaultHashes[0] = leaves
 // defaultHashes[depth-1] = root
-export async function defaultHashes(depth: number) {
+export function defaultHashes(depth: number) {
     const zeroValue = 0;
     const hashes = [];
     hashes[0] = getZeroHash(zeroValue);

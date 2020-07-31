@@ -97,14 +97,15 @@ contract("Reddit", async function() {
         stateStore.insertHash(coordinator_leaves[1]);
 
         const subtreeDepth = 1;
-        const _zero_account_mp = await stateStore.getSubTreeMerkleProof(
-            "001",
+        const position = stateStore.findEmptySubTreePosition(subtreeDepth);
+        const subtreeIsEmptyProof = await stateStore.getSubTreeMerkleProof(
+            position,
             subtreeDepth
         );
 
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
-            _zero_account_mp,
+            subtreeIsEmptyProof,
             { value: StakingAmountString }
         );
         const RedditAccount: Account = {
