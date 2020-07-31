@@ -197,33 +197,4 @@ contract FraudProofHelpers is FraudProofSetup {
         );
         return (newRoot);
     }
-
-    // TODO: do we need this?
-    // function ValidateSignature(
-    //     Types.Transaction memory _tx,
-    //     Types.PDAMerkleProof memory _from_pda_proof
-    // ) public pure returns (bool) {
-    //     require(
-    //         RollupUtils.calculateAddress(
-    //             _from_pda_proof._pda.pubkey_leaf.pubkey
-    //         ) ==
-    //             RollupUtils
-    //                 .getTxSignBytes(
-    //                 _tx
-    //                     .fromIndex,
-    //                 _tx
-    //                     .toIndex,
-    //                 _tx
-    //                     .tokenType,
-    //                 _tx
-    //                     .txType,
-    //                 _tx
-    //                     .nonce,
-    //                 _tx
-    //                     .amount
-    //             )
-    //                 .ecrecovery(_tx.signature),
-    //         "Signature is incorrect"
-    //     );
-    // }
 }
