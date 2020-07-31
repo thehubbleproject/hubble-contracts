@@ -128,7 +128,9 @@ contract Transfer is FraudProofHelpers {
         );
 
         // STEP:2 Ensure the transaction has been signed using the from public key
-        // ValidateSignature(_tx, _from_pda_proof);
+        uint256 expectedNonce = accountProofs.from.accountIP.account.nonce + 1;
+        bytes pubkey = _from_pda_proof._pda.pubkey_leaf.pubkey;
+        txs.transfer_verify(i, expectedNonce, calculateAddress(pubkey));
 
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
