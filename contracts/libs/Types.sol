@@ -22,6 +22,11 @@ library Types {
         bytes pubkey;
     }
 
+    struct BatchCommit {
+        bytes32 batchHash;
+        bytes32 stateRoot;
+    }
+
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
         bytes32 stateRoot;
@@ -31,6 +36,7 @@ library Types {
         bytes32 txRoot;
         uint256 finalisesOn;
         bool withdrawn;
+        uint256 batchIndex;
         Usage batchType;
     }
 

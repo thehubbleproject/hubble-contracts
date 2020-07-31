@@ -50,8 +50,9 @@ contract RollupSetup {
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
-    Types.Batch[] public batches;
+    mapping(uint256 => Types.BatchCommit) public batches;
     MTUtils public merkleUtils;
+    uint256 public batchPointer = 0;
 
     IRollupReddit public rollupReddit;
 
@@ -83,19 +84,53 @@ contract RollupSetup {
     }
 }
 
-contract RollupHelpers is RollupSetup {
+contract StakeManager {
+    uint256 public stakeAmount;
+
+    mapping(uint256 => uint256) public stakes;
+
+    function stake(uint256 stakeIndex) internal {
+        require(
+            msg.value == stakeAmount,
+            "StakeManager: not enough stake committed"
+        );
+        stakes[stakeIndex] = stakeAmount;
+    }
+
+    function reward(address payable challenger, uint256 amount) internal {
+        challenger.transfer(amount);
+    }
+
+    function burn(uint256 amount) internal {
+        address(0).transfer(amount);
+    }
+
+    function changeStakeAmount(uint256 _stakeAmount) internal {
+        stakeAmount = _stakeAmount;
+    }
+}
+
+contract RollupHelpers is RollupSetup, StakeManager {
     /**
      * @notice Returns the latest state root
      */
     function getLatestBalanceTreeRoot() public view returns (bytes32) {
-        return batches[batches.length - 1].stateRoot;
+        return batches[batchPointer].stateRoot;
     }
 
-    /**
-     * @notice Returns the total number of batches submitted
-     */
-    function numOfBatchesSubmitted() public view returns (uint256) {
-        return batches.length;
+    function hashBatch(Types.Batch memory batch) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    batch.stateRoot,
+                    batch.accountRoot,
+                    batch.depositTree,
+                    batch.committer,
+                    batch.txRoot,
+                    batch.finalisesOn,
+                    batch.batchType
+                )
+            );
     }
 
     function addNewBatch(
@@ -111,16 +146,23 @@ contract RollupHelpers is RollupSetup {
         newBatch.txRoot = txRoot;
         newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
         // newBatch.withdrawn default initialized to false
+        newBatch.batchIndex = batchPointer;
         newBatch.batchType = batchType;
 
-        batches.push(newBatch);
+        bytes32 batchHash = hashBatch(newBatch);
+
+        batches[batchPointer] = Types.BatchCommit({
+            batchHash: batchHash,
+            stateRoot: _updatedRoot
+        });
         logger.logNewBatch(
             newBatch.committer,
             txRoot,
             _updatedRoot,
-            batches.length - 1,
+            batchPointer,
             batchType
         );
+        batchPointer += 1;
     }
 
     function addNewBatchWithDeposit(bytes32 _updatedRoot, bytes32 depositRoot)
@@ -129,36 +171,29 @@ contract RollupHelpers is RollupSetup {
         Types.Batch memory newBatch;
         newBatch.stateRoot = _updatedRoot;
         newBatch.accountRoot = accountsTree.getTreeRoot();
+        // newBatch.depositTree default initialized to 0 bytes
         newBatch.depositTree = depositRoot;
         newBatch.committer = msg.sender;
-        // newBatch.txRoot default initialized to 0 bytes
         newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
         // newBatch.withdrawn default initialized to false
+        newBatch.batchIndex = batchPointer;
         newBatch.batchType = Types.Usage.Deposit;
 
-        batches.push(newBatch);
+        bytes32 batchHash = hashBatch(newBatch);
+
+        batches[batchPointer] = Types.BatchCommit({
+            batchHash: batchHash,
+            stateRoot: _updatedRoot
+        });
+
         logger.logNewBatch(
             newBatch.committer,
             bytes32(0x00),
             _updatedRoot,
-            batches.length - 1,
+            batchPointer,
             Types.Usage.Deposit
         );
-    }
-
-    /**
-     * @notice Returns the batch
-     */
-    function getBatch(uint256 _batch_id)
-        public
-        view
-        returns (Types.Batch memory batch)
-    {
-        require(
-            batches.length - 1 >= _batch_id,
-            "Batch id greater than total number of batches, invalid batch id"
-        );
-        batch = batches[_batch_id];
+        batchPointer += 1;
     }
 
     /**
@@ -170,7 +205,7 @@ contract RollupHelpers is RollupSetup {
         uint256 burnedAmount = 0;
         uint256 totalSlashings = 0;
 
-        for (uint256 i = batches.length - 1; i >= invalidBatchMarker; i--) {
+        for (uint256 i = batchPointer; i >= invalidBatchMarker; i--) {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
@@ -216,7 +251,7 @@ contract RollupHelpers is RollupSetup {
         (BURN_ADDRESS).transfer(burnedAmount);
 
         // resize batches length
-        batches.length = batches.length.sub(totalSlashings);
+        batchPointer = batchPointer.sub(totalSlashings);
 
         logger.logRollbackFinalisation(totalSlashings);
     }
@@ -251,7 +286,7 @@ contract Rollup is RollupHelpers {
         rollupReddit = IRollupReddit(
             nameRegistry.getContractDetails(ParamManager.ROLLUP_REDDIT())
         );
-        STAKE_AMOUNT = governance.STAKE_AMOUNT();
+        changeStakeAmount(governance.STAKE_AMOUNT());
 
         addNewBatch(bytes32(0x00), genesisStateRoot, Types.Usage.Genesis);
     }
@@ -266,8 +301,7 @@ contract Rollup is RollupHelpers {
         bytes32 _updatedRoot,
         Types.Usage batchType
     ) external payable onlyCoordinator isNotRollingBack {
-        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-
+        stake(batchPointer);
         bytes32[] memory leaves;
         if (batchType == Types.Usage.CreateAccount) {
             leaves = txs.create_toLeafs();
@@ -328,58 +362,50 @@ contract Rollup is RollupHelpers {
      * @return Total number of batches submitted onchain
      */
     function disputeBatch(
-        uint256 _batch_id,
+        Types.Batch memory batch,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs
     ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[_batch_id].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
-            );
+        // check if batch is disputable
+        require(!batch.withdrawn, "No point dispute a withdrawn batch");
+        require(block.number < batch.finalisesOn, "Batch already finalised");
 
-            require(
-                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-                "Already successfully disputed. Roll back in process"
-            );
+        require(
+            (batch.batchIndex < invalidBatchMarker || invalidBatchMarker == 0),
+            "Already successfully disputed. Roll back in process"
+        );
 
-            require(
-                batches[_batch_id].txRoot != bytes32(0x00),
-                "Cannot dispute blocks with no transaction"
-            );
-        }
+        require(
+            batch.txRoot != bytes32(0x00),
+            "Cannot dispute blocks with no transaction"
+        );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
         bytes32 txRoot;
         (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
             .processBatch(
-            batches[_batch_id - 1].stateRoot,
-            batches[_batch_id].accountRoot,
+            batches[batch.batchIndex - 1].stateRoot,
+            batch.accountRoot,
             txs,
             batchProofs,
-            batches[_batch_id].txRoot,
-            batches[_batch_id].batchType
+            batch.txRoot,
+            batch.batchType
         );
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
+            invalidBatchMarker = batch.batchIndex;
             SlashAndRollback();
             return;
         }
 
         // if new root doesnt match what was submitted by coordinator
         // slash and rollback
-        if (updatedBalanceRoot != batches[_batch_id].stateRoot) {
-            invalidBatchMarker = _batch_id;
+        if (updatedBalanceRoot != batch.stateRoot) {
+            invalidBatchMarker = batch.batchIndex;
             SlashAndRollback();
             return;
         }
