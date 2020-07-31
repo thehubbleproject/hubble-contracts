@@ -17,7 +17,8 @@ import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import {
     coordinatorPubkeyHash,
     DummyAccountMP,
-    DummyPDAMP
+    DummyPDAMP,
+    DummyECDSASignature
 } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
@@ -433,6 +434,17 @@ contract("Reddit", async function() {
         ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
+
+        const resultProcessTx2 = await rollupRedditInstance.processBurnConsentTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            userPDAProof,
+            userMP
+        );
+        const errorCode2 = resultProcessTx2[2];
+        assert.equal(errorCode2, ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
             [txBytes],
