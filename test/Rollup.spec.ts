@@ -95,14 +95,16 @@ contract("Rollup", async function(accounts) {
         );
 
         const subtreeDepth = 1;
-        const _zero_account_mp = await stateStore.getSubTreeMerkleProof(
-            "001",
+        const position = stateStore.findEmptySubTreePosition(subtreeDepth);
+        assert.equal(position, 1, "Wrong deposit subtree position");
+        const subtreeIsEmptyProof = await stateStore.getSubTreeMerkleProof(
+            position,
             subtreeDepth
         );
 
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
-            _zero_account_mp,
+            subtreeIsEmptyProof,
             { value: StakingAmountString }
         );
         const AliceAccount: Account = {
@@ -145,13 +147,13 @@ contract("Rollup", async function(accounts) {
         );
 
         // process transaction validity with process tx
-        const result = await utils.processTransferTx(
+        const { newStateRoot } = await utils.processTransferTx(
             tx,
             alicePDAProof,
             accountProofs
         );
 
-        await utils.compressAndSubmitBatch(tx, result.newStateRoot);
+        await utils.compressAndSubmitBatch(tx, newStateRoot);
         const batchIdPre = await utils.getBatchId();
 
         await utils.disputeTransferBatch(
@@ -185,17 +187,13 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         // process transaction validity with process tx
-        const result = await utils.processTransferTx(
+        const { error } = await utils.processTransferTx(
             tx,
             alicePDAProof,
             accountProofs
         );
 
-        assert.equal(
-            result.error,
-            ErrorCode.InvalidTokenAmount,
-            "False error code."
-        );
+        assert.equal(error, ErrorCode.InvalidTokenAmount, "False error code.");
         await utils.compressAndSubmitBatch(tx, newStateRoot);
 
         const batchIdPre = await utils.getBatchId();
@@ -231,16 +229,12 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         // process transaction validity with process tx
-        const result = await utils.processTransferTx(
+        const { error } = await utils.processTransferTx(
             tx,
             alicePDAProof,
             accountProofs
         );
-        assert.equal(
-            result.error,
-            ErrorCode.InvalidTokenAmount,
-            "false Error Code"
-        );
+        assert.equal(error, ErrorCode.InvalidTokenAmount, "false Error Code");
 
         await utils.compressAndSubmitBatch(tx, newStateRoot);
         const batchIdPre = await utils.getBatchId();
@@ -276,17 +270,13 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         // process transaction validity with process tx
-        const result = await utils.processTransferTx(
+        const { error } = await utils.processTransferTx(
             tx,
             alicePDAProof,
             accountProofs
         );
 
-        assert.equal(
-            result.error,
-            ErrorCode.InvalidTokenAmount,
-            "False ErrorId."
-        );
+        assert.equal(error, ErrorCode.InvalidTokenAmount, "False ErrorId.");
         await utils.compressAndSubmitBatch(tx, newStateRoot);
         const batchIdPre = await utils.getBatchId();
 
@@ -319,17 +309,13 @@ contract("Rollup", async function(accounts) {
         } = await utils.processTransferTxOffchain(stateStore, tx);
 
         // process transaction validity with process tx
-        const result = await utils.processTransferTx(
+        const { error } = await utils.processTransferTx(
             tx,
             alicePDAProof,
             accountProofs
         );
 
-        assert.equal(
-            result.error,
-            ErrorCode.InvalidTokenAmount,
-            "Wrong ErrorId"
-        );
+        assert.equal(error, ErrorCode.InvalidTokenAmount, "Wrong ErrorId");
         await utils.compressAndSubmitBatch(tx, newStateRoot);
         const batchId = await utils.getBatchId();
 
@@ -361,17 +347,13 @@ contract("Rollup", async function(accounts) {
         stateStore.restoreCheckpoint();
 
         // process transaction validity with process tx
-        const result = await utils.processTransferTx(
+        const { error } = await utils.processTransferTx(
             tx,
             alicePDAProof,
             accountProofs
         );
 
-        assert.equal(
-            result.error,
-            ErrorCode.InvalidTokenAmount,
-            "false Error Code"
-        );
+        assert.equal(error, ErrorCode.InvalidTokenAmount, "false Error Code");
         await utils.compressAndSubmitBatch(tx, newStateRoot);
     });
 
