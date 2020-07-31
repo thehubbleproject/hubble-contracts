@@ -219,8 +219,8 @@ contract("RollupUtils", async function(accounts) {
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.txType,
             tx.fromIndex,
-            tx.amount,
-            tx.nonce
+            tx.nonce,
+            tx.amount
         );
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
             tx.txType,

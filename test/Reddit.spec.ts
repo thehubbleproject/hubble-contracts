@@ -397,8 +397,8 @@ contract("Reddit", async function() {
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.txType,
             tx.fromIndex,
-            tx.amount,
-            tx.nonce
+            tx.nonce,
+            tx.amount
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
