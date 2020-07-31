@@ -6,6 +6,24 @@ import { Types } from "./Types.sol";
 import { ECVerify } from "./ECVerify.sol";
 
 library Tx {
+    //     enum Usage {
+    //     Genesis, // The Genesis type is only applicable to batch but not tx
+    //     Transfer,
+    //     CreateAccount,
+    //     Airdrop,
+    //     BurnConsent,
+    //     BurnExecution,
+    //     // Only applicable to batch and not tx
+    //     Deposit
+    // }
+
+    // Tx types in uint256
+    uint256 constant TRANSFER = 1;
+    uint256 constant CREATE_ACCOUNT = 2;
+    uint256 constant AIRDROP = 3;
+    uint256 constant BURN_CONCENT = 4;
+    uint256 constant BURN_EXECUTION = 5;
+
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
     uint256 public constant MASK_AMOUNT = 0xffffffff;
@@ -745,7 +763,7 @@ library Tx {
         return
             keccak256(
                 abi.encodePacked(
-                    Types.Usage.Transfer,
+                    TRANSFER,
                     _tx.fromIndex,
                     _tx.toIndex,
                     nonce,
@@ -763,7 +781,7 @@ library Tx {
         Transfer memory _tx = transfer_decode(txs, index);
         bytes32 message = keccak256(
             abi.encodePacked(
-                Types.Usage.Transfer,
+                TRANSFER,
                 _tx.fromIndex,
                 _tx.toIndex,
                 nonce,
@@ -844,12 +862,7 @@ library Tx {
         BurnConsent memory _tx = burnConsent_decode(txs, index);
         return
             keccak256(
-                abi.encodePacked(
-                    Types.Usage.BurnConsent,
-                    _tx.fromIndex,
-                    nonce,
-                    _tx.amount
-                )
+                abi.encodePacked(BURN_CONCENT, _tx.fromIndex, nonce, _tx.amount)
             );
     }
 
@@ -861,12 +874,7 @@ library Tx {
     ) internal pure returns (bool) {
         BurnConsent memory _tx = burnConsent_decode(txs, index);
         bytes32 message = keccak256(
-            abi.encodePacked(
-                Types.Usage.BurnConsent,
-                _tx.fromIndex,
-                nonce,
-                _tx.amount
-            )
+            abi.encodePacked(BURN_CONCENT, _tx.fromIndex, nonce, _tx.amount)
         );
         return ECVerify._ecverify(message, _tx.signature, signer);
     }
