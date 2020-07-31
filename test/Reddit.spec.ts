@@ -226,7 +226,7 @@ contract("Reddit", async function() {
             fromIndex: Reddit.AccID,
             toIndex: User.AccID,
             tokenType: 1,
-            nonce: redditMP.accountIP.account.nonce,
+            nonce: redditMP.accountIP.account.nonce + 1,
             amount: 10
         } as DropTx;
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
@@ -281,6 +281,16 @@ contract("Reddit", async function() {
         ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
+
+        const resultBadSig = await rollupRedditInstance.processAirdropTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            redditPDAProof,
+            { from: redditMP, to: userMP }
+        );
+        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
             [txBytes],
@@ -365,6 +375,16 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
+        const resultBadSig = await rollupRedditInstance.processTransferTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            userPDAProof,
+            { from: userMP, to: bobMP }
+        );
+        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
+
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes],
             [tx.signature]
@@ -435,7 +455,7 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
 
-        const resultProcessTx2 = await rollupRedditInstance.processBurnConsentTx(
+        const resultBadSig = await rollupRedditInstance.processBurnConsentTx(
             balanceRoot,
             accountRoot,
             DummyECDSASignature,
@@ -443,8 +463,7 @@ contract("Reddit", async function() {
             userPDAProof,
             userMP
         );
-        const errorCode2 = resultProcessTx2[2];
-        assert.equal(errorCode2, ErrorCode.BadSignature);
+        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
             [txBytes],
