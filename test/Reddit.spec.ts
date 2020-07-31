@@ -10,15 +10,14 @@ import {
     BurnConsentTx,
     BurnExecutionTx,
     Transaction,
-    Wallet
+    Wallet,
+    GovConstants
 } from "../scripts/helpers/interfaces";
 import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import {
     coordinatorPubkeyHash,
-    MAX_DEPTH,
     DummyAccountMP,
-    DummyPDAMP,
-    StakingAmountString
+    DummyPDAMP
 } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
@@ -40,12 +39,14 @@ contract("Reddit", async function() {
     let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
     let stateStore: StateStore;
+    let govConstants: GovConstants;
     before(async function() {
         depositManagerInstance = await DepositManager.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         rollupRedditInstance = await RollupReddit.deployed();
         IMTInstance = await IMT.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
+        govConstants = await utils.getGovConstants();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
         Reddit = {
             Wallet: wallets[0],
@@ -91,7 +92,7 @@ contract("Reddit", async function() {
             Bob.TokenType,
             Bob.Pubkey
         );
-        stateStore = new StateStore(MAX_DEPTH);
+        stateStore = new StateStore(govConstants.MAX_DEPTH);
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
         stateStore.insertHash(coordinator_leaves[0]);
         stateStore.insertHash(coordinator_leaves[1]);
@@ -106,7 +107,7 @@ contract("Reddit", async function() {
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             subtreeIsEmptyProof,
-            { value: StakingAmountString }
+            { value: govConstants.STAKE_AMOUNT }
         );
         const RedditAccount: Account = {
             ID: Reddit.AccID,
@@ -129,7 +130,7 @@ contract("Reddit", async function() {
         await stateStore.insert(RedditAccount);
         await stateStore.insert(BobAccount);
 
-        pubkeyStore = new PublicKeyStore(MAX_DEPTH);
+        pubkeyStore = new PublicKeyStore(govConstants.MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertPublicKey(Reddit.Pubkey);
@@ -196,11 +197,10 @@ contract("Reddit", async function() {
         const compressedTxs = await RollupUtilsInstance.CompressManyCreateAccountFromEncoded(
             [txBytes]
         );
-        await rollupCoreInstance.submitBatch(
+        await utils.submitBatch(
             compressedTxs,
             newBalanceRoot,
-            Usage.CreateAccount,
-            { value: StakingAmountString }
+            Usage.CreateAccount
         );
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
@@ -286,12 +286,7 @@ contract("Reddit", async function() {
             [tx.signature]
         );
 
-        await rollupCoreInstance.submitBatch(
-            compressedTxs,
-            newBalanceRoot,
-            Usage.Airdrop,
-            { value: StakingAmountString }
-        );
+        await utils.submitBatch(compressedTxs, newBalanceRoot, Usage.Airdrop);
 
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
@@ -375,12 +370,7 @@ contract("Reddit", async function() {
             [tx.signature]
         );
 
-        await rollupCoreInstance.submitBatch(
-            compressedTxs,
-            newBalanceRoot,
-            Usage.Transfer,
-            { value: StakingAmountString }
-        );
+        await utils.submitBatch(compressedTxs, newBalanceRoot, Usage.Transfer);
 
         assert.equal(newBalanceRoot, await stateStore.getRoot());
 
@@ -450,11 +440,10 @@ contract("Reddit", async function() {
             [tx.signature]
         );
 
-        await rollupCoreInstance.submitBatch(
+        await utils.submitBatch(
             compressedTxs,
             newBalanceRoot,
-            Usage.BurnConsent,
-            { value: StakingAmountString }
+            Usage.BurnConsent
         );
 
         assert.equal(newBalanceRoot, await stateStore.getRoot());
@@ -510,11 +499,10 @@ contract("Reddit", async function() {
         const compressedTxs = await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded(
             [txBytes]
         );
-        await rollupCoreInstance.submitBatch(
+        await utils.submitBatch(
             compressedTxs,
             newBalanceRoot,
-            Usage.BurnExecution,
-            { value: StakingAmountString }
+            Usage.BurnExecution
         );
 
         assert.equal(newBalanceRoot, await stateStore.getRoot());
