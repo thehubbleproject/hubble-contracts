@@ -531,21 +531,13 @@ library RollupUtils {
     }
 
     function getTxSignBytes(
+        uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    Types.Usage.Transfer,
-                    fromIndex,
-                    toIndex,
-                    nonce,
-                    amount
-                )
-            );
+        return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
     }
 
     function CompressTx(Types.Transaction memory _tx)
@@ -687,20 +679,14 @@ library RollupUtils {
     }
 
     function BurnConsentSignBytes(
+        uint256 txType,
         uint256 fromIndex,
-        uint256 toIndex,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(
-                    Types.Usage.BurnConsent,
-                    fromIndex,
-                    toIndex,
-                    nonce,
-                    amount
-                )
+                BytesFromBurnConsentNoStruct(txType, fromIndex, nonce, amount)
             );
     }
 
