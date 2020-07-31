@@ -69,11 +69,15 @@ contract IncrementalTree {
         bytes32 currentLevelHash = _leaf;
         bytes32 left;
         bytes32 right;
+        bool subtreeSet = false;
         for (uint8 i = 0; i < tree.height; i++) {
             if (currentIndex % 2 == 0) {
                 left = currentLevelHash;
                 right = merkleUtils.getRoot(i);
-                tree.filledSubtrees[i] = currentLevelHash;
+                if (!subtreeSet) {
+                    tree.filledSubtrees[i] = currentLevelHash;
+                    subtreeSet = true;
+                }
             } else {
                 left = tree.filledSubtrees[i];
                 right = currentLevelHash;
