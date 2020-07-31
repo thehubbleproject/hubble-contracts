@@ -1,5 +1,9 @@
 const TestTx = artifacts.require("TestTx");
-import { TestTxInstance } from "../types/truffle-contracts";
+const RollupUtils = artifacts.require("RollupUtils");
+import {
+    TestTxInstance,
+    RollupUtilsInstance
+} from "../types/truffle-contracts";
 import {
     TxTransfer,
     serialize,
@@ -8,11 +12,18 @@ import {
     TxBurnExecution
 } from "./utils/tx";
 
+import * as walletHelper from "../scripts/helpers/wallet";
+import * as utils from "../scripts/helpers/utils";
+
 contract("Tx Serialization", accounts => {
     let c: TestTxInstance;
+    let rollupUtils: RollupUtilsInstance;
+    const signer = accounts[1];
     before(async function() {
         c = await TestTx.new();
+        rollupUtils = await RollupUtils.new();
     });
+
     it("parse transfer transaction", async function() {
         const txSize = 16;
         const txs: TxTransfer[] = [];
@@ -59,7 +70,7 @@ contract("Tx Serialization", accounts => {
         assert.equal(serialized, _serialized);
     });
     it("transfer trasaction casting", async function() {
-        const txSize = 1;
+        const txSize = 16;
         const txs = [];
         const txsInBytes = [];
         for (let i = 0; i < txSize; i++) {
@@ -72,6 +83,28 @@ contract("Tx Serialization", accounts => {
         const { serialized } = serialize(txs);
         const _serialized = await c.transfer_serializeFromEncoded(txsInBytes);
         assert.equal(serialized, _serialized);
+    });
+    it("transfer trasaction signature verification", async function() {
+        for (let i = 0; i < 10; i++) {
+            const wallet = walletHelper.generateFirstWallets(
+                walletHelper.mnemonics,
+                1
+            )[0];
+            const tx = TxTransfer.rand();
+            let { serialized } = serialize([tx]);
+            const msg = await c.transfer_messageOf(serialized, 0, tx.nonce);
+            const extended = tx.extended();
+            const signature = utils.sign(msg, wallet);
+            tx.signature = signature;
+            serialized = serialize([tx]).serialized;
+            const verified = await c.transfer_verify(
+                serialized,
+                0,
+                tx.nonce,
+                wallet.getAddressString()
+            );
+            assert.isTrue(verified);
+        }
     });
     it("parse create transaction", async function() {
         const txSize = 16;
@@ -122,7 +155,7 @@ contract("Tx Serialization", accounts => {
         assert.equal(serialized, _serialized);
     });
     it("parse burn consent transaction", async function() {
-        const txSize = 2;
+        const txSize = 16;
         const txs: TxBurnConsent[] = [];
         for (let i = 0; i < txSize; i++) {
             txs.push(TxBurnConsent.rand());
@@ -144,7 +177,7 @@ contract("Tx Serialization", accounts => {
         }
     });
     it("serialize burn consent transaction", async function() {
-        const txSize = 2;
+        const txSize = 16;
         const txs: TxBurnConsent[] = [];
         for (let i = 0; i < txSize; i++) {
             const tx = TxBurnConsent.rand();
@@ -171,8 +204,29 @@ contract("Tx Serialization", accounts => {
         );
         assert.equal(serialized, _serialized);
     });
+    it("burn consent trasaction signature verification", async function() {
+        for (let i = 0; i < 10; i++) {
+            const wallet = walletHelper.generateFirstWallets(
+                walletHelper.mnemonics,
+                1
+            )[0];
+            const tx = TxBurnConsent.rand();
+            let { serialized } = serialize([tx]);
+            const msg = await c.burnConsent_messageOf(serialized, 0, tx.nonce);
+            const signature = utils.sign(msg, wallet);
+            tx.signature = signature;
+            serialized = serialize([tx]).serialized;
+            const verified = await c.burnConsent_verify(
+                serialized,
+                0,
+                tx.nonce,
+                wallet.getAddressString()
+            );
+            assert.isTrue(verified);
+        }
+    });
     it("parse burn execution transaction", async function() {
-        const txSize = 2;
+        const txSize = 16;
         const txs: TxBurnExecution[] = [];
         for (let i = 0; i < txSize; i++) {
             txs.push(TxBurnExecution.rand());
@@ -191,7 +245,7 @@ contract("Tx Serialization", accounts => {
         }
     });
     it("serialize burn execution transaction", async function() {
-        const txSize = 32;
+        const txSize = 16;
         const txs: TxBurnExecution[] = [];
         for (let i = 0; i < txSize; i++) {
             const tx = TxBurnExecution.rand();

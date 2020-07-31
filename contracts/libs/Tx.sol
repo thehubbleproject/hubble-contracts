@@ -14,8 +14,8 @@ library Tx {
     uint256 public constant MASK_BYTE = 0xff;
 
     // transaction_type: transfer
-    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|signature<64>]
-    uint256 public constant TX_LEN_0 = 76;
+    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|signature<65>]
+    uint256 public constant TX_LEN_0 = 77;
     uint256 public constant MASK_TX_0 = 0xffffffffffffffffffffffffffffffff;
     // positions in bytes
     uint256 public constant POSITION_SENDER_0 = 4;
@@ -23,6 +23,7 @@ library Tx {
     uint256 public constant POSITION_AMOUNT_0 = 12;
     uint256 public constant POSITION_SIGNATURE_X_0 = 44;
     uint256 public constant POSITION_SIGNATURE_Y_0 = 76;
+    uint256 public constant POSITION_SIGNATURE_Z_0 = 77;
 
     // transaction_type: create
     // [receiver_account_id<4>|receiver_state_id<4>|token<2>]
@@ -34,14 +35,15 @@ library Tx {
     uint256 public constant POSITION_TOKEN_1 = 10;
 
     // transaction_type: burn consent
-    // [burner_state_id<4>|amount<4>|signature<64>|]
-    uint256 public constant TX_LEN_2 = 72;
+    // [burner_state_id<4>|amount<4>|signature<65>]
+    uint256 public constant TX_LEN_2 = 73;
     uint256 public constant MASK_TX_2 = 0xffffffffffffffffffffffffff;
     // positions in bytes
     uint256 public constant POSITION_STATE_2 = 4;
     uint256 public constant POSITION_AMOUNT_2 = 8;
     uint256 public constant POSITION_SIGNATURE_X_2 = 40;
     uint256 public constant POSITION_SIGNATURE_Y_2 = 72;
+    uint256 public constant POSITION_SIGNATURE_Z_2 = 73;
 
     // transaction_type: burn exec
     // [burner_state_id<4>]
@@ -374,7 +376,7 @@ library Tx {
         uint256 sender;
         uint256 receiver;
         uint256 amount;
-        bytes memory signature = new bytes(64);
+        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
@@ -386,8 +388,10 @@ library Tx {
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
             let x := mload(add(p_tx, POSITION_SIGNATURE_X_0))
             let y := mload(add(p_tx, POSITION_SIGNATURE_Y_0))
+            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_0))
             mstore(add(signature, 32), x)
             mstore(add(signature, 64), y)
+            mstore8(add(signature, 96), z)
         }
         return Transfer(sender, receiver, amount, signature);
     }
@@ -434,14 +438,16 @@ library Tx {
         pure
         returns (bytes memory)
     {
-        bytes memory signature = new bytes(64);
+        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
             let x := mload(add(p_tx, POSITION_SIGNATURE_X_0))
             let y := mload(add(p_tx, POSITION_SIGNATURE_Y_0))
+            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_0))
             mstore(add(signature, 32), x)
             mstore(add(signature, 64), y)
+            mstore8(add(signature, 96), z)
         }
         return signature;
     }
@@ -532,7 +538,7 @@ library Tx {
     {
         uint256 fromIndex;
         uint256 amount;
-        bytes memory signature;
+        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_2))
@@ -540,8 +546,10 @@ library Tx {
             amount := and(mload(add(p_tx, POSITION_AMOUNT_2)), MASK_AMOUNT)
             let x := mload(add(p_tx, POSITION_SIGNATURE_X_2))
             let y := mload(add(p_tx, POSITION_SIGNATURE_Y_2))
+            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_2))
             mstore(add(signature, 32), x)
             mstore(add(signature, 64), y)
+            mstore8(add(signature, 96), z)
         }
         return BurnConsent(fromIndex, amount, signature);
     }
@@ -592,14 +600,16 @@ library Tx {
         pure
         returns (bytes memory)
     {
-        bytes memory signature = new bytes(64);
+        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_2))
             let x := mload(add(p_tx, POSITION_SIGNATURE_X_2))
             let y := mload(add(p_tx, POSITION_SIGNATURE_Y_2))
+            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_2))
             mstore(add(signature, 32), x)
             mstore(add(signature, 64), y)
+            mstore8(add(signature, 96), z)
         }
         return signature;
     }
@@ -760,7 +770,7 @@ library Tx {
                 _tx.amount
             )
         );
-        return ECVerify.ecverify(message, _tx.signature, signer);
+        return ECVerify._ecverify(message, _tx.signature, signer);
     }
 
     function transfer_toLeafs(bytes memory txs)
@@ -831,13 +841,12 @@ library Tx {
         uint256 index,
         uint256 nonce
     ) internal pure returns (bytes32) {
-        Transfer memory _tx = transfer_decode(txs, index);
+        BurnConsent memory _tx = burnConsent_decode(txs, index);
         return
             keccak256(
                 abi.encodePacked(
                     Types.Usage.BurnConsent,
                     _tx.fromIndex,
-                    _tx.toIndex,
                     nonce,
                     _tx.amount
                 )
@@ -850,16 +859,15 @@ library Tx {
         uint256 nonce,
         address signer
     ) internal pure returns (bool) {
-        Transfer memory _tx = transfer_decode(txs, index);
+        BurnConsent memory _tx = burnConsent_decode(txs, index);
         bytes32 message = keccak256(
             abi.encodePacked(
                 Types.Usage.BurnConsent,
                 _tx.fromIndex,
-                _tx.toIndex,
                 nonce,
                 _tx.amount
             )
         );
-        return ECVerify.ecverify(message, _tx.signature, signer);
+        return ECVerify._ecverify(message, _tx.signature, signer);
     }
 }
