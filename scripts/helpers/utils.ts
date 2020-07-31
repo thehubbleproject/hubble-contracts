@@ -1,7 +1,19 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
 import { StakingAmountString } from "./constants";
-import { Account, Transaction, Usage, Dispute, Wallet } from "./interfaces";
+import {
+    Account,
+    Transaction,
+    Usage,
+    Wallet,
+    AccountMerkleProof,
+    PDAMerkleProof,
+    ProcessTxResult,
+    AccountProofs,
+    ApplyTxResult,
+    ApplyTxOffchainResult
+} from "./interfaces";
+import { StateStore } from "./store";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
@@ -11,6 +23,7 @@ const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
 const RollupReddit = artifacts.require("RollupReddit");
+const IMT = artifacts.require("IncrementalTree");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -240,17 +253,6 @@ export async function TxToBytes(tx: Transaction) {
     return txBytes;
 }
 
-export async function falseProcessTx(_tx: any, accountProofs: any) {
-    const rollupRedditInstance = await RollupReddit.deployed();
-    const _to_merkle_proof = accountProofs.to;
-    const txBytes = await TxToBytes(_tx);
-    const new_to_txApply = await rollupRedditInstance.ApplyTransferTx(
-        _to_merkle_proof,
-        txBytes
-    );
-    return new_to_txApply.newRoot;
-}
-
 export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
     const rollupCoreInstance = await RollupCore.deployed();
     const RollupUtilsInstance = await RollupUtils.deployed();
@@ -309,11 +311,103 @@ export async function getBatchId() {
     return Number(batchLength) - 1;
 }
 
-export async function disputeBatch(dispute: Dispute) {
+export async function disputeBatch(
+    compressedTxs: string,
+    accountProofs: AccountProofs[],
+    pdaProof: PDAMerkleProof[],
+    _batchId?: number
+) {
     const rollupCoreInstance = await RollupCore.deployed();
-    await rollupCoreInstance.disputeBatch(
-        dispute.batchId,
-        dispute.txs,
-        dispute.batchProofs
+    const batchId = _batchId ? _batchId : await getBatchId();
+    const batchProofs = {
+        accountProofs,
+        pdaProof
+    };
+    await rollupCoreInstance.disputeBatch(batchId, compressedTxs, batchProofs);
+}
+
+export async function disputeTransferBatch(
+    transactions: Transaction[],
+    accountProofs: AccountProofs[],
+    pdaProof: PDAMerkleProof[],
+    _batchId?: number
+) {
+    const rollupUtilsInstance = await RollupUtils.deployed();
+    const encodedTxs: string[] = [];
+    for (const tx of transactions) {
+        encodedTxs.push(await TxToBytes(tx));
+    }
+    const sigs = transactions.map(tx => tx.signature);
+    const compressedTxs = await rollupUtilsInstance.CompressManyTransferFromEncoded(
+        encodedTxs,
+        sigs
     );
+    await disputeBatch(compressedTxs, accountProofs, pdaProof, _batchId);
+}
+
+export async function ApplyTransferTx(
+    encodedTx: string,
+    merkleProof: AccountMerkleProof
+): Promise<ApplyTxResult> {
+    const rollupRedditInstance = await RollupReddit.deployed();
+    const result = await rollupRedditInstance.ApplyTransferTx(
+        merkleProof,
+        encodedTx
+    );
+    const newState = await AccountFromBytes(result[0]);
+    const newStateRoot = result[1];
+    return {
+        newState,
+        newStateRoot
+    };
+}
+
+export async function processTransferTx(
+    tx: Transaction,
+    alicePDAProof: PDAMerkleProof,
+    accountProofs: AccountProofs
+): Promise<ProcessTxResult> {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const rollupRedditInstance = await RollupReddit.deployed();
+    const IMTInstance = await IMT.deployed();
+
+    const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    const accountRoot = await IMTInstance.getTreeRoot();
+    const txByte = await TxToBytes(tx);
+
+    const result = await rollupRedditInstance.processTransferTx(
+        currentRoot,
+        accountRoot,
+        tx.signature,
+        txByte,
+        alicePDAProof,
+        accountProofs
+    );
+
+    return {
+        newStateRoot: result[0],
+        error: Number(result[3])
+    };
+}
+
+// Side effects on stateStore! It updates the state root in stateStore
+export async function processTransferTxOffchain(
+    stateStore: StateStore,
+    tx: Transaction
+): Promise<ApplyTxOffchainResult> {
+    const txByte = await TxToBytes(tx);
+    const fromAccountMP = await stateStore.getAccountMerkleProof(tx.fromIndex);
+    const fromResult = await ApplyTransferTx(txByte, fromAccountMP);
+    await stateStore.update(tx.fromIndex, fromResult.newState);
+
+    const toAccountMP = await stateStore.getAccountMerkleProof(tx.toIndex);
+    const toResult = await ApplyTransferTx(txByte, toAccountMP);
+    await stateStore.update(tx.toIndex, toResult.newState);
+    return {
+        accountProofs: {
+            from: fromAccountMP,
+            to: toAccountMP
+        },
+        newStateRoot: toResult.newStateRoot
+    };
 }
