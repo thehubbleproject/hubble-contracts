@@ -60,36 +60,53 @@ contract TestTx {
         return Tx.transfer_decode(txs, index);
     }
 
-    function transfer_amountOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_amountOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.transfer_amountOf(index);
     }
 
-    function transfer_fromIndexOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_fromIndexOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.transfer_fromIndexOf(index);
     }
 
-    function transfer_toIndexOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_toIndexOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.transfer_toIndexOf(index);
     }
 
-    function transfer_signatureOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_signatureOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (bytes memory)
     {
         return txs.transfer_signatureOf(index);
+    }
+
+    function transfer_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return txs.transfer_messageOf(index, nonce);
+    }
+
+    function transfer_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) public pure returns (bool) {
+        return txs.transfer_verify(index, nonce, signer);
     }
 
     function create_serializeFromEncoded(bytes[] memory txs)
@@ -235,6 +252,23 @@ contract TestTx {
         returns (bytes memory)
     {
         return txs.burnConsent_signatureOf(index);
+    }
+
+    function burnConsent_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return txs.burnConsent_messageOf(index, nonce);
+    }
+
+    function burnConsent_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) public pure returns (bool) {
+        return txs.burnConsent_verify(index, nonce, signer);
     }
 
     function burnExecution_bytesFromEncoded(Types.BurnExecution memory _tx)

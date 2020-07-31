@@ -7,7 +7,7 @@ const accountIDLen = 4;
 const stateIDLen = 4;
 const tokenLen = 2;
 const nonceLen = 4;
-const signatureLen = 64;
+const signatureLen = 65;
 
 function log2(n: number) {
     return Math.ceil(Math.log2(n));
@@ -50,7 +50,7 @@ export class TxTransfer {
         public readonly toIndex: number,
         public readonly amount: number,
         public readonly nonce: number,
-        public readonly signature: string
+        public signature: string
     ) {}
 
     public hash(): string {
@@ -173,7 +173,7 @@ export class TxBurnConsent {
         public readonly fromIndex: number,
         public readonly amount: number,
         public readonly nonce: number,
-        public readonly signature: string
+        public signature: string
     ) {}
 
     public hash(): string {

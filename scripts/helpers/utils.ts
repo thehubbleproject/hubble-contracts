@@ -150,7 +150,6 @@ export async function signTx(tx: Transaction, wallet: Wallet) {
         tx.txType,
         tx.fromIndex,
         tx.toIndex,
-        tx.tokenType,
         tx.nonce,
         tx.amount
     );

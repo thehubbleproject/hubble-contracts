@@ -214,6 +214,7 @@ contract("Reddit", async function() {
         await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 
@@ -231,7 +232,6 @@ contract("Reddit", async function() {
             tx.txType,
             tx.fromIndex,
             tx.toIndex,
-            tx.tokenType,
             tx.nonce,
             tx.amount
         );
@@ -318,7 +318,6 @@ contract("Reddit", async function() {
             tx.txType,
             tx.fromIndex,
             tx.toIndex,
-            tx.tokenType,
             tx.nonce,
             tx.amount
         );

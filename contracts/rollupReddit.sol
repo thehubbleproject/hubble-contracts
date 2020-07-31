@@ -95,7 +95,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        bytes memory emptySig = abi.encodePacked(bytes32(""), bytes32(""));
+        bytes memory emptySig = new bytes(65);
         bytes memory txs = RollupUtils.CompressAirdropFromEncoded(
             txBytes,
             emptySig
@@ -142,7 +142,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        bytes memory emptySig = abi.encodePacked(bytes32(""), bytes32(""));
+        bytes memory emptySig = new bytes(65);
         bytes memory txs = RollupUtils.CompressTransferFromEncoded(
             txBytes,
             emptySig
@@ -192,7 +192,7 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        bytes memory emptySig = abi.encodePacked(bytes32(""), bytes32(""));
+        bytes memory emptySig = new bytes(65);
         bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
             txBytes,
             emptySig

@@ -9,7 +9,6 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { ECVerify } from "./libs/ECVerify.sol";
 import { IncrementalTree } from "./IncrementalTree.sol";
 import { Logger } from "./logger.sol";
 import { POB } from "./POB.sol";
@@ -39,7 +38,6 @@ interface IRollupReddit {
 contract RollupSetup {
     using SafeMath for uint256;
     using BytesLib for bytes;
-    using ECVerify for bytes32;
     using Tx for bytes;
 
     /*********************
