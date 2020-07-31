@@ -788,6 +788,13 @@ library RollupUtils {
     //
     // Burn Execution
     //
+    function BurnExecutionSignBytes(uint256 txType, uint256 fromIndex)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(BytesFromBurnExecutionNoStruct(txType, fromIndex));
+    }
 
     function BytesFromBurnExecution(Types.BurnExecution memory _tx)
         public
