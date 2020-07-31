@@ -109,6 +109,23 @@ contract TestTx {
         return txs.transfer_verify(index, nonce, signer);
     }
 
+    function airdrop_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return txs.airdrop_messageOf(index, nonce);
+    }
+
+    function airdrop_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) public pure returns (bool) {
+        return txs.airdrop_verify(index, nonce, signer);
+    }
+
     function create_serializeFromEncoded(bytes[] memory txs)
         public
         pure

@@ -17,7 +17,8 @@ import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import {
     coordinatorPubkeyHash,
     DummyAccountMP,
-    DummyPDAMP
+    DummyPDAMP,
+    DummyECDSASignature
 } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
@@ -225,9 +226,10 @@ contract("Reddit", async function() {
             fromIndex: Reddit.AccID,
             toIndex: User.AccID,
             tokenType: 1,
-            nonce: redditMP.accountIP.account.nonce,
+            nonce: redditMP.accountIP.account.nonce + 1,
             amount: 10
         } as DropTx;
+
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
             tx.txType,
             tx.fromIndex,
@@ -280,6 +282,16 @@ contract("Reddit", async function() {
         ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
+
+        const resultBadSig = await rollupRedditInstance.processAirdropTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            redditPDAProof,
+            { from: redditMP, to: userMP }
+        );
+        assert.equal(resultBadSig[3], ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
             [txBytes],
@@ -364,6 +376,16 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
+        const resultBadSig = await rollupRedditInstance.processTransferTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            userPDAProof,
+            { from: userMP, to: bobMP }
+        );
+        assert.equal(resultBadSig[3], ErrorCode.BadSignature);
+
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes],
             [tx.signature]
@@ -396,8 +418,8 @@ contract("Reddit", async function() {
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.txType,
             tx.fromIndex,
-            tx.amount,
-            tx.nonce
+            tx.nonce,
+            tx.amount
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
@@ -433,6 +455,16 @@ contract("Reddit", async function() {
         ];
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
+
+        const resultBadSig = await rollupRedditInstance.processBurnConsentTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            userPDAProof,
+            userMP
+        );
+        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
 
         const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
             [txBytes],

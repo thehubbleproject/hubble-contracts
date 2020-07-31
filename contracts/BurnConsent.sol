@@ -121,13 +121,23 @@ contract BurnConsent is FraudProofHelpers {
             _fromAccountProof.accountIP.account.ID
         );
 
+        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
+
         // STEP:2 Ensure the transaction has been signed using the from public key
-        // TODO: ValidateSignature(_tx, _from_pda_proof);
+        if (
+            !txs.burnConsent_verify(
+                i,
+                account.nonce + 1,
+                RollupUtils.calculateAddress(
+                    _from_pda_proof._pda.pubkey_leaf.pubkey
+                )
+            )
+        ) {
+            return (bytes32(0x00), "", Types.ErrorCode.BadSignature, false);
+        }
 
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, _fromAccountProof);
-
-        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
 
         // TODO: Validate only certain token is allow to burn
 
