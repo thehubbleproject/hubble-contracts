@@ -335,10 +335,12 @@ export async function processTransferTxOffchain(
 export async function getGovConstants(): Promise<GovConstants> {
     const govInstance = await Governance.deployed();
     const MAX_DEPTH = Number(await govInstance.MAX_DEPTH());
+    const MAX_TXS_PER_BATCH = Number(await govInstance.MAX_TXS_PER_BATCH());
     const STAKE_AMOUNT = (await govInstance.STAKE_AMOUNT()).toString();
     return {
         MAX_DEPTH,
-        STAKE_AMOUNT
+        STAKE_AMOUNT,
+        MAX_TXS_PER_BATCH
     };
 }
 

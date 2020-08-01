@@ -550,7 +550,7 @@ contract("Reddit", async function() {
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("bench rollup CreateAccount", async function() {
-        const numTx = 32;
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
         const tx: CreateAccount = {
             txType: Usage.CreateAccount,
             accountID: 1,
@@ -573,7 +573,7 @@ contract("Reddit", async function() {
     });
 
     it("bench rollup Airdrop", async function() {
-        const numTx = 32;
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
         const tx: DropTx = {
             txType: Usage.Airdrop,
             fromIndex: 1,
@@ -600,7 +600,7 @@ contract("Reddit", async function() {
         await utils.logEstimate(compressedTxs, Usage.Airdrop);
     });
     it("bench rollup Transfer", async function() {
-        const numTx = 32;
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
         const tx: Transaction = {
             txType: Usage.Transfer,
             fromIndex: 1,
@@ -627,7 +627,7 @@ contract("Reddit", async function() {
         await utils.logEstimate(compressedTxs, Usage.Transfer);
     });
     it("bench rollup BurnConsent", async function() {
-        const numTx = 32;
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
         const tx: BurnConsentTx = {
             txType: Usage.BurnConsent,
             fromIndex: 1,
@@ -650,7 +650,7 @@ contract("Reddit", async function() {
         await utils.logEstimate(compressedTxs, Usage.BurnConsent);
     });
     it("bench rollup BurnExecution", async function() {
-        const numTx = 32;
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
         const tx: BurnExecutionTx = {
             txType: Usage.BurnExecution,
             fromIndex: 1,
