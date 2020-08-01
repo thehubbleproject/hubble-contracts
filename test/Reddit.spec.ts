@@ -493,15 +493,10 @@ contract("Reddit", async function() {
     });
     it("lets Reddit to execute the burn", async function() {
         const userMP = await stateStore.getAccountMerkleProof(User.AccID);
-        const tx = {
+        const tx: BurnExecutionTx = {
             txType: Usage.BurnExecution,
             fromIndex: User.AccID
-        } as BurnExecutionTx;
-        const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
-            tx.txType,
-            tx.fromIndex
-        );
-        tx.signature = utils.sign(signBytes, User.Wallet);
+        };
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
             tx.txType,
             tx.fromIndex
@@ -653,8 +648,7 @@ contract("Reddit", async function() {
         const numTx = govConstants.MAX_TXS_PER_BATCH;
         const tx: BurnExecutionTx = {
             txType: Usage.BurnExecution,
-            fromIndex: 1,
-            signature: ""
+            fromIndex: 1
         };
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
             tx.txType,
