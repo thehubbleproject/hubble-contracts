@@ -246,14 +246,10 @@ contract("RollupUtils", async function(accounts) {
         await RollupUtilsInstance.DecompressManyBurnConsent(txs);
     });
     it("test burn execution utils", async function() {
-        const tx = {
+        const tx: BurnExecutionTx = {
             txType: Usage.BurnExecution,
             fromIndex: 5
-        } as BurnExecutionTx;
-        const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
-            tx.txType,
-            tx.fromIndex
-        );
+        };
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
             tx.txType,
             tx.fromIndex

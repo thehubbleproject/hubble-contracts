@@ -92,7 +92,6 @@ export interface BurnConsentTx {
 export interface BurnExecutionTx {
     txType: number;
     fromIndex: number;
-    signature: string;
 }
 
 export interface AccountProofs {
