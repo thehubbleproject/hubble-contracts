@@ -1,5 +1,4 @@
 import * as utils from "../scripts/helpers/utils";
-import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 import {
     Usage,
@@ -549,5 +548,123 @@ contract("Reddit", async function() {
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
+    });
+    it("bench rollup CreateAccount", async function() {
+        const numTx = 32;
+        const tx: CreateAccount = {
+            txType: Usage.CreateAccount,
+            accountID: 1,
+            stateID: 1,
+            tokenType: 1
+        };
+
+        const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
+            tx.txType,
+            tx.accountID,
+            tx.stateID,
+            tx.tokenType
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyCreateAccountFromEncoded(
+            Array(numTx).fill(txBytes)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.CreateAccount);
+    });
+
+    it("bench rollup Airdrop", async function() {
+        const numTx = 32;
+        const tx: DropTx = {
+            txType: Usage.Airdrop,
+            fromIndex: 1,
+            toIndex: 1,
+            tokenType: 1,
+            nonce: 1,
+            amount: 10,
+            signature: DummyECDSASignature
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
+            tx.txType,
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.nonce,
+            tx.amount
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
+            Array(numTx).fill(txBytes),
+            Array(numTx).fill(DummyECDSASignature)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.Airdrop);
+    });
+    it("bench rollup Transfer", async function() {
+        const numTx = 32;
+        const tx: Transaction = {
+            txType: Usage.Transfer,
+            fromIndex: 1,
+            toIndex: 1,
+            tokenType: 1,
+            nonce: 1,
+            amount: 10,
+            signature: DummyECDSASignature
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.txType,
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.nonce,
+            tx.amount
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            Array(numTx).fill(txBytes),
+            Array(numTx).fill(DummyECDSASignature)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.Transfer);
+    });
+    it("bench rollup BurnConsent", async function() {
+        const numTx = 32;
+        const tx: BurnConsentTx = {
+            txType: Usage.BurnConsent,
+            fromIndex: 1,
+            nonce: 1,
+            amount: 10,
+            signature: DummyECDSASignature
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
+            tx.txType,
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
+            Array(numTx).fill(txBytes),
+            Array(numTx).fill(DummyECDSASignature)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.BurnConsent);
+    });
+    it("bench rollup BurnExecution", async function() {
+        const numTx = 32;
+        const tx: BurnExecutionTx = {
+            txType: Usage.BurnExecution,
+            fromIndex: 1,
+            signature: ""
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
+            tx.txType,
+            tx.fromIndex
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded(
+            Array(numTx).fill(txBytes)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.BurnExecution);
     });
 });

@@ -341,3 +341,19 @@ export async function getGovConstants(): Promise<GovConstants> {
         STAKE_AMOUNT
     };
 }
+
+export async function logEstimate(compressedTxs: string, usage: Usage) {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const govConstants = await getGovConstants();
+    const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    const gasEstimation = await rollupCoreInstance.submitBatch.estimateGas(
+        compressedTxs,
+        balanceRoot,
+        usage,
+        {
+            value: govConstants.STAKE_AMOUNT
+        }
+    );
+    console.log("submitBatch for", Usage[usage], "use", gasEstimation, "gas");
+    console.log("compressedTxs size:", (compressedTxs.length - 2) / 2, "bytes");
+}
