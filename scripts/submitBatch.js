@@ -56,7 +56,12 @@ async function main() {
             );
             // Do callback here to unblock next tx
             tx.wait().then(receipt => {
-                console.log("submited batch", batch.index);
+                console.log(
+                    "Batch",
+                    batch.index,
+                    "included in height",
+                    receipt.blockNumber
+                );
             });
         } catch (err) {
             console.error(err.message);
