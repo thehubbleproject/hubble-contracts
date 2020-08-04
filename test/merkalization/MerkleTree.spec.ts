@@ -43,7 +43,10 @@ contract("MerkleTreeUtils", async function(accounts) {
             const rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
                 leaves
             );
-            const rootFromJs = await utils.getMerkleRoot(leaves, maxSize);
+            const rootFromJs = await utils.getMerkleRootFromLeaves(
+                leaves,
+                maxSize
+            );
             assert.equal(
                 rootFromContract,
                 rootFromJs,
