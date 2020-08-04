@@ -7,12 +7,12 @@ const RollupContract = require("../build/contracts/Rollup.json");
 const GovernanceContract = require("../build/contracts/Governance.json");
 
 const argv = require("minimist")(process.argv.slice(2), {
-    string: ["batches"]
+    string: ["batches", "url"]
 });
 
 /*
     $ wget https://gist.githubusercontent.com/vaibhavchellani/3c1f19925cf2d3a26edf218ff7cff33d/raw/7f4234f7daa6e99043f095df477d93c76708c504/commitments.json
-    $ npx ts-node ./scripts/submitBatch.ts --batches commitments.json
+    $ npx ts-node ./scripts/submitBatch.ts --batches commitments.json --url http://localhost:8545
 */
 
 interface Batch {
@@ -29,7 +29,7 @@ interface BatchByType {
 async function main() {
     const batchesFile = argv.batches;
 
-    const provider = new ethers.providers.JsonRpcProvider();
+    const provider = new ethers.providers.JsonRpcProvider(argv.url);
     const signer = provider.getSigner();
     const rollupInstance = new ethers.Contract(
         contractAddresses.RollupContract,
