@@ -33,49 +33,23 @@ contract("MerkleTreeUtils", async function(accounts) {
     });
 
     it("ensure root created on-chain and via utils is the same", async function() {
-        var coordinator =
-            "0x012893657d8eb2efad4de0a91bcd0e39ad9837745dec3ea923737ea803fc8e3d";
-        var maxSize = 4;
-        var tempDataLeaves = [];
-        tempDataLeaves[0] = coordinator;
-        var numberOfDataLeaves = 2 ** maxSize;
-        // create empty leaves
-        for (var i = 1; i < numberOfDataLeaves; i++) {
-            tempDataLeaves[i] =
-                "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
-        }
-        var mtlibInstance = await utils.getMerkleTreeUtils();
-        var rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
-            tempDataLeaves
-        );
-        // root that we are creating for on-chain data
-        var rootWhileDeployingContracts =
-            "0xfe55b4be5e50828667fb2dc97c9757fd0c295b19c6de05f4d8800ed128f66ad4";
-        var generatedRoot = await utils.getMerkleRoot(tempDataLeaves, maxSize);
-        var rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
-            tempDataLeaves
-        );
-        assert.equal(
-            rootFromContract,
-            generatedRoot,
-            "root generated off chain and on-chains should match"
-        );
-    });
-
-    it.only("makes sure getMerkleRootFromLeaves works for any valid number of leaves ", async function() {
+        const maxSize = 4;
+        const numberOfDataLeaves = 2 ** maxSize;
+        const dummyHash =
+            "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
         const mtlibInstance = await utils.getMerkleTreeUtils();
-        const failed = [];
-        for (let i = 1; i < 2 ** 4; i++) {
-            const tempLeaves = Array(i).fill(
-                "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
+        for (let i = 1; i < numberOfDataLeaves; i++) {
+            const leaves = Array(i).fill(dummyHash);
+            const rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
+                leaves
             );
-            try {
-                await mtlibInstance.getMerkleRootFromLeaves(tempLeaves);
-            } catch (err) {
-                failed.push(i);
-            }
+            const rootFromJs = await utils.getMerkleRoot(leaves, maxSize);
+            assert.equal(
+                rootFromContract,
+                rootFromJs,
+                `Mismatch off-chain and on-chain roots. Leave length is ${i}`
+            );
         }
-        assert.equal(failed, []);
     });
 
     it("utils hash should be the same as keccak hash", async function() {
