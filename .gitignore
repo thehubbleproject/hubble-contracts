@@ -6,3 +6,4 @@ build
 users.json
 test-blockchain/data
 .env
+commitments.json
