@@ -7,6 +7,7 @@ const Types = artifacts.require("Types");
 import * as walletHelper from "../../scripts/helpers/wallet";
 import * as utils from "../../scripts/helpers/utils";
 import { Wallet } from "../../scripts/helpers/interfaces";
+import { assert } from "chai";
 
 // Test all stateless operations
 contract("MerkleTreeUtils", async function(accounts) {
@@ -59,6 +60,22 @@ contract("MerkleTreeUtils", async function(accounts) {
             generatedRoot,
             "root generated off chain and on-chains should match"
         );
+    });
+
+    it.only("makes sure getMerkleRootFromLeaves works for any valid number of leaves ", async function() {
+        const mtlibInstance = await utils.getMerkleTreeUtils();
+        const failed = [];
+        for (let i = 1; i < 2 ** 4; i++) {
+            const tempLeaves = Array(i).fill(
+                "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
+            );
+            try {
+                await mtlibInstance.getMerkleRootFromLeaves(tempLeaves);
+            } catch (err) {
+                failed.push(i);
+            }
+        }
+        assert.equal(failed, []);
     });
 
     it("utils hash should be the same as keccak hash", async function() {
