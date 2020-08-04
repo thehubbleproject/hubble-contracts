@@ -111,25 +111,33 @@ export async function getMerkleTreeUtils() {
     return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
 
-export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
-    var nextLevelLength = dataLeaves.length;
-    var currentLevel = 0;
-    var nodes: any = dataLeaves.slice();
-    var defaultHashesForLeaves: any = defaultHashes(maxDepth);
-    // create a merkle root to see if this is valid
-    while (nextLevelLength > 1) {
-        currentLevel += 1;
-
-        // Calculate the nodes for the currentLevel
-        for (var i = 0; i < nextLevelLength / 2; i++) {
-            nodes[i] = getParentLeaf(nodes[i * 2], nodes[i * 2 + 1]);
+export async function getMerkleRootFromLeaves(
+    dataLeaves: string[],
+    maxDepth: number
+) {
+    let nodes: string[] = dataLeaves.slice();
+    const defaultHashesForLeaves: string[] = defaultHashes(maxDepth);
+    let odd = nodes.length & 1;
+    let n = (nodes.length + 1) >> 1;
+    let level = 0;
+    while (true) {
+        let i = 0;
+        for (; i < n - odd; i++) {
+            let j = i << 1;
+            nodes[i] = getParentLeaf(nodes[j], nodes[j + 1]);
         }
-        nextLevelLength = nextLevelLength / 2;
-        // Check if we will need to add an extra node
-        if (nextLevelLength % 2 == 1 && nextLevelLength != 1) {
-            nodes[nextLevelLength] = defaultHashesForLeaves[currentLevel];
-            nextLevelLength += 1;
+        if (odd == 1) {
+            nodes[i] = getParentLeaf(
+                nodes[i << 1],
+                defaultHashesForLeaves[level]
+            );
         }
+        if (n == 1) {
+            break;
+        }
+        odd = n & 1;
+        n = (n + 1) >> 1;
+        level += 1;
     }
     return nodes[0];
 }
