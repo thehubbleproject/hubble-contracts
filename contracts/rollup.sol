@@ -90,9 +90,8 @@ contract RollupHelpers is RollupSetup {
     function numOfBatchesSubmitted() public view returns (uint256) {
         return batches.length;
     }
-    function getCommitment() internal pure returns (bytes32){
 
-    }
+    function getCommitment() internal pure returns (bytes32) {}
 
     function addNewBatch(
         bytes32 txRoot,
@@ -102,12 +101,7 @@ contract RollupHelpers is RollupSetup {
         Types.Batch memory newBatch;
         bytes32 pubkeyRoot = accountsTree.getTreeRoot();
         newBatch.commitment = keccak256(
-            abi.encodePacked(
-                _updatedRoot,
-                pubkeyRoot,
-                txRoot,
-                bytes32(0x00)
-            )
+            abi.encodePacked(_updatedRoot, pubkeyRoot, txRoot, bytes32(0x00))
         );
         newBatch.committer = msg.sender;
         newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
@@ -115,7 +109,7 @@ contract RollupHelpers is RollupSetup {
         newBatch.batchType = batchType;
 
         batches.push(newBatch);
-        emit logger.NewBatch(
+        logger.logNewBatch(
             newBatch.committer,
             txRoot,
             _updatedRoot,
@@ -144,7 +138,7 @@ contract RollupHelpers is RollupSetup {
         newBatch.batchType = Types.Usage.Deposit;
 
         batches.push(newBatch);
-        emit logger.NewBatch(
+        logger.logNewBatch(
             newBatch.committer,
             depositRoot,
             _updatedRoot,
