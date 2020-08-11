@@ -1,25 +1,13 @@
 const MTLib = artifacts.require("MerkleTreeUtils");
 const IMT = artifacts.require("IncrementalTree");
-const nameRegistry = artifacts.require("NameRegistry");
-const ParamManager = artifacts.require("ParamManager");
-import * as walletHelper from "../../scripts/helpers/wallet";
 import * as utils from "../../scripts/helpers/utils";
-import { Wallet } from "../../scripts/helpers/interfaces";
-const BN = require("bn.js");
 
-contract("IncrementalTree", async function(accounts) {
-    let wallets: Wallet[];
-    var depth: number = 2;
+contract("IncrementalTree", async function() {
     var firstDataBlock = utils.StringToBytes32("0x123");
     var secondDataBlock = utils.StringToBytes32("0x334");
     var thirdDataBlock = utils.StringToBytes32("0x4343");
     var fourthDataBlock = utils.StringToBytes32("0x334");
-    var dataBlocks = [
-        firstDataBlock,
-        secondDataBlock,
-        thirdDataBlock,
-        fourthDataBlock
-    ];
+
     var dataLeaves = [
         utils.Hash(firstDataBlock),
         utils.Hash(secondDataBlock),
@@ -27,14 +15,10 @@ contract("IncrementalTree", async function(accounts) {
         utils.Hash(fourthDataBlock)
     ];
 
-    before(async function() {
-        wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-    });
-
     // test if we are able to create append a leaf
     it("create incremental MT and add 2 leaves", async function() {
         // get mtlibInstance
-        var mtlibInstance = await utils.getMerkleTreeUtils();
+        const mtlibInstance = await MTLib.deployed();
 
         // get IMT tree instance
         let IMTInstace = await IMT.deployed();

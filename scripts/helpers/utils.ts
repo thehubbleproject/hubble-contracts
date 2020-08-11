@@ -14,9 +14,6 @@ import {
     GovConstants
 } from "./interfaces";
 import { StateStore } from "./store";
-const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
-const ParamManager = artifacts.require("ParamManager");
-const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const RollupCore = artifacts.require("Rollup");
@@ -93,22 +90,6 @@ export function defaultHashes(depth: number) {
 export function getZeroHash(zeroValue: any) {
     const abiCoder = ethers.utils.defaultAbiCoder;
     return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
-}
-
-export async function getMerkleTreeUtils() {
-    // get deployed name registry instance
-    var nameRegistryInstance = await nameRegistry.deployed();
-
-    // get deployed parama manager instance
-    var paramManager = await ParamManager.deployed();
-
-    // get accounts tree key
-    var merkleTreeUtilKey = await paramManager.MERKLE_UTILS();
-
-    var merkleTreeUtilsAddr = await nameRegistryInstance.getContractDetails(
-        merkleTreeUtilKey
-    );
-    return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
 
 export async function getMerkleRootFromLeaves(

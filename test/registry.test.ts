@@ -21,7 +21,7 @@ function pubkeyToLeaf(p: Pubkey) {
     return { uncompressed, leaf };
 }
 
-contract.skip("Registry", accounts => {
+describe("Registry", async () => {
     let registry: BLSAccountRegistryInstance;
     let treeLeft: Tree;
     let treeRight: Tree;

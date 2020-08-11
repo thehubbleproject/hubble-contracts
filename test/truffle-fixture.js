@@ -1,4 +1,3 @@
-const fs = require("fs");
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
@@ -21,7 +20,6 @@ const depositManagerContract = artifacts.require("DepositManager");
 const rollupContract = artifacts.require("Rollup");
 const rollupRedditContract = artifacts.require("RollupReddit");
 const testTokenContract = artifacts.require("TestToken");
-const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
 const POBContract = artifacts.require("POB");
 
 module.exports = async () => {
@@ -167,7 +165,7 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
     for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
-    MTUtilsInstance = await merkleTreeUtilsContract.deployed();
+    MTUtilsInstance = await MTUtilsContract.deployed();
     const result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
     console.log("result", result);
     return result;

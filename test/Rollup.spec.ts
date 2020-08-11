@@ -16,7 +16,7 @@ const TestToken = artifacts.require("TestToken");
 const DepositManager = artifacts.require("DepositManager");
 const RollupUtils = artifacts.require("RollupUtils");
 
-contract("Rollup", async function(accounts) {
+contract("Rollup", async function() {
     let wallets: Wallet[];
 
     let depositManagerInstance: any;

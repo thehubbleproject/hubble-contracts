@@ -4,7 +4,7 @@ import { Tree, Hasher } from "./utils/tree";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
-contract("Account Tree", accounts => {
+describe("Account Tree", async () => {
     let accountTree: TestAccountTreeInstance;
     let treeLeft: Tree;
     let treeRight: Tree;

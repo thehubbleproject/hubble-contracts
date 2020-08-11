@@ -4,7 +4,7 @@ const TestBLS = artifacts.require("TestBLS");
 import * as mcl from "./utils/mcl";
 import { bn, bnToHex, ZERO } from "./utils/mcl";
 
-contract("BLS", accounts => {
+describe("BLS", async () => {
     let bls: TestBLSInstance;
     before(async function() {
         await mcl.init();
