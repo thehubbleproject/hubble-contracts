@@ -1,5 +1,5 @@
 const AccountRegistry = artifacts.require("BLSAccountRegistry");
-import { BLSAccountRegistryInstance } from "../types/truffle-contracts";
+import { BlsAccountRegistryInstance } from "../types/truffle-contracts";
 import { Tree, Hasher } from "./utils/tree";
 
 import * as mcl from "./utils/mcl";
@@ -22,7 +22,7 @@ function pubkeyToLeaf(p: Pubkey) {
 }
 
 describe.skip("Registry", async () => {
-    let registry: BLSAccountRegistryInstance;
+    let registry: BlsAccountRegistryInstance;
     let treeLeft: Tree;
     let treeRight: Tree;
     beforeEach(async function() {
