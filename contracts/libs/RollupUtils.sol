@@ -1,9 +1,12 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
+import { Tx } from "./Tx.sol";
 import { Types } from "./Types.sol";
 
 library RollupUtils {
+    using Tx for bytes;
+
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public
@@ -251,6 +254,47 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, uint256));
     }
 
+    function CompressCreateAccountFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.CreateAccount memory _tx = CreateAccountFromBytes(txBytes);
+        Tx.CreateAccount[] memory _txs = new Tx.CreateAccount[](1);
+        _txs[0] = Tx.CreateAccount(_tx.accountID, _tx.stateID, _tx.tokenType);
+        return Tx.serialize(_txs);
+    }
+
+    function CompressManyCreateAccountFromEncoded(bytes[] memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Tx.CreateAccount[] memory _txs = new Tx.CreateAccount[](txBytes.length);
+        for (uint256 i = 0; i < txBytes.length; i++) {
+            Types.CreateAccount memory _tx = CreateAccountFromBytes(txBytes[i]);
+            _txs[i] = Tx.CreateAccount(
+                _tx.accountID,
+                _tx.stateID,
+                _tx.tokenType
+            );
+        }
+        return Tx.serialize(_txs);
+    }
+
+    function DecompressManyCreateAccount(bytes memory txs)
+        public
+        pure
+        returns (Tx.CreateAccount[] memory structTxs)
+    {
+        uint256 length = txs.create_size();
+        structTxs = new Tx.CreateAccount[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = txs.create_decode(i);
+        }
+        return structTxs;
+    }
+
     //
     // Airdrop
     //
@@ -325,21 +369,10 @@ library RollupUtils {
         uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
-        uint256 tokenType,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-        return
-            keccak256(
-                BytesFromAirdropNoStruct(
-                    txType,
-                    fromIndex,
-                    toIndex,
-                    tokenType,
-                    nonce,
-                    amount
-                )
-            );
+        return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
     }
 
     function CompressAirdrop(Types.DropTx memory _tx)
@@ -378,6 +411,42 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, bytes));
     }
 
+    function CompressAirdropFromEncoded(bytes memory txBytes, bytes memory sig)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.DropTx memory _tx = AirdropFromBytes(txBytes);
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+        return Tx.serialize(_txs);
+    }
+
+    function CompressManyAirdropFromEncoded(
+        bytes[] memory txBytes,
+        bytes[] memory sigs
+    ) public pure returns (bytes memory) {
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
+        for (uint256 i = 0; i < txBytes.length; i++) {
+            Types.DropTx memory _tx = AirdropFromBytes(txBytes[i]);
+            _txs[i] = Tx.Transfer(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                sigs[i]
+            );
+        }
+        return Tx.serialize(_txs);
+    }
+
+    function DecompressManyAirdrop(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory structTxs)
+    {
+        return DecompressManyTransfer(txs);
+    }
+
     //
     // Transfer
     //
@@ -414,6 +483,7 @@ library RollupUtils {
         pure
         returns (Types.Transaction memory)
     {
+        // TODO: use txBytes.transfer_transfer_encodedFromBytes(...)
         Types.Transaction memory transaction;
         (
             transaction.txType,
@@ -453,21 +523,10 @@ library RollupUtils {
         uint256 txType,
         uint256 fromIndex,
         uint256 toIndex,
-        uint256 tokenType,
         uint256 nonce,
         uint256 amount
     ) public pure returns (bytes32) {
-        return
-            keccak256(
-                BytesFromTxDeconstructed(
-                    txType,
-                    fromIndex,
-                    toIndex,
-                    tokenType,
-                    nonce,
-                    amount
-                )
-            );
+        return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
     }
 
     function CompressTx(Types.Transaction memory _tx)
@@ -501,6 +560,19 @@ library RollupUtils {
         return abi.decode(txBytes, (uint256, uint256, uint256, bytes));
     }
 
+    function DecompressTransfers(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory)
+    {
+        uint256 length = txs.transfer_size();
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](length);
+        for (uint256 i = 0; i < length; i++) {
+            _txs[i] = txs.transfer_decode(i);
+        }
+        return _txs;
+    }
+
     function HashFromTx(Types.Transaction memory _tx)
         public
         pure
@@ -517,6 +589,47 @@ library RollupUtils {
                     _tx.amount
                 )
             );
+    }
+
+    function CompressTransferFromEncoded(bytes memory txBytes, bytes memory sig)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.Transaction memory _tx = TxFromBytes(txBytes);
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+        return Tx.serialize(_txs);
+    }
+
+    function CompressManyTransferFromEncoded(
+        bytes[] memory txBytes,
+        bytes[] memory sigs
+    ) public pure returns (bytes memory) {
+        Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
+        for (uint256 i = 0; i < txBytes.length; i++) {
+            Types.Transaction memory _tx = TxFromBytes(txBytes[i]);
+            _txs[i] = Tx.Transfer(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                sigs[i]
+            );
+        }
+        return Tx.serialize(_txs);
+    }
+
+    function DecompressManyTransfer(bytes memory txs)
+        public
+        pure
+        returns (Tx.Transfer[] memory structTxs)
+    {
+        uint256 length = txs.transfer_size();
+        structTxs = new Tx.Transfer[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = txs.transfer_decode(i);
+        }
+        return structTxs;
     }
 
     //
@@ -557,12 +670,12 @@ library RollupUtils {
     function BurnConsentSignBytes(
         uint256 txType,
         uint256 fromIndex,
-        uint256 amount,
-        uint256 nonce
+        uint256 nonce,
+        uint256 amount
     ) public pure returns (bytes32) {
         return
             keccak256(
-                BytesFromBurnConsentNoStruct(txType, fromIndex, amount, nonce)
+                BytesFromBurnConsentNoStruct(txType, fromIndex, nonce, amount)
             );
     }
 
@@ -571,7 +684,7 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        return abi.encode(_tx.fromIndex, _tx.amount, _tx.signature);
+        return abi.encode(_tx.fromIndex, _tx.amount, _tx.nonce, _tx.signature);
     }
 
     function CompressBurnConsentNoStruct(
@@ -612,6 +725,41 @@ library RollupUtils {
         return keccak256(CompressBurnConsent(_tx));
     }
 
+    function CompressBurnConsentFromEncoded(
+        bytes memory txBytes,
+        bytes memory sig
+    ) public pure returns (bytes memory) {
+        Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes);
+        Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](1);
+        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, sig);
+        return Tx.serialize(_txs);
+    }
+
+    function CompressManyBurnConsentFromEncoded(
+        bytes[] memory txBytes,
+        bytes[] memory sigs
+    ) public pure returns (bytes memory) {
+        Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](txBytes.length);
+        for (uint256 i = 0; i < txBytes.length; i++) {
+            Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes[i]);
+            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, sigs[i]);
+        }
+        return Tx.serialize(_txs);
+    }
+
+    function DecompressManyBurnConsent(bytes memory txs)
+        public
+        pure
+        returns (Tx.BurnConsent[] memory structTxs)
+    {
+        uint256 length = txs.burnConsent_size();
+        structTxs = new Tx.BurnConsent[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = txs.burnConsent_decode(i);
+        }
+        return structTxs;
+    }
+
     //
     // Burn Execution
     //
@@ -640,14 +788,6 @@ library RollupUtils {
         Types.BurnExecution memory _tx;
         (_tx.txType, _tx.fromIndex) = abi.decode(txBytes, (uint256, uint256));
         return _tx;
-    }
-
-    function BurnExecutionSignBytes(uint256 txType, uint256 fromIndex)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(BytesFromBurnExecutionNoStruct(txType, fromIndex));
     }
 
     function CompressBurnExecution(Types.BurnExecution memory _tx)
@@ -689,6 +829,43 @@ library RollupUtils {
         returns (bytes32)
     {
         return keccak256(CompressBurnExecution(_tx));
+    }
+
+    function CompressBurnExecutionFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.BurnExecution memory _tx = BurnExecutionFromBytes(txBytes);
+        Tx.BurnExecution[] memory _txs = new Tx.BurnExecution[](1);
+        _txs[0] = Tx.BurnExecution(_tx.fromIndex);
+        return Tx.serialize(_txs);
+    }
+
+    function CompressManyBurnExecutionFromEncoded(bytes[] memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Tx.BurnExecution[] memory _txs = new Tx.BurnExecution[](txBytes.length);
+        for (uint256 i = 0; i < txBytes.length; i++) {
+            Types.BurnExecution memory _tx = BurnExecutionFromBytes(txBytes[i]);
+            _txs[i] = Tx.BurnExecution(_tx.fromIndex);
+        }
+        return Tx.serialize(_txs);
+    }
+
+    function DecompressManyBurnExecution(bytes memory txs)
+        public
+        pure
+        returns (Tx.BurnExecution[] memory structTxs)
+    {
+        uint256 length = txs.burnExecution_size();
+        structTxs = new Tx.BurnExecution[](length);
+        for (uint256 i = 0; i < length; i++) {
+            structTxs[i] = Tx.BurnExecution(txs.burnExecution_fromIndexOf(i));
+        }
+        return structTxs;
     }
 
     function GetYearMonth() public view returns (uint256 yearMonth) {

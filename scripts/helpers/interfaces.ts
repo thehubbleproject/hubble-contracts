@@ -47,7 +47,7 @@ export interface Transaction {
     tokenType: number;
     amount: number;
     nonce: number;
-    signature?: string;
+    signature: string;
 }
 
 export enum ErrorCode {
@@ -61,8 +61,7 @@ export enum ErrorCode {
     BurnAlreadyExecuted,
     NotOnDesignatedStateLeaf,
     NotCreatingOnZeroAccount,
-    BadSignature,
-    BadNonce
+    BadSignature
 }
 
 export interface CreateAccount {
@@ -93,7 +92,6 @@ export interface BurnConsentTx {
 export interface BurnExecutionTx {
     txType: number;
     fromIndex: number;
-    signature: string;
 }
 
 export interface AccountProofs {
@@ -101,18 +99,29 @@ export interface AccountProofs {
     to: AccountMerkleProof;
 }
 
-export interface Dispute {
-    batchId: number;
-    txs: string[];
-    signatures: string[];
-    batchProofs: {
-        accountProofs: AccountProofs[];
-        pdaProof: PDAMerkleProof[];
-    };
-}
-
 export interface Wallet {
     getAddressString(): string;
     getPublicKeyString(): string;
     getPrivateKey(): Buffer;
+}
+
+export interface ApplyTxResult {
+    newState: Account;
+    newStateRoot: string;
+}
+
+export interface ApplyTxOffchainResult {
+    accountProofs: AccountProofs;
+    newStateRoot: string;
+}
+
+export interface ProcessTxResult {
+    newStateRoot: string;
+    error: ErrorCode;
+}
+
+export interface GovConstants {
+    MAX_DEPTH: number;
+    STAKE_AMOUNT: string;
+    MAX_TXS_PER_BATCH: number;
 }

@@ -2,322 +2,337 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { Tx } from "../libs/Tx.sol";
+import { Types } from "../libs/Types.sol";
 
 contract TestTx {
     using Tx for bytes;
 
-    function transfer_serialize(Tx.Transfer[] calldata txs)
-        external
+    function transfer_serialize(Tx.Transfer[] memory txs)
+        public
         pure
         returns (bytes memory)
     {
         return Tx.serialize(txs);
     }
 
-    function transfer_hasExcessData(bytes calldata txs)
-        external
+    function transfer_serializeFromEncoded(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
+    function transfer_bytesFromEncoded(Types.Transfer memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                Types.Usage.Transfer,
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.tokenType,
+                _tx.nonce,
+                _tx.amount,
+                _tx.signature
+            );
+    }
+
+    function transfer_hasExcessData(bytes memory txs)
+        public
         pure
         returns (bool)
     {
         return txs.transfer_hasExcessData();
     }
 
-    function transfer_size(bytes calldata txs) external pure returns (uint256) {
+    function transfer_size(bytes memory txs) public pure returns (uint256) {
         return txs.transfer_size();
     }
 
-    function transfer_decode(bytes calldata txs, uint256 index)
-        external
+    function transfer_decode(bytes memory txs, uint256 index)
+        public
         pure
         returns (Tx.Transfer memory)
     {
         return Tx.transfer_decode(txs, index);
     }
 
-    function transfer_amountOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_amountOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.transfer_amountOf(index);
     }
 
-    function transfer_senderOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_fromIndexOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
-        return txs.transfer_senderOf(index);
+        return txs.transfer_fromIndexOf(index);
     }
 
-    function transfer_receiverOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_toIndexOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
-        return txs.transfer_receiverOf(index);
+        return txs.transfer_toIndexOf(index);
     }
 
-    function transfer_hashOf(bytes calldata txs, uint256 index)
-        external
+    function transfer_signatureOf(bytes memory txs, uint256 index)
+        public
         pure
-        returns (bytes32)
+        returns (bytes memory)
     {
-        return txs.transfer_hashOf(index);
+        return txs.transfer_signatureOf(index);
     }
 
-    function transfer_mapToPoint(bytes calldata txs, uint256 index)
-        external
-        view
-        returns (uint256[2] memory)
-    {
-        return txs.transfer_mapToPoint(index);
+    function transfer_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return txs.transfer_messageOf(index, nonce);
     }
 
-    function airdrop_serialize(
-        Tx.DropSender calldata stx,
-        Tx.DropReceiver[] calldata rtxs
-    ) external pure returns (bytes memory) {
-        return Tx.serialize(stx, rtxs);
+    function transfer_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) public pure returns (bool) {
+        return txs.transfer_verify(index, nonce, signer);
     }
 
-    function airdrop_hasExcessData(bytes calldata txs)
-        external
+    function airdrop_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return txs.airdrop_messageOf(index, nonce);
+    }
+
+    function airdrop_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) public pure returns (bool) {
+        return txs.airdrop_verify(index, nonce, signer);
+    }
+
+    function create_serializeFromEncoded(bytes[] memory txs)
+        public
         pure
-        returns (bool)
+        returns (bytes memory)
     {
-        txs.airdrop_hasExcessData();
+        return Tx.create_serializeFromEncoded(txs);
     }
 
-    function airdrop_size(bytes calldata txs) external pure returns (uint256) {
-        return txs.airdrop_size();
-    }
-
-    function airdrop_receiverDecode(bytes calldata txs, uint256 index)
-        external
-        pure
-        returns (Tx.DropReceiver memory)
-    {
-        return txs.airdrop_receiverDecode(index);
-    }
-
-    function airdrop_senderDecode(bytes calldata txs)
-        external
-        pure
-        returns (Tx.DropSender memory)
-    {
-        return txs.airdrop_senderDecode();
-    }
-
-    function airdrop_receiverOf(bytes calldata txs, uint256 index)
-        external
-        pure
-        returns (uint256)
-    {
-        return txs.airdrop_receiverOf(index);
-    }
-
-    function airdrop_amountOf(bytes calldata txs, uint256 index)
-        external
-        pure
-        returns (uint256)
-    {
-        return txs.airdrop_amountOf(index);
-    }
-
-    function airdrop_senderAccountID(bytes calldata txs)
-        external
-        pure
-        returns (uint256 senderAccountID)
-    {
-        return txs.airdrop_senderAccountID();
-    }
-
-    function airdrop_senderStateID(bytes calldata txs)
-        external
-        pure
-        returns (uint256 receiver)
-    {
-        return txs.airdrop_senderStateID();
-    }
-
-    function airdrop_nonce(bytes calldata txs)
-        external
-        pure
-        returns (uint256 nonce)
-    {
-        return txs.airdrop_nonce();
-    }
-
-    function create_serialize(Tx.CreateAccount[] calldata txs)
-        external
+    function create_serialize(Tx.CreateAccount[] memory txs)
+        public
         pure
         returns (bytes memory)
     {
         return Tx.serialize(txs);
     }
 
-    function create_decode(bytes calldata txs, uint256 index)
-        external
+    function create_bytesFromEncoded(Types.CreateAccount memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                Types.Usage.CreateAccount,
+                _tx.accountID,
+                _tx.stateID,
+                _tx.tokenType
+            );
+    }
+
+    function create_decode(bytes memory txs, uint256 index)
+        public
         pure
         returns (Tx.CreateAccount memory)
     {
         return Tx.create_decode(txs, index);
     }
 
-    function create_hasExcessData(bytes calldata txs)
-        external
-        pure
-        returns (bool)
-    {
+    function create_hasExcessData(bytes memory txs) public pure returns (bool) {
         return txs.create_hasExcessData();
     }
 
-    function create_size(bytes calldata txs) external pure returns (uint256) {
+    function create_size(bytes memory txs) public pure returns (uint256) {
         return txs.create_size();
     }
 
-    function create_accountIdOf(bytes calldata txs, uint256 index)
-        external
+    function create_accountIdOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.create_accountIdOf(index);
     }
 
-    function create_stateIdOf(bytes calldata txs, uint256 index)
-        external
+    function create_stateIdOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.create_stateIdOf(index);
     }
 
-    function create_tokenOf(bytes calldata txs, uint256 index)
-        external
+    function create_tokenOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.create_tokenOf(index);
     }
 
-    function create_hashOf(bytes calldata txs, uint256 index)
-        external
+    function burnConsent_bytesFromEncoded(Types.BurnConsent memory _tx)
+        public
         pure
-        returns (bytes32)
+        returns (bytes memory)
     {
-        return txs.create_hashOf(index);
+        return
+            abi.encode(
+                Types.Usage.BurnConsent,
+                _tx.fromIndex,
+                _tx.amount,
+                _tx.nonce,
+                _tx.signature
+            );
     }
 
-    function burnConsent_serialize(Tx.BurnConsent[] calldata txs)
-        external
+    function burnConsent_serializeFromEncoded(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.burnConsent_serializeFromEncoded(txs);
+    }
+
+    function burnConsent_serialize(Tx.BurnConsent[] memory txs)
+        public
         pure
         returns (bytes memory)
     {
         return Tx.serialize(txs);
     }
 
-    function burnConsent_decode(bytes calldata txs, uint256 index)
-        external
+    function burnConsent_decode(bytes memory txs, uint256 index)
+        public
         pure
         returns (Tx.BurnConsent memory)
     {
         return txs.burnConsent_decode(index);
     }
 
-    function burnConsent_hasExcessData(bytes calldata txs)
-        external
+    function burnConsent_hasExcessData(bytes memory txs)
+        public
         pure
         returns (bool)
     {
         return txs.burnConsent_hasExcessData();
     }
 
-    function burnConsent_size(bytes calldata txs)
-        external
-        pure
-        returns (uint256)
-    {
+    function burnConsent_size(bytes memory txs) public pure returns (uint256) {
         return txs.burnConsent_size();
     }
 
-    function burnConsent_stateIdOf(bytes calldata txs, uint256 index)
-        external
+    function burnConsent_fromIndexOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
-        return txs.burnConsent_stateIdOf(index);
+        return txs.burnConsent_fromIndexOf(index);
     }
 
-    function burnConsent_amountOf(bytes calldata txs, uint256 index)
-        external
+    function burnConsent_amountOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256)
     {
         return txs.burnConsent_amountOf(index);
     }
 
-    function burnConsent_nonceOf(bytes calldata txs, uint256 index)
-        external
+    function burnConsent_signatureOf(bytes memory txs, uint256 index)
+        public
         pure
-        returns (uint256)
+        returns (bytes memory)
     {
-        return txs.burnConsent_nonceOf(index);
+        return txs.burnConsent_signatureOf(index);
     }
 
-    function burnConsent_hashOf(bytes calldata txs, uint256 index)
-        external
+    function burnConsent_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) public pure returns (bytes32) {
+        return txs.burnConsent_messageOf(index, nonce);
+    }
+
+    function burnConsent_verify(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        address signer
+    ) public pure returns (bool) {
+        return txs.burnConsent_verify(index, nonce, signer);
+    }
+
+    function burnExecution_bytesFromEncoded(Types.BurnExecution memory _tx)
+        public
         pure
-        returns (bytes32)
+        returns (bytes memory)
     {
-        return txs.burnConsent_hashOf(index);
+        return abi.encode(Types.Usage.BurnExecution, _tx.fromIndex);
     }
 
-    function burnConsent_mapToPoint(bytes calldata txs, uint256 index)
-        external
-        view
-        returns (uint256[2] memory)
+    function burnExecution_serializeFromEncoded(bytes[] memory txs)
+        public
+        pure
+        returns (bytes memory)
     {
-        return txs.burnConsent_mapToPoint(index);
+        return Tx.burnExecution_serializeFromEncoded(txs);
     }
 
-    function burnExecution_serialize(Tx.BurnExecution[] calldata txs)
-        external
+    function burnExecution_serialize(Tx.BurnExecution[] memory txs)
+        public
         pure
         returns (bytes memory)
     {
         return Tx.serialize(txs);
     }
 
-    function burnExecution_hasExcessData(bytes calldata txs)
-        external
+    function burnExecution_hasExcessData(bytes memory txs)
+        public
         pure
         returns (bool)
     {
         return txs.burnExecution_hasExcessData();
     }
 
-    function burnExecution_size(bytes calldata txs)
-        external
+    function burnExecution_size(bytes memory txs)
+        public
         pure
         returns (uint256)
     {
         return txs.burnExecution_size();
     }
 
-    function burnExecution_stateIdOf(bytes calldata txs, uint256 index)
-        external
+    function burnExecution_fromIndexOf(bytes memory txs, uint256 index)
+        public
         pure
         returns (uint256 sender)
     {
-        return txs.burnExecution_stateIdOf(index);
-    }
-
-    function burnExecution_hashOf(bytes calldata txs, uint256 index)
-        external
-        pure
-        returns (bytes32 result)
-    {
-        return txs.burnExecution_hashOf(index);
+        return txs.burnExecution_fromIndexOf(index);
     }
 }

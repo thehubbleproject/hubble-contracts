@@ -1,16 +1,30 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { StakingAmountString } from "./constants";
-import { Account, Transaction, Usage, Dispute, Wallet } from "./interfaces";
+import {
+    Account,
+    Transaction,
+    Usage,
+    Wallet,
+    AccountMerkleProof,
+    PDAMerkleProof,
+    ProcessTxResult,
+    AccountProofs,
+    ApplyTxResult,
+    ApplyTxOffchainResult,
+    GovConstants
+} from "./interfaces";
+import { StateStore } from "./store";
 const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const ParamManager = artifacts.require("ParamManager");
 const nameRegistry = artifacts.require("NameRegistry");
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
-const Transfer = artifacts.require("Transfer");
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
+const RollupReddit = artifacts.require("RollupReddit");
+const IMT = artifacts.require("IncrementalTree");
+const Governance = artifacts.require("Governance");
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -60,46 +74,12 @@ export async function createLeaf(accountAlias: any) {
     return await CreateAccountLeaf(account);
 }
 
-export async function BytesFromTx(
-    from: number,
-    to: number,
-    token: number,
-    amount: number,
-    type: number,
-    nonce: number
-) {
-    var rollupUtils = await RollupUtils.deployed();
-    var tx = {
-        fromIndex: from,
-        toIndex: to,
-        tokenType: token,
-        nonce: nonce,
-        txType: type,
-        amount: amount,
-        signature: ""
-    };
-    var result = await rollupUtils.BytesFromTx(tx);
-    return result;
-}
-
-export async function HashFromTx(
-    from: number,
-    to: number,
-    token: number,
-    amount: number,
-    type: number,
-    nonce: number
-) {
-    var data = await BytesFromTx(from, to, token, amount, type, nonce);
-    return Hash(data);
-}
-
 // returns parent node hash given child node hashes
 // are structured in a way that the leaf are at index 0 and index increases layer by layer to root
 // for depth =2
 // defaultHashes[0] = leaves
 // defaultHashes[depth-1] = root
-export async function defaultHashes(depth: number) {
+export function defaultHashes(depth: number) {
     const zeroValue = 0;
     const hashes = [];
     hashes[0] = getZeroHash(zeroValue);
@@ -131,81 +111,39 @@ export async function getMerkleTreeUtils() {
     return MerkleTreeUtils.at(merkleTreeUtilsAddr);
 }
 
-export async function getRollupUtils() {
-    var rollupUtils: any = await rollupUtils.deployed();
-    return rollupUtils;
-}
-
-export async function getMerkleRoot(dataLeaves: any, maxDepth: any) {
-    var nextLevelLength = dataLeaves.length;
-    var currentLevel = 0;
-    var nodes: any = dataLeaves.slice();
-    var defaultHashesForLeaves: any = defaultHashes(maxDepth);
-    // create a merkle root to see if this is valid
-    while (nextLevelLength > 1) {
-        currentLevel += 1;
-
-        // Calculate the nodes for the currentLevel
-        for (var i = 0; i < nextLevelLength / 2; i++) {
-            nodes[i] = getParentLeaf(nodes[i * 2], nodes[i * 2 + 1]);
+export async function getMerkleRootFromLeaves(
+    dataLeaves: string[],
+    maxDepth: number
+) {
+    let nodes: string[] = dataLeaves.slice();
+    const defaultHashesForLeaves: string[] = defaultHashes(maxDepth);
+    let odd = nodes.length & 1;
+    let n = (nodes.length + 1) >> 1;
+    let level = 0;
+    while (true) {
+        let i = 0;
+        for (; i < n - odd; i++) {
+            let j = i << 1;
+            nodes[i] = getParentLeaf(nodes[j], nodes[j + 1]);
         }
-        nextLevelLength = nextLevelLength / 2;
-        // Check if we will need to add an extra node
-        if (nextLevelLength % 2 == 1 && nextLevelLength != 1) {
-            nodes[nextLevelLength] = defaultHashesForLeaves[currentLevel];
-            nextLevelLength += 1;
+        if (odd == 1) {
+            nodes[i] = getParentLeaf(
+                nodes[i << 1],
+                defaultHashesForLeaves[level]
+            );
         }
+        if (n == 1) {
+            break;
+        }
+        odd = n & 1;
+        n = (n + 1) >> 1;
+        level += 1;
     }
     return nodes[0];
 }
 
-export async function genMerkleRootFromSiblings(
-    siblings: any,
-    path: string,
-    leaf: string
-) {
-    var computedNode: any = leaf;
-    var splitPath = path.split("");
-    for (var i = 0; i < siblings.length; i++) {
-        var sibling = siblings[i];
-        if (splitPath[splitPath.length - i - 1] == "0") {
-            computedNode = getParentLeaf(computedNode, sibling);
-        } else {
-            computedNode = getParentLeaf(sibling, computedNode);
-        }
-    }
-    return computedNode;
-}
-
 export async function getTokenRegistry() {
     return TokenRegistry.deployed();
-}
-
-export async function compressTx(
-    from: number,
-    to: number,
-    nonce: number,
-    amount: number,
-    token: number,
-    sig: any
-) {
-    var rollupUtils = await RollupUtils.deployed();
-    var tx = {
-        txType: Usage.Transfer,
-        fromIndex: from,
-        toIndex: to,
-        tokenType: token,
-        nonce: nonce,
-        amount: amount,
-        signature: sig
-    };
-
-    // TODO find out why this fails
-    // await rollupUtils.CompressTx(tx);
-
-    var message = await TxToBytes(tx);
-    var result = await rollupUtils.CompressTxWithMessage(message, tx.signature);
-    return result;
 }
 
 export function sign(signBytes: string, wallet: Wallet) {
@@ -220,7 +158,6 @@ export async function signTx(tx: Transaction, wallet: Wallet) {
         tx.txType,
         tx.fromIndex,
         tx.toIndex,
-        tx.tokenType,
         tx.nonce,
         tx.amount
     );
@@ -240,36 +177,26 @@ export async function TxToBytes(tx: Transaction) {
     return txBytes;
 }
 
-export async function falseProcessTx(_tx: any, accountProofs: any) {
-    const transferInstance = await Transfer.deployed();
-    const _to_merkle_proof = accountProofs.to;
-    const new_to_txApply = await transferInstance.ApplyTx(
-        _to_merkle_proof,
-        _tx
-    );
-    return new_to_txApply.newRoot;
-}
-
 export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
-    const rollupCoreInstance = await RollupCore.deployed();
-    const compressedTx = await compressTx(
-        tx.fromIndex,
-        tx.toIndex,
-        tx.nonce,
-        tx.amount,
-        tx.tokenType,
+    const RollupUtilsInstance = await RollupUtils.deployed();
+    const txBytes = await TxToBytes(tx);
+    const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
+        txBytes,
         tx.signature
     );
-
-    const compressedTxs = [compressedTx];
-
-    // submit batch for that transactions
-    await rollupCoreInstance.submitBatch(
-        compressedTxs,
-        newRoot,
-        Usage.Transfer,
-        { value: StakingAmountString }
-    );
+    await submitBatch(compressedTxs, newRoot, Usage.Transfer);
+}
+export async function submitBatch(
+    compressedTxs: string,
+    newRoot: string,
+    usage: Usage
+) {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const govInstance = await Governance.deployed();
+    const stakeAmount = (await govInstance.STAKE_AMOUNT()).toString();
+    await rollupCoreInstance.submitBatch(compressedTxs, newRoot, usage, {
+        value: stakeAmount
+    });
 }
 
 export async function registerToken(wallet: Wallet) {
@@ -312,12 +239,131 @@ export async function getBatchId() {
     return Number(batchLength) - 1;
 }
 
-export async function disputeBatch(dispute: Dispute) {
+export async function disputeBatch(
+    compressedTxs: string,
+    accountProofs: AccountProofs[],
+    pdaProof: PDAMerkleProof[],
+    _batchId?: number
+) {
     const rollupCoreInstance = await RollupCore.deployed();
-    await rollupCoreInstance.disputeBatch(
-        dispute.batchId,
-        dispute.txs,
-        dispute.signatures,
-        dispute.batchProofs
+    const batchId = _batchId ? _batchId : await getBatchId();
+    const batchProofs = {
+        accountProofs,
+        pdaProof
+    };
+    await rollupCoreInstance.disputeBatch(batchId, compressedTxs, batchProofs);
+}
+
+export async function disputeTransferBatch(
+    transactions: Transaction[],
+    accountProofs: AccountProofs[],
+    pdaProof: PDAMerkleProof[],
+    _batchId?: number
+) {
+    const rollupUtilsInstance = await RollupUtils.deployed();
+    const encodedTxs: string[] = [];
+    for (const tx of transactions) {
+        encodedTxs.push(await TxToBytes(tx));
+    }
+    const sigs = transactions.map(tx => tx.signature);
+    const compressedTxs = await rollupUtilsInstance.CompressManyTransferFromEncoded(
+        encodedTxs,
+        sigs
     );
+    await disputeBatch(compressedTxs, accountProofs, pdaProof, _batchId);
+}
+
+export async function ApplyTransferTx(
+    encodedTx: string,
+    merkleProof: AccountMerkleProof
+): Promise<ApplyTxResult> {
+    const rollupRedditInstance = await RollupReddit.deployed();
+    const result = await rollupRedditInstance.ApplyTransferTx(
+        merkleProof,
+        encodedTx
+    );
+    const newState = await AccountFromBytes(result[0]);
+    const newStateRoot = result[1];
+    return {
+        newState,
+        newStateRoot
+    };
+}
+
+export async function processTransferTx(
+    tx: Transaction,
+    alicePDAProof: PDAMerkleProof,
+    accountProofs: AccountProofs
+): Promise<ProcessTxResult> {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const rollupRedditInstance = await RollupReddit.deployed();
+    const IMTInstance = await IMT.deployed();
+
+    const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    const accountRoot = await IMTInstance.getTreeRoot();
+    const txByte = await TxToBytes(tx);
+
+    const result = await rollupRedditInstance.processTransferTx(
+        currentRoot,
+        accountRoot,
+        tx.signature,
+        txByte,
+        alicePDAProof,
+        accountProofs
+    );
+
+    return {
+        newStateRoot: result[0],
+        error: Number(result[3])
+    };
+}
+
+// Side effects on stateStore! It updates the state root in stateStore
+export async function processTransferTxOffchain(
+    stateStore: StateStore,
+    tx: Transaction
+): Promise<ApplyTxOffchainResult> {
+    const txByte = await TxToBytes(tx);
+    const fromAccountMP = await stateStore.getAccountMerkleProof(tx.fromIndex);
+    const fromResult = await ApplyTransferTx(txByte, fromAccountMP);
+    await stateStore.update(tx.fromIndex, fromResult.newState);
+
+    const toAccountMP = await stateStore.getAccountMerkleProof(tx.toIndex);
+    const toResult = await ApplyTransferTx(txByte, toAccountMP);
+    await stateStore.update(tx.toIndex, toResult.newState);
+    return {
+        accountProofs: {
+            from: fromAccountMP,
+            to: toAccountMP
+        },
+        newStateRoot: toResult.newStateRoot
+    };
+}
+
+export async function getGovConstants(): Promise<GovConstants> {
+    const govInstance = await Governance.deployed();
+    const MAX_DEPTH = Number(await govInstance.MAX_DEPTH());
+    const MAX_TXS_PER_BATCH = Number(await govInstance.MAX_TXS_PER_BATCH());
+    const STAKE_AMOUNT = (await govInstance.STAKE_AMOUNT()).toString();
+    return {
+        MAX_DEPTH,
+        STAKE_AMOUNT,
+        MAX_TXS_PER_BATCH
+    };
+}
+
+export async function logEstimate(compressedTxs: string, usage: Usage) {
+    const rollupCoreInstance = await RollupCore.deployed();
+    const govConstants = await getGovConstants();
+    const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+    const gasEstimation = await rollupCoreInstance.submitBatch.estimateGas(
+        compressedTxs,
+        balanceRoot,
+        usage,
+        {
+            value: govConstants.STAKE_AMOUNT
+        }
+    );
+    console.log("submitBatch for", Usage[usage], "use", gasEstimation, "gas");
+    console.log("compressedTxs size:", (compressedTxs.length - 2) / 2, "bytes");
 }

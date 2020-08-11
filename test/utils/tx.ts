@@ -1,11 +1,13 @@
 import * as mcl from "./mcl";
 import { Tree } from "./tree";
+import { sign } from "../../scripts/helpers/utils";
 
 const amountLen = 4;
 const accountIDLen = 4;
 const stateIDLen = 4;
 const tokenLen = 2;
 const nonceLen = 4;
+const signatureLen = 65;
 
 function log2(n: number) {
     return Math.ceil(Math.log2(n));
@@ -40,51 +42,58 @@ export class TxTransfer {
         );
         const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
         const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-        return new TxTransfer(sender, receiver, amount, nonce);
+        const signature = web3.utils.randomHex(signatureLen);
+        return new TxTransfer(sender, receiver, amount, nonce, signature);
     }
     constructor(
-        public readonly senderID: number,
-        public readonly receiverID: number,
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
         public readonly amount: number,
-        public readonly nonce: number
+        public readonly nonce: number,
+        public signature: string
     ) {}
 
     public hash(): string {
         return web3.utils.soliditySha3(
-            { v: this.senderID, t: "uint32" },
-            { v: this.receiverID, t: "uint32" },
-            { v: this.amount, t: "uint32" },
-            { v: this.nonce, t: "uint32" }
+            { v: this.fromIndex, t: "uint256" },
+            { v: this.toIndex, t: "uint256" },
+            { v: this.amount, t: "uint256" },
+            { v: this.nonce, t: "uint256" }
         );
     }
 
-    public mapToPoint() {
-        const e = this.hash();
-        return mcl.g1ToHex(mcl.mapToPoint(e));
+    public extended() {
+        return {
+            fromIndex: this.fromIndex,
+            toIndex: this.toIndex,
+            amount: this.amount,
+            signature: this.signature,
+            nonce: this.nonce,
+            tokenType: 0,
+            txType: 0
+        };
     }
 
     public encode(prefix: boolean = false): string {
-        let sender = web3.utils.padLeft(
-            web3.utils.toHex(this.senderID),
+        let fromIndex = web3.utils.padLeft(
+            web3.utils.toHex(this.fromIndex),
             stateIDLen * 2
         );
-        let receiver = web3.utils.padLeft(
-            web3.utils.toHex(this.receiverID),
+        let toIndex = web3.utils.padLeft(
+            web3.utils.toHex(this.toIndex),
             stateIDLen * 2
         );
         let amount = web3.utils.padLeft(
             web3.utils.toHex(this.amount),
             amountLen * 2
         );
-        let nonce = web3.utils.padLeft(
-            web3.utils.toHex(this.nonce),
-            nonceLen * 2
-        );
+        let signature = this.signature;
+
         let encoded =
-            sender.slice(2) +
-            receiver.slice(2) +
+            fromIndex.slice(2) +
+            toIndex.slice(2) +
             amount.slice(2) +
-            nonce.slice(2);
+            signature.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
@@ -119,6 +128,15 @@ export class TxCreate {
         );
     }
 
+    public extended() {
+        return {
+            accountID: this.accountID,
+            stateID: this.stateID,
+            tokenType: this.tokenType,
+            txType: 0
+        };
+    }
+
     public encode(prefix: boolean = false): string {
         let accountID = web3.utils.padLeft(
             web3.utils.toHex(this.accountID),
@@ -143,46 +161,49 @@ export class TxCreate {
 
 export class TxBurnConsent {
     public static rand(): TxBurnConsent {
-        const stateID = web3.utils.hexToNumber(
+        const fromIndex = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
         );
         const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
         const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-        return new TxBurnConsent(stateID, amount, nonce);
+        const signature = web3.utils.randomHex(signatureLen);
+        return new TxBurnConsent(fromIndex, amount, nonce, signature);
     }
     constructor(
-        public readonly stateID: number,
+        public readonly fromIndex: number,
         public readonly amount: number,
-        public readonly nonce: number
+        public readonly nonce: number,
+        public signature: string
     ) {}
 
     public hash(): string {
         return web3.utils.soliditySha3(
-            { v: this.stateID, t: "uint32" },
-            { v: this.amount, t: "uint32" },
-            { v: this.nonce, t: "uint32" }
+            { v: this.fromIndex, t: "uint32" },
+            { v: this.amount, t: "uint32" }
         );
     }
 
-    public mapToPoint() {
-        const e = this.hash();
-        return mcl.g1ToHex(mcl.mapToPoint(e));
+    public extended() {
+        return {
+            txType: 0,
+            fromIndex: this.fromIndex,
+            amount: this.amount,
+            nonce: this.nonce,
+            signature: this.signature
+        };
     }
 
     public encode(prefix: boolean = false): string {
-        let stateID = web3.utils.padLeft(
-            web3.utils.toHex(this.stateID),
+        let fromIndex = web3.utils.padLeft(
+            web3.utils.toHex(this.fromIndex),
             stateIDLen * 2
         );
         let amount = web3.utils.padLeft(
             web3.utils.toHex(this.amount),
             amountLen * 2
         );
-        let nonce = web3.utils.padLeft(
-            web3.utils.toHex(this.nonce),
-            amountLen * 2
-        );
-        let encoded = stateID.slice(2) + amount.slice(2) + nonce.slice(2);
+        let signature = this.signature;
+        let encoded = fromIndex.slice(2) + amount.slice(2) + signature.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
@@ -192,106 +213,30 @@ export class TxBurnConsent {
 
 export class TxBurnExecution {
     public static rand(): TxBurnExecution {
-        const stateID = web3.utils.hexToNumber(
+        const fromIndex = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
         );
-        return new TxBurnExecution(stateID);
+        return new TxBurnExecution(fromIndex);
     }
-    constructor(public readonly stateID: number) {}
+    constructor(public readonly fromIndex: number) {}
 
     public hash(): string {
-        return web3.utils.soliditySha3({ v: this.stateID, t: "uint32" });
+        return web3.utils.soliditySha3({ v: this.fromIndex, t: "uint32" });
+    }
+
+    public extended() {
+        return {
+            txType: 0,
+            fromIndex: this.fromIndex
+        };
     }
 
     public encode(prefix: boolean = false): string {
-        let stateID = web3.utils.padLeft(
-            web3.utils.toHex(this.stateID),
+        let fromIndex = web3.utils.padLeft(
+            web3.utils.toHex(this.fromIndex),
             stateIDLen * 2
         );
-        let encoded = stateID.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-        return encoded;
-    }
-}
-
-export class TxAirdropReceiver {
-    public static rand(): TxAirdropReceiver {
-        const receiverID = web3.utils.hexToNumber(
-            web3.utils.randomHex(stateIDLen)
-        );
-        const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
-        return new TxAirdropReceiver(receiverID, amount);
-    }
-    constructor(
-        public readonly receiverID: number,
-        public readonly amount: number
-    ) {}
-
-    public hash(): string {
-        return web3.utils.soliditySha3(
-            { v: this.receiverID, t: "uint32" },
-            { v: this.amount, t: "uint32" }
-        );
-    }
-
-    public encode(prefix: boolean = false): string {
-        let receiverID = web3.utils.padLeft(
-            web3.utils.toHex(this.receiverID),
-            stateIDLen * 2
-        );
-        let amount = web3.utils.padLeft(
-            web3.utils.toHex(this.amount),
-            amountLen * 2
-        );
-        let encoded = receiverID.slice(2) + amount.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-        return encoded;
-    }
-}
-
-export class TxAirdropSender {
-    public static rand(): TxAirdropSender {
-        const accountID = web3.utils.hexToNumber(
-            web3.utils.randomHex(accountIDLen)
-        );
-        const stateID = web3.utils.hexToNumber(
-            web3.utils.randomHex(stateIDLen)
-        );
-        const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-        return new TxAirdropSender(accountID, stateID, nonce);
-    }
-    constructor(
-        public readonly accountID: number,
-        public readonly stateID: number,
-        public readonly nonce: number
-    ) {}
-
-    public hash(): string {
-        return web3.utils.soliditySha3(
-            { v: this.accountID, t: "uint32" },
-            { v: this.stateID, t: "uint32" },
-            { v: this.nonce, t: "uint32" }
-        );
-    }
-
-    public encode(prefix: boolean = false): string {
-        let accountID = web3.utils.padLeft(
-            web3.utils.toHex(this.accountID),
-            stateIDLen * 2
-        );
-        let stateID = web3.utils.padLeft(
-            web3.utils.toHex(this.stateID),
-            stateIDLen * 2
-        );
-        let nonce = web3.utils.padLeft(
-            web3.utils.toHex(this.nonce),
-            amountLen * 2
-        );
-        let encoded = accountID.slice(2) + stateID.slice(2) + nonce.slice(2);
+        let encoded = fromIndex.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }

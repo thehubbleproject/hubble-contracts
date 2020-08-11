@@ -53,24 +53,10 @@ contract CreateAccount is FraudProofHelpers {
         return pubkeyIDs;
     }
 
-    function generateTxRoot(Types.CreateAccount[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressCreateAccount(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     function processCreateAccountBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txBytes,
+        bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -82,18 +68,12 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        Types.CreateAccount[] memory _txs = new Types.CreateAccount[](
-            _txBytes.length
-        );
-        for (uint256 i = 0; i < _txBytes.length; i++) {
-            _txs[i] = RollupUtils.CreateAccountFromBytes(_txBytes[i]);
-        }
+        uint256 length = txs.create_size();
 
-        bytes32 actualTxRoot = generateTxRoot(_txs);
-        // if there is an expectation set, revert if it's not met
-        if (expectedTxRoot == ZERO_BYTES32) {
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
+        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
+            txs.create_toLeafs()
+        );
+        if (expectedTxRoot != ZERO_BYTES32) {
             require(
                 actualTxRoot == expectedTxRoot,
                 "Invalid dispute, tx root doesn't match"
@@ -101,33 +81,34 @@ contract CreateAccount is FraudProofHelpers {
         }
 
         bool isTxValid;
-        {
-            for (uint256 i = 0; i < _txs.length; i++) {
-                // call process tx update for every transaction to check if any
-                // tx evaluates correctly
-                (stateRoot, , , isTxValid) = processCreateAccountTx(
-                    stateRoot,
-                    accountsRoot,
-                    _txs[i],
-                    batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i].to
-                );
+        for (uint256 i = 0; i < length; i++) {
+            // call process tx update for every transaction to check if any
+            // tx evaluates correctly
+            (stateRoot, , , isTxValid) = processCreateAccountTx(
+                stateRoot,
+                accountsRoot,
+                txs,
+                i,
+                batchProofs.pdaProof[i],
+                batchProofs.accountProofs[i].to
+            );
 
-                if (!isTxValid) {
-                    break;
-                }
+            if (!isTxValid) {
+                break;
             }
         }
+
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.CreateAccount memory _tx
+        bytes memory txs,
+        uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account;
-        account.ID = _tx.accountID;
-        account.tokenType = _tx.tokenType;
+        account.ID = txs.create_accountIdOf(i);
+        account.tokenType = txs.create_tokenOf(i);
         account.balance = 0;
         account.nonce = 0;
         account.burn = 0;
@@ -141,7 +122,8 @@ contract CreateAccount is FraudProofHelpers {
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.CreateAccount memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
@@ -155,10 +137,21 @@ contract CreateAccount is FraudProofHelpers {
         )
     {
         // Assuming Reddit have run createPublickeys
-        ValidatePubkeyAvailability(_accountsRoot, _to_pda_proof, _tx.accountID);
+        ValidatePubkeyAvailability(
+            _accountsRoot,
+            _to_pda_proof,
+            txs.create_accountIdOf(i)
+        );
 
-        if (to_account_proof.accountIP.pathToAccount != _tx.stateID) {
+        if (
+            to_account_proof.accountIP.pathToAccount != txs.create_stateIdOf(i)
+        ) {
             return ("", "", Types.ErrorCode.NotOnDesignatedStateLeaf, false);
+        }
+        if (
+            tokenRegistry.registeredTokens(txs.create_tokenOf(i)) == address(0)
+        ) {
+            return ("", "", Types.ErrorCode.InvalidTokenAddress, false);
         }
 
         // Validate we are creating on a zero account
@@ -175,7 +168,8 @@ contract CreateAccount is FraudProofHelpers {
 
         (createdAccountBytes, newRoot) = ApplyCreateAccountTx(
             to_account_proof,
-            _tx
+            txs,
+            i
         );
 
         return (newRoot, createdAccountBytes, Types.ErrorCode.NoError, true);

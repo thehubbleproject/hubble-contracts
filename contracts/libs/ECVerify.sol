@@ -6,6 +6,31 @@ library ECVerify {
         pure
         returns (address)
     {
+        return _ecrecovery(hash, sig);
+    }
+
+    function ecrecovery(
+        bytes32 hash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public pure returns (address) {
+        return _ecrecovery(hash, v, r, s);
+    }
+
+    function ecverify(
+        bytes32 hash,
+        bytes memory sig,
+        address signer
+    ) public pure returns (bool) {
+        return _ecverify(hash, sig, signer);
+    }
+
+    function _ecrecovery(bytes32 hash, bytes memory sig)
+        internal
+        pure
+        returns (address)
+    {
         bytes32 r;
         bytes32 s;
         uint8 v;
@@ -38,12 +63,12 @@ library ECVerify {
         return result;
     }
 
-    function ecrecovery(
+    function _ecrecovery(
         bytes32 hash,
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public pure returns (address) {
+    ) internal pure returns (address) {
         // get address out of hash and signature
         address result = ecrecover(hash, v, r, s);
 
@@ -53,11 +78,11 @@ library ECVerify {
         return result;
     }
 
-    function ecverify(
+    function _ecverify(
         bytes32 hash,
         bytes memory sig,
         address signer
-    ) public pure returns (bool) {
+    ) internal pure returns (bool) {
         return signer == ecrecovery(hash, sig);
     }
 }

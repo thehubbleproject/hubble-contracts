@@ -13,13 +13,15 @@ interface IReddit {
 
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.CreateAccount calldata _tx
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory, bytes32 newRoot);
 
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.CreateAccount calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _to_pda_proof,
         Types.AccountMerkleProof calldata to_account_proof
     )
@@ -38,13 +40,15 @@ interface IReddit {
 
     function ApplyAirdropTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.DropTx calldata _transaction
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory, bytes32);
 
     function processAirdropTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.DropTx calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
@@ -64,13 +68,15 @@ interface IReddit {
 
     function ApplyTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.Transaction calldata transaction
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory, bytes32 newRoot);
 
     function processTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.Transaction calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
@@ -90,13 +96,15 @@ interface IReddit {
 
     function ApplyBurnConsentTx(
         Types.AccountMerkleProof calldata _merkle_proof,
-        Types.BurnConsent calldata _tx
+        bytes calldata txs,
+        uint256 i
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.BurnConsent calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountMerkleProof calldata _fromAccountProof
     )
@@ -114,13 +122,13 @@ interface IReddit {
     //
 
     function ApplyBurnExecutionTx(
-        Types.AccountMerkleProof calldata _merkle_proof,
-        Types.BurnExecution calldata _tx
+        Types.AccountMerkleProof calldata _merkle_proof
     ) external view returns (bytes memory updatedAccount, bytes32 newRoot);
 
     function processBurnExecutionTx(
         bytes32 _balanceRoot,
-        Types.BurnExecution calldata _tx,
+        bytes calldata txs,
+        uint256 i,
         Types.AccountMerkleProof calldata _fromAccountProof
     )
         external
@@ -135,7 +143,7 @@ interface IReddit {
     function processCreateAccountBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
+        bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
@@ -150,8 +158,7 @@ interface IReddit {
     function processAirdropBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
-        bytes[] calldata signatures,
+        bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
@@ -166,8 +173,7 @@ interface IReddit {
     function processTransferBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
-        bytes[] calldata signatures,
+        bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
@@ -182,8 +188,7 @@ interface IReddit {
     function processBurnConsentBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
-        bytes[] calldata signatures,
+        bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )
@@ -198,7 +203,7 @@ interface IReddit {
     function processBurnExecutionBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] calldata _txs,
+        bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
     )

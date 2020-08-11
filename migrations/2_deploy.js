@@ -1,6 +1,6 @@
 const fs = require("fs");
 var argv = require("minimist")(process.argv.slice(2));
-
+const { ethers } = require("ethers");
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
@@ -149,7 +149,6 @@ async function deploy(deployer) {
     );
 
     const root = await getMerkleRootWithCoordinatorAccount(max_depth);
-
     // deploy deposit manager
     const depositManagerInstance = await deployAndRegister(
         deployer,
@@ -193,7 +192,8 @@ async function deploy(deployer) {
         BurnExecution: burnExecutionInstance.address,
         RollupReddit: rollupRedditInstance.address,
         TokenRegistry: tokenRegistryInstance.address,
-        TestToken: testTokenInstance.address
+        TestToken: testTokenInstance.address,
+        Governance: governanceInstance.address
     };
 
     writeContractAddresses(contractAddresses);
@@ -219,12 +219,13 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
         dataLeaves.length
     );
     var numberOfDataLeaves = 2 ** maxSize;
+
     // create empty leaves
     for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
     MTUtilsInstance = await merkleTreeUtilsContract.deployed();
-    var result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
+    const result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
     console.log("result", result);
     return result;
 }
@@ -232,7 +233,6 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
 async function deployAndRegister(deployer, contract, libs, args, name) {
     var nameRegistryInstance = await nameRegistryContract.deployed();
     var paramManagerInstance = await paramManagerLib.deployed();
-
     for (let i = 0; i < libs.length; i++) {
         await deployer.link(libs[i], contract);
     }

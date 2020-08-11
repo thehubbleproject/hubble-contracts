@@ -51,9 +51,10 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.CreateAccount memory transaction = RollupUtils
-            .CreateAccountFromBytes(txBytes);
-        return createAccount.ApplyCreateAccountTx(_merkle_proof, transaction);
+        bytes memory txs = RollupUtils.CompressCreateAccountFromEncoded(
+            txBytes
+        );
+        return createAccount.ApplyCreateAccountTx(_merkle_proof, txs, 0);
     }
 
     function processCreateAccountTx(
@@ -72,14 +73,15 @@ contract RollupReddit {
             bool
         )
     {
-        Types.CreateAccount memory _tx = RollupUtils.CreateAccountFromBytes(
+        bytes memory txs = RollupUtils.CompressCreateAccountFromEncoded(
             txBytes
         );
         return
             createAccount.processCreateAccountTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _to_pda_proof,
                 to_account_proof
             );
@@ -93,8 +95,12 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.DropTx memory transaction = RollupUtils.AirdropFromBytes(txBytes);
-        return airdrop.ApplyAirdropTx(_merkle_proof, transaction);
+        bytes memory emptySig = new bytes(65);
+        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(
+            txBytes,
+            emptySig
+        );
+        return airdrop.ApplyAirdropTx(_merkle_proof, txs, 0);
     }
 
     function processAirdropTx(
@@ -115,13 +121,14 @@ contract RollupReddit {
             bool
         )
     {
-        Types.DropTx memory _tx = RollupUtils.AirdropFromBytes(txBytes);
-        _tx.signature = sig;
+        bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes, sig);
+        // Validate ECDSA sig
         return
             airdrop.processAirdropTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _from_pda_proof,
                 accountProofs
             );
@@ -135,8 +142,12 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Types.Transaction memory transaction = RollupUtils.TxFromBytes(txBytes);
-        return transfer.ApplyTx(_merkle_proof, transaction);
+        bytes memory emptySig = new bytes(65);
+        bytes memory txs = RollupUtils.CompressTransferFromEncoded(
+            txBytes,
+            emptySig
+        );
+        return transfer.ApplyTx(_merkle_proof, txs, 0);
     }
 
     function processTransferTx(
@@ -157,13 +168,17 @@ contract RollupReddit {
             bool
         )
     {
-        Types.Transaction memory _tx = RollupUtils.TxFromBytes(txBytes);
-        _tx.signature = sig;
+        bytes memory txs = RollupUtils.CompressTransferFromEncoded(
+            txBytes,
+            sig
+        );
+        // Validate ECDSA sig
         return
             transfer.processTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _from_pda_proof,
                 accountProofs
             );
@@ -177,10 +192,12 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.BurnConsent memory transaction = RollupUtils.BurnConsentFromBytes(
-            txBytes
+        bytes memory emptySig = new bytes(65);
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
+            txBytes,
+            emptySig
         );
-        return burnConsent.ApplyBurnConsentTx(_merkle_proof, transaction);
+        return burnConsent.ApplyBurnConsentTx(_merkle_proof, txs, 0);
     }
 
     function processBurnConsentTx(
@@ -200,15 +217,16 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnConsent memory _tx = RollupUtils.BurnConsentFromBytes(
-            txBytes
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
+            txBytes,
+            sig
         );
-        _tx.signature = sig;
         return
             burnConsent.processBurnConsentTx(
                 _balanceRoot,
                 _accountsRoot,
-                _tx,
+                txs,
+                0,
                 _from_pda_proof,
                 _fromAccountProof
             );
@@ -218,13 +236,12 @@ contract RollupReddit {
     // Burn Execution
     //
 
-    function ApplyBurnExecutionTx(
-        Types.AccountMerkleProof memory _merkle_proof,
-        bytes memory txBytes
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.BurnExecution memory transaction = RollupUtils
-            .BurnExecutionFromBytes(txBytes);
-        return burnExecution.ApplyBurnExecutionTx(_merkle_proof, transaction);
+    function ApplyBurnExecutionTx(Types.AccountMerkleProof memory _merkle_proof)
+        public
+        view
+        returns (bytes memory updatedAccount, bytes32 newRoot)
+    {
+        return burnExecution.ApplyBurnExecutionTx(_merkle_proof);
     }
 
     function processBurnExecutionTx(
@@ -241,13 +258,14 @@ contract RollupReddit {
             bool
         )
     {
-        Types.BurnExecution memory _tx = RollupUtils.BurnExecutionFromBytes(
+        bytes memory txs = RollupUtils.CompressBurnExecutionFromEncoded(
             txBytes
         );
         return
             burnExecution.processBurnExecutionTx(
                 _balanceRoot,
-                _tx,
+                txs,
+                0,
                 _fromAccountProof
             );
     }
@@ -255,8 +273,7 @@ contract RollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txs,
-        bytes[] memory signatures,
+        bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot,
         Types.Usage batchType
@@ -274,7 +291,7 @@ contract RollupReddit {
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -283,8 +300,7 @@ contract RollupReddit {
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
-                    signatures,
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -293,8 +309,7 @@ contract RollupReddit {
                 transfer.processTransferBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
-                    signatures,
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -303,8 +318,7 @@ contract RollupReddit {
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
-                    signatures,
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );
@@ -313,7 +327,7 @@ contract RollupReddit {
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     accountsRoot,
-                    _txs,
+                    txs,
                     batchProofs,
                     expectedTxRoot
                 );

@@ -2,14 +2,14 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-
+import { Tx } from "./libs/Tx.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { ECVerify } from "./libs/ECVerify.sol";
+// import { ECVerify } from "./libs/ECVerify.sol";
 
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
@@ -17,7 +17,8 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 
 contract FraudProofSetup {
     using SafeMath for uint256;
-    using ECVerify for bytes32;
+    // using ECVerify for bytes32;
+    using Tx for bytes;
 
     MTUtils public merkleUtils;
     ITokenRegistry public tokenRegistry;
@@ -84,7 +85,7 @@ contract FraudProofHelpers is FraudProofSetup {
         );
     }
 
-    function _validateTxBasic(
+    function validateTxBasic(
         uint256 amount,
         Types.UserAccount memory _from_account
     ) public pure returns (Types.ErrorCode) {
@@ -104,24 +105,6 @@ contract FraudProofHelpers is FraudProofSetup {
         }
 
         return Types.ErrorCode.NoError;
-    }
-
-    function validateTxBasic(
-        Types.Transaction memory _tx,
-        Types.UserAccount memory _from_account
-    ) public view returns (Types.ErrorCode) {
-        // verify that tokens are registered
-        if (tokenRegistry.registeredTokens(_tx.tokenType) == address(0)) {
-            // invalid state transition
-            // to be slashed because the submitted transaction
-            // had invalid token type
-            return Types.ErrorCode.InvalidTokenAddress;
-        }
-        if (_tx.nonce != _from_account.nonce.add(1)) {
-            return Types.ErrorCode.BadNonce;
-        }
-
-        return _validateTxBasic(_tx.amount, _from_account);
     }
 
     function RemoveTokensFromAccount(
@@ -166,23 +149,17 @@ contract FraudProofHelpers is FraudProofSetup {
         return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 
-    /**
-     * @notice ApplyTx applies the transaction on the account. This is where
-     * people need to define the logic for the application
-     * @param _merkle_proof contains the siblings and path to the account
-     * @param transaction is the transaction that needs to be applied
-     * @return returns updated account and updated state root
-     * */
     function ApplyTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.Transaction memory transaction
+        bytes memory txs,
+        uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         return
             _ApplyTx(
                 _merkle_proof,
-                transaction.fromIndex,
-                transaction.toIndex,
-                transaction.amount
+                txs.transfer_fromIndexOf(i),
+                txs.transfer_toIndexOf(i),
+                txs.transfer_amountOf(i)
             );
     }
 
@@ -219,33 +196,5 @@ contract FraudProofHelpers is FraudProofSetup {
             _merkle_proof.siblings
         );
         return (newRoot);
-    }
-
-    function ValidateSignature(
-        Types.Transaction memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof
-    ) public pure returns (bool) {
-        require(
-            RollupUtils.calculateAddress(
-                _from_pda_proof._pda.pubkey_leaf.pubkey
-            ) ==
-                RollupUtils
-                    .getTxSignBytes(
-                    _tx
-                        .fromIndex,
-                    _tx
-                        .toIndex,
-                    _tx
-                        .tokenType,
-                    _tx
-                        .txType,
-                    _tx
-                        .nonce,
-                    _tx
-                        .amount
-                )
-                    .ecrecovery(_tx.signature),
-            "Signature is incorrect"
-        );
     }
 }

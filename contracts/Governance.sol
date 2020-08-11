@@ -36,7 +36,7 @@ contract Governance {
         return _MIN_GAS_LIMIT_LEFT;
     }
 
-    uint256 public _MAX_TXS_PER_BATCH = 10;
+    uint256 public _MAX_TXS_PER_BATCH = 32;
 
     function MAX_TXS_PER_BATCH() public view returns (uint256) {
         return _MAX_TXS_PER_BATCH;

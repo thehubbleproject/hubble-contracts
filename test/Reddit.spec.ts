@@ -1,5 +1,4 @@
 import * as utils from "../scripts/helpers/utils";
-import { ethers } from "ethers";
 import * as walletHelper from "../scripts/helpers/wallet";
 import {
     Usage,
@@ -10,16 +9,15 @@ import {
     BurnConsentTx,
     BurnExecutionTx,
     Transaction,
-    Dispute,
-    Wallet
+    Wallet,
+    GovConstants
 } from "../scripts/helpers/interfaces";
-import { PublicKeyStore, AccountStore } from "../scripts/helpers/store";
+import { PublicKeyStore, StateStore } from "../scripts/helpers/store";
 import {
     coordinatorPubkeyHash,
-    MAX_DEPTH,
     DummyAccountMP,
     DummyPDAMP,
-    StakingAmountString
+    DummyECDSASignature
 } from "../scripts/helpers/constants";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
@@ -40,13 +38,15 @@ contract("Reddit", async function() {
     let IMTInstance: any;
     let coordinator_leaves: string;
     let pubkeyStore: PublicKeyStore;
-    let accountStore: AccountStore;
+    let stateStore: StateStore;
+    let govConstants: GovConstants;
     before(async function() {
         depositManagerInstance = await DepositManager.deployed();
         rollupCoreInstance = await RollupCore.deployed();
         rollupRedditInstance = await RollupReddit.deployed();
         IMTInstance = await IMT.deployed();
         RollupUtilsInstance = await RollupUtils.deployed();
+        govConstants = await utils.getGovConstants();
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
         Reddit = {
             Wallet: wallets[0],
@@ -92,21 +92,22 @@ contract("Reddit", async function() {
             Bob.TokenType,
             Bob.Pubkey
         );
-        accountStore = new AccountStore(MAX_DEPTH);
+        stateStore = new StateStore(govConstants.MAX_DEPTH);
         coordinator_leaves = await RollupUtilsInstance.GetGenesisLeaves();
-        accountStore.insertHash(coordinator_leaves[0]);
-        accountStore.insertHash(coordinator_leaves[1]);
+        stateStore.insertHash(coordinator_leaves[0]);
+        stateStore.insertHash(coordinator_leaves[1]);
 
         const subtreeDepth = 1;
-        const _zero_account_mp = await accountStore.getSubTreeMerkleProof(
-            "001",
+        const position = stateStore.findEmptySubTreePosition(subtreeDepth);
+        const subtreeIsEmptyProof = await stateStore.getSubTreeMerkleProof(
+            position,
             subtreeDepth
         );
 
         await rollupCoreInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
-            _zero_account_mp,
-            { value: StakingAmountString }
+            subtreeIsEmptyProof,
+            { value: govConstants.STAKE_AMOUNT }
         );
         const RedditAccount: Account = {
             ID: Reddit.AccID,
@@ -126,10 +127,10 @@ contract("Reddit", async function() {
         };
 
         // Insert Reddit's and Bob's account after finaliseDepositsAndSubmitBatch
-        await accountStore.insert(RedditAccount);
-        await accountStore.insert(BobAccount);
+        await stateStore.insert(RedditAccount);
+        await stateStore.insert(BobAccount);
 
-        pubkeyStore = new PublicKeyStore(MAX_DEPTH);
+        pubkeyStore = new PublicKeyStore(govConstants.MAX_DEPTH);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertHash(coordinatorPubkeyHash);
         pubkeyStore.insertPublicKey(Reddit.Pubkey);
@@ -148,7 +149,7 @@ contract("Reddit", async function() {
         );
         assert.equal(userPubkeyIdOffchain.toString(), userPubkeyId.toString());
 
-        const userStateID = accountStore.nextEmptyIndex();
+        const userStateID = stateStore.nextEmptyIndex();
         const tx = {
             txType: Usage.CreateAccount,
             accountID: userPubkeyId,
@@ -162,7 +163,7 @@ contract("Reddit", async function() {
             tx.tokenType
         );
 
-        const newAccountMP = await accountStore.getAccountMerkleProof(
+        const newAccountMP = await stateStore.getAccountMerkleProof(
             userStateID,
             true
         );
@@ -171,7 +172,7 @@ contract("Reddit", async function() {
             txBytes
         );
         const createdAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(userStateID, createdAccount);
+        await stateStore.update(userStateID, createdAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -193,58 +194,45 @@ contract("Reddit", async function() {
         ];
         assert.equal(ErrorCode.NoError, errorCode.toNumber());
 
-        const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.accountID,
-            tx.stateID,
-            tx.tokenType
+        const compressedTxs = await RollupUtilsInstance.CompressManyCreateAccountFromEncoded(
+            [txBytes]
         );
-        await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
-
-        await rollupCoreInstance.submitBatch(
-            [compressedTx],
+        await utils.submitBatch(
+            compressedTxs,
             newBalanceRoot,
-            Usage.CreateAccount,
-            { value: StakingAmountString }
+            Usage.CreateAccount
         );
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: [txBytes],
-            signatures: [],
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: DummyAccountMP,
-                        to: newAccountMP
-                    }
-                ],
-                pdaProof: [userPDAProof]
+        const accountProofs = [
+            {
+                from: DummyAccountMP,
+                to: newAccountMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
+
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 
     it("Should Airdrop some token to the User", async function() {
-        const redditMP = await accountStore.getAccountMerkleProof(Reddit.AccID);
+        const redditMP = await stateStore.getAccountMerkleProof(Reddit.AccID);
         const tx = {
             txType: Usage.Airdrop,
             fromIndex: Reddit.AccID,
             toIndex: User.AccID,
             tokenType: 1,
-            nonce: redditMP.accountIP.account.nonce,
+            nonce: redditMP.accountIP.account.nonce + 1,
             amount: 10
         } as DropTx;
+
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
             tx.txType,
             tx.fromIndex,
             tx.toIndex,
-            tx.tokenType,
             tx.nonce,
             tx.amount
         );
@@ -265,15 +253,15 @@ contract("Reddit", async function() {
         const redditUpdatedAccount: Account = await utils.AccountFromBytes(
             resultFrom[0]
         );
-        await accountStore.update(Reddit.AccID, redditUpdatedAccount);
+        await stateStore.update(Reddit.AccID, redditUpdatedAccount);
 
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const resultTo = await rollupRedditInstance.ApplyAirdropTx(
             userMP,
             txBytes
         );
         const userUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -294,50 +282,41 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressAirdropNoStruct(
-            tx.toIndex,
-            tx.amount,
-            tx.signature
-        );
-        await RollupUtilsInstance.CompressAirdropTxWithMessage(
+        const resultBadSig = await rollupRedditInstance.processAirdropTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
             txBytes,
-            tx.signature
+            redditPDAProof,
+            { from: redditMP, to: userMP }
         );
-        await RollupUtilsInstance.DecompressAirdrop(compressedTx);
+        assert.equal(resultBadSig[3], ErrorCode.BadSignature);
 
-        await rollupCoreInstance.submitBatch(
-            [compressedTx],
-            newBalanceRoot,
-            Usage.Airdrop,
-            { value: StakingAmountString }
+        const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
+            [txBytes],
+            [tx.signature]
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        await utils.submitBatch(compressedTxs, newBalanceRoot, Usage.Airdrop);
 
-        // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: [txBytes],
-            signatures: [tx.signature],
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: redditMP,
-                        to: userMP
-                    }
-                ],
-                pdaProof: [redditPDAProof]
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
+
+        const accountProofs = [
+            {
+                from: redditMP,
+                to: userMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [
+            redditPDAProof
+        ]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
 
     it("let user transfer some token to Bob", async function() {
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const tx = {
             txType: Usage.Transfer,
             fromIndex: User.AccID,
@@ -350,7 +329,6 @@ contract("Reddit", async function() {
             tx.txType,
             tx.fromIndex,
             tx.toIndex,
-            tx.tokenType,
             tx.nonce,
             tx.amount
         );
@@ -369,18 +347,17 @@ contract("Reddit", async function() {
             txBytes
         );
         const userUpdatedAccount = await utils.AccountFromBytes(resultFrom[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
-        const bobMP = await accountStore.getAccountMerkleProof(Bob.AccID);
+        const bobMP = await stateStore.getAccountMerkleProof(Bob.AccID);
         const resultTo = await rollupRedditInstance.ApplyTransferTx(
             bobMP,
             txBytes
         );
         const bobUpdatedAccount = await utils.AccountFromBytes(resultTo[0]);
-        await accountStore.update(Bob.AccID, bobUpdatedAccount);
-
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
+        await stateStore.update(Bob.AccID, bobUpdatedAccount);
         const userPDAProof = await pubkeyStore.getPDAMerkleProof(User.Path);
 
         const resultProcessTx = await rollupRedditInstance.processTransferTx(
@@ -398,44 +375,39 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, resultTo[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
+        const resultBadSig = await rollupRedditInstance.processTransferTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
             txBytes,
-            tx.signature
+            userPDAProof,
+            { from: userMP, to: bobMP }
         );
-        await RollupUtilsInstance.DecompressTx(compressedTx);
+        assert.equal(resultBadSig[3], ErrorCode.BadSignature);
 
-        await rollupCoreInstance.submitBatch(
-            [compressedTx],
-            newBalanceRoot,
-            Usage.Transfer,
-            { value: StakingAmountString }
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            [txBytes],
+            [tx.signature]
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        await utils.submitBatch(compressedTxs, newBalanceRoot, Usage.Transfer);
+
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: [txBytes],
-            signatures: [tx.signature],
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: userMP,
-                        to: bobMP
-                    }
-                ],
-                pdaProof: [userPDAProof]
+        const accountProofs = [
+            {
+                from: userMP,
+                to: bobMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("lets user send burn consent", async function() {
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
         const tx = {
             txType: Usage.BurnConsent,
             fromIndex: User.AccID,
@@ -445,8 +417,8 @@ contract("Reddit", async function() {
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.txType,
             tx.fromIndex,
-            tx.amount,
-            tx.nonce
+            tx.nonce,
+            tx.amount
         );
         tx.signature = utils.sign(signBytes, User.Wallet);
         const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
@@ -462,7 +434,7 @@ contract("Reddit", async function() {
             txBytes
         );
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
         const accountRoot = await IMTInstance.getTreeRoot();
@@ -483,67 +455,57 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError);
         assert.equal(newBalanceRoot, result[1]);
 
-        const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
-            tx.fromIndex,
-            tx.amount,
-            tx.nonce,
-            tx.signature
+        const resultBadSig = await rollupRedditInstance.processBurnConsentTx(
+            balanceRoot,
+            accountRoot,
+            DummyECDSASignature,
+            txBytes,
+            userPDAProof,
+            userMP
         );
-        await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
+        assert.equal(resultBadSig[2], ErrorCode.BadSignature);
 
-        await rollupCoreInstance.submitBatch(
-            [compressedTx],
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
+            [txBytes],
+            [tx.signature]
+        );
+
+        await utils.submitBatch(
+            compressedTxs,
             newBalanceRoot,
-            Usage.BurnConsent,
-            { value: StakingAmountString }
+            Usage.BurnConsent
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: [txBytes],
-            signatures: [tx.signature],
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: userMP,
-                        to: DummyAccountMP
-                    }
-                ],
-                pdaProof: [userPDAProof]
+        const accountProofs = [
+            {
+                from: userMP,
+                to: DummyAccountMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+
+        await utils.disputeBatch(compressedTxs, accountProofs, [userPDAProof]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
     });
     it("lets Reddit to execute the burn", async function() {
-        const userMP = await accountStore.getAccountMerkleProof(User.AccID);
-        const tx = {
+        const userMP = await stateStore.getAccountMerkleProof(User.AccID);
+        const tx: BurnExecutionTx = {
             txType: Usage.BurnExecution,
             fromIndex: User.AccID
-        } as BurnExecutionTx;
-        const signBytes = await RollupUtilsInstance.BurnExecutionSignBytes(
-            tx.txType,
-            tx.fromIndex
-        );
-        tx.signature = utils.sign(signBytes, User.Wallet);
+        };
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
             tx.txType,
             tx.fromIndex
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
 
-        const result = await rollupRedditInstance.ApplyBurnExecutionTx(
-            userMP,
-            txBytes
-        );
+        const result = await rollupRedditInstance.ApplyBurnExecutionTx(userMP);
         const userUpdatedAccount = await utils.AccountFromBytes(result[0]);
-        await accountStore.update(User.AccID, userUpdatedAccount);
+        await stateStore.update(User.AccID, userUpdatedAccount);
 
         const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
 
@@ -559,39 +521,144 @@ contract("Reddit", async function() {
         assert.equal(errorCode, ErrorCode.NoError, "processTx returns error");
         assert.equal(newBalanceRoot, result[1], "mismatch balance root");
 
-        const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
-            tx.fromIndex
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded(
+            [txBytes]
         );
-        await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
-
-        await rollupCoreInstance.submitBatch(
-            [compressedTx],
+        await utils.submitBatch(
+            compressedTxs,
             newBalanceRoot,
-            Usage.BurnExecution,
-            { value: StakingAmountString }
+            Usage.BurnExecution
         );
 
-        assert.equal(newBalanceRoot, await accountStore.getRoot());
+        assert.equal(newBalanceRoot, await stateStore.getRoot());
 
         // Run disputeBatch with no fraud
-        const batchId = await utils.getBatchId();
-        const dispute: Dispute = {
-            batchId,
-            txs: [txBytes],
-            signatures: [],
-            batchProofs: {
-                accountProofs: [
-                    {
-                        from: userMP,
-                        to: DummyAccountMP
-                    }
-                ],
-                pdaProof: [DummyPDAMP]
+        const accountProofs = [
+            {
+                from: userMP,
+                to: DummyAccountMP
             }
-        };
-        await utils.disputeBatch(dispute);
+        ];
+        await utils.disputeBatch(compressedTxs, accountProofs, [DummyPDAMP]);
 
         const batchMarker = await rollupCoreInstance.invalidBatchMarker();
         assert.equal(batchMarker, "0", "batchMarker should be zero");
+    });
+    it("bench rollup CreateAccount", async function() {
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
+        const tx: CreateAccount = {
+            txType: Usage.CreateAccount,
+            accountID: 1,
+            stateID: 1,
+            tokenType: 1
+        };
+
+        const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
+            tx.txType,
+            tx.accountID,
+            tx.stateID,
+            tx.tokenType
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyCreateAccountFromEncoded(
+            Array(numTx).fill(txBytes)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.CreateAccount);
+    });
+
+    it("bench rollup Airdrop", async function() {
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
+        const tx: DropTx = {
+            txType: Usage.Airdrop,
+            fromIndex: 1,
+            toIndex: 1,
+            tokenType: 1,
+            nonce: 1,
+            amount: 10,
+            signature: DummyECDSASignature
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromAirdropNoStruct(
+            tx.txType,
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.nonce,
+            tx.amount
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
+            Array(numTx).fill(txBytes),
+            Array(numTx).fill(DummyECDSASignature)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.Airdrop);
+    });
+    it("bench rollup Transfer", async function() {
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
+        const tx: Transaction = {
+            txType: Usage.Transfer,
+            fromIndex: 1,
+            toIndex: 1,
+            tokenType: 1,
+            nonce: 1,
+            amount: 10,
+            signature: DummyECDSASignature
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
+            tx.txType,
+            tx.fromIndex,
+            tx.toIndex,
+            tx.tokenType,
+            tx.nonce,
+            tx.amount
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+            Array(numTx).fill(txBytes),
+            Array(numTx).fill(DummyECDSASignature)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.Transfer);
+    });
+    it("bench rollup BurnConsent", async function() {
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
+        const tx: BurnConsentTx = {
+            txType: Usage.BurnConsent,
+            fromIndex: 1,
+            nonce: 1,
+            amount: 10,
+            signature: DummyECDSASignature
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromBurnConsentNoStruct(
+            tx.txType,
+            tx.fromIndex,
+            tx.amount,
+            tx.nonce
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
+            Array(numTx).fill(txBytes),
+            Array(numTx).fill(DummyECDSASignature)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.BurnConsent);
+    });
+    it("bench rollup BurnExecution", async function() {
+        const numTx = govConstants.MAX_TXS_PER_BATCH;
+        const tx: BurnExecutionTx = {
+            txType: Usage.BurnExecution,
+            fromIndex: 1
+        };
+        const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
+            tx.txType,
+            tx.fromIndex
+        );
+
+        const compressedTxs = await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded(
+            Array(numTx).fill(txBytes)
+        );
+
+        await utils.logEstimate(compressedTxs, Usage.BurnExecution);
     });
 });

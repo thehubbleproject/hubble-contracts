@@ -30,20 +30,6 @@ contract BurnConsent is FraudProofHelpers {
         );
     }
 
-    function generateTxRoot(Types.BurnConsent[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressBurnConsent(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
@@ -51,8 +37,7 @@ contract BurnConsent is FraudProofHelpers {
     function processBurnConsentBatch(
         bytes32 stateRoot,
         bytes32 accountsRoot,
-        bytes[] memory _txBytes,
-        bytes[] memory signatures,
+        bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
     )
@@ -64,22 +49,11 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
-        require(
-            _txBytes.length == signatures.length,
-            "Mismatch length of signature and txs"
+        uint256 length = txs.burnConsent_size();
+        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
+            txs.burnConsent_toLeafs()
         );
-        Types.BurnConsent[] memory _txs = new Types.BurnConsent[](
-            _txBytes.length
-        );
-        for (uint256 i = 0; i < _txBytes.length; i++) {
-            _txs[i] = RollupUtils.BurnConsentFromBytes(_txBytes[i]);
-            _txs[i].signature = signatures[i];
-        }
-        bytes32 actualTxRoot = generateTxRoot(_txs);
-        // if there is an expectation set, revert if it's not met
-        if (expectedTxRoot == ZERO_BYTES32) {
-            // if tx root while submission doesnt match tx root of given txs
-            // dispute is unsuccessful
+        if (expectedTxRoot != ZERO_BYTES32) {
             require(
                 actualTxRoot == expectedTxRoot,
                 "Invalid dispute, tx root doesn't match"
@@ -87,32 +61,33 @@ contract BurnConsent is FraudProofHelpers {
         }
 
         bool isTxValid;
-        {
-            for (uint256 i = 0; i < _txs.length; i++) {
-                // call process tx update for every transaction to check if any
-                // tx evaluates correctly
-                (stateRoot, , , isTxValid) = processBurnConsentTx(
-                    stateRoot,
-                    accountsRoot,
-                    _txs[i],
-                    batchProofs.pdaProof[i],
-                    batchProofs.accountProofs[i].from
-                );
+        for (uint256 i = 0; i < length; i++) {
+            // call process tx update for every transaction to check if any
+            // tx evaluates correctly
+            (stateRoot, , , isTxValid) = processBurnConsentTx(
+                stateRoot,
+                accountsRoot,
+                txs,
+                i,
+                batchProofs.pdaProof[i],
+                batchProofs.accountProofs[i].from
+            );
 
-                if (!isTxValid) {
-                    break;
-                }
+            if (!isTxValid) {
+                break;
             }
         }
+
         return (stateRoot, actualTxRoot, !isTxValid);
     }
 
     function ApplyBurnConsentTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        Types.BurnConsent memory _tx
+        bytes memory txs,
+        uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
-        account.burn = _tx.amount;
+        account.burn = txs.burnConsent_amountOf(i);
         account.nonce++;
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
         updatedAccount = RollupUtils.BytesFromAccount(account);
@@ -125,7 +100,8 @@ contract BurnConsent is FraudProofHelpers {
     function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        Types.BurnConsent memory _tx,
+        bytes memory txs,
+        uint256 i,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
     )
@@ -145,33 +121,32 @@ contract BurnConsent is FraudProofHelpers {
             _fromAccountProof.accountIP.account.ID
         );
 
+        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
+
         // STEP:2 Ensure the transaction has been signed using the from public key
-        // TODO: ValidateSignature(_tx, _from_pda_proof);
+        if (
+            !txs.burnConsent_verify(
+                i,
+                account.nonce + 1,
+                RollupUtils.calculateAddress(
+                    _from_pda_proof._pda.pubkey_leaf.pubkey
+                )
+            )
+        ) {
+            return (bytes32(0x00), "", Types.ErrorCode.BadSignature, false);
+        }
 
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, _fromAccountProof);
 
-        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-
         // TODO: Validate only certain token is allow to burn
-        if (_tx.amount == 0) {
-            return (
-                ZERO_BYTES32,
-                "",
-                Types.ErrorCode.InvalidTokenAmount,
-                false
-            );
-        }
-
-        if (_tx.nonce != account.nonce.add(1)) {
-            return (ZERO_BYTES32, "", Types.ErrorCode.BadNonce, false);
-        }
 
         bytes32 newRoot;
         bytes memory new_from_account;
         (new_from_account, newRoot) = ApplyBurnConsentTx(
             _fromAccountProof,
-            _tx
+            txs,
+            i
         );
 
         return (newRoot, new_from_account, Types.ErrorCode.NoError, true);
