@@ -28,6 +28,9 @@ module.exports = {
         },
         evmVersion: "istanbul"
     },
+    paths: {
+        artifacts: "./build"
+    },
     typechain: {
         outDir: "types",
         target: "ethers-v4"
