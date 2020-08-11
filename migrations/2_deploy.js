@@ -1,11 +1,9 @@
 const fs = require("fs");
 var argv = require("minimist")(process.argv.slice(2));
-const { ethers } = require("ethers");
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
 const rollupUtilsLib = artifacts.require("RollupUtils");
-const Types = artifacts.require("Types");
 
 // Contracts Deployer
 const governanceContract = artifacts.require("Governance");
@@ -26,7 +24,6 @@ const rollupRedditContract = artifacts.require("RollupReddit");
 const testTokenContract = artifacts.require("TestToken");
 const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
 const POBContract = artifacts.require("POB");
-const utils = "../test/helpers/utils.ts";
 
 function writeContractAddresses(contractAddresses) {
     fs.writeFileSync(
@@ -41,7 +38,6 @@ async function deploy(deployer) {
 
     // deploy libs
     await deployer.deploy(ECVerifyLib);
-    await deployer.deploy(Types);
     const paramManagerInstance = await deployer.deploy(paramManagerLib);
     await deployer.deploy(rollupUtilsLib);
 
@@ -61,7 +57,7 @@ async function deploy(deployer) {
     const mtUtilsInstance = await deployAndRegister(
         deployer,
         MTUtilsContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "MERKLE_UTILS"
     );
@@ -79,7 +75,7 @@ async function deploy(deployer) {
     const tokenRegistryInstance = await deployAndRegister(
         deployer,
         tokenRegistryContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "TOKEN_REGISTRY"
     );
@@ -87,7 +83,7 @@ async function deploy(deployer) {
     const transferInstance = await deployAndRegister(
         deployer,
         transferContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "TRANSFER"
     );
@@ -95,21 +91,21 @@ async function deploy(deployer) {
     const airdropInstance = await deployAndRegister(
         deployer,
         airdropContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "AIRDROP"
     );
     const burnConsentInstance = await deployAndRegister(
         deployer,
         burnConsentContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "BURN_CONSENT"
     );
     const burnExecutionInstance = await deployAndRegister(
         deployer,
         burnExecutionContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "BURN_EXECUTION"
     );
@@ -134,7 +130,7 @@ async function deploy(deployer) {
     const createAccountInstance = await deployAndRegister(
         deployer,
         createAccountContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "CREATE_ACCOUNT"
     );
@@ -153,7 +149,7 @@ async function deploy(deployer) {
     const depositManagerInstance = await deployAndRegister(
         deployer,
         depositManagerContract,
-        [Types, paramManagerLib, rollupUtilsLib],
+        [paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "DEPOSIT_MANAGER"
     );
@@ -161,7 +157,7 @@ async function deploy(deployer) {
     const rollupRedditInstance = await deployAndRegister(
         deployer,
         rollupRedditContract,
-        [Types, paramManagerLib, rollupUtilsLib],
+        [paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address],
         "ROLLUP_REDDIT"
     );
@@ -170,7 +166,7 @@ async function deploy(deployer) {
     const rollupInstance = await deployAndRegister(
         deployer,
         rollupContract,
-        [ECVerifyLib, Types, paramManagerLib, rollupUtilsLib],
+        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
     );
