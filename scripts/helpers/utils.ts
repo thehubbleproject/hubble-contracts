@@ -213,7 +213,7 @@ export async function registerToken(wallet: Wallet) {
     );
     await testTokenInstance.approve(
         depositManagerInstance.address,
-        ethers.utils.parseEther("1"),
+        ethers.utils.parseEther("1").toString(),
         { from: wallet.getAddressString() }
     );
     return testTokenInstance;
@@ -223,12 +223,12 @@ export async function AccountFromBytes(accountBytes: string): Promise<Account> {
     const RollupUtilsInstance = await RollupUtils.deployed();
     const result = await RollupUtilsInstance.AccountFromBytes(accountBytes);
     const account: Account = {
-        ID: result["ID"].toNumber(),
-        tokenType: result["tokenType"].toNumber(),
-        balance: result["balance"].toNumber(),
-        nonce: result["nonce"].toNumber(),
-        burn: result["burn"].toNumber(),
-        lastBurn: result["lastBurn"].toNumber()
+        ID: result[0].toNumber(),
+        balance: result[1].toNumber(),
+        nonce: result[2].toNumber(),
+        tokenType: result[3].toNumber(),
+        burn: result[4].toNumber(),
+        lastBurn: result[5].toNumber()
     };
     return account;
 }
