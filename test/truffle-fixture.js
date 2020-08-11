@@ -21,6 +21,9 @@ const rollupContract = artifacts.require("Rollup");
 const rollupRedditContract = artifacts.require("RollupReddit");
 const testTokenContract = artifacts.require("TestToken");
 const POBContract = artifacts.require("POB");
+const {
+    BuidlerPluginError
+} = require("@nomiclabs/buidler/internal/core/errors");
 
 module.exports = async () => {
     var max_depth = 4;
@@ -165,19 +168,27 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
     for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
-    MTUtilsInstance = await MTUtilsContract.deployed();
+    const MTUtilsInstance = await MTUtilsContract.deployed();
     const result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
     console.log("result", result);
     return result;
 }
 
 async function deployAndRegister(contract, libs, args, name) {
-    var nameRegistryInstance = await nameRegistryContract.deployed();
-    var paramManagerInstance = await paramManagerLib.deployed();
+    const nameRegistryInstance = await nameRegistryContract.deployed();
+    const paramManagerInstance = await paramManagerLib.deployed();
     for (let i = 0; i < libs.length; i++) {
-        await contract.link(libs[i]);
+        try {
+            contract.link(libs[i]);
+        } catch (e) {
+            if (e instanceof BuidlerPluginError) {
+                // Already linked library, ignore
+            } else {
+                throw e;
+            }
+        }
     }
-    var contractInstance = await contract.new(...args);
+    const contractInstance = await contract.new(...args);
     contract.setAsDeployed(contractInstance);
     await nameRegistryInstance.registerName(
         await paramManagerInstance[name](),
