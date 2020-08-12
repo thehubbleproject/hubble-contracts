@@ -30,20 +30,10 @@ contract Logger {
         emit StakeWithdraw(committed, batch_id);
     }
 
-    event BatchRollback(
-        uint256 batch_id,
-        address committer,
-        bytes32 stateRoot,
-        bytes32 txRoot
-    );
+    event BatchRollback(uint256 batch_id);
 
-    function logBatchRollback(
-        uint256 batch_id,
-        address committer,
-        bytes32 stateRoot,
-        bytes32 txRoot
-    ) public {
-        emit BatchRollback(batch_id, committer, stateRoot, txRoot);
+    function logBatchRollback(uint256 batch_id) public {
+        emit BatchRollback(batch_id);
     }
 
     event RollbackFinalisation(uint256 totalBatchesSlashed);
