@@ -1,9 +1,5 @@
 const TestTx = artifacts.require("TestTx");
-const RollupUtils = artifacts.require("RollupUtils");
-import {
-    TestTxInstance,
-    RollupUtilsInstance
-} from "../types/truffle-contracts";
+import { TestTxInstance } from "../types/truffle-contracts";
 import {
     TxTransfer,
     serialize,
@@ -15,13 +11,10 @@ import {
 import * as walletHelper from "../scripts/helpers/wallet";
 import * as utils from "../scripts/helpers/utils";
 
-contract("Tx Serialization", accounts => {
+describe("Tx Serialization", async () => {
     let c: TestTxInstance;
-    let rollupUtils: RollupUtilsInstance;
-    const signer = accounts[1];
     before(async function() {
         c = await TestTx.new();
-        rollupUtils = await RollupUtils.new();
     });
 
     it("parse transfer transaction", async function() {

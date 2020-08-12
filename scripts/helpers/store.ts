@@ -7,12 +7,12 @@ import {
 import {
     getZeroHash,
     defaultHashes,
-    getMerkleTreeUtils,
     getParentLeaf,
     CreateAccountLeaf,
     PubKeyHash
 } from "./utils";
 import { DummyPDA, DummyAccount } from "./constants";
+const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 
 interface LeafItem<T> {
     hash: string;
@@ -81,7 +81,7 @@ abstract class AbstractStore<T> {
     }
 
     async getRoot(): Promise<string> {
-        const merkleTreeUtilsInstance = await getMerkleTreeUtils();
+        const merkleTreeUtilsInstance = await MerkleTreeUtils.deployed();
         const leaves = this.getLeaves();
         const root = await merkleTreeUtilsInstance.getMerkleRootFromLeaves(
             leaves

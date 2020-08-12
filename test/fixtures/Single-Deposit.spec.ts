@@ -44,7 +44,7 @@ contract("DepositManager", async function(accounts) {
         let depositManagerInstance = await DepositManager.deployed();
         let approveToken = await testToken.approve(
             depositManagerInstance.address,
-            ethers.utils.parseEther("1"),
+            ethers.utils.parseEther("1").toString(),
             {
                 from: wallets[0].getAddressString()
             }
