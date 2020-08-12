@@ -1,11 +1,11 @@
-import { TestBLSInstance } from "../types/truffle-contracts";
+import { TestBlsInstance } from "../types/truffle-contracts";
 
 const TestBLS = artifacts.require("TestBLS");
 import * as mcl from "./utils/mcl";
 import { bn, bnToHex, ZERO } from "./utils/mcl";
 
-contract("BLS", accounts => {
-    let bls: TestBLSInstance;
+describe("BLS", async () => {
+    let bls: TestBlsInstance;
     before(async function() {
         await mcl.init();
         bls = await TestBLS.new();

@@ -4,6 +4,7 @@
     "module": "commonjs",
     "strict": true,
     "moduleResolution": "node",
+    "esModuleInterop": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
     "experimentalDecorators": true,
@@ -15,5 +16,8 @@
     "types": ["node", "truffle-contracts"]
   },
   "include": ["**/*.ts"],
-  "exclude": ["node_modules", "example", "build"]
+  "exclude": ["node_modules", "example", "build"],
+  "files": [
+    "./buidler.config.ts"
+  ]
 }

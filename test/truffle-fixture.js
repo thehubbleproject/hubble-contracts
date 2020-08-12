@@ -1,5 +1,3 @@
-const fs = require("fs");
-var argv = require("minimist")(process.argv.slice(2));
 // Libs
 const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
@@ -22,31 +20,29 @@ const depositManagerContract = artifacts.require("DepositManager");
 const rollupContract = artifacts.require("Rollup");
 const rollupRedditContract = artifacts.require("RollupReddit");
 const testTokenContract = artifacts.require("TestToken");
-const merkleTreeUtilsContract = artifacts.require("MerkleTreeUtils");
 const POBContract = artifacts.require("POB");
+const {
+    BuidlerPluginError
+} = require("@nomiclabs/buidler/internal/core/errors");
 
-function writeContractAddresses(contractAddresses) {
-    fs.writeFileSync(
-        `${process.cwd()}/contractAddresses.json`,
-        JSON.stringify(contractAddresses, null, 2) // Indent 2 spaces
-    );
-}
-
-async function deploy(deployer) {
+module.exports = async () => {
     var max_depth = 4;
     var maxDepositSubtreeDepth = 1;
 
     // deploy libs
-    await deployer.deploy(ECVerifyLib);
-    const paramManagerInstance = await deployer.deploy(paramManagerLib);
-    await deployer.deploy(rollupUtilsLib);
+    const ecVerifyInstance = await ECVerifyLib.new();
+    ECVerifyLib.setAsDeployed(ecVerifyInstance);
+    const paramManagerInstance = await paramManagerLib.new();
+    paramManagerLib.setAsDeployed(paramManagerInstance);
+    const rollupUtilsInstance = await rollupUtilsLib.new();
+    rollupUtilsLib.setAsDeployed(rollupUtilsInstance);
 
     // deploy name registry
-    const nameRegistryInstance = await deployer.deploy(nameRegistryContract);
+    const nameRegistryInstance = await nameRegistryContract.new();
+    nameRegistryContract.setAsDeployed(nameRegistryInstance);
 
     // deploy governance
     const governanceInstance = await deployAndRegister(
-        deployer,
         governanceContract,
         [],
         [max_depth, maxDepositSubtreeDepth],
@@ -55,16 +51,14 @@ async function deploy(deployer) {
 
     // deploy MTUtils
     const mtUtilsInstance = await deployAndRegister(
-        deployer,
         MTUtilsContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance],
         [nameRegistryInstance.address],
         "MERKLE_UTILS"
     );
 
     // deploy logger
     const loggerInstance = await deployAndRegister(
-        deployer,
         loggerContract,
         [],
         [],
@@ -73,71 +67,57 @@ async function deploy(deployer) {
 
     // deploy Token registry contract
     const tokenRegistryInstance = await deployAndRegister(
-        deployer,
         tokenRegistryContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance],
         [nameRegistryInstance.address],
         "TOKEN_REGISTRY"
     );
 
     const transferInstance = await deployAndRegister(
-        deployer,
         transferContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "TRANSFER"
     );
 
     const airdropInstance = await deployAndRegister(
-        deployer,
         airdropContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "AIRDROP"
     );
     const burnConsentInstance = await deployAndRegister(
-        deployer,
         burnConsentContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "BURN_CONSENT"
     );
     const burnExecutionInstance = await deployAndRegister(
-        deployer,
         burnExecutionContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "BURN_EXECUTION"
     );
 
     // deploy POB contract
-    const pobInstance = await deployAndRegister(
-        deployer,
-        POBContract,
-        [],
-        [],
-        "POB"
-    );
+    const pobInstance = await deployAndRegister(POBContract, [], [], "POB");
 
     // deploy account tree contract
     const accountsTreeInstance = await deployAndRegister(
-        deployer,
         incrementalTreeContract,
-        [paramManagerLib],
+        [paramManagerInstance],
         [nameRegistryInstance.address],
         "ACCOUNTS_TREE"
     );
     const createAccountInstance = await deployAndRegister(
-        deployer,
         createAccountContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "CREATE_ACCOUNT"
     );
 
     // deploy test token
     const testTokenInstance = await deployAndRegister(
-        deployer,
         testTokenContract,
         [],
         [],
@@ -147,58 +127,26 @@ async function deploy(deployer) {
     const root = await getMerkleRootWithCoordinatorAccount(max_depth);
     // deploy deposit manager
     const depositManagerInstance = await deployAndRegister(
-        deployer,
         depositManagerContract,
-        [paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "DEPOSIT_MANAGER"
     );
 
     const rollupRedditInstance = await deployAndRegister(
-        deployer,
         rollupRedditContract,
-        [paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address],
         "ROLLUP_REDDIT"
     );
 
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
-        deployer,
         rollupContract,
-        [ECVerifyLib, paramManagerLib, rollupUtilsLib],
+        [paramManagerInstance],
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
     );
-
-    const contractAddresses = {
-        AccountTree: accountsTreeInstance.address,
-        ParamManager: paramManagerInstance.address,
-        DepositManager: depositManagerInstance.address,
-        RollupContract: rollupInstance.address,
-        ProofOfBurnContract: pobInstance.address,
-        RollupUtilities: rollupUtilsLib.address,
-        NameRegistry: nameRegistryInstance.address,
-        Logger: loggerInstance.address,
-        MerkleTreeUtils: mtUtilsInstance.address,
-        Transfer: transferInstance.address,
-        CreateAccount: createAccountInstance.address,
-        Airdrop: airdropInstance.address,
-        BurnConsent: burnConsentInstance.address,
-        BurnExecution: burnExecutionInstance.address,
-        RollupReddit: rollupRedditInstance.address,
-        TokenRegistry: tokenRegistryInstance.address,
-        TestToken: testTokenInstance.address,
-        Governance: governanceInstance.address
-    };
-
-    writeContractAddresses(contractAddresses);
-}
-
-module.exports = async function(deployer) {
-    if (!argv.dn) {
-        await deploy(deployer);
-    }
 };
 
 async function getMerkleRootWithCoordinatorAccount(maxSize) {
@@ -220,19 +168,28 @@ async function getMerkleRootWithCoordinatorAccount(maxSize) {
     for (var i = numOfAccsForCoord; i < numberOfDataLeaves; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
-    MTUtilsInstance = await merkleTreeUtilsContract.deployed();
+    const MTUtilsInstance = await MTUtilsContract.deployed();
     const result = await MTUtilsInstance.getMerkleRootFromLeaves(dataLeaves);
     console.log("result", result);
     return result;
 }
 
-async function deployAndRegister(deployer, contract, libs, args, name) {
-    var nameRegistryInstance = await nameRegistryContract.deployed();
-    var paramManagerInstance = await paramManagerLib.deployed();
+async function deployAndRegister(contract, libs, args, name) {
+    const nameRegistryInstance = await nameRegistryContract.deployed();
+    const paramManagerInstance = await paramManagerLib.deployed();
     for (let i = 0; i < libs.length; i++) {
-        await deployer.link(libs[i], contract);
+        try {
+            contract.link(libs[i]);
+        } catch (e) {
+            if (e instanceof BuidlerPluginError) {
+                // Already linked library, ignore
+            } else {
+                throw e;
+            }
+        }
     }
-    var contractInstance = await deployer.deploy(contract, ...args);
+    const contractInstance = await contract.new(...args);
+    contract.setAsDeployed(contractInstance);
     await nameRegistryInstance.registerName(
         await paramManagerInstance[name](),
         contractInstance.address
