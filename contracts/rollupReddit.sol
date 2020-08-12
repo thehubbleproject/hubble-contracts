@@ -192,18 +192,13 @@ contract RollupReddit {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txBytes
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        bytes memory emptySig = new bytes(65);
-        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
-            txBytes,
-            emptySig
-        );
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(txBytes);
         return burnConsent.ApplyBurnConsentTx(_merkle_proof, txs, 0);
     }
 
     function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes32 _accountsRoot,
-        bytes memory sig,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
@@ -217,10 +212,7 @@ contract RollupReddit {
             bool
         )
     {
-        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(
-            txBytes,
-            sig
-        );
+        bytes memory txs = RollupUtils.CompressBurnConsentFromEncoded(txBytes);
         return
             burnConsent.processBurnConsentTx(
                 _balanceRoot,

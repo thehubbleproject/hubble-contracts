@@ -112,19 +112,6 @@ contract Airdrop is FraudProofHelpers {
             accountProofs.from.accountIP.account.ID
         );
 
-        // STEP:2 Ensure the transaction has been signed using the from public key
-        if (
-            !txs.airdrop_verify(
-                i,
-                accountProofs.from.accountIP.account.nonce + 1,
-                RollupUtils.calculateAddress(
-                    _from_pda_proof._pda.pubkey_leaf.pubkey
-                )
-            )
-        ) {
-            return (bytes32(0x00), "", "", Types.ErrorCode.BadSignature, false);
-        }
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 

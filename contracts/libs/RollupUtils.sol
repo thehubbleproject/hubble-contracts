@@ -418,23 +418,19 @@ library RollupUtils {
     {
         Types.DropTx memory _tx = AirdropFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
         return Tx.serialize(_txs);
     }
 
-    function CompressManyAirdropFromEncoded(
-        bytes[] memory txBytes,
-        bytes[] memory sigs
-    ) public pure returns (bytes memory) {
+    function CompressManyAirdropFromEncoded(bytes[] memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.DropTx memory _tx = AirdropFromBytes(txBytes[i]);
-            _txs[i] = Tx.Transfer(
-                _tx.fromIndex,
-                _tx.toIndex,
-                _tx.amount,
-                sigs[i]
-            );
+            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
         }
         return Tx.serialize(_txs);
     }
@@ -598,7 +594,7 @@ library RollupUtils {
     {
         Types.Transaction memory _tx = TxFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
         return Tx.serialize(_txs);
     }
 
@@ -609,12 +605,7 @@ library RollupUtils {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.Transaction memory _tx = TxFromBytes(txBytes[i]);
-            _txs[i] = Tx.Transfer(
-                _tx.fromIndex,
-                _tx.toIndex,
-                _tx.amount,
-                sigs[i]
-            );
+            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
         }
         return Tx.serialize(_txs);
     }
@@ -725,24 +716,26 @@ library RollupUtils {
         return keccak256(CompressBurnConsent(_tx));
     }
 
-    function CompressBurnConsentFromEncoded(
-        bytes memory txBytes,
-        bytes memory sig
-    ) public pure returns (bytes memory) {
+    function CompressBurnConsentFromEncoded(bytes memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
         Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes);
         Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](1);
-        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, sig);
+        _txs[0] = Tx.BurnConsent(_tx.fromIndex, _tx.amount);
         return Tx.serialize(_txs);
     }
 
-    function CompressManyBurnConsentFromEncoded(
-        bytes[] memory txBytes,
-        bytes[] memory sigs
-    ) public pure returns (bytes memory) {
+    function CompressManyBurnConsentFromEncoded(bytes[] memory txBytes)
+        public
+        pure
+        returns (bytes memory)
+    {
         Tx.BurnConsent[] memory _txs = new Tx.BurnConsent[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.BurnConsent memory _tx = BurnConsentFromBytes(txBytes[i]);
-            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount, sigs[i]);
+            _txs[i] = Tx.BurnConsent(_tx.fromIndex, _tx.amount);
         }
         return Tx.serialize(_txs);
     }

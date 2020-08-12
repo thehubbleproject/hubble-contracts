@@ -9,7 +9,7 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { IncrementalTree } from "./IncrementalTree.sol";
+import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./logger.sol";
 import { POB } from "./POB.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
@@ -46,7 +46,7 @@ contract RollupSetup {
 
     // External contracts
     DepositManager public depositManager;
-    IncrementalTree public accountsTree;
+    BLSAccountRegistry public accountRegistry;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
@@ -105,7 +105,7 @@ contract RollupHelpers is RollupSetup {
     ) internal {
         Types.Batch memory newBatch;
         newBatch.stateRoot = _updatedRoot;
-        newBatch.accountRoot = accountsTree.getTreeRoot();
+        newBatch.accountRoot = accountRegistry.root();
         // newBatch.depositTree default initialized to 0 bytes
         newBatch.committer = msg.sender;
         newBatch.txRoot = txRoot;
@@ -128,7 +128,7 @@ contract RollupHelpers is RollupSetup {
     {
         Types.Batch memory newBatch;
         newBatch.stateRoot = _updatedRoot;
-        newBatch.accountRoot = accountsTree.getTreeRoot();
+        newBatch.accountRoot = accountRegistry.root();
         newBatch.depositTree = depositRoot;
         newBatch.committer = msg.sender;
         // newBatch.txRoot default initialized to 0 bytes
@@ -240,8 +240,8 @@ contract Rollup is RollupHelpers {
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        accountRegistry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
         );
 
         tokenRegistry = ITokenRegistry(
