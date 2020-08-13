@@ -1,7 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { ECVerify } from "./libs/ECVerify.sol";
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
@@ -16,8 +15,6 @@ import { Governance } from "./Governance.sol";
 import { Rollup } from "./rollup.sol";
 
 contract WithdrawManager {
-    using ECVerify for bytes32;
-
     MTUtils public merkleUtils;
     ITokenRegistry public tokenRegistry;
     Governance public governance;
@@ -105,14 +102,6 @@ contract WithdrawManager {
 
         address receiver = RollupUtils.calculateAddress(
             _pda_proof._pda.pubkey_leaf.pubkey
-        );
-
-        require(
-            receiver ==
-                RollupUtils.HashFromTx(withdraw_tx_proof._tx.data).ecrecovery(
-                    withdraw_tx_proof._tx.data.signature
-                ),
-            "Signature is incorrect"
         );
 
         uint256 amount = withdraw_tx_proof._tx.data.amount;

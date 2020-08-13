@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import { BLS } from "./BLS.sol";
 import { Types } from "./Types.sol";
-import { ECVerify } from "./ECVerify.sol";
 
 library Tx {
     // Tx types in uint256
