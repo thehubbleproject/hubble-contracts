@@ -64,27 +64,22 @@ contract Transfer is FraudProofHelpers {
         return root == acc;
     }
 
-    uint256 constant SIGNER_ID_LEN = 4;
-    uint256 constant SIGNER_NONCE_LEN = 4;
-    uint256 constant MASK_SIGNER_ID = 0xffffffff;
-    uint256 constant MASK_SIGNER_NONCE = 0xffffffff;
-    uint256 constant NONCE_LEN = 4;
-    uint256 constant DATA_LEN = 12;
-    uint256 constant WORD_LEN = 32;
-    uint256 constant ADDRESS_LEN = 20;
-    uint256 constant NONCE_OFF = 52; // WORD_LEN + ADDRESS_LEN;
-    uint256 constant DATA_OFF = 56; // WORD_LEN + ADDRESS_LEN + NONCE_LEN;
-    uint256 constant MSG_LEN_0 = 36;
+    uint256 constant MASK_4BYTES = 0xffffffff;
+    uint256 constant MASK_1BYTES = 0xff;
+    uint256 constant OFF_TX_TYPE = 64;
+    uint256 constant OFF_NONCE = 65;
+    uint256 constant OFF_TX_DATA = 69;
+    uint256 constant MSG_LEN_0 = 49;
     uint256 constant TX_LEN_0 = 12;
 
-    function checkSignature(
+    function _checkSignature(
         uint256[2] memory signature,
         InvalidSignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
         bytes memory txs
-    ) public view returns (Types.ErrorCode) {
+    ) internal view returns (Types.ErrorCode) {
         uint256 batchSize = txs.transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
@@ -93,7 +88,7 @@ contract Transfer is FraudProofHelpers {
             assembly {
                 signerStateID := and(
                     mload(add(add(txs, mul(i, TX_LEN_0)), 4)),
-                    0xffffffff
+                    MASK_4BYTES
                 )
             }
 
@@ -122,19 +117,21 @@ contract Transfer is FraudProofHelpers {
 
             // construct the message
             signerAccountID = signerAccountID <<= 224;
+            require(proof.stateAccounts[i].nonce > 0, "Rollup: zero nonce");
             uint256 nonce = proof.stateAccounts[i].nonce <<= 224;
             bytes memory txMsg = new bytes(MSG_LEN_0);
 
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                let p_txs := add(txs, WORD_LEN)
-                mstore(add(txMsg, WORD_LEN), appID)
-                mstore(add(txMsg, NONCE_OFF), nonce)
+                mstore(add(txMsg, 32), appID)
+                mstore8(add(txMsg, OFF_TX_TYPE), 1)
+                mstore(add(txMsg, OFF_NONCE), sub(nonce, 1))
                 mstore(
-                    add(txMsg, DATA_OFF),
-                    mload(add(p_txs, mul(TX_LEN_0, i)))
+                    add(txMsg, OFF_TX_DATA),
+                    mload(add(add(txs, 32), mul(TX_LEN_0, i)))
                 )
             }
+            // make the message
             messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
@@ -145,24 +142,24 @@ contract Transfer is FraudProofHelpers {
 
     // BLS PROOF VALIDITY IMPL END
 
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
+    // /*********************
+    //  * Constructor *
+    //  ********************/
+    // constructor(address _registryAddr) public {
+    //     nameRegistry = Registry(_registryAddr);
 
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
 
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
+    //     merkleUtils = MTUtils(
+    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+    //     );
 
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
+    //     tokenRegistry = ITokenRegistry(
+    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+    //     );
+    // }
 
     function generateTxRoot(Types.Transaction[] memory _txs)
         public
