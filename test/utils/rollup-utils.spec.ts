@@ -12,7 +12,7 @@ import { DummyECDSASignature } from "../../scripts/helpers/constants";
 
 const RollupUtils = artifacts.require("RollupUtils");
 
-contract("RollupUtils", async function(accounts) {
+describe("RollupUtils", async function() {
     let RollupUtilsInstance: any;
     before(async function() {
         RollupUtilsInstance = await RollupUtils.deployed();

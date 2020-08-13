@@ -4,6 +4,7 @@ import { Wallet, GovConstants } from "../scripts/helpers/interfaces";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
+const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 import * as utils from "../scripts/helpers/utils";
 
 import { ethers } from "ethers";
@@ -12,7 +13,7 @@ const RollupUtils = artifacts.require("RollupUtils");
 import { StateStore } from "../scripts/helpers/store";
 chai.use(chaiAsPromised);
 
-contract("DepositManager", async function(accounts) {
+contract("DepositManager", async function() {
     let wallets: Wallet[];
     let govConstants: GovConstants;
     before(async function() {
@@ -59,7 +60,7 @@ contract("DepositManager", async function(accounts) {
         var testTokenInstance = await TestToken.deployed();
         let rollupCoreInstance = await RollupCore.deployed();
         var rollupUtilsInstance = await RollupUtils.deployed();
-        var MTutilsInstance = await utils.getMerkleTreeUtils();
+        const MTutilsInstance = await MerkleTreeUtils.deployed();
         const stateStore = new StateStore(govConstants.MAX_DEPTH);
 
         const Alice = {

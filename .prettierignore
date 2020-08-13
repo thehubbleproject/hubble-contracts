@@ -3,3 +3,4 @@ types/
 .github/
 .solcover.js
 truffle-config.js
+cache/
