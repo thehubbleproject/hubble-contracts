@@ -3,7 +3,6 @@ import { generateFirstWallets, mnemonics } from "./scripts/helpers/wallet";
 import { ethers } from "ethers";
 
 usePlugin("@nomiclabs/buidler-truffle5");
-usePlugin("buidler-typechain");
 
 const accounts = generateFirstWallets(mnemonics, 10).map(x => {
     return {
@@ -30,9 +29,5 @@ module.exports = {
     },
     paths: {
         artifacts: "./build"
-    },
-    typechain: {
-        outDir: "types",
-        target: "ethers-v4"
     }
 };
