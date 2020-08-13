@@ -8,8 +8,143 @@ import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
+import { BLS } from "./libs/BLS.sol";
+import { Tx } from "./libs/Tx.sol";
 
 contract Transfer is FraudProofHelpers {
+    // BLS PROOF VALIDITY IMPL START
+
+    using Tx for bytes;
+
+    uint256 constant STATE_WITNESS_LENGTH = 32;
+    uint256 constant PUBKEY_WITNESS_LENGTH = 32;
+
+    struct InvalidSignatureProof {
+        Types.UserAccount[] stateAccounts;
+        bytes32[STATE_WITNESS_LENGTH][] stateWitnesses;
+        uint256[4][] pubkeys;
+        bytes32[PUBKEY_WITNESS_LENGTH][] pubkeyWitnesses;
+    }
+
+    function checkStateInclusion(
+        bytes32 root,
+        uint256 stateIndex,
+        bytes32 stateAccountHash,
+        bytes32[STATE_WITNESS_LENGTH] memory witness
+    ) internal pure returns (bool) {
+        bytes32 acc = stateAccountHash;
+        uint256 path = stateIndex;
+        for (uint256 i = 0; i < STATE_WITNESS_LENGTH; i++) {
+            if (path & 1 == 1) {
+                acc = keccak256(abi.encode(witness[i], acc));
+            } else {
+                acc = keccak256(abi.encode(acc, witness[i]));
+            }
+            path >>= 1;
+        }
+        return root == acc;
+    }
+
+    function checkPubkeyInclusion(
+        bytes32 root,
+        uint256 pubkeyIndex,
+        bytes32 pubkeyHash,
+        bytes32[STATE_WITNESS_LENGTH] memory witness
+    ) internal pure returns (bool) {
+        bytes32 acc = pubkeyHash;
+        uint256 path = pubkeyIndex;
+        for (uint256 i = 0; i < STATE_WITNESS_LENGTH; i++) {
+            if (path & 1 == 1) {
+                acc = keccak256(abi.encode(witness[i], acc));
+            } else {
+                acc = keccak256(abi.encode(acc, witness[i]));
+            }
+            path >>= 1;
+        }
+        return root == acc;
+    }
+
+    uint256 constant SIGNER_ID_LEN = 4;
+    uint256 constant SIGNER_NONCE_LEN = 4;
+    uint256 constant MASK_SIGNER_ID = 0xffffffff;
+    uint256 constant MASK_SIGNER_NONCE = 0xffffffff;
+    uint256 constant NONCE_LEN = 4;
+    uint256 constant DATA_LEN = 12;
+    uint256 constant WORD_LEN = 32;
+    uint256 constant ADDRESS_LEN = 20;
+    uint256 constant NONCE_OFF = 52; // WORD_LEN + ADDRESS_LEN;
+    uint256 constant DATA_OFF = 56; // WORD_LEN + ADDRESS_LEN + NONCE_LEN;
+    uint256 constant MSG_LEN_0 = 36;
+    uint256 constant TX_LEN_0 = 12;
+
+    function checkSignature(
+        uint256[2] memory signature,
+        InvalidSignatureProof memory proof,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 appID,
+        bytes memory txs
+    ) public view returns (Types.ErrorCode) {
+        uint256 batchSize = txs.transfer_size();
+        uint256[2][] memory messages = new uint256[2][](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 signerStateID;
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                signerStateID := and(
+                    mload(add(add(txs, mul(i, TX_LEN_0)), 4)),
+                    0xffffffff
+                )
+            }
+
+            // check state inclustion
+            require(
+                checkStateInclusion(
+                    stateRoot,
+                    signerStateID,
+                    RollupUtils.HashFromAccount(proof.stateAccounts[i]),
+                    proof.stateWitnesses[i]
+                ),
+                "Rollup: state inclusion signer"
+            );
+
+            // check pubkey inclusion
+            uint256 signerAccountID = proof.stateAccounts[i].ID;
+            require(
+                checkPubkeyInclusion(
+                    accountRoot,
+                    signerAccountID,
+                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    proof.pubkeyWitnesses[i]
+                ),
+                "Rollup: account does not exists"
+            );
+
+            // construct the message
+            signerAccountID = signerAccountID <<= 224;
+            uint256 nonce = proof.stateAccounts[i].nonce <<= 224;
+            bytes memory txMsg = new bytes(MSG_LEN_0);
+
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                let p_txs := add(txs, WORD_LEN)
+                mstore(add(txMsg, WORD_LEN), appID)
+                mstore(add(txMsg, NONCE_OFF), nonce)
+                mstore(
+                    add(txMsg, DATA_OFF),
+                    mload(add(p_txs, mul(TX_LEN_0, i)))
+                )
+            }
+            messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
+        }
+        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+            return Types.ErrorCode.BadSignature;
+        }
+        return Types.ErrorCode.NoError;
+    }
+
+    // BLS PROOF VALIDITY IMPL END
+
     /*********************
      * Constructor *
      ********************/
@@ -80,7 +215,6 @@ contract Transfer is FraudProofHelpers {
             // tx evaluates correctly
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
-                accountsRoot,
                 txs,
                 i,
                 batchProofs.pdaProof[i],
@@ -104,7 +238,6 @@ contract Transfer is FraudProofHelpers {
      */
     function processTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
         Types.PDAMerkleProof memory _from_pda_proof,
@@ -120,13 +253,6 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            accountProofs.from.accountIP.account.ID
-        );
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
