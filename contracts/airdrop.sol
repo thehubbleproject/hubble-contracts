@@ -105,13 +105,6 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            accountProofs.from.accountIP.account.ID
-        );
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 

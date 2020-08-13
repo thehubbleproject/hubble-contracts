@@ -116,13 +116,6 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        // Assuming Reddit have run createPublickeys
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _to_pda_proof,
-            txs.create_accountIdOf(i)
-        );
-
         if (
             to_account_proof.accountIP.pathToAccount != txs.create_stateIdOf(i)
         ) {
