@@ -16,6 +16,7 @@ library Types {
         // Only applicable to batch and not tx
         Deposit
     }
+
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
@@ -24,14 +25,25 @@ library Types {
 
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
+        bytes32 commitmentRoot;
+        address committer;
+        uint256 finalisesOn;
+        bytes32 depositRoot;
+        bool withdrawn;
+    }
+
+    struct Commitment {
         bytes32 stateRoot;
         bytes32 accountRoot;
-        bytes32 depositTree;
-        address committer;
-        bytes32 txRoot;
-        uint256 finalisesOn;
-        bool withdrawn;
+        bytes32 txHashCommitment;
+        bytes32 txRootCommitment;
         Usage batchType;
+    }
+
+    struct CommitmentInclusionProof {
+        Commitment commitment;
+        uint256 pathToCommitment;
+        bytes32[] siblings;
     }
 
     // Transaction represents how each transaction looks like for

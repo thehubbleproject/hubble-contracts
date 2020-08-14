@@ -59,6 +59,7 @@ contract WithdrawManager {
      */
     function Withdraw(
         uint256 _batch_id,
+        Types.CommitmentInclusionProof memory commitmentMP,
         Types.PDAMerkleProof memory _pda_proof,
         Types.TransactionMerkleProof memory withdraw_tx_proof
     ) public {
@@ -68,7 +69,7 @@ contract WithdrawManager {
         require(block.number > batch.finalisesOn, "Batch not finalised yt");
         // verify transaction exists in the batch
         merkleUtils.verify(
-            batch.txRoot,
+            commitmentMP.commitment.txRootCommitment,
             RollupUtils.BytesFromTx(withdraw_tx_proof._tx.data),
             withdraw_tx_proof._tx.pathToTx,
             withdraw_tx_proof.siblings
