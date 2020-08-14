@@ -59,6 +59,8 @@
     "@typechain/ethers-v4": "^1.0.1",
     "@typechain/truffle-v5": "^2.0.2",
     "@typechain/web3-v1": "^1.0.0",
+    "@types/chai": "^4.2.12",
+    "@types/mocha": "^8.0.2",
     "chai": "^4.2.0",
     "ethers": "^4.0.47",
     "mcl-wasm": "^0.4.3",
