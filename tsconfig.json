@@ -19,6 +19,8 @@
   "exclude": ["node_modules", "example", "build"],
   "files": [
     "./buidler.config.ts",
-    "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts"
+    "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts",
+    "./node_modules/@nomiclabs/buidler-web3/src/type-extensions.d.ts",
+    "./node_modules/@nomiclabs/buidler-truffle5/src/type-extensions.d.ts"
   ]
 }
