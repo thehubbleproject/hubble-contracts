@@ -175,9 +175,17 @@ export async function submitBatch(
     const rollupCoreInstance = await RollupCore.deployed();
     const govInstance = await Governance.deployed();
     const stakeAmount = (await govInstance.STAKE_AMOUNT()).toString();
-    await rollupCoreInstance.submitBatch(compressedTxs, newRoot, usage, {
-        value: stakeAmount
-    });
+
+    await rollupCoreInstance.submitBatch(
+        [compressedTxs],
+        ["0xabcd"],
+        [newRoot],
+        usage,
+        [[]],
+        {
+            value: stakeAmount
+        }
+    );
 }
 
 export async function registerToken(wallet: Wallet) {
@@ -232,7 +240,23 @@ export async function disputeBatch(
         accountProofs,
         pdaProof
     };
-    await rollupCoreInstance.disputeBatch(batchId, compressedTxs, batchProofs);
+    const commitmentMP = {
+        commitment: {
+            stateRoot: "0xabcd",
+            accountRoot: "0xabcd",
+            txHashCommitment: "0xabcd",
+            txRootCommitment: "0xabcd",
+            batchType: Usage.Airdrop
+        },
+        pathToCommitment: 1,
+        siblings: []
+    };
+    await rollupCoreInstance.disputeBatch(
+        batchId,
+        commitmentMP,
+        compressedTxs,
+        batchProofs
+    );
 }
 
 export async function disputeTransferBatch(
@@ -338,9 +362,11 @@ export async function logEstimate(compressedTxs: string, usage: Usage) {
     const govConstants = await getGovConstants();
     const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
     const gasEstimation = await rollupCoreInstance.submitBatch.estimateGas(
-        compressedTxs,
-        balanceRoot,
+        [compressedTxs],
+        ["0xabcd"],
+        [balanceRoot],
         usage,
+        [[]],
         {
             value: govConstants.STAKE_AMOUNT
         }

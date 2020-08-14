@@ -1,5 +1,4 @@
 // Libs
-const ECVerifyLib = artifacts.require("ECVerify");
 const paramManagerLib = artifacts.require("ParamManager");
 const rollupUtilsLib = artifacts.require("RollupUtils");
 
@@ -15,7 +14,7 @@ const burnConsentContract = artifacts.require("BurnConsent");
 const burnExecutionContract = artifacts.require("BurnExecution");
 
 const nameRegistryContract = artifacts.require("NameRegistry");
-const incrementalTreeContract = artifacts.require("IncrementalTree");
+const BLSAccountRegistryContract = artifacts.require("BLSAccountRegistry");
 const depositManagerContract = artifacts.require("DepositManager");
 const rollupContract = artifacts.require("Rollup");
 const rollupRedditContract = artifacts.require("RollupReddit");
@@ -29,8 +28,6 @@ module.exports = async () => {
     var max_depth = 4;
     var maxDepositSubtreeDepth = 1;
     // deploy libs
-    const ecVerifyInstance = await ECVerifyLib.new();
-    ECVerifyLib.setAsDeployed(ecVerifyInstance);
     const paramManagerInstance = await paramManagerLib.new();
     paramManagerLib.setAsDeployed(paramManagerInstance);
     const rollupUtilsInstance = await rollupUtilsLib.new();
@@ -59,6 +56,13 @@ module.exports = async () => {
         [],
         "LOGGER"
     );
+    const blsAccountRegistryInstance = await deployAndRegister(
+        BLSAccountRegistryContract,
+        [],
+        [],
+        "ACCOUNT_REGISTRY"
+    );
+
     // deploy Token registry contract
     const tokenRegistryInstance = await deployAndRegister(
         tokenRegistryContract,
@@ -93,12 +97,6 @@ module.exports = async () => {
     // deploy POB contract
     const pobInstance = await deployAndRegister(POBContract, [], [], "POB");
     // deploy account tree contract
-    const accountsTreeInstance = await deployAndRegister(
-        incrementalTreeContract,
-        [paramManagerInstance],
-        [nameRegistryInstance.address],
-        "ACCOUNTS_TREE"
-    );
     const createAccountInstance = await deployAndRegister(
         createAccountContract,
         [paramManagerInstance, rollupUtilsInstance],
@@ -129,7 +127,7 @@ module.exports = async () => {
     // deploy Rollup core
     const rollupInstance = await deployAndRegister(
         rollupContract,
-        [paramManagerInstance],
+        [paramManagerInstance, rollupUtilsInstance],
         [nameRegistryInstance.address, root],
         "ROLLUP_CORE"
     );
