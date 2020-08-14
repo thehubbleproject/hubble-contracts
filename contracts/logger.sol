@@ -8,7 +8,6 @@ contract Logger {
      ********************/
     event NewBatch(
         address committer,
-        bytes32 txroot,
         bytes32 updatedRoot,
         uint256 index,
         Types.Usage batchType
@@ -16,12 +15,11 @@ contract Logger {
 
     function logNewBatch(
         address committer,
-        bytes32 txroot,
         bytes32 updatedRoot,
         uint256 index,
         Types.Usage batchType
     ) public {
-        emit NewBatch(committer, txroot, updatedRoot, index, batchType);
+        emit NewBatch(committer, updatedRoot, index, batchType);
     }
 
     event StakeWithdraw(address committed, uint256 batch_id);

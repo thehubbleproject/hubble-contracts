@@ -7,9 +7,6 @@ import { Types } from "./Types.sol";
 library RollupUtils {
     using Tx for bytes;
 
-    // TODO CreateCommitment leaf
-    // TO be used by rollup.sol and others
-
     function CommitmentToHash(
         bytes32 stateRoot,
         bytes32 accountRoot,

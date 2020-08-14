@@ -46,9 +46,6 @@ library Types {
         bytes32[] siblings;
     }
 
-    // TODO add functions to merkalise commitments
-    // TODO add function to go from commitment to hash and hash to commitment
-
     // Transaction represents how each transaction looks like for
     // this rollup chain
     struct Transfer {

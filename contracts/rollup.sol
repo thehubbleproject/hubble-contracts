@@ -204,8 +204,27 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.ROLLUP_REDDIT())
         );
         STAKE_AMOUNT = governance.STAKE_AMOUNT();
-
-        // addNewBatch(bytes32(0x00), genesisStateRoot, Types.Usage.Genesis);
+        bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
+            genesisStateRoot,
+            accountsTree.getTreeRoot(),
+            ZERO_BYTES32,
+            ZERO_BYTES32,
+            Types.Usage.Genesis
+        );
+        Types.Batch memory newBatch = Types.Batch({
+            commitmentRoot:genesisCommitment,
+            committer: msg.sender,
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            depositRoot: ZERO_BYTES32,
+            withdrawn: false
+        });
+        batches.push(newBatch);
+        logger.logNewBatch(
+            newBatch.committer,
+            genesisStateRoot,
+            batches.length - 1,
+            Types.Usage.Genesis
+        );
     }
 
     function submitBatch(
@@ -216,9 +235,6 @@ contract Rollup is RollupHelpers {
         uint256[][2] calldata aggregatedSignatures
     ) external payable onlyCoordinator {
         require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-        if (txs.length != txRoots.length || txs.length != updatedRoots.length) {
-            // revert with missing commitment data
-        }
         bytes32[] memory commitments;
         for (uint256 i = 0; i < txRoots.length; i++) {
             commitments[i] = (
@@ -231,7 +247,6 @@ contract Rollup is RollupHelpers {
                 )
             );
         }
-
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
             committer: msg.sender,
@@ -239,8 +254,13 @@ contract Rollup is RollupHelpers {
             depositRoot: ZERO_BYTES32,
             withdrawn: false
         });
-
         batches.push(newBatch);
+        logger.logNewBatch(
+            newBatch.committer,
+            updatedRoots[updatedRoots.length - 1],
+            batches.length - 1,
+            batchType
+        );
     }
 
     /**
@@ -255,17 +275,19 @@ contract Rollup is RollupHelpers {
             _zero_account_mp,
             getLatestBalanceTreeRoot()
         );
+
         require(
             msg.value >= governance.STAKE_AMOUNT(),
             "Not enough stake committed"
         );
-        
+
+        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
+            depositSubTreeRoot,
+            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.siblings
+        );
         bytes32 depositCommitment = RollupUtils.CommitmentToHash(
-            merkleUtils.updateLeafWithSiblings(
-                depositSubTreeRoot,
-                _zero_account_mp.accountIP.pathToAccount,
-                _zero_account_mp.siblings
-            ),
+            newRoot,
             accountsTree.getTreeRoot(),
             ZERO_BYTES32,
             ZERO_BYTES32,
@@ -281,6 +303,13 @@ contract Rollup is RollupHelpers {
         });
 
         batches.push(newBatch);
+
+        logger.logNewBatch(
+            newBatch.committer,
+            newRoot,
+            batches.length - 1,
+            Types.Usage.Deposit
+        );
     }
 
     /**
