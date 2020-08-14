@@ -7,6 +7,34 @@ import { Types } from "./Types.sol";
 library RollupUtils {
     using Tx for bytes;
 
+    function CommitmentToHash(
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 txCommitment,
+        bytes32 txRoot,
+        Types.Usage batchType
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    stateRoot,
+                    accountRoot,
+                    txCommitment,
+                    txRoot,
+                    batchType
+                )
+            );
+    }
+
+    // ---------- Account Related Utils -------------------
+    function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
+        public
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encode(_PDA_Leaf.pubkey));
+    }
+
     // AccountFromBytes decodes the bytes to account
     function AccountFromBytes(bytes memory accountBytes)
         public
