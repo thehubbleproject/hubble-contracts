@@ -114,27 +114,7 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            _fromAccountProof.accountIP.account.ID
-        );
-
         Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-
-        // STEP:2 Ensure the transaction has been signed using the from public key
-        if (
-            !txs.burnConsent_verify(
-                i,
-                account.nonce + 1,
-                RollupUtils.calculateAddress(
-                    _from_pda_proof._pda.pubkey_leaf.pubkey
-                )
-            )
-        ) {
-            return (bytes32(0x00), "", Types.ErrorCode.BadSignature, false);
-        }
 
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, _fromAccountProof);

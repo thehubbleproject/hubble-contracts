@@ -9,7 +9,7 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { IncrementalTree } from "./IncrementalTree.sol";
+import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./logger.sol";
 import { POB } from "./POB.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
@@ -46,7 +46,7 @@ contract RollupSetup {
 
     // External contracts
     DepositManager public depositManager;
-    IncrementalTree public accountsTree;
+    BLSAccountRegistry public accountRegistry;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
@@ -192,8 +192,8 @@ contract Rollup is RollupHelpers {
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        accountRegistry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
         );
 
         tokenRegistry = ITokenRegistry(
@@ -206,13 +206,13 @@ contract Rollup is RollupHelpers {
         STAKE_AMOUNT = governance.STAKE_AMOUNT();
         bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
             genesisStateRoot,
-            accountsTree.getTreeRoot(),
+            accountRegistry.root(),
             ZERO_BYTES32,
             ZERO_BYTES32,
             Types.Usage.Genesis
         );
         Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot:genesisCommitment,
+            commitmentRoot: genesisCommitment,
             committer: msg.sender,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             depositRoot: ZERO_BYTES32,
@@ -240,7 +240,7 @@ contract Rollup is RollupHelpers {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
-                    accountsTree.getTreeRoot(),
+                    accountRegistry.root(),
                     keccak256(abi.encode(txs[i])),
                     txRoots[i],
                     batchType
@@ -288,7 +288,7 @@ contract Rollup is RollupHelpers {
         );
         bytes32 depositCommitment = RollupUtils.CommitmentToHash(
             newRoot,
-            accountsTree.getTreeRoot(),
+            accountRegistry.root(),
             ZERO_BYTES32,
             ZERO_BYTES32,
             Types.Usage.Deposit

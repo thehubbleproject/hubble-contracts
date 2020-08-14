@@ -9,11 +9,8 @@ import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { IncrementalTree } from "./IncrementalTree.sol";
 
 contract CreateAccount is FraudProofHelpers {
-    IncrementalTree public accountsTree;
-
     /*********************
      * Constructor *
      ********************/
@@ -23,34 +20,17 @@ contract CreateAccount is FraudProofHelpers {
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
         );
-
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
-
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
         );
     }
 
     modifier onlyReddit() {
         // TODO: Add only Reddit check
         _;
-    }
-
-    function createPublickeys(bytes[] memory publicKeys)
-        public
-        onlyReddit
-        returns (uint256[] memory)
-    {
-        uint256[] memory pubkeyIDs = new uint256[](publicKeys.length);
-        for (uint256 i = 0; i < publicKeys.length; i++) {
-            pubkeyIDs[i] = accountsTree.appendDataBlock(publicKeys[i]);
-        }
-        return pubkeyIDs;
     }
 
     function processCreateAccountBatch(
@@ -136,13 +116,6 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        // Assuming Reddit have run createPublickeys
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _to_pda_proof,
-            txs.create_accountIdOf(i)
-        );
-
         if (
             to_account_proof.accountIP.pathToAccount != txs.create_stateIdOf(i)
         ) {

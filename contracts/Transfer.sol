@@ -8,26 +8,158 @@ import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
+import { BLS } from "./libs/BLS.sol";
+import { Tx } from "./libs/Tx.sol";
 
 contract Transfer is FraudProofHelpers {
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
+    // BLS PROOF VALIDITY IMPL START
 
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
+    using Tx for bytes;
 
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
+    uint256 constant STATE_WITNESS_LENGTH = 32;
+    uint256 constant PUBKEY_WITNESS_LENGTH = 32;
 
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
+    struct InvalidSignatureProof {
+        Types.UserAccount[] stateAccounts;
+        bytes32[STATE_WITNESS_LENGTH][] stateWitnesses;
+        uint256[4][] pubkeys;
+        bytes32[PUBKEY_WITNESS_LENGTH][] pubkeyWitnesses;
     }
+
+    function checkStateInclusion(
+        bytes32 root,
+        uint256 stateIndex,
+        bytes32 stateAccountHash,
+        bytes32[STATE_WITNESS_LENGTH] memory witness
+    ) internal pure returns (bool) {
+        bytes32 acc = stateAccountHash;
+        uint256 path = stateIndex;
+        for (uint256 i = 0; i < STATE_WITNESS_LENGTH; i++) {
+            if (path & 1 == 1) {
+                acc = keccak256(abi.encode(witness[i], acc));
+            } else {
+                acc = keccak256(abi.encode(acc, witness[i]));
+            }
+            path >>= 1;
+        }
+        return root == acc;
+    }
+
+    function checkPubkeyInclusion(
+        bytes32 root,
+        uint256 pubkeyIndex,
+        bytes32 pubkeyHash,
+        bytes32[STATE_WITNESS_LENGTH] memory witness
+    ) internal pure returns (bool) {
+        bytes32 acc = pubkeyHash;
+        uint256 path = pubkeyIndex;
+        for (uint256 i = 0; i < STATE_WITNESS_LENGTH; i++) {
+            if (path & 1 == 1) {
+                acc = keccak256(abi.encode(witness[i], acc));
+            } else {
+                acc = keccak256(abi.encode(acc, witness[i]));
+            }
+            path >>= 1;
+        }
+        return root == acc;
+    }
+
+    uint256 constant MASK_4BYTES = 0xffffffff;
+    uint256 constant MASK_1BYTES = 0xff;
+    uint256 constant OFF_TX_TYPE = 64;
+    uint256 constant OFF_NONCE = 65;
+    uint256 constant OFF_TX_DATA = 69;
+    uint256 constant MSG_LEN_0 = 49;
+    uint256 constant TX_LEN_0 = 12;
+
+    function _checkSignature(
+        uint256[2] memory signature,
+        InvalidSignatureProof memory proof,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 appID,
+        bytes memory txs
+    ) internal view returns (Types.ErrorCode) {
+        uint256 batchSize = txs.transfer_size();
+        uint256[2][] memory messages = new uint256[2][](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 signerStateID;
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                signerStateID := and(
+                    mload(add(add(txs, mul(i, TX_LEN_0)), 4)),
+                    MASK_4BYTES
+                )
+            }
+
+            // check state inclustion
+            require(
+                checkStateInclusion(
+                    stateRoot,
+                    signerStateID,
+                    RollupUtils.HashFromAccount(proof.stateAccounts[i]),
+                    proof.stateWitnesses[i]
+                ),
+                "Rollup: state inclusion signer"
+            );
+
+            // check pubkey inclusion
+            uint256 signerAccountID = proof.stateAccounts[i].ID;
+            require(
+                checkPubkeyInclusion(
+                    accountRoot,
+                    signerAccountID,
+                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    proof.pubkeyWitnesses[i]
+                ),
+                "Rollup: account does not exists"
+            );
+
+            // construct the message
+            signerAccountID = signerAccountID <<= 224;
+            require(proof.stateAccounts[i].nonce > 0, "Rollup: zero nonce");
+            uint256 nonce = proof.stateAccounts[i].nonce <<= 224;
+            bytes memory txMsg = new bytes(MSG_LEN_0);
+
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                mstore(add(txMsg, 32), appID)
+                mstore8(add(txMsg, OFF_TX_TYPE), 1)
+                mstore(add(txMsg, OFF_NONCE), sub(nonce, 1))
+                mstore(
+                    add(txMsg, OFF_TX_DATA),
+                    mload(add(add(txs, 32), mul(TX_LEN_0, i)))
+                )
+            }
+            // make the message
+            messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
+        }
+        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+            return Types.ErrorCode.BadSignature;
+        }
+        return Types.ErrorCode.NoError;
+    }
+
+    // BLS PROOF VALIDITY IMPL END
+
+    // /*********************
+    //  * Constructor *
+    //  ********************/
+    // constructor(address _registryAddr) public {
+    //     nameRegistry = Registry(_registryAddr);
+
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
+
+    //     merkleUtils = MTUtils(
+    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+    //     );
+
+    //     tokenRegistry = ITokenRegistry(
+    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+    //     );
+    // }
 
     function generateTxRoot(Types.Transaction[] memory _txs)
         public
@@ -80,7 +212,6 @@ contract Transfer is FraudProofHelpers {
             // tx evaluates correctly
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
-                accountsRoot,
                 txs,
                 i,
                 batchProofs.pdaProof[i],
@@ -104,7 +235,6 @@ contract Transfer is FraudProofHelpers {
      */
     function processTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
         Types.PDAMerkleProof memory _from_pda_proof,
@@ -120,27 +250,6 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            accountProofs.from.accountIP.account.ID
-        );
-
-        // STEP:2 Ensure the transaction has been signed using the from public key
-
-        if (
-            !txs.transfer_verify(
-                i,
-                accountProofs.from.accountIP.account.nonce + 1,
-                RollupUtils.calculateAddress(
-                    _from_pda_proof._pda.pubkey_leaf.pubkey
-                )
-            )
-        ) {
-            return (bytes32(0x00), "", "", Types.ErrorCode.BadSignature, false);
-        }
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 

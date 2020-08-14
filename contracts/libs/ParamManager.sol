@@ -29,8 +29,8 @@ library ParamManager {
         return keccak256("rollup_reddit");
     }
 
-    function ACCOUNTS_TREE() public pure returns (bytes32) {
-        return keccak256("accounts_tree");
+    function ACCOUNT_REGISTRY() public pure returns (bytes32) {
+        return keccak256("account_registry");
     }
 
     function LOGGER() public pure returns (bytes32) {

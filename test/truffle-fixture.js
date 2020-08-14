@@ -26,127 +26,113 @@ const {
 } = require("@nomiclabs/buidler/internal/core/errors");
 
 module.exports = async () => {
-    var max_depth = 4;
-    var maxDepositSubtreeDepth = 1;
-
-    // deploy libs
-    const ecVerifyInstance = await ECVerifyLib.new();
-    ECVerifyLib.setAsDeployed(ecVerifyInstance);
-    const paramManagerInstance = await paramManagerLib.new();
-    paramManagerLib.setAsDeployed(paramManagerInstance);
-    const rollupUtilsInstance = await rollupUtilsLib.new();
-    rollupUtilsLib.setAsDeployed(rollupUtilsInstance);
-
-    // deploy name registry
-    const nameRegistryInstance = await nameRegistryContract.new();
-    nameRegistryContract.setAsDeployed(nameRegistryInstance);
-
-    // deploy governance
-    const governanceInstance = await deployAndRegister(
-        governanceContract,
-        [],
-        [max_depth, maxDepositSubtreeDepth],
-        "Governance"
-    );
-
-    // deploy MTUtils
-    const mtUtilsInstance = await deployAndRegister(
-        MTUtilsContract,
-        [paramManagerInstance],
-        [nameRegistryInstance.address],
-        "MERKLE_UTILS"
-    );
-
-    // deploy logger
-    const loggerInstance = await deployAndRegister(
-        loggerContract,
-        [],
-        [],
-        "LOGGER"
-    );
-
-    // deploy Token registry contract
-    const tokenRegistryInstance = await deployAndRegister(
-        tokenRegistryContract,
-        [paramManagerInstance],
-        [nameRegistryInstance.address],
-        "TOKEN_REGISTRY"
-    );
-
-    const transferInstance = await deployAndRegister(
-        transferContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "TRANSFER"
-    );
-
-    const airdropInstance = await deployAndRegister(
-        airdropContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "AIRDROP"
-    );
-    const burnConsentInstance = await deployAndRegister(
-        burnConsentContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "BURN_CONSENT"
-    );
-    const burnExecutionInstance = await deployAndRegister(
-        burnExecutionContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "BURN_EXECUTION"
-    );
-
-    // deploy POB contract
-    const pobInstance = await deployAndRegister(POBContract, [], [], "POB");
-
-    // deploy account tree contract
-    const accountsTreeInstance = await deployAndRegister(
-        incrementalTreeContract,
-        [paramManagerInstance],
-        [nameRegistryInstance.address],
-        "ACCOUNTS_TREE"
-    );
-    const createAccountInstance = await deployAndRegister(
-        createAccountContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "CREATE_ACCOUNT"
-    );
-
-    // deploy test token
-    const testTokenInstance = await deployAndRegister(
-        testTokenContract,
-        [],
-        [],
-        "TEST_TOKEN"
-    );
-
-    const root = await getMerkleRootWithCoordinatorAccount(max_depth);
-    // deploy deposit manager
-    const depositManagerInstance = await deployAndRegister(
-        depositManagerContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "DEPOSIT_MANAGER"
-    );
-
-    const rollupRedditInstance = await deployAndRegister(
-        rollupRedditContract,
-        [paramManagerInstance, rollupUtilsInstance],
-        [nameRegistryInstance.address],
-        "ROLLUP_REDDIT"
-    );
-
-    // deploy Rollup core
-    const rollupInstance = await deployAndRegister(
-        rollupContract,
-        [paramManagerInstance],
-        [nameRegistryInstance.address, root],
-        "ROLLUP_CORE"
-    );
+    // var max_depth = 4;
+    // var maxDepositSubtreeDepth = 1;
+    // // deploy libs
+    // const ecVerifyInstance = await ECVerifyLib.new();
+    // ECVerifyLib.setAsDeployed(ecVerifyInstance);
+    // const paramManagerInstance = await paramManagerLib.new();
+    // paramManagerLib.setAsDeployed(paramManagerInstance);
+    // const rollupUtilsInstance = await rollupUtilsLib.new();
+    // rollupUtilsLib.setAsDeployed(rollupUtilsInstance);
+    // // deploy name registry
+    // const nameRegistryInstance = await nameRegistryContract.new();
+    // nameRegistryContract.setAsDeployed(nameRegistryInstance);
+    // // deploy governance
+    // const governanceInstance = await deployAndRegister(
+    //     governanceContract,
+    //     [],
+    //     [max_depth, maxDepositSubtreeDepth],
+    //     "Governance"
+    // );
+    // // deploy MTUtils
+    // const mtUtilsInstance = await deployAndRegister(
+    //     MTUtilsContract,
+    //     [paramManagerInstance],
+    //     [nameRegistryInstance.address],
+    //     "MERKLE_UTILS"
+    // );
+    // // deploy logger
+    // const loggerInstance = await deployAndRegister(
+    //     loggerContract,
+    //     [],
+    //     [],
+    //     "LOGGER"
+    // );
+    // // deploy Token registry contract
+    // const tokenRegistryInstance = await deployAndRegister(
+    //     tokenRegistryContract,
+    //     [paramManagerInstance],
+    //     [nameRegistryInstance.address],
+    //     "TOKEN_REGISTRY"
+    // );
+    // const transferInstance = await deployAndRegister(
+    //     transferContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "TRANSFER"
+    // );
+    // const airdropInstance = await deployAndRegister(
+    //     airdropContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "AIRDROP"
+    // );
+    // const burnConsentInstance = await deployAndRegister(
+    //     burnConsentContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "BURN_CONSENT"
+    // );
+    // const burnExecutionInstance = await deployAndRegister(
+    //     burnExecutionContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "BURN_EXECUTION"
+    // );
+    // // deploy POB contract
+    // const pobInstance = await deployAndRegister(POBContract, [], [], "POB");
+    // // deploy account tree contract
+    // const accountsTreeInstance = await deployAndRegister(
+    //     incrementalTreeContract,
+    //     [paramManagerInstance],
+    //     [nameRegistryInstance.address],
+    //     "ACCOUNTS_TREE"
+    // );
+    // const createAccountInstance = await deployAndRegister(
+    //     createAccountContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "CREATE_ACCOUNT"
+    // );
+    // // deploy test token
+    // const testTokenInstance = await deployAndRegister(
+    //     testTokenContract,
+    //     [],
+    //     [],
+    //     "TEST_TOKEN"
+    // );
+    // const root = await getMerkleRootWithCoordinatorAccount(max_depth);
+    // // deploy deposit manager
+    // const depositManagerInstance = await deployAndRegister(
+    //     depositManagerContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "DEPOSIT_MANAGER"
+    // );
+    // const rollupRedditInstance = await deployAndRegister(
+    //     rollupRedditContract,
+    //     [paramManagerInstance, rollupUtilsInstance],
+    //     [nameRegistryInstance.address],
+    //     "ROLLUP_REDDIT"
+    // );
+    // // deploy Rollup core
+    // const rollupInstance = await deployAndRegister(
+    //     rollupContract,
+    //     [paramManagerInstance],
+    //     [nameRegistryInstance.address, root],
+    //     "ROLLUP_CORE"
+    // );
 };
 
 async function getMerkleRootWithCoordinatorAccount(maxSize) {

@@ -7,7 +7,6 @@ const accountIDLen = 4;
 const stateIDLen = 4;
 const tokenLen = 2;
 const nonceLen = 4;
-const signatureLen = 65;
 
 function log2(n: number) {
     return Math.ceil(Math.log2(n));
@@ -16,6 +15,7 @@ function log2(n: number) {
 export interface Tx {
     hash(): string;
     encode(prefix?: boolean): string;
+    message(domain: string): string;
 }
 
 export function calculateRoot(txs: Tx[]) {
@@ -35,6 +35,7 @@ export function serialize(txs: Tx[]) {
 }
 
 export class TxTransfer {
+    private readonly TX_TYPE = "01";
     public static rand(): TxTransfer {
         const sender = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
         const receiver = web3.utils.hexToNumber(
@@ -42,23 +43,29 @@ export class TxTransfer {
         );
         const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
         const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-        const signature = web3.utils.randomHex(signatureLen);
-        return new TxTransfer(sender, receiver, amount, nonce, signature);
+        return new TxTransfer(sender, receiver, amount, nonce);
     }
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
         public readonly amount: number,
-        public readonly nonce: number,
-        public signature: string
+        public nonce: number
     ) {}
+
+    public message(domain: string): string {
+        let nonce = web3.utils.padLeft(
+            web3.utils.toHex(this.nonce),
+            nonceLen * 2
+        );
+
+        return domain + this.TX_TYPE + nonce.slice(2) + this.encode(false);
+    }
 
     public hash(): string {
         return web3.utils.soliditySha3(
-            { v: this.fromIndex, t: "uint256" },
-            { v: this.toIndex, t: "uint256" },
-            { v: this.amount, t: "uint256" },
-            { v: this.nonce, t: "uint256" }
+            { v: this.fromIndex, t: "uint32" },
+            { v: this.toIndex, t: "uint32" },
+            { v: this.amount, t: "uint32" }
         );
     }
 
@@ -67,7 +74,6 @@ export class TxTransfer {
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
             amount: this.amount,
-            signature: this.signature,
             nonce: this.nonce,
             tokenType: 0,
             txType: 0
@@ -87,13 +93,8 @@ export class TxTransfer {
             web3.utils.toHex(this.amount),
             amountLen * 2
         );
-        let signature = this.signature;
 
-        let encoded =
-            fromIndex.slice(2) +
-            toIndex.slice(2) +
-            amount.slice(2) +
-            signature.slice(2);
+        let encoded = fromIndex.slice(2) + toIndex.slice(2) + amount.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
@@ -166,14 +167,12 @@ export class TxBurnConsent {
         );
         const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
         const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
-        const signature = web3.utils.randomHex(signatureLen);
-        return new TxBurnConsent(fromIndex, amount, nonce, signature);
+        return new TxBurnConsent(fromIndex, amount, nonce);
     }
     constructor(
         public readonly fromIndex: number,
         public readonly amount: number,
-        public readonly nonce: number,
-        public signature: string
+        public readonly nonce: number
     ) {}
 
     public hash(): string {
@@ -188,8 +187,7 @@ export class TxBurnConsent {
             txType: 0,
             fromIndex: this.fromIndex,
             amount: this.amount,
-            nonce: this.nonce,
-            signature: this.signature
+            nonce: this.nonce
         };
     }
 
@@ -202,8 +200,7 @@ export class TxBurnConsent {
             web3.utils.toHex(this.amount),
             amountLen * 2
         );
-        let signature = this.signature;
-        let encoded = fromIndex.slice(2) + amount.slice(2) + signature.slice(2);
+        let encoded = fromIndex.slice(2) + amount.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
