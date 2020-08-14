@@ -9,13 +9,14 @@ import {
     BurnExecutionTx
 } from "../../scripts/helpers/interfaces";
 import { DummyECDSASignature } from "../../scripts/helpers/constants";
+import { RollupUtilsInstance as RollupUtilsInstanceType } from "../../types/truffle-contracts";
 
 const RollupUtils = artifacts.require("RollupUtils");
 
 describe("RollupUtils", async function() {
-    let RollupUtilsInstance: any;
+    let RollupUtilsInstance: RollupUtilsInstanceType;
     before(async function() {
-        RollupUtilsInstance = await RollupUtils.deployed();
+        RollupUtilsInstance = await RollupUtils.new();
     });
 
     it("test account encoding and decoding", async function() {
@@ -103,9 +104,9 @@ describe("RollupUtils", async function() {
         const result = await RollupUtilsInstance.CreateAccountFromBytes(
             txBytes
         );
-        assert.equal(result.accountID, tx.accountID);
-        assert.equal(result.stateID, tx.stateID);
-        assert.equal(result.tokenType, tx.tokenType);
+        assert.equal(Number(result.accountID), tx.accountID);
+        assert.equal(Number(result.stateID), tx.stateID);
+        assert.equal(Number(result.tokenType), tx.tokenType);
         const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
             tx.accountID,
             tx.stateID,
@@ -144,7 +145,7 @@ describe("RollupUtils", async function() {
             tx.amount
         );
         const result = await RollupUtilsInstance.AirdropFromBytes(txBytes);
-        assert.equal(result.toIndex, tx.toIndex);
+        assert.equal(Number(result.toIndex), tx.toIndex);
         const compressedTx1 = await RollupUtilsInstance.CompressAirdropNoStruct(
             tx.toIndex,
             tx.amount,
@@ -161,10 +162,10 @@ describe("RollupUtils", async function() {
             txBytes,
             tx.signature
         );
-        const txs = await RollupUtilsInstance.CompressManyAirdropFromEncoded(
-            [txBytes, txBytes],
-            [tx.signature, tx.signature]
-        );
+        const txs = await RollupUtilsInstance.CompressManyAirdropFromEncoded([
+            txBytes,
+            txBytes
+        ]);
         await RollupUtilsInstance.DecompressManyAirdrop(txs);
     });
     it("test transfer utils", async function() {
@@ -235,13 +236,9 @@ describe("RollupUtils", async function() {
             tx.signature
         );
         await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
-        await RollupUtilsInstance.CompressBurnConsentFromEncoded(
-            txBytes,
-            tx.signature
-        );
+        await RollupUtilsInstance.CompressBurnConsentFromEncoded(txBytes);
         const txs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
-            [txBytes, txBytes],
-            [tx.signature, tx.signature]
+            [txBytes, txBytes]
         );
         await RollupUtilsInstance.DecompressManyBurnConsent(txs);
     });
