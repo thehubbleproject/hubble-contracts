@@ -18,6 +18,7 @@
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "example", "build"],
   "files": [
-    "./buidler.config.ts"
+    "./buidler.config.ts",
+    "node_modules/@nomiclabs/buidler-ethers/src/type-extensions.d.ts"
   ]
 }
