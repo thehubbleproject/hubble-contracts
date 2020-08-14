@@ -209,7 +209,7 @@ contract Rollup is RollupHelpers {
             accountRegistry.root(),
             ZERO_BYTES32,
             ZERO_BYTES32,
-            Types.Usage.Genesis
+            uint8(Types.Usage.Genesis)
         );
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: genesisCommitment,
@@ -243,7 +243,7 @@ contract Rollup is RollupHelpers {
                     accountRegistry.root(),
                     keccak256(abi.encode(txs[i])),
                     txRoots[i],
-                    batchType
+                    uint8(batchType)
                 )
             );
         }
@@ -291,7 +291,7 @@ contract Rollup is RollupHelpers {
             accountRegistry.root(),
             ZERO_BYTES32,
             ZERO_BYTES32,
-            Types.Usage.Deposit
+            uint8(Types.Usage.Deposit)
         );
 
         Types.Batch memory newBatch = Types.Batch({
@@ -351,7 +351,7 @@ contract Rollup is RollupHelpers {
                         commitmentMP.commitment.accountRoot,
                         commitmentMP.commitment.txHashCommitment,
                         commitmentMP.commitment.txRootCommitment,
-                        commitmentMP.commitment.batchType
+                        uint8(commitmentMP.commitment.batchType)
                     ),
                     commitmentMP.pathToCommitment,
                     commitmentMP.siblings

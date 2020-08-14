@@ -12,7 +12,9 @@ library RollupUtils {
         bytes32 accountRoot,
         bytes32 txCommitment,
         bytes32 txRoot,
-        Types.Usage batchType
+        // Typechain can't parse enum for library.
+        // See https://github.com/ethereum-ts/TypeChain/issues/216
+        uint8 batchType
     ) public pure returns (bytes32) {
         return
             keccak256(

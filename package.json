@@ -7,7 +7,7 @@
     "test": "buidler test",
     "lint": "prettier --check \"**/*.{sol,ts,js}\"",
     "prettier": "prettier --write \"**/*.{sol,ts,js}\"",
-    "generate": "buidler compile && typechain --target truffle './build/**/*.json'",
+    "generate": "buidler compile && typechain --target truffle-v5 './build/**/*.json'",
     "compile": "buidler compile",
     "add-pubkeys": "node ./scripts/addPubkeys.js"
   },
