@@ -139,7 +139,6 @@ library Types {
 
     struct BatchValidationProofs {
         AccountProofs[] accountProofs;
-        PDAMerkleProof[] pdaProof;
     }
 
     struct TransactionMerkleProof {

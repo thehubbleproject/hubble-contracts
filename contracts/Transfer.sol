@@ -19,11 +19,55 @@ contract Transfer is FraudProofHelpers {
     uint256 constant STATE_WITNESS_LENGTH = 32;
     uint256 constant PUBKEY_WITNESS_LENGTH = 32;
 
-    struct InvalidSignatureProof {
+    uint256 constant MASK_4BYTES = 0xffffffff;
+    uint256 constant MASK_1BYTES = 0xff;
+    uint256 constant MASK_TX_0 = 0xffffffffffffffffffffffffffffffff;
+
+    uint256 constant TX_LEN_0 = 12;
+    uint256 constant MSG_LEN_0 = 49;
+
+    uint256 constant POSITION_SENDER_0 = 4;
+    uint256 constant POSITION_RECEIVER_0 = 8;
+    uint256 constant POSITION_AMOUNT_0 = 12;
+
+    uint256 constant OFF_TX_TYPE = 64;
+    uint256 constant OFF_NONCE = 65;
+    uint256 constant OFF_TX_DATA = 69;
+
+    struct TransferSignatureProof {
         Types.UserAccount[] stateAccounts;
         bytes32[STATE_WITNESS_LENGTH][] stateWitnesses;
         uint256[4][] pubkeys;
         bytes32[PUBKEY_WITNESS_LENGTH][] pubkeyWitnesses;
+    }
+
+    struct AccountsProof {
+        AccountMerkleProof from;
+        AccountMerkleProof to;
+    }
+
+    struct AccountMerkleProof {
+        Types.UserAccount account;
+        bytes32[] witness;
+    }
+
+    function checkInclusion(
+        bytes32 root,
+        uint256 index,
+        bytes32 leaf,
+        bytes32[] memory witness
+    ) internal pure returns (bool) {
+        bytes32 acc = leaf;
+        uint256 path = index;
+        for (uint256 i = 0; i < witness.length; i++) {
+            if (path & 1 == 1) {
+                acc = keccak256(abi.encode(witness[i], acc));
+            } else {
+                acc = keccak256(abi.encode(acc, witness[i]));
+            }
+            path >>= 1;
+        }
+        return root == acc;
     }
 
     function checkStateInclusion(
@@ -64,17 +108,9 @@ contract Transfer is FraudProofHelpers {
         return root == acc;
     }
 
-    uint256 constant MASK_4BYTES = 0xffffffff;
-    uint256 constant MASK_1BYTES = 0xff;
-    uint256 constant OFF_TX_TYPE = 64;
-    uint256 constant OFF_NONCE = 65;
-    uint256 constant OFF_TX_DATA = 69;
-    uint256 constant MSG_LEN_0 = 49;
-    uint256 constant TX_LEN_0 = 12;
-
     function _checkSignature(
         uint256[2] memory signature,
-        InvalidSignatureProof memory proof,
+        TransferSignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
@@ -175,47 +211,51 @@ contract Transfer is FraudProofHelpers {
         return txRoot;
     }
 
-    /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
-     * */
-    function processTransferBatch(
-        bytes32 stateRoot,
-        bytes32 accountsRoot,
-        bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
-    )
+    function generateTxRoot(bytes memory txs)
         public
         view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
+        returns (bytes32 txRoot)
     {
-        uint256 length = txs.transfer_size();
-        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
-            txs.transfer_toLeafs()
-        );
-        if (expectedTxRoot != ZERO_BYTES32) {
-            require(
-                actualTxRoot == expectedTxRoot,
-                "Invalid dispute, tx root doesn't match"
-            );
+        uint256 n = txs.length / TX_LEN_0;
+        bytes32[] memory buf = new bytes32[](n);
+        uint256 offBuf = 32;
+        uint256 offTx = 32;
+        for (uint256 i = 0; i < n; i++) {
+            // solium-disable-next-line security/no-inline-assembly
+            assembly {
+                mstore(add(offBuf, buf), keccak256(add(offTx, txs), TX_LEN_0))
+            }
+            offBuf += 32;
+            offTx += TX_LEN_0;
         }
+        n >>= 1;
+        while (true) {
+            if (n == 0) {
+                break;
+            }
+            for (uint256 j = 0; j < n; j++) {
+                uint256 k = j << 1;
+                buf[j] = keccak256(abi.encode(buf[k], buf[k + 1]));
+            }
+            n >>= 1;
+        }
+        return buf[0];
+    }
+
+    function _processTransferCommitment(
+        bytes32 stateRoot,
+        bytes memory txs,
+        AccountsProof[] memory proof
+    ) internal view returns (bytes32, bool) {
+        uint256 commitmentSize = txs.length / TX_LEN_0;
 
         bool isTxValid;
-
-        for (uint256 i = 0; i < length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
-            (stateRoot, , , , isTxValid) = processTx(
+        for (uint256 i = 0; i < commitmentSize; i++) {
+            (stateRoot, , , , isTxValid) = _processTx(
                 stateRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
-                batchProofs.accountProofs[i]
+                proof[i]
             );
 
             if (!isTxValid) {
@@ -223,24 +263,16 @@ contract Transfer is FraudProofHelpers {
             }
         }
 
-        return (stateRoot, actualTxRoot, !isTxValid);
+        return (stateRoot, isTxValid);
     }
 
-    /**
-     * @notice processTx processes a transactions and returns the updated balance tree
-     *  and the updated leaves
-     * conditions in require mean that the dispute be declared invalid
-     * if conditons evaluate if the coordinator was at fault
-     * @return Total number of batches submitted onchain
-     */
-    function processTx(
-        bytes32 _balanceRoot,
+    function _processTx(
+        bytes32 stateRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        AccountsProof memory proof
     )
-        public
+        internal
         view
         returns (
             bytes32,
@@ -250,20 +282,17 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
-        // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, accountProofs.from);
-
-        Types.ErrorCode err_code = validateTxBasic(
-            txs.transfer_amountOf(i),
-            accountProofs.from.accountIP.account
+        uint256 stateIndex = txs.transfer_fromIndexOf(i);
+        require(
+            checkInclusion(
+                stateRoot,
+                stateIndex,
+                RollupUtils.HashFromAccount(proof.from.account),
+                proof.from.witness
+            ),
+            "Rollup: state inclusion sender"
         );
-        if (err_code != Types.ErrorCode.NoError)
-            return (ZERO_BYTES32, "", "", err_code, false);
-
-        if (
-            accountProofs.from.accountIP.account.tokenType !=
-            accountProofs.to.accountIP.account.tokenType
-        )
+        if (proof.from.account.tokenType != proof.to.account.tokenType)
             return (
                 ZERO_BYTES32,
                 "",
@@ -271,18 +300,39 @@ contract Transfer is FraudProofHelpers {
                 Types.ErrorCode.BadFromTokenType,
                 false
             );
-
         bytes32 newRoot;
         bytes memory new_from_account;
         bytes memory new_to_account;
+        uint256 amount = txs.transfer_amountOf(i);
+        if (proof.from.account.balance < amount)
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.NotEnoughTokenBalance,
+                false
+            );
+        (new_from_account, newRoot) = ApplyTransferSender(
+            proof.from,
+            stateIndex,
+            amount
+        );
 
-        (new_from_account, newRoot) = ApplyTx(accountProofs.from, txs, i);
-
-        // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newRoot, accountProofs.to);
-
-        (new_to_account, newRoot) = ApplyTx(accountProofs.to, txs, i);
-
+        stateIndex = txs.transfer_toIndexOf(i);
+        require(
+            checkInclusion(
+                newRoot,
+                stateIndex,
+                RollupUtils.HashFromAccount(proof.to.account),
+                proof.to.witness
+            ),
+            "Rollup: state inclusion receiver"
+        );
+        (new_from_account, newRoot) = ApplyTransferReceiver(
+            proof.to,
+            stateIndex,
+            amount
+        );
         return (
             newRoot,
             new_from_account,
@@ -290,5 +340,40 @@ contract Transfer is FraudProofHelpers {
             Types.ErrorCode.NoError,
             true
         );
+    }
+
+    function ApplyTransferSender(
+        AccountMerkleProof memory proof,
+        uint256 fromIndex,
+        uint256 amount
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account = proof.account;
+        account = RemoveTokensFromAccount(account, amount);
+        account.nonce++;
+        newRoot = UpdateAccountWithSiblings(proof, fromIndex);
+        return (RollupUtils.BytesFromAccount(account), newRoot);
+    }
+
+    function ApplyTransferReceiver(
+        AccountMerkleProof memory proof,
+        uint256 toIndex,
+        uint256 amount
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory account = proof.account;
+        account = AddTokensToAccount(account, amount);
+        newRoot = UpdateAccountWithSiblings(proof, toIndex);
+        return (RollupUtils.BytesFromAccount(account), newRoot);
+    }
+
+    function UpdateAccountWithSiblings(
+        AccountMerkleProof memory proof,
+        uint256 index
+    ) public view returns (bytes32) {
+        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
+            keccak256(RollupUtils.BytesFromAccount(proof.account)),
+            index,
+            proof.witness
+        );
+        return (newRoot);
     }
 }

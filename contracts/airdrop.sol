@@ -69,7 +69,6 @@ contract Airdrop is FraudProofHelpers {
                 accountsRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i]
             );
 
@@ -92,7 +91,6 @@ contract Airdrop is FraudProofHelpers {
         bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public

@@ -69,7 +69,6 @@ contract CreateAccount is FraudProofHelpers {
                 accountsRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i].to
             );
 
@@ -104,7 +103,6 @@ contract CreateAccount is FraudProofHelpers {
         bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
         public

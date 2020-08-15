@@ -3,11 +3,16 @@ pragma experimental ABIEncoderV2;
 
 import { Transfer } from "../Transfer.sol";
 import { Types } from "../libs/Types.sol";
+import { MerkleTreeUtils } from "../MerkleTreeUtils.sol";
 
 contract TestTransfer is Transfer {
+    constructor(MerkleTreeUtils _merkleUtils) public {
+        merkleUtils = _merkleUtils;
+    }
+
     function checkSignature(
         uint256[2] memory signature,
-        InvalidSignatureProof memory proof,
+        TransferSignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
@@ -25,5 +30,26 @@ contract TestTransfer is Transfer {
             ),
             operationCost - gasleft()
         );
+    }
+
+    function processTransferCommitment(
+        bytes32 stateRoot,
+        bytes memory txs,
+        AccountsProof[] memory proof
+    )
+        public
+        returns (
+            bytes32,
+            bool,
+            uint256 operationCost
+        )
+    {
+        operationCost = gasleft();
+        (bytes32 state, bool safe) = _processTransferCommitment(
+            stateRoot,
+            txs,
+            proof
+        );
+        return (state, safe, operationCost - gasleft());
     }
 }

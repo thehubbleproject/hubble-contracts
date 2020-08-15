@@ -69,7 +69,6 @@ contract BurnConsent is FraudProofHelpers {
                 accountsRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i].from
             );
 
@@ -102,7 +101,6 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
     )
         public

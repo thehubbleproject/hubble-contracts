@@ -1,6 +1,6 @@
 const RollupUtilsLib = artifacts.require("RollupUtils");
+const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 const TransferRollup = artifacts.require("TestTransfer");
-const Rollup = artifacts.require("Rollup");
 
 const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 import { TxTransfer, serialize, calculateRoot, Tx } from "./utils/tx";
@@ -23,6 +23,7 @@ function link(contract: any, instance: any) {
 contract("Rollup Transfer Commitment", () => {
     let rollup: TestTransferInstance;
     let registry: AccountRegistry;
+    let merkleTreeUtilsAddress: string;
     let stateTree: StateTree;
     const accounts: Account[] = [];
     const tokenID = 1;
@@ -32,6 +33,8 @@ contract("Rollup Transfer Commitment", () => {
     before(async function() {
         await mcl.init();
         const registryContract = await BLSAccountRegistry.new();
+        const merkleTreeUtils = await MerkleTreeUtils.new();
+        merkleTreeUtilsAddress = merkleTreeUtils.address;
         registry = await AccountRegistry.new(registryContract);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             const accountID = i;
@@ -53,18 +56,70 @@ contract("Rollup Transfer Commitment", () => {
     beforeEach(async function() {
         let rollupUtilsLib = await RollupUtilsLib.new();
         link(TransferRollup, rollupUtilsLib);
-        rollup = await TransferRollup.new();
+        rollup = await TransferRollup.new(merkleTreeUtilsAddress);
+        console.log(rollup.address);
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             stateTree.createAccount(accounts[i]);
         }
     });
 
+    it.only("transfer commitment: process transactions", async function() {
+        const txs: TxTransfer[] = [];
+        const amount = 20;
+        let aggSignature = mcl.newG1();
+        let preTransitionRoot = stateTree.root;
+        let signers = [];
+        const pubkeys = [];
+        const pubkeyWitnesses = [];
+        for (let i = 0; i < BATCH_SIZE; i++) {
+            const senderIndex = i;
+            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
+            const sender = accounts[senderIndex];
+            const receiver = accounts[reciverIndex];
+            const tx = new TxTransfer(
+                sender.stateID,
+                receiver.stateID,
+                amount,
+                sender.nonce
+            );
+            txs.push(tx);
+            signers.push(sender);
+            pubkeys.push(sender.encodePubkey());
+            pubkeyWitnesses.push(registry.witness(sender.accountID));
+            const signature = sender.sign(tx);
+            aggSignature = mcl.aggreagate(aggSignature, signature);
+        }
+        let stateTransitionProof = stateTree.applyTransferBatch(txs);
+
+        assert.isTrue(stateTransitionProof.safe);
+        const { serialized } = serialize(txs);
+
+        const postTransitionRoot = stateTree.root;
+
+        const res = await rollup.processTransferCommitment.call(
+            preTransitionRoot,
+            serialized,
+            stateTransitionProof.proof
+        );
+        assert.equal(res[0], postTransitionRoot);
+        assert.isTrue(res[1]);
+        console.log("state transition operation gas cost:", res[2].toString());
+        const tx = await rollup.processTransferCommitment(
+            preTransitionRoot,
+            serialized,
+            stateTransitionProof.proof
+        );
+        console.log(
+            "state transition transaction gas cost:",
+            tx.receipt.gasUsed
+        );
+    }).timeout(100000);
+
     it("transfer commitment: signature check", async function() {
         const txs: TxTransfer[] = [];
         const amount = 20;
         let aggSignature = mcl.newG1();
-        let s0 = stateTree.root;
         let signers = [];
         const pubkeys = [];
         const pubkeyWitnesses = [];
@@ -115,7 +170,10 @@ contract("Rollup Transfer Commitment", () => {
             serialized
         );
         assert.equal(0, res[0].toNumber());
-        console.log("operation gas cost:", res[1].toString());
+        console.log(
+            "signature verification operation gas cost:",
+            res[1].toString()
+        );
         const tx = await rollup.checkSignature(
             signature,
             proof,
@@ -124,6 +182,9 @@ contract("Rollup Transfer Commitment", () => {
             appID,
             serialized
         );
-        console.log("transaction gas cost:", tx.receipt.gasUsed);
+        console.log(
+            "signature verification transaction gas cost:",
+            tx.receipt.gasUsed
+        );
     }).timeout(100000);
 });

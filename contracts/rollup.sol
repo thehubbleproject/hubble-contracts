@@ -227,6 +227,8 @@ contract Rollup is RollupHelpers {
         );
     }
 
+
+
     function submitBatch(
         bytes[] calldata txs,
         bytes32[] calldata txRoots,

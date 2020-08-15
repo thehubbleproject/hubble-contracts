@@ -13,15 +13,21 @@ contract MerkleTreeUtils {
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor(address _registryAddr) public {
-        Registry nameRegistry = Registry(_registryAddr);
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        MAX_DEPTH = governance.MAX_DEPTH();
+    // constructor(address _registryAddr) public {
+    //     Registry nameRegistry = Registry(_registryAddr);
+    //     governance = Governance(
+    //         nameRegistry.getContractDetails(ParamManager.Governance())
+    //     );
+    //     MAX_DEPTH = governance.MAX_DEPTH();
+    //     defaultHashes = new bytes32[](MAX_DEPTH);
+    //     // Calculate & set the default hashes
+    //     setDefaultHashes(MAX_DEPTH);
+    // }
+
+    constructor() public {
+        MAX_DEPTH = 32;
         defaultHashes = new bytes32[](MAX_DEPTH);
-        // Calculate & set the default hashes
-        setDefaultHashes(MAX_DEPTH);
+        setDefaultHashes(32);
     }
 
     /* Methods */

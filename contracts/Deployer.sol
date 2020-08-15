@@ -33,7 +33,9 @@ contract Deployer {
             registry.registerName(ParamManager.Governance(), governance),
             "Could not register governance"
         );
-        address mtUtils = address(new MTUtils(nameRegistryAddr));
+        // address mtUtils = address(new MTUtils(nameRegistryAddr));
+        address mtUtils = address(new MTUtils());
+
         require(
             registry.registerName(ParamManager.MERKLE_UTILS(), mtUtils),
             "Could not register merkle utils tree"

@@ -2,51 +2,26 @@ import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./state_account";
 import { TxTransfer } from "./tx";
 
+// interface ProofTransferTx {
+//     senderAccount: StateAccountSolStruct;
+//     receiverAccount: StateAccountSolStruct;
+//     senderWitness: string[];
+//     receiverWitness: string[];
+//     safe: boolean;
+// }
+
+interface AccountProof {
+    account: StateAccountSolStruct;
+    witness: string[];
+}
+
 interface ProofTransferTx {
-    senderAccount: StateAccountSolStruct;
-    receiverAccount: StateAccountSolStruct;
-    senderWitness: string[];
-    receiverWitness: string[];
-    safe: boolean;
-}
-type ProofTransferBatch = ProofTransferTx[];
-
-interface ProofAirdropTxReceiver {
-    account: StateAccountSolStruct;
-    witness: string[];
-    safe: boolean;
-}
-interface ProofAirdropTxSender {
-    account: StateAccountSolStruct;
-    preWitness: string[];
-    postWitness: string[];
-    safe: boolean;
-}
-interface ProofAirdropBatch {
-    receiverProofs: ProofAirdropTxReceiver[];
-    senderProof: ProofAirdropTxSender;
+    from: AccountProof;
+    to: AccountProof;
     safe: boolean;
 }
 
-interface ProofBurnConsentTx {
-    account: StateAccountSolStruct;
-    witness: string[];
-    safe: boolean;
-}
-type ProofBurnConsentBatch = ProofBurnConsentTx[];
-
-interface ProofBurnExecutionTx {
-    account: StateAccountSolStruct;
-    witness: string[];
-    safe: boolean;
-}
-type ProofBurnExecutionBatch = ProofBurnExecutionTx[];
-
-interface ProofCreateAccountTx {
-    witness: string[];
-    safe: boolean;
-}
-type ProofCreateAccountBatch = ProofCreateAccountTx[];
+type ProofTransferCommitment = ProofTransferTx[];
 
 const STATE_WITNESS_LENGHT = 32;
 const ZERO =
@@ -61,24 +36,14 @@ const PLACEHOLDER_PROOF_ACC = {
 };
 const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(ZERO);
 const PLACEHOLDER_TRANSFER_PROOF = {
-    senderAccount: PLACEHOLDER_PROOF_ACC,
-    receiverAccount: PLACEHOLDER_PROOF_ACC,
-    senderWitness: PLACEHOLDER_PROOF_WITNESS,
-    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_AIRDROP_PROOF = {
-    account: PLACEHOLDER_PROOF_ACC,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_BURN_CONSENT_PROOF = {
-    account: PLACEHOLDER_PROOF_ACC,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_CRATE_ACCOUNT_PROOF = {
-    witness: PLACEHOLDER_PROOF_WITNESS,
+    from: {
+        account: PLACEHOLDER_PROOF_ACC,
+        witness: PLACEHOLDER_PROOF_WITNESS
+    },
+    to: {
+        account: PLACEHOLDER_PROOF_ACC,
+        witness: PLACEHOLDER_PROOF_WITNESS
+    },
     safe: false
 };
 
@@ -112,7 +77,7 @@ export class StateTree {
 
     public applyTransferBatch(
         txs: TxTransfer[]
-    ): { proof: ProofTransferBatch; safe: boolean } {
+    ): { proof: ProofTransferCommitment; safe: boolean } {
         let safe = true;
         let proofs: ProofTransferTx[] = [];
         for (let i = 0; i < txs.length; i++) {
@@ -143,10 +108,14 @@ export class StateTree {
                 senderAccount.tokenType != receiverAccount.tokenType
             ) {
                 return {
-                    senderAccount: senderAccStruct,
-                    receiverAccount: PLACEHOLDER_PROOF_ACC,
-                    senderWitness,
-                    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
+                    from: {
+                        account: senderAccStruct,
+                        witness: senderWitness
+                    },
+                    to: {
+                        account: PLACEHOLDER_PROOF_ACC,
+                        witness: PLACEHOLDER_PROOF_WITNESS
+                    },
                     safe: false
                 };
             }
@@ -155,7 +124,6 @@ export class StateTree {
             senderAccount.nonce += 1;
             this.accounts[senderID] = senderAccount;
             this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
-
             const receiverWitness = this.stateTree.witness(receiverID).nodes;
             const receiverAccStruct = receiverAccount.toSolStruct();
             receiverAccount.balance += tx.amount;
@@ -166,30 +134,42 @@ export class StateTree {
             );
 
             return {
-                senderAccount: senderAccStruct,
-                senderWitness,
-                receiverAccount: receiverAccStruct,
-                receiverWitness,
+                from: {
+                    account: senderAccStruct,
+                    witness: senderWitness
+                },
+                to: {
+                    account: receiverAccStruct,
+                    witness: receiverWitness
+                },
                 safe: true
             };
         } else {
             if (!senderAccount) {
                 return {
-                    senderAccount: EMPTY_ACCOUNT,
-                    receiverAccount: PLACEHOLDER_PROOF_ACC,
-                    senderWitness,
-                    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
+                    from: {
+                        account: EMPTY_ACCOUNT,
+                        witness: senderWitness
+                    },
+                    to: {
+                        account: PLACEHOLDER_PROOF_ACC,
+                        witness: PLACEHOLDER_PROOF_WITNESS
+                    },
                     safe: false
                 };
             }
             const senderAccStruct = senderAccount.toSolStruct();
             const receiverWitness = this.stateTree.witness(receiverID).nodes;
             return {
-                senderAccount: senderAccStruct,
-                senderWitness,
-                receiverAccount: EMPTY_ACCOUNT,
-                receiverWitness: receiverWitness,
-                safe: false
+                from: {
+                    account: senderAccStruct,
+                    witness: senderWitness
+                },
+                to: {
+                    account: EMPTY_ACCOUNT,
+                    witness: receiverWitness
+                },
+                safe: true
             };
         }
     }
