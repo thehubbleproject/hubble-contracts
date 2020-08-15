@@ -19,6 +19,7 @@ import {
     DummyPDAMP,
     DummyECDSASignature
 } from "../scripts/helpers/constants";
+import { TxTransfer } from "./utils/tx";
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const IMT = artifacts.require("IncrementalTree");
@@ -317,30 +318,17 @@ contract("Reddit", async function() {
 
     it("let user transfer some token to Bob", async function() {
         const userMP = await stateStore.getAccountMerkleProof(User.AccID);
-        const tx = {
-            txType: Usage.Transfer,
-            fromIndex: User.AccID,
-            toIndex: Bob.AccID,
-            tokenType: 1,
-            nonce: userMP.accountIP.account.nonce + 1,
-            amount: 1
-        } as Transaction;
-        const signBytes = await RollupUtilsInstance.getTxSignBytes(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.nonce,
-            tx.amount
+        const tx = new TxTransfer(
+            User.Acc.ID,
+            Bob.AccID,
+            1,
+            userMP.accountIP.account.nonce + 1
         );
-        tx.signature = utils.sign(signBytes, User.Wallet);
-        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.tokenType,
-            tx.nonce,
-            tx.amount
+        const signature = utils.sign(
+            tx.message(Usage.Transfer.toString()),
+            User.Wallet
         );
+        const txBytes = tx.encode();
 
         const resultFrom = await rollupRedditInstance.ApplyTransferTx(
             userMP,
@@ -363,7 +351,7 @@ contract("Reddit", async function() {
         const resultProcessTx = await rollupRedditInstance.processTransferTx(
             balanceRoot,
             accountRoot,
-            tx.signature,
+            signature,
             txBytes,
             userPDAProof,
             { from: userMP, to: bobMP }
@@ -387,7 +375,7 @@ contract("Reddit", async function() {
 
         const compressedTxs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes],
-            [tx.signature]
+            [signature]
         );
 
         await utils.submitBatch(compressedTxs, newBalanceRoot, Usage.Transfer);
