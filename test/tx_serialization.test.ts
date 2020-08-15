@@ -36,11 +36,9 @@ describe("Tx Serialization", async () => {
             const toIndex = (
                 await c.transfer_toIndexOf(serialized, i)
             ).toNumber();
-            const signature = await c.transfer_signatureOf(serialized, i);
             assert.equal(amount, txs[i].amount);
             assert.equal(fromIndex, txs[i].fromIndex);
             assert.equal(toIndex, txs[i].toIndex);
-            assert.equal(signature, txs[i].signature);
             const decoded = await c.transfer_decode(serialized, i);
             assert.equal(
                 decoded.fromIndex.toString(),
@@ -48,7 +46,6 @@ describe("Tx Serialization", async () => {
             );
             assert.equal(decoded.toIndex.toString(), txs[i].toIndex.toString());
             assert.equal(decoded.amount.toString(), txs[i].amount.toString());
-            assert.equal(txs[i].signature, decoded.signature);
         }
     });
     it("serialize transfer transaction", async function() {
@@ -76,49 +73,6 @@ describe("Tx Serialization", async () => {
         const { serialized } = serialize(txs);
         const _serialized = await c.transfer_serializeFromEncoded(txsInBytes);
         assert.equal(serialized, _serialized);
-    });
-    it("transfer trasaction signature verification", async function() {
-        for (let i = 0; i < 10; i++) {
-            const wallet = walletHelper.generateFirstWallets(
-                walletHelper.mnemonics,
-                1
-            )[0];
-            const tx = TxTransfer.rand();
-            let { serialized } = serialize([tx]);
-            const msg = await c.transfer_messageOf(serialized, 0, tx.nonce);
-            const signature = utils.sign(msg, wallet);
-            tx.signature = signature;
-            serialized = serialize([tx]).serialized;
-            const verified = await c.transfer_verify(
-                serialized,
-                0,
-                tx.nonce,
-                wallet.getAddressString()
-            );
-            assert.isTrue(verified);
-        }
-    });
-
-    it("airdrop trasaction signature verification", async function() {
-        for (let i = 0; i < 10; i++) {
-            const wallet = walletHelper.generateFirstWallets(
-                walletHelper.mnemonics,
-                1
-            )[0];
-            const tx = TxTransfer.rand();
-            let { serialized } = serialize([tx]);
-            const msg = await c.airdrop_messageOf(serialized, 0, tx.nonce);
-            const signature = utils.sign(msg, wallet);
-            tx.signature = signature;
-            serialized = serialize([tx]).serialized;
-            const verified = await c.airdrop_verify(
-                serialized,
-                0,
-                tx.nonce,
-                wallet.getAddressString()
-            );
-            assert.isTrue(verified);
-        }
     });
     it("parse create transaction", async function() {
         const txSize = 16;
@@ -184,10 +138,8 @@ describe("Tx Serialization", async () => {
             const amount = (
                 await c.burnConsent_amountOf(serialized, i)
             ).toNumber();
-            const signature = await c.burnConsent_signatureOf(serialized, i);
             assert.equal(fromIndex, txs[i].fromIndex);
             assert.equal(amount, txs[i].amount);
-            assert.equal(signature, txs[i].signature);
         }
     });
     it("serialize burn consent transaction", async function() {
@@ -217,27 +169,6 @@ describe("Tx Serialization", async () => {
             txsInBytes
         );
         assert.equal(serialized, _serialized);
-    });
-    it("burn consent trasaction signature verification", async function() {
-        for (let i = 0; i < 10; i++) {
-            const wallet = walletHelper.generateFirstWallets(
-                walletHelper.mnemonics,
-                1
-            )[0];
-            const tx = TxBurnConsent.rand();
-            let { serialized } = serialize([tx]);
-            const msg = await c.burnConsent_messageOf(serialized, 0, tx.nonce);
-            const signature = utils.sign(msg, wallet);
-            tx.signature = signature;
-            serialized = serialize([tx]).serialized;
-            const verified = await c.burnConsent_verify(
-                serialized,
-                0,
-                tx.nonce,
-                wallet.getAddressString()
-            );
-            assert.isTrue(verified);
-        }
     });
     it("parse burn execution transaction", async function() {
         const txSize = 16;

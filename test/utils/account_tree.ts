@@ -1,5 +1,6 @@
 import { Tree } from "./tree";
 import { BlsAccountRegistryInstance } from "../../types/truffle-contracts";
+import { ethers } from "ethers";
 
 export class AccountRegistry {
     treeLeft: Tree;
@@ -51,11 +52,9 @@ export class AccountRegistry {
     }
 
     public pubkeyToLeaf(uncompressed: string[]) {
-        const leaf = web3.utils.soliditySha3(
-            { t: "uint256", v: uncompressed[0] },
-            { t: "uint256", v: uncompressed[1] },
-            { t: "uint256", v: uncompressed[2] },
-            { t: "uint256", v: uncompressed[3] }
+        const leaf = ethers.utils.solidityKeccak256(
+            ["uint256", "uint256", "uint256", "uint256"],
+            uncompressed
         );
         return leaf;
     }
