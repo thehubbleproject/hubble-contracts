@@ -1,5 +1,6 @@
 import * as mcl from "./mcl";
-import { Tx } from "./tx";
+import { Tx, SignableTx } from "./tx";
+import { ethers } from "ethers";
 
 export interface StateAccountSolStruct {
     ID: number;
@@ -63,7 +64,7 @@ export class Account {
         return this;
     }
 
-    public sign(tx: Tx) {
+    public sign(tx: SignableTx) {
         const msg = tx.message(this.domain);
         const { signature, M } = mcl.sign(msg, this.secretKey);
         return signature;
@@ -79,13 +80,16 @@ export class Account {
     }
 
     public toStateLeaf(): string {
-        return web3.utils.soliditySha3(
-            { v: this.accountID, t: "uint256" },
-            { v: this.balance, t: "uint256" },
-            { v: this.nonce, t: "uint256" },
-            { v: this.tokenType, t: "uint256" },
-            { v: this.burn, t: "uint256" },
-            { v: this.lastBurn, t: "uint256" }
+        return ethers.utils.solidityKeccak256(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            [
+                this.accountID,
+                this.balance,
+                this.nonce,
+                this.tokenType,
+                this.burn,
+                this.lastBurn
+            ]
         );
     }
 
@@ -102,11 +106,9 @@ export class Account {
 
     public toAccountLeaf(): string {
         const publicKey = mcl.g2ToHex(this.publicKey);
-        return web3.utils.soliditySha3(
-            { v: publicKey[0], t: "uint256" },
-            { v: publicKey[1], t: "uint256" },
-            { v: publicKey[2], t: "uint256" },
-            { v: publicKey[3], t: "uint256" }
+        return ethers.utils.solidityKeccak256(
+            ["uint256", "uint256", "uint256", "uint256"],
+            publicKey
         );
     }
 }

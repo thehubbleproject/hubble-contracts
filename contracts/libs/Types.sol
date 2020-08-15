@@ -55,7 +55,6 @@ library Types {
         uint256 tokenType;
         uint256 nonce;
         uint256 amount;
-        bytes signature;
     }
 
     struct Transaction {
@@ -90,7 +89,6 @@ library Types {
         uint256 fromIndex;
         uint256 amount;
         uint256 nonce;
-        bytes signature;
     }
 
     struct BurnExecution {

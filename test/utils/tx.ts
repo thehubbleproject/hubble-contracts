@@ -1,6 +1,5 @@
-import * as mcl from "./mcl";
 import { Tree } from "./tree";
-import { sign } from "../../scripts/helpers/utils";
+import { ethers } from "ethers";
 
 const amountLen = 4;
 const accountIDLen = 4;
@@ -15,6 +14,9 @@ function log2(n: number) {
 export interface Tx {
     hash(): string;
     encode(prefix?: boolean): string;
+}
+
+export interface SignableTx extends Tx {
     message(domain: string): string;
 }
 
@@ -34,7 +36,7 @@ export function serialize(txs: Tx[]) {
     return { serialized, commit };
 }
 
-export class TxTransfer {
+export class TxTransfer implements SignableTx {
     private readonly TX_TYPE = "01";
     public static rand(): TxTransfer {
         const sender = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
@@ -62,10 +64,9 @@ export class TxTransfer {
     }
 
     public hash(): string {
-        return web3.utils.soliditySha3(
-            { v: this.fromIndex, t: "uint32" },
-            { v: this.toIndex, t: "uint32" },
-            { v: this.amount, t: "uint32" }
+        return ethers.utils.solidityKeccak256(
+            ["uint32", "uint32", "uint32"],
+            [this.fromIndex, this.toIndex, this.amount]
         );
     }
 
@@ -102,7 +103,7 @@ export class TxTransfer {
     }
 }
 
-export class TxCreate {
+export class TxCreate implements Tx {
     public static rand(): TxCreate {
         const accountID = web3.utils.hexToNumber(
             web3.utils.randomHex(accountIDLen)
@@ -122,10 +123,9 @@ export class TxCreate {
     ) {}
 
     public hash(): string {
-        return web3.utils.soliditySha3(
-            { v: this.accountID, t: "uint32" },
-            { v: this.stateID, t: "uint32" },
-            { v: this.tokenType, t: "uint16" }
+        return ethers.utils.solidityKeccak256(
+            ["uint32", "uint32", "uint16"],
+            [this.accountID, this.stateID, this.tokenType]
         );
     }
 
@@ -160,7 +160,7 @@ export class TxCreate {
     }
 }
 
-export class TxBurnConsent {
+export class TxBurnConsent implements SignableTx {
     public static rand(): TxBurnConsent {
         const fromIndex = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
@@ -176,9 +176,9 @@ export class TxBurnConsent {
     ) {}
 
     public hash(): string {
-        return web3.utils.soliditySha3(
-            { v: this.fromIndex, t: "uint32" },
-            { v: this.amount, t: "uint32" }
+        return ethers.utils.solidityKeccak256(
+            ["uint32", "uint32"],
+            [this.fromIndex, this.amount]
         );
     }
 
@@ -206,9 +206,12 @@ export class TxBurnConsent {
         }
         return encoded;
     }
+    public message(domain: string): string {
+        throw new Error("not Implemented");
+    }
 }
 
-export class TxBurnExecution {
+export class TxBurnExecution implements Tx {
     public static rand(): TxBurnExecution {
         const fromIndex = web3.utils.hexToNumber(
             web3.utils.randomHex(stateIDLen)
@@ -218,7 +221,7 @@ export class TxBurnExecution {
     constructor(public readonly fromIndex: number) {}
 
     public hash(): string {
-        return web3.utils.soliditySha3({ v: this.fromIndex, t: "uint32" });
+        return ethers.utils.solidityKeccak256(["uint32"], [this.fromIndex]);
     }
 
     public extended() {

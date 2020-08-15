@@ -431,15 +431,13 @@ library Tx {
         for (uint256 i = 0; i < txs.length; i++) {
             uint256 fromIndex;
             uint256 amount;
-            bytes memory signature;
-            (, fromIndex, amount, , signature) = abi.decode(
+            (, fromIndex, amount, ) = abi.decode(
                 txs[i],
-                (uint256, uint256, uint256, uint256, bytes)
+                (uint256, uint256, uint256, uint256)
             );
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_2;
             for (uint256 j = 0; j < TX_LEN_2; j++) {
@@ -459,11 +457,9 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 amount = txs[i].amount;
-            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_2;
             for (uint256 j = 0; j < TX_LEN_2; j++) {
