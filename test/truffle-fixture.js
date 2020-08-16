@@ -59,7 +59,7 @@ module.exports = async () => {
     const blsAccountRegistryInstance = await deployAndRegister(
         BLSAccountRegistryContract,
         [],
-        [],
+        [loggerInstance.address],
         "ACCOUNT_REGISTRY"
     );
 
