@@ -26,7 +26,7 @@ interface IFraudProof {
         bytes32 accountsRoot,
         Types.Transaction[] calldata _txs,
         Types.BatchValidationProofs calldata batchProofs,
-        bytes32 expectedTxRoot
+        bytes32 expectedTxHashCommitment
     )
         external
         view
