@@ -20,13 +20,10 @@ import { RollupRedditFactory } from "../types/ethers-contracts/RollupRedditFacto
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
 import { ethers, Signer, Contract } from "ethers";
+import { DeploymentParameters } from "./interfaces";
+import { TESTING_PARAMS } from "./constants";
 
-interface DeploymentParameters {
-    MAX_DEPTH: number;
-    MAX_DEPOSIT_SUBTREE_DEPTH: number;
-}
-
-async function deployAll(
+export async function deployAll(
     signer: Signer,
     parameters: DeploymentParameters
 ): Promise<{ [key: string]: Contract }> {
@@ -231,12 +228,8 @@ async function getMerkleRootWithCoordinatorAccount(
 async function main() {
     const provider = new ethers.providers.JsonRpcProvider();
     const signer = provider.getSigner();
-    const parameters: DeploymentParameters = {
-        MAX_DEPTH: 4,
-        MAX_DEPOSIT_SUBTREE_DEPTH: 1
-    };
 
-    const allContracts = await deployAll(signer, parameters);
+    const allContracts = await deployAll(signer, TESTING_PARAMS);
     Object.keys(allContracts).forEach((contract: string) => {
         console.log(contract, allContracts[contract].address);
     });
