@@ -222,7 +222,7 @@ contract Transfer is FraudProofHelpers {
             }
         }
 
-        return (stateRoot, actualTxRoot, !isTxValid);
+        return (stateRoot, actualTxHashCommitment, !isTxValid);
     }
 
     /**
