@@ -46,6 +46,4 @@ contract WithdrawManager {
         );
         withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
     }
-
-    
 }
