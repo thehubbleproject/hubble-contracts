@@ -3,6 +3,14 @@ pragma solidity ^0.5.15;
 import { Types } from "./libs/Types.sol";
 
 contract Logger {
+    event PubkeyRegistered(uint256[4] pubkey, uint256 accountID);
+
+    function logPubkeyRegistered(uint256[4] calldata pubkey, uint256 accountID)
+        external
+    {
+        emit PubkeyRegistered(pubkey, accountID);
+    }
+
     /*********************
      * Rollup Contract *
      ********************/
