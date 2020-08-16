@@ -79,7 +79,7 @@ async function deployAll(
 
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
         signer
-    ).deploy();
+    ).deploy(logger.address);
     await blsAccountRegistry.deployed();
     await nameRegistry.registerName(
         await paramManager.ACCOUNT_REGISTRY(),
