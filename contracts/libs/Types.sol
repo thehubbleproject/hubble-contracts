@@ -36,7 +36,6 @@ library Types {
         bytes32 stateRoot;
         bytes32 accountRoot;
         bytes32 txHashCommitment;
-        bytes32 txRootCommitment;
         Usage batchType;
     }
 
