@@ -3,12 +3,12 @@ import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "./utils/state_tree";
-import { AccountRegistry } from "./utils/account_tree";
+import { AccountRegistry2 } from "./utils/account_tree";
 import { Account } from "./utils/state_account";
 import { TxTransfer } from "./utils/tx";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
-import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
+import * as mcl from "./utils/mcl";
 
 describe("Rollup", async function() {
     let Alice: Account;
@@ -16,24 +16,31 @@ describe("Rollup", async function() {
 
     let contracts: any;
     let stateTree: StateTree;
-    let registry: BlsAccountRegistry;
+    let registry: AccountRegistry2;
+    before(async function() {
+        await mcl.init();
+    });
 
     beforeEach(async function() {
         const accounts = await ethers.getSigners();
-        contracts = deployAll(accounts[0], TESTING_PARAMS);
+        contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
-        const registry = contracts.blsRegistry;
+        const registryContract = contracts.blsAccountRegistry;
+        const registry = await AccountRegistry2.new(registryContract);
         const appID =
             "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         const tokenID = 1;
-        Alice = Account.new(appID, 2, tokenID, 10, 0);
+
+        Alice = Account.new(appID, -1, tokenID, 10, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
-        await registry.register(Alice.encodePubkey());
-        Bob = Account.new(appID, 3, tokenID, 10, 0);
+        Alice.accountID = await registry.register(Alice.encodePubkey());
+
+        Bob = Account.new(appID, -1, tokenID, 10, 0);
         Bob.setStateID(3);
         Bob.newKeyPair();
-        await registry.register(Bob.encodePubkey());
+        Bob.accountID = await registry.register(Bob.encodePubkey());
+
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);
     });
@@ -50,25 +57,28 @@ describe("Rollup", async function() {
 
         const rollup = contracts.rollup as Rollup;
         const rollupUtils = contracts.rollupUtils as RollupUtils;
-        const stateRoot = stateTree.root;
+        const stateRoot = ethers.utils.arrayify(stateTree.root);
         const proof = stateTree.applyTxTransfer(tx);
+        const txs = ethers.utils.arrayify("0x" + tx.encode());
 
         const _tx = await rollup.submitBatch(
-            [tx.encode()],
+            [txs],
             [stateRoot],
             Usage.Transfer,
-            signature
+            [mcl.g1ToHex(signature)],
+            { value: TESTING_PARAMS.STAKE_AMOUNT }
         );
         await _tx.wait();
+        console.log("HERE");
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
         const root = await registry.root();
 
         const commitment = {
-            stateRoot: ethers.utils.arrayify(stateRoot),
+            stateRoot,
             accountRoot: ethers.utils.arrayify(root),
             txHashCommitment: ethers.utils.arrayify(
-                ethers.utils.solidityKeccak256(["bytes"], [tx.encode()])
+                ethers.utils.solidityKeccak256(["bytes"], [txs])
             ),
             batchType: Usage.Transfer
         };
@@ -79,11 +89,40 @@ describe("Rollup", async function() {
             siblings: []
         };
 
-        await rollup.disputeBatch(
-            batchId,
-            commitmentMP,
-            tx.encode(),
-            {} // batch proof waht???
-        );
+        await rollup.disputeBatch(batchId, commitmentMP, txs, {
+            accountProofs: [
+                {
+                    from: {
+                        accountIP: {
+                            pathToAccount: Alice.stateID,
+                            account: proof.senderAccount
+                        },
+                        siblings: proof.senderWitness.map(ethers.utils.arrayify)
+                    },
+                    to: {
+                        accountIP: {
+                            pathToAccount: Bob.stateID,
+                            account: proof.receiverAccount
+                        },
+                        siblings: proof.receiverWitness.map(
+                            ethers.utils.arrayify
+                        )
+                    }
+                }
+            ],
+            pdaProof: [
+                {
+                    _pda: {
+                        pathToPubkey: Alice.accountID,
+                        pubkey_leaf: {
+                            pubkey: mcl.g2ToHex(Alice.publicKey)
+                        }
+                    },
+                    siblings: registry
+                        .witness(Alice.accountID)
+                        .map(ethers.utils.arrayify)
+                }
+            ]
+        });
     });
 });

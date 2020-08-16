@@ -196,6 +196,7 @@ export async function deployAll(
         governance,
         logger,
         merkleTreeUtils,
+        blsAccountRegistry,
         tokenRegistry,
         createAccount,
         airdrop,
@@ -224,14 +225,3 @@ async function getMerkleRootWithCoordinatorAccount(
     const result = await merkleTreeUtils.getMerkleRootFromLeaves(dataLeaves);
     return result;
 }
-
-async function main() {
-    const provider = new ethers.providers.JsonRpcProvider();
-    const signer = provider.getSigner();
-
-    const allContracts = await deployAll(signer, TESTING_PARAMS);
-    Object.keys(allContracts).forEach((contract: string) => {
-        console.log(contract, allContracts[contract].address);
-    });
-}
-main();

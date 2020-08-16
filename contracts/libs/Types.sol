@@ -20,7 +20,7 @@ library Types {
     // PDALeaf represents the leaf in
     // Pubkey DataAvailability Tree
     struct PDALeaf {
-        bytes pubkey;
+        uint256[4] pubkey;
     }
 
     // Batch represents the batch submitted periodically to the ethereum chain

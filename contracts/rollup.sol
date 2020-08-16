@@ -230,15 +230,16 @@ contract Rollup is RollupHelpers {
         bytes[] calldata txs,
         bytes32[] calldata updatedRoots,
         Types.Usage batchType,
-        uint256[][2] calldata aggregatedSignatures
+        uint256[2][] calldata aggregatedSignatures
     ) external payable onlyCoordinator {
         require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-        bytes32[] memory commitments;
+        bytes32[] memory commitments = new bytes32[](updatedRoots.length);
         for (uint256 i = 0; i < updatedRoots.length; i++) {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
-                    accountRegistry.root(),
+                    // accountRegistry.root(),
+                    bytes32(0x00),
                     keccak256(txs[i]),
                     uint8(batchType)
                 )

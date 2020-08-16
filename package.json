@@ -10,7 +10,7 @@
     "generate": "buidler compile && typechain --target truffle-v5 './build/**/*.json' && typechain --target ethers-v4 './build/**/*.json'",
     "compile": "buidler compile",
     "node": "buidler node",
-    "deploy": "ts-node ./ts/deploy.ts",
+    "deploy": "ts-node ./scripts/deploy.ts",
     "add-pubkeys": "node ./scripts/addPubkeys.js"
   },
   "repository": {
