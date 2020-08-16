@@ -267,7 +267,7 @@ contract RollupReddit {
         bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot,
+        bytes32 expectedTxHashCommitment,
         Types.Usage batchType
     )
         public
@@ -285,7 +285,7 @@ contract RollupReddit {
                     accountsRoot,
                     txs,
                     batchProofs,
-                    expectedTxRoot
+                    expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.Airdrop) {
             return
@@ -294,7 +294,7 @@ contract RollupReddit {
                     accountsRoot,
                     txs,
                     batchProofs,
-                    expectedTxRoot
+                    expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.Transfer) {
             return
@@ -303,7 +303,7 @@ contract RollupReddit {
                     accountsRoot,
                     txs,
                     batchProofs,
-                    expectedTxRoot
+                    expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
             return
@@ -312,7 +312,7 @@ contract RollupReddit {
                     accountsRoot,
                     txs,
                     batchProofs,
-                    expectedTxRoot
+                    expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
             return
@@ -321,7 +321,7 @@ contract RollupReddit {
                     accountsRoot,
                     txs,
                     batchProofs,
-                    expectedTxRoot
+                    expectedTxHashCommitment
                 );
         } else {
             revert("Invalid BatchType to dispute");

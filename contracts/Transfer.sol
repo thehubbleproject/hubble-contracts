@@ -184,7 +184,7 @@ contract Transfer is FraudProofHelpers {
         bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        bytes32 expectedTxHashCommitment
     )
         public
         view
@@ -195,12 +195,11 @@ contract Transfer is FraudProofHelpers {
         )
     {
         uint256 length = txs.transfer_size();
-        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
-            txs.transfer_toLeafs()
-        );
-        if (expectedTxRoot != ZERO_BYTES32) {
+
+        bytes32 actualTxHashCommitment = keccak256(abi.encode(txs));
+        if (expectedTxHashCommitment != ZERO_BYTES32) {
             require(
-                actualTxRoot == expectedTxRoot,
+                actualTxHashCommitment == expectedTxHashCommitment,
                 "Invalid dispute, tx root doesn't match"
             );
         }
