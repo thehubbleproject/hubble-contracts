@@ -50,7 +50,7 @@ contract BurnConsent is FraudProofHelpers {
         )
     {
         uint256 length = txs.burnConsent_size();
-        bytes32 actualTxHashCommitment = keccak256(abi.encode(txs));
+        bytes32 actualTxHashCommitment = keccak256(txs);
         if (expectedTxHashCommitment != ZERO_BYTES32) {
             require(
                 actualTxHashCommitment == expectedTxHashCommitment,

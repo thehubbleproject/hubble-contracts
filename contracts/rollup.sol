@@ -239,7 +239,7 @@ contract Rollup is RollupHelpers {
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
                     accountRegistry.root(),
-                    keccak256(abi.encode(txs[i])),
+                    keccak256(txs[i]),
                     uint8(batchType)
                 )
             );
