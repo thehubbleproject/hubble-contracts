@@ -1,4 +1,5 @@
 const mcl = require("mcl-wasm");
+import web3 from "web3";
 
 export type mclG2 = any;
 export type mclG1 = any;
