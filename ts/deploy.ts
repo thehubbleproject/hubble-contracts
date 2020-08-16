@@ -1,4 +1,3 @@
-import { EcVerifyFactory } from "../types/ethers-contracts/EcVerifyFactory";
 import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFactory";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
@@ -16,9 +15,9 @@ import { BurnConsentFactory } from "../types/ethers-contracts/BurnConsentFactory
 import { BurnExecutionFactory } from "../types/ethers-contracts/BurnExecutionFactory";
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
 import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
-import { IncrementalTreeFactory } from "../types/ethers-contracts/IncrementalTreeFactory";
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
 import { RollupRedditFactory } from "../types/ethers-contracts/RollupRedditFactory";
+import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
 import { ethers, Signer, Contract } from "ethers";
 
@@ -32,8 +31,6 @@ async function deployAll(
     parameters: DeploymentParameters
 ): Promise<{ [key: string]: Contract }> {
     // deploy libs
-    const ecVerify = await new EcVerifyFactory(signer).deploy();
-    await ecVerify.deployed();
 
     const paramManager = await new ParamManagerFactory(signer).deploy();
     await paramManager.deployed();
@@ -80,6 +77,15 @@ async function deployAll(
         merkleTreeUtils.address
     );
 
+    const blsAccountRegistry = await new BlsAccountRegistryFactory(
+        signer
+    ).deploy();
+    await blsAccountRegistry.deployed();
+    await nameRegistry.registerName(
+        await paramManager.ACCOUNT_REGISTRY(),
+        blsAccountRegistry.address
+    );
+
     // deploy Token registry contract
     const tokenRegistry = await new TokenRegistryFactory(
         allLinkRefs,
@@ -112,9 +118,7 @@ async function deployAll(
         airdrop.address
     );
 
-    const transfer = await new TransferFactory(allLinkRefs, signer).deploy(
-        nameRegistry.address
-    );
+    const transfer = await new TransferFactory(allLinkRefs, signer).deploy();
     await transfer.deployed();
     await nameRegistry.registerName(
         await paramManager.TRANSFER(),
@@ -143,17 +147,6 @@ async function deployAll(
     const pob = await new PobFactory(signer).deploy();
     await pob.deployed();
     await nameRegistry.registerName(await paramManager.POB(), pob.address);
-
-    // deploy account tree contract
-    const incrementalTree = await new IncrementalTreeFactory(
-        allLinkRefs,
-        signer
-    ).deploy(nameRegistry.address);
-    await incrementalTree.deployed();
-    await nameRegistry.registerName(
-        await paramManager.ACCOUNTS_TREE(),
-        incrementalTree.address
-    );
 
     // deploy test token
     const testToken = await new TestTokenFactory(signer).deploy();
@@ -200,7 +193,6 @@ async function deployAll(
         rollup.address
     );
     return {
-        ecVerify,
         paramManager,
         rollupUtils,
         nameRegistry,
@@ -214,7 +206,6 @@ async function deployAll(
         burnConsent,
         burnExecution,
         pob,
-        incrementalTree,
         testToken,
         depositManager,
         rollupReddit,
