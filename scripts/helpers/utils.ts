@@ -178,7 +178,6 @@ export async function submitBatch(
 
     await rollupCoreInstance.submitBatch(
         [compressedTxs],
-        ["0xabcd"],
         [newRoot],
         usage,
         [[]],
@@ -363,7 +362,6 @@ export async function logEstimate(compressedTxs: string, usage: Usage) {
     const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
     const gasEstimation = await rollupCoreInstance.submitBatch.estimateGas(
         [compressedTxs],
-        ["0xabcd"],
         [balanceRoot],
         usage,
         [[]],
