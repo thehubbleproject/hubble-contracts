@@ -19,9 +19,8 @@ import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
 import { RollupRedditFactory } from "../types/ethers-contracts/RollupRedditFactory";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { ethers, Signer, Contract } from "ethers";
+import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
-import { TESTING_PARAMS } from "./constants";
 
 export async function deployAll(
     signer: Signer,
@@ -173,11 +172,13 @@ export async function deployAll(
         rollupReddit.address
     );
 
-    const root = await getMerkleRootWithCoordinatorAccount(
-        rollupUtils,
-        merkleTreeUtils,
-        parameters
-    );
+    const root =
+        parameters.GENESIS_STATE_ROOT ||
+        (await getMerkleRootWithCoordinatorAccount(
+            rollupUtils,
+            merkleTreeUtils,
+            parameters
+        ));
 
     // deploy Rollup core
     const rollup = await new RollupFactory(allLinkRefs, signer).deploy(
