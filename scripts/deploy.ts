@@ -27,7 +27,7 @@ async function main() {
         GENESIS_STATE_ROOT: argv.root
     };
 
-    const allContracts = await deployAll(signer, parameters);
+    const allContracts = await deployAll(signer, parameters, true);
     Object.keys(allContracts).forEach((contract: string) => {
         console.log(contract, allContracts[contract].address);
     });
