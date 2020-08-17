@@ -232,7 +232,7 @@ contract Rollup is RollupHelpers {
         Types.Usage batchType,
         uint256[2][] calldata aggregatedSignatures
     ) external payable onlyCoordinator {
-        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
+        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         uint256 commmitmentLength = updatedRoots.length;
         bytes32[] memory commitments = new bytes32[](commmitmentLength);
         bytes32 pubkeyTreeRoot = accountRegistry.root();

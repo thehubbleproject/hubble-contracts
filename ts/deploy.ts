@@ -2,6 +2,7 @@ import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFacto
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
+import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { GovernanceFactory } from "../types/ethers-contracts/GovernanceFactory";
 import { MerkleTreeUtilsFactory } from "../types/ethers-contracts/MerkleTreeUtilsFactory";
 import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
@@ -19,43 +20,67 @@ import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
 import { RollupRedditFactory } from "../types/ethers-contracts/RollupRedditFactory";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { ethers, Signer, Contract } from "ethers";
+import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
-import { TESTING_PARAMS } from "./constants";
+
+async function waitAndRegister(
+    contract: Contract,
+    name: string,
+    verbose: boolean,
+    nameRegistry?: NameRegistry,
+    registryKey?: string
+) {
+    await contract.deployed();
+    if (verbose) console.log("Deployed", name, "at", contract.address);
+    if (nameRegistry) {
+        if (!registryKey) throw Error(`Need registry key for ${name}`);
+        const tx = await nameRegistry.registerName(
+            registryKey,
+            contract.address
+        );
+        await tx.wait();
+        if (verbose) console.log("Registered", name, "on nameRegistry");
+    }
+}
 
 export async function deployAll(
     signer: Signer,
-    parameters: DeploymentParameters
+    parameters: DeploymentParameters,
+    verbose: boolean = false
 ): Promise<{ [key: string]: Contract }> {
     // deploy libs
 
     const paramManager = await new ParamManagerFactory(signer).deploy();
-    await paramManager.deployed();
+    await waitAndRegister(paramManager, "paramManager", verbose);
 
     const rollupUtils = await new RollupUtilsFactory(signer).deploy();
-    await rollupUtils.deployed();
+    await waitAndRegister(rollupUtils, "rollupUtils", verbose);
 
     // deploy name registry
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
-    await nameRegistry.deployed();
+    await waitAndRegister(nameRegistry, "nameRegistry", verbose);
 
     // deploy governance
     const governance = await new GovernanceFactory(signer).deploy(
         parameters.MAX_DEPTH,
         parameters.MAX_DEPOSIT_SUBTREE_DEPTH
     );
-    await governance.deployed();
-    await nameRegistry.registerName(
-        await paramManager.Governance(),
-        governance.address
+    await waitAndRegister(
+        governance,
+        "governance",
+        verbose,
+        nameRegistry,
+        await paramManager.Governance()
     );
 
     // deploy logger
     const logger = await new LoggerFactory(signer).deploy();
-    await logger.deployed();
-    await nameRegistry.registerName(
-        await paramManager.LOGGER(),
-        logger.address
+    await waitAndRegister(
+        logger,
+        "logger",
+        verbose,
+        nameRegistry,
+        await paramManager.LOGGER()
     );
 
     const allLinkRefs = {
@@ -68,19 +93,23 @@ export async function deployAll(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await merkleTreeUtils.deployed();
-    await nameRegistry.registerName(
-        await paramManager.MERKLE_UTILS(),
-        merkleTreeUtils.address
+    await waitAndRegister(
+        merkleTreeUtils,
+        "merkleTreeUtils",
+        verbose,
+        nameRegistry,
+        await paramManager.MERKLE_UTILS()
     );
 
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
         signer
     ).deploy(logger.address);
-    await blsAccountRegistry.deployed();
-    await nameRegistry.registerName(
-        await paramManager.ACCOUNT_REGISTRY(),
-        blsAccountRegistry.address
+    await waitAndRegister(
+        blsAccountRegistry,
+        "blsAccountRegistry",
+        verbose,
+        nameRegistry,
+        await paramManager.ACCOUNT_REGISTRY()
     );
 
     // deploy Token registry contract
@@ -88,10 +117,12 @@ export async function deployAll(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await tokenRegistry.deployed();
-    await nameRegistry.registerName(
-        await paramManager.TOKEN_REGISTRY(),
-        tokenRegistry.address
+    await waitAndRegister(
+        tokenRegistry,
+        "tokenRegistry",
+        verbose,
+        nameRegistry,
+        await paramManager.TOKEN_REGISTRY()
     );
 
     // deploy Reddit contracts
@@ -100,95 +131,124 @@ export async function deployAll(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await createAccount.deployed();
-    await nameRegistry.registerName(
-        await paramManager.CREATE_ACCOUNT(),
-        createAccount.address
+    await waitAndRegister(
+        createAccount,
+        "createAccount",
+        verbose,
+        nameRegistry,
+        await paramManager.CREATE_ACCOUNT()
     );
 
     const airdrop = await new AirdropFactory(allLinkRefs, signer).deploy(
         nameRegistry.address
     );
-    await airdrop.deployed();
-    await nameRegistry.registerName(
-        await paramManager.AIRDROP(),
-        airdrop.address
+    await waitAndRegister(
+        airdrop,
+        "airdrop",
+        verbose,
+        nameRegistry,
+        await paramManager.AIRDROP()
     );
 
     const transfer = await new TransferFactory(allLinkRefs, signer).deploy();
-    await transfer.deployed();
-    await nameRegistry.registerName(
-        await paramManager.TRANSFER(),
-        transfer.address
+    await waitAndRegister(
+        transfer,
+        "transfer",
+        verbose,
+        nameRegistry,
+        await paramManager.TRANSFER()
     );
+
     const burnConsent = await new BurnConsentFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await burnConsent.deployed();
-    await nameRegistry.registerName(
-        await paramManager.BURN_CONSENT(),
-        burnConsent.address
+    await waitAndRegister(
+        burnConsent,
+        "burnConsent",
+        verbose,
+        nameRegistry,
+        await paramManager.BURN_CONSENT()
     );
+
     const burnExecution = await new BurnExecutionFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await burnExecution.deployed();
-    await nameRegistry.registerName(
-        await paramManager.BURN_EXECUTION(),
-        burnExecution.address
+    await waitAndRegister(
+        burnExecution,
+        "burnExecution",
+        verbose,
+        nameRegistry,
+        await paramManager.BURN_EXECUTION()
     );
 
     // deploy POB contract
     const pob = await new PobFactory(signer).deploy();
-    await pob.deployed();
-    await nameRegistry.registerName(await paramManager.POB(), pob.address);
+    await waitAndRegister(
+        pob,
+        "pob",
+        verbose,
+        nameRegistry,
+        await paramManager.POB()
+    );
 
     // deploy test token
     const testToken = await new TestTokenFactory(signer).deploy();
-    await testToken.deployed();
-    await nameRegistry.registerName(
-        await paramManager.TEST_TOKEN(),
-        testToken.address
+    await waitAndRegister(
+        testToken,
+        "testToken",
+        verbose,
+        nameRegistry,
+        await paramManager.TEST_TOKEN()
     );
+
     // deploy deposit manager
     const depositManager = await new DepositManagerFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await depositManager.deployed();
-    await nameRegistry.registerName(
-        await paramManager.DEPOSIT_MANAGER(),
-        depositManager.address
+    await waitAndRegister(
+        depositManager,
+        "depositManager",
+        verbose,
+        nameRegistry,
+        await paramManager.DEPOSIT_MANAGER()
     );
 
     const rollupReddit = await new RollupRedditFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
-    await rollupReddit.deployed();
-    await nameRegistry.registerName(
-        await paramManager.ROLLUP_REDDIT(),
-        rollupReddit.address
+    await waitAndRegister(
+        rollupReddit,
+        "rollupReddit",
+        verbose,
+        nameRegistry,
+        await paramManager.ROLLUP_REDDIT()
     );
 
-    const root = await getMerkleRootWithCoordinatorAccount(
-        rollupUtils,
-        merkleTreeUtils,
-        parameters
-    );
+    const root =
+        parameters.GENESIS_STATE_ROOT ||
+        (await getMerkleRootWithCoordinatorAccount(
+            rollupUtils,
+            merkleTreeUtils,
+            parameters
+        ));
 
     // deploy Rollup core
     const rollup = await new RollupFactory(allLinkRefs, signer).deploy(
         nameRegistry.address,
         root
     );
-    await rollup.deployed();
-    await nameRegistry.registerName(
-        await paramManager.ROLLUP_CORE(),
-        rollup.address
+    await waitAndRegister(
+        rollup,
+        "rollup",
+        verbose,
+        nameRegistry,
+        await paramManager.ROLLUP_CORE()
     );
+
     return {
         paramManager,
         rollupUtils,
