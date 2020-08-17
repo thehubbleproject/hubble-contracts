@@ -30,13 +30,16 @@ export async function deployAll(
 
     const paramManager = await new ParamManagerFactory(signer).deploy();
     await paramManager.deployed();
+    console.log("paramManager", paramManager.address);
 
     const rollupUtils = await new RollupUtilsFactory(signer).deploy();
     await rollupUtils.deployed();
+    console.log("rollupUtils", rollupUtils.address);
 
     // deploy name registry
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
     await nameRegistry.deployed();
+    console.log("nameRegistry", nameRegistry.address);
 
     // deploy governance
     const governance = await new GovernanceFactory(signer).deploy(
@@ -48,6 +51,7 @@ export async function deployAll(
         await paramManager.Governance(),
         governance.address
     );
+    console.log("governance", governance.address);
 
     // deploy logger
     const logger = await new LoggerFactory(signer).deploy();
@@ -56,6 +60,7 @@ export async function deployAll(
         await paramManager.LOGGER(),
         logger.address
     );
+    console.log("logger", logger.address);
 
     const allLinkRefs = {
         __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address,
@@ -72,6 +77,7 @@ export async function deployAll(
         await paramManager.MERKLE_UTILS(),
         merkleTreeUtils.address
     );
+    console.log("merkleTreeUtils", merkleTreeUtils.address);
 
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
         signer
@@ -81,6 +87,7 @@ export async function deployAll(
         await paramManager.ACCOUNT_REGISTRY(),
         blsAccountRegistry.address
     );
+    console.log("blsAccountRegistry", blsAccountRegistry.address);
 
     // deploy Token registry contract
     const tokenRegistry = await new TokenRegistryFactory(
@@ -88,10 +95,13 @@ export async function deployAll(
         signer
     ).deploy(nameRegistry.address);
     await tokenRegistry.deployed();
-    await nameRegistry.registerName(
-        await paramManager.TOKEN_REGISTRY(),
-        tokenRegistry.address
-    );
+    await (
+        await nameRegistry.registerName(
+            await paramManager.TOKEN_REGISTRY(),
+            tokenRegistry.address
+        )
+    ).wait();
+    console.log("tokenRegistry", tokenRegistry.address);
 
     // deploy Reddit contracts
 
@@ -104,6 +114,7 @@ export async function deployAll(
         await paramManager.CREATE_ACCOUNT(),
         createAccount.address
     );
+    console.log("createAccount", createAccount.address);
 
     const airdrop = await new AirdropFactory(allLinkRefs, signer).deploy(
         nameRegistry.address
@@ -113,6 +124,7 @@ export async function deployAll(
         await paramManager.AIRDROP(),
         airdrop.address
     );
+    console.log("airdrop", airdrop.address);
 
     const transfer = await new TransferFactory(allLinkRefs, signer).deploy();
     await transfer.deployed();
@@ -120,6 +132,8 @@ export async function deployAll(
         await paramManager.TRANSFER(),
         transfer.address
     );
+
+    console.log("transfer", transfer.address);
     const burnConsent = await new BurnConsentFactory(
         allLinkRefs,
         signer
@@ -129,6 +143,8 @@ export async function deployAll(
         await paramManager.BURN_CONSENT(),
         burnConsent.address
     );
+
+    console.log("burnConsent", burnConsent.address);
     const burnExecution = await new BurnExecutionFactory(
         allLinkRefs,
         signer
@@ -138,11 +154,13 @@ export async function deployAll(
         await paramManager.BURN_EXECUTION(),
         burnExecution.address
     );
+    console.log("burnExecution", burnExecution.address);
 
     // deploy POB contract
     const pob = await new PobFactory(signer).deploy();
     await pob.deployed();
     await nameRegistry.registerName(await paramManager.POB(), pob.address);
+    console.log("pob", pob.address);
 
     // deploy test token
     const testToken = await new TestTokenFactory(signer).deploy();
@@ -151,6 +169,8 @@ export async function deployAll(
         await paramManager.TEST_TOKEN(),
         testToken.address
     );
+    console.log("testToken", testToken.address);
+
     // deploy deposit manager
     const depositManager = await new DepositManagerFactory(
         allLinkRefs,
@@ -161,6 +181,7 @@ export async function deployAll(
         await paramManager.DEPOSIT_MANAGER(),
         depositManager.address
     );
+    console.log("depositManager", depositManager.address);
 
     const rollupReddit = await new RollupRedditFactory(
         allLinkRefs,
@@ -171,6 +192,7 @@ export async function deployAll(
         await paramManager.ROLLUP_REDDIT(),
         rollupReddit.address
     );
+    console.log("rollupReddit", rollupReddit.address);
 
     const root =
         parameters.GENESIS_STATE_ROOT ||
@@ -190,6 +212,7 @@ export async function deployAll(
         await paramManager.ROLLUP_CORE(),
         rollup.address
     );
+    console.log("rollup", rollup.address);
     return {
         paramManager,
         rollupUtils,
