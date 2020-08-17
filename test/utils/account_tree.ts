@@ -77,7 +77,7 @@ export class AccountRegistry2 {
         return new AccountRegistry2(registry, depth, batchDepth);
     }
     constructor(
-        private readonly registry: BlsAccountRegistry,
+        public readonly registry: BlsAccountRegistry,
         private readonly depth: number,
         private readonly batchDepth: number
     ) {
@@ -88,7 +88,7 @@ export class AccountRegistry2 {
 
     public async register(pubkey: string[]): Promise<number> {
         const accountID = (await this.registry.leafIndexLeft()).toNumber();
-        await this.registry.register(pubkey);
+        await (await this.registry.register(pubkey)).wait();
         const leaf = this.pubkeyToLeaf(pubkey);
         this.treeLeft.updateSingle(accountID, leaf);
         const _witness = this.witness(accountID);

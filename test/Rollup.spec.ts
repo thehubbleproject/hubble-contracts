@@ -9,6 +9,7 @@ import { TxTransfer } from "./utils/tx";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import * as mcl from "./utils/mcl";
+import { Tree, Hasher } from "./utils/tree";
 
 describe("Rollup", async function() {
     let Alice: Account;
@@ -26,7 +27,7 @@ describe("Rollup", async function() {
         contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
-        const registry = await AccountRegistry2.new(registryContract);
+        registry = await AccountRegistry2.new(registryContract);
         const appID =
             "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         const tokenID = 1;
@@ -57,36 +58,70 @@ describe("Rollup", async function() {
 
         const rollup = contracts.rollup as Rollup;
         const rollupUtils = contracts.rollupUtils as RollupUtils;
-        const stateRoot = ethers.utils.arrayify(stateTree.root);
+        const stateRoot = stateTree.root;
         const proof = stateTree.applyTxTransfer(tx);
-        const txs = ethers.utils.arrayify("0x" + tx.encode());
-
+        const txs = ethers.utils.arrayify(tx.encode(true));
         const _tx = await rollup.submitBatch(
             [txs],
             [stateRoot],
             Usage.Transfer,
             [mcl.g1ToHex(signature)],
-            { value: TESTING_PARAMS.STAKE_AMOUNT }
+            { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
         );
         await _tx.wait();
-        console.log("HERE");
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
         const root = await registry.root();
+        const rootOnchain = await registry.registry.root();
+        assert.equal(root, rootOnchain, "mismatch pubkey tree root");
+        const batch = await rollup.getBatch(batchId);
 
         const commitment = {
             stateRoot,
-            accountRoot: ethers.utils.arrayify(root),
-            txHashCommitment: ethers.utils.arrayify(
-                ethers.utils.solidityKeccak256(["bytes"], [txs])
-            ),
+            accountRoot: root,
+            txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
             batchType: Usage.Transfer
         };
+        const depth = 1; // Math.log2(commitmentLength + 1)
+        const tree = Tree.new(
+            depth,
+            Hasher.new(
+                "bytes",
+                ethers.utils.keccak256(
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                )
+            )
+        );
+        const leaf = await rollupUtils.CommitmentToHash(
+            commitment.stateRoot,
+            commitment.accountRoot,
+            commitment.txHashCommitment,
+            commitment.batchType
+        );
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const hash = ethers.utils.keccak256(
+            abiCoder.encode(
+                ["bytes32", "bytes32", "bytes32", "uint8"],
+                [
+                    commitment.stateRoot,
+                    commitment.accountRoot,
+                    commitment.txHashCommitment,
+                    commitment.batchType
+                ]
+            )
+        );
+        assert.equal(hash, leaf, "mismatch commitment hash");
+        tree.updateSingle(0, hash);
+        assert.equal(
+            batch.commitmentRoot,
+            tree.root,
+            "mismatch commitment tree root"
+        );
 
         const commitmentMP = {
             commitment,
-            pathToCommitment: 1,
-            siblings: []
+            pathToCommitment: 0,
+            siblings: tree.witness(0).nodes
         };
 
         await rollup.disputeBatch(batchId, commitmentMP, txs, {
