@@ -80,7 +80,7 @@ describe("Rollup", async function() {
             stateRoot,
             accountRoot: root,
             txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
-            aggregatedSignature: mcl.g1ToHex(signature),
+            signature: mcl.g1ToHex(signature),
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -97,7 +97,7 @@ describe("Rollup", async function() {
             commitment.stateRoot,
             commitment.accountRoot,
             commitment.txHashCommitment,
-            commitment.aggregatedSignature,
+            commitment.signature,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
@@ -108,7 +108,7 @@ describe("Rollup", async function() {
                     commitment.stateRoot,
                     commitment.accountRoot,
                     commitment.txHashCommitment,
-                    commitment.aggregatedSignature,
+                    commitment.signature,
                     commitment.batchType
                 ]
             )
@@ -124,7 +124,7 @@ describe("Rollup", async function() {
         const commitmentMP = {
             commitment,
             pathToCommitment: 0,
-            siblings: tree.witness(0).nodes
+            witness: tree.witness(0).nodes
         };
 
         await rollup.disputeBatch(batchId, commitmentMP, txs, {

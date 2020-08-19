@@ -11,7 +11,7 @@ library RollupUtils {
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 txCommitment,
-        uint256[2] memory aggregatedSignature,
+        uint256[2] memory signature,
         // Typechain can't parse enum for library.
         // See https://github.com/ethereum-ts/TypeChain/issues/216
         uint8 batchType
@@ -22,7 +22,7 @@ library RollupUtils {
                     stateRoot,
                     accountRoot,
                     txCommitment,
-                    aggregatedSignature,
+                    signature,
                     batchType
                 )
             );

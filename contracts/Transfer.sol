@@ -15,13 +15,6 @@ contract Transfer is FraudProofHelpers {
     uint256 constant STATE_WITNESS_LENGTH = 32;
     uint256 constant PUBKEY_WITNESS_LENGTH = 32;
 
-    struct InvalidSignatureProof {
-        Types.UserAccount[] stateAccounts;
-        bytes32[STATE_WITNESS_LENGTH][] stateWitnesses;
-        uint256[4][] pubkeys;
-        bytes32[PUBKEY_WITNESS_LENGTH][] pubkeyWitnesses;
-    }
-
     function checkStateInclusion(
         bytes32 root,
         uint256 stateIndex,
@@ -69,14 +62,14 @@ contract Transfer is FraudProofHelpers {
     uint256 constant MSG_LEN_0 = 53;
     uint256 constant TX_LEN_0 = 16;
 
-    function _checkSignature(
+    function checkSignature(
         uint256[2] memory signature,
-        InvalidSignatureProof memory proof,
+        Types.SignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
         bytes memory txs
-    ) internal view returns (Types.ErrorCode) {
+    ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {

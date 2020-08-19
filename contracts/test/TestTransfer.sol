@@ -9,16 +9,16 @@ contract TestTransfer is Transfer {
     event Return1(uint256);
     event Return2(Types.ErrorCode);
 
-    function checkSignature(
+    function _checkSignature(
         uint256[2] memory signature,
-        InvalidSignatureProof memory proof,
+        Types.SignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
         bytes memory txs
     ) public {
         uint256 operationCost = gasleft();
-        Types.ErrorCode err = _checkSignature(
+        Types.ErrorCode err = checkSignature(
             signature,
             proof,
             stateRoot,
