@@ -3,20 +3,8 @@ pragma experimental ABIEncoderV2;
 
 import { BLS } from "./BLS.sol";
 import { Types } from "./Types.sol";
-import { ECVerify } from "./ECVerify.sol";
 
 library Tx {
-    //     enum Usage {
-    //     Genesis, // The Genesis type is only applicable to batch but not tx
-    //     Transfer,
-    //     CreateAccount,
-    //     Airdrop,
-    //     BurnConsent,
-    //     BurnExecution,
-    //     // Only applicable to batch and not tx
-    //     Deposit
-    // }
-
     // Tx types in uint256
     uint256 constant TRANSFER = 1;
     uint256 constant CREATE_ACCOUNT = 2;
@@ -32,16 +20,13 @@ library Tx {
     uint256 public constant MASK_BYTE = 0xff;
 
     // transaction_type: transfer
-    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|signature<65>]
-    uint256 public constant TX_LEN_0 = 77;
+    // [sender_state_id<4>|receiver_state_id<4>|amount<4>]
+    uint256 public constant TX_LEN_0 = 12;
     uint256 public constant MASK_TX_0 = 0xffffffffffffffffffffffffffffffff;
     // positions in bytes
     uint256 public constant POSITION_SENDER_0 = 4;
     uint256 public constant POSITION_RECEIVER_0 = 8;
     uint256 public constant POSITION_AMOUNT_0 = 12;
-    uint256 public constant POSITION_SIGNATURE_X_0 = 44;
-    uint256 public constant POSITION_SIGNATURE_Y_0 = 76;
-    uint256 public constant POSITION_SIGNATURE_Z_0 = 77;
 
     // transaction_type: create
     // [receiver_account_id<4>|receiver_state_id<4>|token<2>]
@@ -53,15 +38,12 @@ library Tx {
     uint256 public constant POSITION_TOKEN_1 = 10;
 
     // transaction_type: burn consent
-    // [burner_state_id<4>|amount<4>|signature<65>]
-    uint256 public constant TX_LEN_2 = 73;
+    // [burner_state_id<4>|amount<4>]
+    uint256 public constant TX_LEN_2 = 8;
     uint256 public constant MASK_TX_2 = 0xffffffffffffffffffffffffff;
     // positions in bytes
     uint256 public constant POSITION_STATE_2 = 4;
     uint256 public constant POSITION_AMOUNT_2 = 8;
-    uint256 public constant POSITION_SIGNATURE_X_2 = 40;
-    uint256 public constant POSITION_SIGNATURE_Y_2 = 72;
-    uint256 public constant POSITION_SIGNATURE_Z_2 = 73;
 
     // transaction_type: burn exec
     // [burner_state_id<4>]
@@ -74,7 +56,6 @@ library Tx {
         uint256 fromIndex;
         uint256 toIndex;
         uint256 amount;
-        bytes signature;
     }
 
     struct CreateAccount {
@@ -86,7 +67,6 @@ library Tx {
     struct BurnConsent {
         uint256 fromIndex;
         uint256 amount;
-        bytes signature;
     }
 
     struct BurnExecution {
@@ -296,16 +276,14 @@ library Tx {
             uint256 fromIndex;
             uint256 toIndex;
             uint256 amount;
-            bytes memory signature;
-            (, fromIndex, toIndex, , , amount, signature) = abi.decode(
+            (, fromIndex, toIndex, , , amount) = abi.decode(
                 txs[i],
-                (uint256, uint256, uint256, uint256, uint256, uint256, bytes)
+                (uint256, uint256, uint256, uint256, uint256, uint256)
             );
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -326,12 +304,10 @@ library Tx {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 toIndex = txs[i].toIndex;
             uint256 amount = txs[i].amount;
-            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -352,12 +328,10 @@ library Tx {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 toIndex = txs[i].toIndex;
             uint256 amount = txs[i].amount;
-            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -404,14 +378,8 @@ library Tx {
                 MASK_STATE_ID
             )
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
-            let x := mload(add(p_tx, POSITION_SIGNATURE_X_0))
-            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_0))
-            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_0))
-            mstore(add(signature, 32), x)
-            mstore(add(signature, 64), y)
-            mstore8(add(signature, 96), z)
         }
-        return Transfer(sender, receiver, amount, signature);
+        return Transfer(sender, receiver, amount);
     }
 
     function transfer_fromIndexOf(bytes memory txs, uint256 index)
@@ -451,25 +419,6 @@ library Tx {
         return amount;
     }
 
-    function transfer_signatureOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes memory signature = new bytes(65);
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            let x := mload(add(p_tx, POSITION_SIGNATURE_X_0))
-            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_0))
-            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_0))
-            mstore(add(signature, 32), x)
-            mstore(add(signature, 64), y)
-            mstore8(add(signature, 96), z)
-        }
-        return signature;
-    }
-
     // Burn Consent
 
     function burnConsent_serializeFromEncoded(bytes[] memory txs)
@@ -482,15 +431,13 @@ library Tx {
         for (uint256 i = 0; i < txs.length; i++) {
             uint256 fromIndex;
             uint256 amount;
-            bytes memory signature;
-            (, fromIndex, amount, , signature) = abi.decode(
+            (, fromIndex, amount, ) = abi.decode(
                 txs[i],
-                (uint256, uint256, uint256, uint256, bytes)
+                (uint256, uint256, uint256, uint256)
             );
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_2;
             for (uint256 j = 0; j < TX_LEN_2; j++) {
@@ -510,11 +457,9 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 amount = txs[i].amount;
-            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_2;
             for (uint256 j = 0; j < TX_LEN_2; j++) {
@@ -535,11 +480,9 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 amount = txs[i].amount;
-            bytes memory signature = txs[i].signature;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
-                uint32(amount),
-                signature
+                uint32(amount)
             );
             uint256 off = i * TX_LEN_2;
             for (uint256 j = 0; j < TX_LEN_2; j++) {
@@ -556,20 +499,13 @@ library Tx {
     {
         uint256 fromIndex;
         uint256 amount;
-        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_2))
             fromIndex := and(mload(add(p_tx, POSITION_STATE_2)), MASK_STATE_ID)
             amount := and(mload(add(p_tx, POSITION_AMOUNT_2)), MASK_AMOUNT)
-            let x := mload(add(p_tx, POSITION_SIGNATURE_X_2))
-            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_2))
-            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_2))
-            mstore(add(signature, 32), x)
-            mstore(add(signature, 64), y)
-            mstore8(add(signature, 96), z)
         }
-        return BurnConsent(fromIndex, amount, signature);
+        return BurnConsent(fromIndex, amount);
     }
 
     function burnConsent_hasExcessData(bytes memory txs)
@@ -611,25 +547,6 @@ library Tx {
             amount := and(mload(add(p_tx, POSITION_AMOUNT_2)), MASK_AMOUNT)
         }
         return amount;
-    }
-
-    function burnConsent_signatureOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes memory signature = new bytes(65);
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_2))
-            let x := mload(add(p_tx, POSITION_SIGNATURE_X_2))
-            let y := mload(add(p_tx, POSITION_SIGNATURE_Y_2))
-            let z := mload(add(p_tx, POSITION_SIGNATURE_Z_2))
-            mstore(add(signature, 32), x)
-            mstore(add(signature, 64), y)
-            mstore8(add(signature, 96), z)
-        }
-        return signature;
     }
 
     function burnExecution_serializeFromEncoded(bytes[] memory txs)
@@ -754,6 +671,19 @@ library Tx {
         }
     }
 
+    function transfer_toLeafs(bytes memory txs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
+        uint256 batchSize = transfer_size(txs);
+        bytes32[] memory buf = new bytes32[](batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            buf[i] = transfer_hashOf(txs, i);
+        }
+        return buf;
+    }
+
     function transfer_messageOf(
         bytes memory txs,
         uint256 index,
@@ -772,25 +702,6 @@ library Tx {
             );
     }
 
-    function transfer_verify(
-        bytes memory txs,
-        uint256 index,
-        uint256 nonce,
-        address signer
-    ) internal pure returns (bool) {
-        Transfer memory _tx = transfer_decode(txs, index);
-        bytes32 message = keccak256(
-            abi.encodePacked(
-                TRANSFER,
-                _tx.fromIndex,
-                _tx.toIndex,
-                nonce,
-                _tx.amount
-            )
-        );
-        return ECVerify._ecverify(message, _tx.signature, signer);
-    }
-
     function airdrop_messageOf(
         bytes memory txs,
         uint256 index,
@@ -807,38 +718,6 @@ library Tx {
                     _tx.amount
                 )
             );
-    }
-
-    function airdrop_verify(
-        bytes memory txs,
-        uint256 index,
-        uint256 nonce,
-        address signer
-    ) internal pure returns (bool) {
-        Transfer memory _tx = transfer_decode(txs, index);
-        bytes32 message = keccak256(
-            abi.encodePacked(
-                AIRDROP,
-                _tx.fromIndex,
-                _tx.toIndex,
-                nonce,
-                _tx.amount
-            )
-        );
-        return ECVerify._ecverify(message, _tx.signature, signer);
-    }
-
-    function transfer_toLeafs(bytes memory txs)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
-        uint256 batchSize = transfer_size(txs);
-        bytes32[] memory buf = new bytes32[](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = transfer_hashOf(txs, i);
-        }
-        return buf;
     }
 
     function create_hashOf(bytes memory txs, uint256 index)
@@ -901,18 +780,5 @@ library Tx {
             keccak256(
                 abi.encodePacked(BURN_CONCENT, _tx.fromIndex, nonce, _tx.amount)
             );
-    }
-
-    function burnConsent_verify(
-        bytes memory txs,
-        uint256 index,
-        uint256 nonce,
-        address signer
-    ) internal pure returns (bool) {
-        BurnConsent memory _tx = burnConsent_decode(txs, index);
-        bytes32 message = keccak256(
-            abi.encodePacked(BURN_CONCENT, _tx.fromIndex, nonce, _tx.amount)
-        );
-        return ECVerify._ecverify(message, _tx.signature, signer);
     }
 }

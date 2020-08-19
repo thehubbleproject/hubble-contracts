@@ -1,8 +1,10 @@
 const AccountRegistry = artifacts.require("BLSAccountRegistry");
+const loggerContract = artifacts.require("Logger");
 import { BlsAccountRegistryInstance } from "../types/truffle-contracts";
 import { Tree, Hasher } from "./utils/tree";
 
 import * as mcl from "./utils/mcl";
+import { ethers } from "ethers";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
@@ -12,11 +14,9 @@ type Pubkey = mcl.mclG2;
 
 function pubkeyToLeaf(p: Pubkey) {
     const uncompressed = mcl.g2ToHex(p);
-    const leaf = web3.utils.soliditySha3(
-        { t: "uint256", v: uncompressed[0] },
-        { t: "uint256", v: uncompressed[1] },
-        { t: "uint256", v: uncompressed[2] },
-        { t: "uint256", v: uncompressed[3] }
+    const leaf = ethers.utils.solidityKeccak256(
+        ["uint256", "uint256", "uint256", "uint256"],
+        uncompressed
     );
     return { uncompressed, leaf };
 }
@@ -27,7 +27,8 @@ describe.skip("Registry", async () => {
     let treeRight: Tree;
     beforeEach(async function() {
         await mcl.init();
-        registry = await AccountRegistry.new();
+        const logger = await loggerContract.new();
+        registry = await AccountRegistry.new(logger.address);
         DEPTH = (await registry.DEPTH()).toNumber();
         BATCH_DEPTH = (await registry.BATCH_DEPTH()).toNumber();
         treeLeft = Tree.new(DEPTH);

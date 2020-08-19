@@ -9,7 +9,7 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { IncrementalTree } from "./IncrementalTree.sol";
+import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./logger.sol";
 import { POB } from "./POB.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
@@ -23,7 +23,7 @@ interface IRollupReddit {
         bytes32 accountsRoot,
         bytes calldata _txs,
         Types.BatchValidationProofs calldata batchProofs,
-        bytes32 expectedTxRoot,
+        bytes32 expectedTxHashCommitment,
         Types.Usage batchType
     )
         external
@@ -46,7 +46,7 @@ contract RollupSetup {
 
     // External contracts
     DepositManager public depositManager;
-    IncrementalTree public accountsTree;
+    BLSAccountRegistry public accountRegistry;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
@@ -88,7 +88,7 @@ contract RollupHelpers is RollupSetup {
      * @notice Returns the latest state root
      */
     function getLatestBalanceTreeRoot() public view returns (bytes32) {
-        return batches[batches.length - 1].stateRoot;
+        return batches[batches.length - 1].commitmentRoot;
     }
 
     /**
@@ -96,54 +96,6 @@ contract RollupHelpers is RollupSetup {
      */
     function numOfBatchesSubmitted() public view returns (uint256) {
         return batches.length;
-    }
-
-    function addNewBatch(
-        bytes32 txRoot,
-        bytes32 _updatedRoot,
-        Types.Usage batchType
-    ) internal {
-        Types.Batch memory newBatch;
-        newBatch.stateRoot = _updatedRoot;
-        newBatch.accountRoot = accountsTree.getTreeRoot();
-        // newBatch.depositTree default initialized to 0 bytes
-        newBatch.committer = msg.sender;
-        newBatch.txRoot = txRoot;
-        newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
-        // newBatch.withdrawn default initialized to false
-        newBatch.batchType = batchType;
-
-        batches.push(newBatch);
-        logger.logNewBatch(
-            newBatch.committer,
-            txRoot,
-            _updatedRoot,
-            batches.length - 1,
-            batchType
-        );
-    }
-
-    function addNewBatchWithDeposit(bytes32 _updatedRoot, bytes32 depositRoot)
-        internal
-    {
-        Types.Batch memory newBatch;
-        newBatch.stateRoot = _updatedRoot;
-        newBatch.accountRoot = accountsTree.getTreeRoot();
-        newBatch.depositTree = depositRoot;
-        newBatch.committer = msg.sender;
-        // newBatch.txRoot default initialized to 0 bytes
-        newBatch.finalisesOn = block.number + governance.TIME_TO_FINALISE();
-        // newBatch.withdrawn default initialized to false
-        newBatch.batchType = Types.Usage.Deposit;
-
-        batches.push(newBatch);
-        logger.logNewBatch(
-            newBatch.committer,
-            bytes32(0x00),
-            _updatedRoot,
-            batches.length - 1,
-            Types.Usage.Deposit
-        );
     }
 
     /**
@@ -164,6 +116,7 @@ contract RollupHelpers is RollupSetup {
     /**
      * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challengers. Also deletes all the batches after invalid batch
+     * Its a public function because we will need to pause if we are not able to delete all batches in one tx
      */
     function SlashAndRollback() public isRollingBack {
         uint256 challengerRewards = 0;
@@ -191,16 +144,12 @@ contract RollupHelpers is RollupSetup {
             delete batches[i];
 
             // queue deposits again
-            depositManager.enqueue(batch.depositTree);
+            depositManager.enqueue(batch.depositRoot);
 
             totalSlashings++;
 
-            logger.logBatchRollback(
-                i,
-                batch.committer,
-                batch.stateRoot,
-                batch.txRoot
-            );
+            logger.logBatchRollback(i);
+
             if (i == invalidBatchMarker) {
                 // we have completed rollback
                 // update the marker
@@ -223,6 +172,9 @@ contract RollupHelpers is RollupSetup {
 }
 
 contract Rollup is RollupHelpers {
+    bytes32
+        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+
     /*********************
      * Constructor *
      ********************/
@@ -240,8 +192,8 @@ contract Rollup is RollupHelpers {
         merkleUtils = MTUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
-        accountsTree = IncrementalTree(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNTS_TREE())
+        accountRegistry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
         );
 
         tokenRegistry = ITokenRegistry(
@@ -252,46 +204,62 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.ROLLUP_REDDIT())
         );
         STAKE_AMOUNT = governance.STAKE_AMOUNT();
-
-        addNewBatch(bytes32(0x00), genesisStateRoot, Types.Usage.Genesis);
+        bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
+            genesisStateRoot,
+            accountRegistry.root(),
+            ZERO_BYTES32,
+            uint8(Types.Usage.Genesis)
+        );
+        Types.Batch memory newBatch = Types.Batch({
+            commitmentRoot: genesisCommitment,
+            committer: msg.sender,
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            depositRoot: ZERO_BYTES32,
+            withdrawn: false
+        });
+        batches.push(newBatch);
+        logger.logNewBatch(
+            newBatch.committer,
+            genesisStateRoot,
+            batches.length - 1,
+            Types.Usage.Genesis
+        );
     }
 
-    /**
-     * @notice Submits a new batch to batches
-     * @param txs Compressed transactions .
-     * @param _updatedRoot New balance tree root after processing all the transactions
-     */
     function submitBatch(
-        bytes calldata txs,
-        bytes32 _updatedRoot,
-        Types.Usage batchType
-    ) external payable onlyCoordinator isNotRollingBack {
-        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-
-        bytes32[] memory leaves;
-        if (batchType == Types.Usage.CreateAccount) {
-            leaves = txs.create_toLeafs();
-        } else if (
-            batchType == Types.Usage.Airdrop ||
-            batchType == Types.Usage.Transfer
-        ) {
-            leaves = txs.transfer_toLeafs();
-        } else if (batchType == Types.Usage.BurnConsent) {
-            leaves = txs.burnConsent_toLeafs();
-        } else if (batchType == Types.Usage.BurnExecution) {
-            leaves = txs.burnExecution_toLeafs();
+        bytes[] calldata txs,
+        bytes32[] calldata updatedRoots,
+        Types.Usage batchType,
+        uint256[2][] calldata aggregatedSignatures
+    ) external payable onlyCoordinator {
+        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
+        uint256 commmitmentLength = updatedRoots.length;
+        bytes32[] memory commitments = new bytes32[](commmitmentLength);
+        bytes32 pubkeyTreeRoot = accountRegistry.root();
+        for (uint256 i = 0; i < commmitmentLength; i++) {
+            commitments[i] = (
+                RollupUtils.CommitmentToHash(
+                    updatedRoots[i],
+                    pubkeyTreeRoot,
+                    keccak256(txs[i]),
+                    uint8(batchType)
+                )
+            );
         }
-
-        require(
-            leaves.length <= governance.MAX_TXS_PER_BATCH(),
-            "Batch contains more transations than the limit"
+        Types.Batch memory newBatch = Types.Batch({
+            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
+            committer: msg.sender,
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            depositRoot: ZERO_BYTES32,
+            withdrawn: false
+        });
+        batches.push(newBatch);
+        logger.logNewBatch(
+            newBatch.committer,
+            updatedRoots[updatedRoots.length - 1],
+            batches.length - 1,
+            batchType
         );
-        bytes32 txRoot = merkleUtils.getMerkleRootFromLeaves(leaves);
-        require(
-            txRoot != bytes32(0x00),
-            "Cannot submit a transaction with no transactions"
-        );
-        addNewBatch(txRoot, _updatedRoot, batchType);
     }
 
     /**
@@ -306,19 +274,40 @@ contract Rollup is RollupHelpers {
             _zero_account_mp,
             getLatestBalanceTreeRoot()
         );
-        // require(
-        //     msg.value >= governance.STAKE_AMOUNT(),
-        //     "Not enough stake committed"
-        // );
 
-        bytes32 updatedRoot = merkleUtils.updateLeafWithSiblings(
+        require(
+            msg.value >= governance.STAKE_AMOUNT(),
+            "Not enough stake committed"
+        );
+
+        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
             _zero_account_mp.accountIP.pathToAccount,
             _zero_account_mp.siblings
         );
+        bytes32 depositCommitment = RollupUtils.CommitmentToHash(
+            newRoot,
+            accountRegistry.root(),
+            ZERO_BYTES32,
+            uint8(Types.Usage.Deposit)
+        );
 
-        // add new batch
-        addNewBatchWithDeposit(updatedRoot, depositSubTreeRoot);
+        Types.Batch memory newBatch = Types.Batch({
+            commitmentRoot: depositCommitment,
+            committer: msg.sender,
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            depositRoot: depositSubTreeRoot,
+            withdrawn: false
+        });
+
+        batches.push(newBatch);
+
+        logger.logNewBatch(
+            newBatch.committer,
+            newRoot,
+            batches.length - 1,
+            Types.Usage.Deposit
+        );
     }
 
     /**
@@ -329,6 +318,7 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
+        Types.CommitmentInclusionProof memory commitmentMP,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs
     ) public {
@@ -347,9 +337,27 @@ contract Rollup is RollupHelpers {
                 (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
                 "Already successfully disputed. Roll back in process"
             );
+        }
+
+        // verify is the commitment exits in the batch
+        {
+            require(
+                merkleUtils.verifyLeaf(
+                    batches[_batch_id].commitmentRoot,
+                    RollupUtils.CommitmentToHash(
+                        commitmentMP.commitment.stateRoot,
+                        commitmentMP.commitment.accountRoot,
+                        commitmentMP.commitment.txHashCommitment,
+                        uint8(commitmentMP.commitment.batchType)
+                    ),
+                    commitmentMP.pathToCommitment,
+                    commitmentMP.siblings
+                ),
+                "Commitment not present in batch"
+            );
 
             require(
-                batches[_batch_id].txRoot != bytes32(0x00),
+                commitmentMP.commitment.txHashCommitment != ZERO_BYTES32,
                 "Cannot dispute blocks with no transaction"
             );
         }
@@ -359,12 +367,12 @@ contract Rollup is RollupHelpers {
         bytes32 txRoot;
         (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
             .processBatch(
-            batches[_batch_id - 1].stateRoot,
-            batches[_batch_id].accountRoot,
+            commitmentMP.commitment.stateRoot,
+            commitmentMP.commitment.accountRoot,
             txs,
             batchProofs,
-            batches[_batch_id].txRoot,
-            batches[_batch_id].batchType
+            commitmentMP.commitment.txHashCommitment,
+            commitmentMP.commitment.batchType
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -378,7 +386,7 @@ contract Rollup is RollupHelpers {
 
         // if new root doesnt match what was submitted by coordinator
         // slash and rollback
-        if (updatedBalanceRoot != batches[_batch_id].stateRoot) {
+        if (updatedBalanceRoot != commitmentMP.commitment.stateRoot) {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;

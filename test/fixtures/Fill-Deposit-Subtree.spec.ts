@@ -69,16 +69,15 @@ contract("DepositManager", async function(accounts) {
             AccID: 2,
             Path: "3"
         };
-        await depositManagerInstance.deposit(
+        await depositManagerInstance.depositFor(
+            Alice.Address,
             Alice.Amount,
-            Alice.TokenType,
-            Alice.Pubkey
+            Alice.TokenType
         );
         await depositManagerInstance.depositFor(
             Bob.Address,
             Bob.Amount,
-            Bob.TokenType,
-            Bob.Pubkey
+            Bob.TokenType
         );
     });
 });

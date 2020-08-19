@@ -3,12 +3,19 @@ pragma solidity ^0.5.15;
 import { Types } from "./libs/Types.sol";
 
 contract Logger {
+    event PubkeyRegistered(uint256[4] pubkey, uint256 accountID);
+
+    function logPubkeyRegistered(uint256[4] calldata pubkey, uint256 accountID)
+        external
+    {
+        emit PubkeyRegistered(pubkey, accountID);
+    }
+
     /*********************
      * Rollup Contract *
      ********************/
     event NewBatch(
         address committer,
-        bytes32 txroot,
         bytes32 updatedRoot,
         uint256 index,
         Types.Usage batchType
@@ -16,12 +23,11 @@ contract Logger {
 
     function logNewBatch(
         address committer,
-        bytes32 txroot,
         bytes32 updatedRoot,
         uint256 index,
         Types.Usage batchType
     ) public {
-        emit NewBatch(committer, txroot, updatedRoot, index, batchType);
+        emit NewBatch(committer, updatedRoot, index, batchType);
     }
 
     event StakeWithdraw(address committed, uint256 batch_id);
@@ -30,20 +36,10 @@ contract Logger {
         emit StakeWithdraw(committed, batch_id);
     }
 
-    event BatchRollback(
-        uint256 batch_id,
-        address committer,
-        bytes32 stateRoot,
-        bytes32 txRoot
-    );
+    event BatchRollback(uint256 batch_id);
 
-    function logBatchRollback(
-        uint256 batch_id,
-        address committer,
-        bytes32 stateRoot,
-        bytes32 txRoot
-    ) public {
-        emit BatchRollback(batch_id, committer, stateRoot, txRoot);
+    function logBatchRollback(uint256 batch_id) public {
+        emit BatchRollback(batch_id);
     }
 
     event RollbackFinalisation(uint256 totalBatchesSlashed);
@@ -72,14 +68,10 @@ contract Logger {
         emit NewPubkeyAdded(accountID, pubkey);
     }
 
-    event DepositQueued(uint256 AccountID, bytes pubkey, bytes data);
+    event DepositQueued(uint256 AccountID, bytes data);
 
-    function logDepositQueued(
-        uint256 accountID,
-        bytes memory pubkey,
-        bytes memory data
-    ) public {
-        emit DepositQueued(accountID, pubkey, data);
+    function logDepositQueued(uint256 accountID, bytes memory data) public {
+        emit DepositQueued(accountID, data);
     }
 
     event DepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot);

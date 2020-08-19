@@ -39,7 +39,7 @@ contract Airdrop is FraudProofHelpers {
         bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        bytes32 expectedTxHashCommitment
     )
         public
         view
@@ -50,16 +50,14 @@ contract Airdrop is FraudProofHelpers {
         )
     {
         uint256 length = txs.transfer_size();
-        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
-            txs.transfer_toLeafs()
-        );
-        if (expectedTxRoot != ZERO_BYTES32) {
+
+        bytes32 actualTxHashCommitment = keccak256(txs);
+        if (expectedTxHashCommitment != ZERO_BYTES32) {
             require(
-                actualTxRoot == expectedTxRoot,
+                actualTxHashCommitment == expectedTxHashCommitment,
                 "Invalid dispute, tx root doesn't match"
             );
         }
-
         bool isTxValid;
         for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
@@ -77,7 +75,7 @@ contract Airdrop is FraudProofHelpers {
                 break;
             }
         }
-        return (stateRoot, actualTxRoot, !isTxValid);
+        return (stateRoot, actualTxHashCommitment, !isTxValid);
     }
 
     /**
@@ -105,26 +103,6 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        // Step-1 Prove that from address's public keys are available
-        ValidatePubkeyAvailability(
-            _accountsRoot,
-            _from_pda_proof,
-            accountProofs.from.accountIP.account.ID
-        );
-
-        // STEP:2 Ensure the transaction has been signed using the from public key
-        if (
-            !txs.airdrop_verify(
-                i,
-                accountProofs.from.accountIP.account.nonce + 1,
-                RollupUtils.calculateAddress(
-                    _from_pda_proof._pda.pubkey_leaf.pubkey
-                )
-            )
-        ) {
-            return (bytes32(0x00), "", "", Types.ErrorCode.BadSignature, false);
-        }
-
         // Validate the from account merkle proof
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
