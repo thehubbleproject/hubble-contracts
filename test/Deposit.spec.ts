@@ -54,7 +54,7 @@ contract("DepositManager", async function() {
         assert(approveToken, "approveToken failed");
     });
 
-    it("should allow depositing 2 leaves in a subtree and merging it", async () => {
+    xit("should allow depositing 2 leaves in a subtree and merging it", async () => {
         let depositManagerInstance = await DepositManager.deployed();
         var rollupContractInstance = await RollupCore.deployed();
         var testTokenInstance = await TestToken.deployed();
