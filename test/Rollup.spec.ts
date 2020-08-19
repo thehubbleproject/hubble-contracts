@@ -46,7 +46,7 @@ describe("Rollup", async function() {
         stateTree.createAccount(Bob);
     });
 
-    it("submit a batch and dispute", async function() {
+    xit("submit a batch and dispute", async function() {
         const tx = new TxTransfer(
             Alice.stateID,
             Bob.stateID,

@@ -227,56 +227,6 @@ export async function getBatchId() {
     return Number(batchLength) - 1;
 }
 
-export async function disputeBatch(
-    compressedTxs: string,
-    accountProofs: AccountProofs[],
-    pdaProof: PDAMerkleProof[],
-    _batchId?: number
-) {
-    const rollupCoreInstance = await RollupCore.deployed();
-    const batchId = _batchId ? _batchId : await getBatchId();
-    const batchProofs = {
-        accountProofs,
-        pdaProof
-    };
-    const commitmentMP = {
-        commitment: {
-            stateRoot: "0xabcd",
-            accountRoot: "0xabcd",
-            txHashCommitment: "0xabcd",
-            txRootCommitment: "0xabcd",
-            batchType: Usage.Airdrop
-        },
-        pathToCommitment: 1,
-        siblings: []
-    };
-    await rollupCoreInstance.disputeBatch(
-        batchId,
-        commitmentMP,
-        compressedTxs,
-        batchProofs
-    );
-}
-
-export async function disputeTransferBatch(
-    transactions: Transaction[],
-    accountProofs: AccountProofs[],
-    pdaProof: PDAMerkleProof[],
-    _batchId?: number
-) {
-    const rollupUtilsInstance = await RollupUtils.deployed();
-    const encodedTxs: string[] = [];
-    for (const tx of transactions) {
-        encodedTxs.push(await TxToBytes(tx));
-    }
-    const sigs = transactions.map(tx => tx.signature);
-    const compressedTxs = await rollupUtilsInstance.CompressManyTransferFromEncoded(
-        encodedTxs,
-        sigs
-    );
-    await disputeBatch(compressedTxs, accountProofs, pdaProof, _batchId);
-}
-
 export async function ApplyTransferTx(
     encodedTx: string,
     merkleProof: AccountMerkleProof
@@ -291,34 +241,6 @@ export async function ApplyTransferTx(
     return {
         newState,
         newStateRoot
-    };
-}
-
-export async function processTransferTx(
-    tx: Transaction,
-    alicePDAProof: PDAMerkleProof,
-    accountProofs: AccountProofs
-): Promise<ProcessTxResult> {
-    const rollupCoreInstance = await RollupCore.deployed();
-    const rollupRedditInstance = await RollupReddit.deployed();
-    const IMTInstance = await IMT.deployed();
-
-    const currentRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-    const accountRoot = await IMTInstance.getTreeRoot();
-    const txByte = await TxToBytes(tx);
-
-    const result = await rollupRedditInstance.processTransferTx(
-        currentRoot,
-        accountRoot,
-        tx.signature,
-        txByte,
-        alicePDAProof,
-        accountProofs
-    );
-
-    return {
-        newStateRoot: result[0],
-        error: Number(result[3])
     };
 }
 

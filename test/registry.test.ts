@@ -1,4 +1,5 @@
 const AccountRegistry = artifacts.require("BLSAccountRegistry");
+const loggerContract = artifacts.require("Logger");
 import { BlsAccountRegistryInstance } from "../types/truffle-contracts";
 import { Tree, Hasher } from "./utils/tree";
 
@@ -26,7 +27,8 @@ describe.skip("Registry", async () => {
     let treeRight: Tree;
     beforeEach(async function() {
         await mcl.init();
-        registry = await AccountRegistry.new();
+        const logger = await loggerContract.new();
+        registry = await AccountRegistry.new(logger.address);
         DEPTH = (await registry.DEPTH()).toNumber();
         BATCH_DEPTH = (await registry.BATCH_DEPTH()).toNumber();
         treeLeft = Tree.new(DEPTH);

@@ -1,6 +1,7 @@
 const RollupUtilsLib = artifacts.require("RollupUtils");
 const TransferRollup = artifacts.require("TestTransfer");
 const Rollup = artifacts.require("Rollup");
+const loggerContract = artifacts.require("Logger");
 
 const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 import { TxTransfer, serialize, calculateRoot, Tx } from "./utils/tx";
@@ -20,7 +21,7 @@ function link(contract: any, instance: any) {
     contract.link(instance);
 }
 
-contract("Rollup Transfer Commitment", () => {
+describe("Rollup Transfer Commitment", () => {
     let rollup: TestTransferInstance;
     let registry: AccountRegistry;
     let stateTree: StateTree;
@@ -31,7 +32,8 @@ contract("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
-        const registryContract = await BLSAccountRegistry.new();
+        const logger = await loggerContract.new();
+        const registryContract = await BLSAccountRegistry.new(logger.address);
         registry = await AccountRegistry.new(registryContract);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             const accountID = i;
