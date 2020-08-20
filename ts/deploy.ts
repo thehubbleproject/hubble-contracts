@@ -88,10 +88,9 @@ export async function deployAll(
     };
 
     // deploy MTUtils
-    const merkleTreeUtils = await new MerkleTreeUtilsFactory(
-        allLinkRefs,
-        signer
-    ).deploy(nameRegistry.address);
+    const merkleTreeUtils = await new MerkleTreeUtilsFactory(signer).deploy(
+        nameRegistry.address
+    );
     await waitAndRegister(
         merkleTreeUtils,
         "merkleTreeUtils",
