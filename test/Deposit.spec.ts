@@ -1,6 +1,6 @@
 import * as chai from "chai";
 import * as walletHelper from "../scripts/helpers/wallet";
-import { Wallet, GovConstants } from "../scripts/helpers/interfaces";
+import { Wallet } from "../scripts/helpers/interfaces";
 const TestToken = artifacts.require("TestToken");
 const chaiAsPromised = require("chai-as-promised");
 const DepositManager = artifacts.require("DepositManager");
@@ -11,14 +11,13 @@ import { ethers } from "ethers";
 const RollupCore = artifacts.require("Rollup");
 const RollupUtils = artifacts.require("RollupUtils");
 import { StateStore } from "../scripts/helpers/store";
+import { TESTING_PARAMS } from "../ts/constants";
 chai.use(chaiAsPromised);
 
 contract("DepositManager", async function() {
     let wallets: Wallet[];
-    let govConstants: GovConstants;
     before(async function() {
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-        govConstants = await utils.getGovConstants();
     });
 
     it("should register a token", async function() {
@@ -61,7 +60,7 @@ contract("DepositManager", async function() {
         let rollupCoreInstance = await RollupCore.deployed();
         var rollupUtilsInstance = await RollupUtils.deployed();
         const MTutilsInstance = await MerkleTreeUtils.deployed();
-        const stateStore = new StateStore(govConstants.MAX_DEPTH);
+        const stateStore = new StateStore(TESTING_PARAMS.MAX_DEPTH);
 
         const Alice = {
             Address: wallets[0].getAddressString(),
@@ -158,7 +157,7 @@ contract("DepositManager", async function() {
         await rollupContractInstance.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             subTreeIsEmptyProof,
-            { value: govConstants.STAKE_AMOUNT }
+            { value: TESTING_PARAMS.STAKE_AMOUNT }
         );
 
         //

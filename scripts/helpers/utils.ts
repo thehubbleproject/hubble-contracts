@@ -10,8 +10,7 @@ import {
     ProcessTxResult,
     AccountProofs,
     ApplyTxResult,
-    ApplyTxOffchainResult,
-    GovConstants
+    ApplyTxOffchainResult
 } from "./interfaces";
 import { StateStore } from "./store";
 const TokenRegistry = artifacts.require("TokenRegistry");
@@ -263,33 +262,4 @@ export async function processTransferTxOffchain(
         },
         newStateRoot: toResult.newStateRoot
     };
-}
-
-export async function getGovConstants(): Promise<GovConstants> {
-    const govInstance = await Governance.deployed();
-    const MAX_DEPTH = Number(await govInstance.MAX_DEPTH());
-    const MAX_TXS_PER_BATCH = Number(await govInstance.MAX_TXS_PER_BATCH());
-    const STAKE_AMOUNT = (await govInstance.STAKE_AMOUNT()).toString();
-    return {
-        MAX_DEPTH,
-        STAKE_AMOUNT,
-        MAX_TXS_PER_BATCH
-    };
-}
-
-export async function logEstimate(compressedTxs: string, usage: Usage) {
-    const rollupCoreInstance = await RollupCore.deployed();
-    const govConstants = await getGovConstants();
-    const balanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
-    const gasEstimation = await rollupCoreInstance.submitBatch.estimateGas(
-        [compressedTxs],
-        [balanceRoot],
-        usage,
-        [[]],
-        {
-            value: govConstants.STAKE_AMOUNT
-        }
-    );
-    console.log("submitBatch for", Usage[usage], "use", gasEstimation, "gas");
-    console.log("compressedTxs size:", (compressedTxs.length - 2) / 2, "bytes");
 }
