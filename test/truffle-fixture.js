@@ -39,7 +39,7 @@ module.exports = async () => {
     const governanceInstance = await deployAndRegister(
         governanceContract,
         [],
-        [max_depth, maxDepositSubtreeDepth],
+        [maxDepositSubtreeDepth],
         "Governance"
     );
     // deploy MTUtils

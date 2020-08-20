@@ -62,7 +62,6 @@ export async function deployAll(
 
     // deploy governance
     const governance = await new GovernanceFactory(signer).deploy(
-        parameters.MAX_DEPTH,
         parameters.MAX_DEPOSIT_SUBTREE_DEPTH
     );
     await waitAndRegister(
