@@ -20,7 +20,6 @@ const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
 const RollupReddit = artifacts.require("RollupReddit");
-const IMT = artifacts.require("IncrementalTree");
 const Governance = artifacts.require("Governance");
 
 // returns parent node hash given child node hashes
