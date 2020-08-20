@@ -150,7 +150,9 @@ export async function deployAll(
         await paramManager.AIRDROP()
     );
 
-    const transfer = await new TransferFactory(allLinkRefs, signer).deploy();
+    const transfer = await new TransferFactory(allLinkRefs, signer).deploy(
+        nameRegistry.address
+    );
     await waitAndRegister(
         transfer,
         "transfer",

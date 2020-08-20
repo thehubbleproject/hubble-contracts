@@ -142,24 +142,24 @@ contract Transfer is FraudProofHelpers {
 
     // BLS PROOF VALIDITY IMPL END
 
-    // /*********************
-    //  * Constructor *
-    //  ********************/
-    // constructor(address _registryAddr) public {
-    //     nameRegistry = Registry(_registryAddr);
+    /*********************
+     * Constructor *
+     ********************/
+    constructor(address _registryAddr) public {
+        nameRegistry = Registry(_registryAddr);
 
-    //     governance = Governance(
-    //         nameRegistry.getContractDetails(ParamManager.Governance())
-    //     );
+        governance = Governance(
+            nameRegistry.getContractDetails(ParamManager.Governance())
+        );
 
-    //     merkleUtils = MTUtils(
-    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-    //     );
+        merkleUtils = MTUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
 
-    //     tokenRegistry = ITokenRegistry(
-    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-    //     );
-    // }
+        tokenRegistry = ITokenRegistry(
+            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+        );
+    }
 
     function generateTxRoot(Types.Transaction[] memory _txs)
         public

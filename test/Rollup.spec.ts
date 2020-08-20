@@ -46,7 +46,7 @@ describe("Rollup", async function() {
         stateTree.createAccount(Bob);
     });
 
-    xit("submit a batch and dispute", async function() {
+    it("submit a batch and dispute", async function() {
         const tx = new TxTransfer(
             Alice.stateID,
             Bob.stateID,
@@ -60,6 +60,7 @@ describe("Rollup", async function() {
         const rollupUtils = contracts.rollupUtils as RollupUtils;
         const stateRoot = stateTree.root;
         const proof = stateTree.applyTxTransfer(tx);
+        assert.isTrue(proof.safe, "This state transition should be valid");
         const txs = ethers.utils.arrayify(tx.encode(true));
         const _tx = await rollup.submitBatch(
             [txs],
@@ -132,16 +133,14 @@ describe("Rollup", async function() {
                             pathToAccount: Alice.stateID,
                             account: proof.senderAccount
                         },
-                        siblings: proof.senderWitness.map(ethers.utils.arrayify)
+                        siblings: proof.senderWitness
                     },
                     to: {
                         accountIP: {
                             pathToAccount: Bob.stateID,
                             account: proof.receiverAccount
                         },
-                        siblings: proof.receiverWitness.map(
-                            ethers.utils.arrayify
-                        )
+                        siblings: proof.receiverWitness
                     }
                 }
             ],
@@ -153,9 +152,7 @@ describe("Rollup", async function() {
                             pubkey: mcl.g2ToHex(Alice.publicKey)
                         }
                     },
-                    siblings: registry
-                        .witness(Alice.accountID)
-                        .map(ethers.utils.arrayify)
+                    siblings: registry.witness(Alice.accountID)
                 }
             ]
         });
