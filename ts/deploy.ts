@@ -22,6 +22,7 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 
 import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
+import { allContracts } from "./all-contracts-interfaces";
 
 async function waitAndRegister(
     contract: Contract,
@@ -47,7 +48,7 @@ export async function deployAll(
     signer: Signer,
     parameters: DeploymentParameters,
     verbose: boolean = false
-): Promise<{ [key: string]: Contract }> {
+): Promise<allContracts> {
     // deploy libs
 
     const paramManager = await new ParamManagerFactory(signer).deploy();
