@@ -90,7 +90,7 @@ export async function deployAll(
 
     // deploy MTUtils
     const merkleTreeUtils = await new MerkleTreeUtilsFactory(signer).deploy(
-        nameRegistry.address
+        parameters.MAX_DEPTH
     );
     await waitAndRegister(
         merkleTreeUtils,
