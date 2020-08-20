@@ -1,65 +1,25 @@
-import * as chai from "chai";
+
 import * as walletHelper from "../scripts/helpers/wallet";
 import { Wallet } from "../scripts/helpers/interfaces";
-const TestToken = artifacts.require("TestToken");
-const chaiAsPromised = require("chai-as-promised");
-const DepositManager = artifacts.require("DepositManager");
-const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 import * as utils from "../scripts/helpers/utils";
 
-import { ethers } from "ethers";
-const RollupCore = artifacts.require("Rollup");
-const RollupUtils = artifacts.require("RollupUtils");
+import { ethers } from "@nomiclabs/buidler";
 import { StateStore } from "../scripts/helpers/store";
 import { TESTING_PARAMS } from "../ts/constants";
-chai.use(chaiAsPromised);
+import { deployAll } from "../ts/deploy";
 
-contract("DepositManager", async function() {
+describe("DepositManager", async function() {
     let wallets: Wallet[];
     before(async function() {
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-    });
 
-    it("should register a token", async function() {
-        const testToken = await TestToken.deployed();
-        const tokenRegistryInstance = await utils.getTokenRegistry();
-        await tokenRegistryInstance.requestTokenRegistration(
-            testToken.address,
-            {
-                from: wallets[0].getAddressString()
-            }
-        );
-    });
-    it("should finalise token registration", async () => {
-        const testToken = await TestToken.deployed();
-        const tokenRegistryInstance = await utils.getTokenRegistry();
-
-        const approveToken = await tokenRegistryInstance.finaliseTokenRegistration(
-            testToken.address,
-            { from: wallets[0].getAddressString() }
-        );
-        assert(approveToken, "token registration failed");
-    });
-    it("should approve Rollup on TestToken", async () => {
-        const testToken = await TestToken.deployed();
-        const depositManagerInstance = await DepositManager.deployed();
-        const approveToken = await testToken.approve(
-            depositManagerInstance.address,
-            ethers.utils.parseEther("1").toString(),
-            {
-                from: wallets[0].getAddressString()
-            }
-        );
-        assert(approveToken, "approveToken failed");
     });
 
     xit("should allow depositing 2 leaves in a subtree and merging it", async () => {
-        let depositManagerInstance = await DepositManager.deployed();
-        var rollupContractInstance = await RollupCore.deployed();
-        var testTokenInstance = await TestToken.deployed();
-        let rollupCoreInstance = await RollupCore.deployed();
-        var rollupUtilsInstance = await RollupUtils.deployed();
-        const MTutilsInstance = await MerkleTreeUtils.deployed();
+        const signer = (await ethers.getSigners())[0];
+        const contracts = await deployAll(signer, TESTING_PARAMS)
+        const testTokenInstance = contracts.testToken
+        const depositManagerInstance = contracts.depositManager
         const stateStore = new StateStore(TESTING_PARAMS.MAX_DEPTH);
 
         const Alice = {
@@ -80,7 +40,7 @@ contract("DepositManager", async function() {
             Path: "3",
             nonce: 0
         };
-        const coordinator_leaves = await rollupUtilsInstance.GetGenesisLeaves();
+        const coordinator_leaves = await contracts.rollupUtils.GetGenesisLeaves();
         for (const leaf of coordinator_leaves) {
             stateStore.insertHash(leaf);
         }
@@ -118,13 +78,7 @@ contract("DepositManager", async function() {
 
         const BobAccountLeaf = await utils.createLeaf(Bob);
 
-        const pendingDeposits0 = await depositManagerInstance.dequeue.call();
-
-        assert.equal(
-            pendingDeposits0,
-            utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf),
-            "Account hash mismatch 2"
-        );
+        // TODO: Test dequeue
 
         const pendingDepositAfter = await depositManagerInstance.queueNumber();
         assert.equal(
@@ -154,7 +108,7 @@ contract("DepositManager", async function() {
             subtreeDepth
         );
 
-        await rollupContractInstance.finaliseDepositsAndSubmitBatch(
+        await contracts.rollup.finaliseDepositsAndSubmitBatch(
             subtreeDepth,
             subTreeIsEmptyProof,
             { value: TESTING_PARAMS.STAKE_AMOUNT }
@@ -163,10 +117,10 @@ contract("DepositManager", async function() {
         //
         // verify accounts exist in the new balance root
         //
-        const newBalanceRoot = await rollupCoreInstance.getLatestBalanceTreeRoot();
+        const newBalanceRoot = await contracts.rollup.getLatestBalanceTreeRoot();
 
         // verify sub tree has been inserted first at path 0
-        const isSubTreeInserted = await MTutilsInstance.verifyLeaf(
+        const isSubTreeInserted = await contracts.merkleTreeUtils.verifyLeaf(
             newBalanceRoot,
             utils.getParentLeaf(AliceAccountLeaf, BobAccountLeaf),
             position,
