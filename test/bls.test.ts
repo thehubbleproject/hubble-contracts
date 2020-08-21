@@ -235,7 +235,7 @@ describe("BLS", async () => {
             assert.isTrue(signature.isEqual(_signature));
         }
     });
-    it.skip("gas cost: verify signature", async function() {
+    it("gas cost: verify signature", async function() {
         const n = 100;
         const messages = [];
         const pubkeys = [];
@@ -248,48 +248,47 @@ describe("BLS", async () => {
             messages.push(M);
             pubkeys.push(pubkey);
         }
-        let messages_ser = messages.map(p => mcl.g1ToBN(p));
-        let pubkeys_ser = pubkeys.map(p => mcl.g2ToBN(p));
-        let sig_ser = mcl.g1ToBN(aggSignature);
-        let cost = await bls.estimateGas.verifyMultipleGasCost(
+        let messages_ser = messages.map(p => mcl.g1ToHex(p));
+        let pubkeys_ser = pubkeys.map(p => mcl.g2ToHex(p));
+        let sig_ser = mcl.g1ToHex(aggSignature);
+        let cost = await bls.verifyMultipleGasCost(
             sig_ser,
             pubkeys_ser,
             messages_ser
         );
-        console.log(`verify signature for ${n} message: ${cost.toNumber()}`);
-    });
-    it.skip("gas cost: verify single signature", async function() {
+        console.log(`verify signature for ${n} message: ${cost}`);
+    }).timeout(100000);
+    it("gas cost: verify single signature", async function() {
         const message = web3.utils.randomHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
-        let message_ser = mcl.g1ToBN(M);
-        let pubkey_ser = mcl.g2ToBN(pubkey);
-        let sig_ser = mcl.g1ToBN(signature);
-        let cost = await bls.estimateGas.verifySingleeGasCost(
+        let message_ser = mcl.g1ToHex(M);
+        let pubkey_ser = mcl.g2ToHex(pubkey);
+        let sig_ser = mcl.g1ToHex(signature);
+        let cost = await bls.verifySingleGasCost(
             sig_ser,
             pubkey_ser,
             message_ser
         );
-        console.log(`verify single signature:: ${cost.toNumber()}`);
-    });
-    it.skip("gas cost: hash to point", async function() {
+        console.log(`verify single signature:: ${cost}`);
+    }).timeout(100000);
+    it("gas cost: hash to point", async function() {
         const n = 50;
         let totalCost = 0;
         for (let i = 0; i < n; i++) {
             const data = web3.utils.randomHex(12);
-            let cost = await bls.estimateGas.hashToPointGasCost(data);
-            totalCost += cost.toNumber();
+            let cost = await bls.hashToPointGasCost(data);
+            totalCost += Number(cost);
         }
         console.log(`hash to point average cost: ${totalCost / n}`);
-    });
-    it.skip("gas cost: is on curve", async function() {
+    }).timeout(100000);
+    it("gas cost: is on curve", async function() {
         let point = mcl.randG2();
-        console.log(mcl.g2ToHex(point));
-        let cost = await bls.estimateGas.isOnCurveG2GasCost(mcl.g2ToBN(point));
-        console.log(`is on curve g2 gas cost: ${cost.toNumber()}`);
-        cost = await bls.estimateGas.isOnCurveG2CompressedGasCost(
+        let cost = await bls.isOnCurveG2GasCost(mcl.g2ToHex(point));
+        console.log(`is on curve g2 gas cost: ${cost}`);
+        cost = await bls.isOnCurveG2CompressedGasCost(
             mcl.g2ToCompressed(point)
         );
-        console.log(`is on curve compressed g2 gas cost: ${cost.toNumber()}`);
-    });
+        console.log(`is on curve compressed g2 gas cost: ${cost}`);
+    }).timeout(100000);
 });
