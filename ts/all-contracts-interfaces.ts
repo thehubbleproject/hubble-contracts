@@ -17,25 +17,23 @@ import { Rollup } from "../types/ethers-contracts/Rollup";
 import { RollupReddit } from "../types/ethers-contracts/RollupReddit";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 
-
-
 export interface allContracts {
-    paramManager: ParamManager,
-    rollupUtils: RollupUtils,
-    nameRegistry: NameRegistry,
-    governance: Governance,
-    logger: Logger,
-    merkleTreeUtils: MerkleTreeUtils,
-    blsAccountRegistry: BlsAccountRegistry,
-    tokenRegistry: TokenRegistry,
-    createAccount: CreateAccount,
-    airdrop: Airdrop,
-    transfer: Transfer,
-    burnConsent: BurnConsent,
-    burnExecution: BurnExecution,
-    pob: Pob,
-    testToken: TestToken,
-    depositManager: DepositManager,
-    rollupReddit: RollupReddit,
-    rollup: Rollup
+    paramManager: ParamManager;
+    rollupUtils: RollupUtils;
+    nameRegistry: NameRegistry;
+    governance: Governance;
+    logger: Logger;
+    merkleTreeUtils: MerkleTreeUtils;
+    blsAccountRegistry: BlsAccountRegistry;
+    tokenRegistry: TokenRegistry;
+    createAccount: CreateAccount;
+    airdrop: Airdrop;
+    transfer: Transfer;
+    burnConsent: BurnConsent;
+    burnExecution: BurnExecution;
+    pob: Pob;
+    testToken: TestToken;
+    depositManager: DepositManager;
+    rollupReddit: RollupReddit;
+    rollup: Rollup;
 }

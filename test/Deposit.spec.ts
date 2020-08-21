@@ -1,4 +1,3 @@
-
 import * as walletHelper from "../scripts/helpers/wallet";
 import { Wallet } from "../scripts/helpers/interfaces";
 import * as utils from "../scripts/helpers/utils";
@@ -12,14 +11,13 @@ describe("DepositManager", async function() {
     let wallets: Wallet[];
     before(async function() {
         wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-
     });
 
     xit("should allow depositing 2 leaves in a subtree and merging it", async () => {
         const signer = (await ethers.getSigners())[0];
-        const contracts = await deployAll(signer, TESTING_PARAMS)
-        const testTokenInstance = contracts.testToken
-        const depositManagerInstance = contracts.depositManager
+        const contracts = await deployAll(signer, TESTING_PARAMS);
+        const testTokenInstance = contracts.testToken;
+        const depositManagerInstance = contracts.depositManager;
         const stateStore = new StateStore(TESTING_PARAMS.MAX_DEPTH);
 
         const Alice = {
