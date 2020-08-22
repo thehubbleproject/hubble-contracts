@@ -1,12 +1,11 @@
-const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
-import * as walletHelper from "../../scripts/helpers/wallet";
+import { MerkleTreeUtils } from "../../types/ethers-contracts/MerkleTreeUtils";
+import { MerkleTreeUtilsFactory } from "../../types/ethers-contracts/MerkleTreeUtilsFactory";
 import * as utils from "../../scripts/helpers/utils";
-import { Wallet } from "../../scripts/helpers/interfaces";
 import { assert } from "chai";
+import { ethers } from "@nomiclabs/buidler";
 
 // Test all stateless operations
-contract("MerkleTreeUtils", async function() {
-    let wallets: Wallet[];
+describe("MerkleTreeUtils", async function() {
     var firstDataBlock = utils.StringToBytes32("0x123");
     var secondDataBlock = utils.StringToBytes32("0x334");
     var thirdDataBlock = utils.StringToBytes32("0x4343");
@@ -23,10 +22,13 @@ contract("MerkleTreeUtils", async function() {
         utils.Hash(thirdDataBlock),
         utils.Hash(fourthDataBlock)
     ];
-    let mtlibInstance: any;
+    let mtlibInstance: MerkleTreeUtils;
     before(async function() {
-        wallets = walletHelper.generateFirstWallets(walletHelper.mnemonics, 10);
-        mtlibInstance = await MerkleTreeUtils.deployed();
+        const MAX_DEPTH = 4;
+        const signers = await ethers.getSigners();
+        mtlibInstance = await new MerkleTreeUtilsFactory(signers[0]).deploy(
+            MAX_DEPTH
+        );
     });
 
     it("ensure root created on-chain and via utils is the same", async function() {

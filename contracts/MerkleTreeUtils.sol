@@ -1,24 +1,16 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import { ParamManager } from "./libs/ParamManager.sol";
-import { Governance } from "./Governance.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
 
 contract MerkleTreeUtils {
     // The default hashes
     bytes32[] public defaultHashes;
     uint256 public MAX_DEPTH;
-    Governance public governance;
 
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor(address _registryAddr) public {
-        Registry nameRegistry = Registry(_registryAddr);
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        MAX_DEPTH = governance.MAX_DEPTH();
+    constructor(uint256 maxDepth) public {
+        MAX_DEPTH = maxDepth;
         defaultHashes = new bytes32[](MAX_DEPTH);
         // Calculate & set the default hashes
         setDefaultHashes(MAX_DEPTH);
