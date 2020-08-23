@@ -33,6 +33,8 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
+        let rollupUtilsLib = await RollupUtilsLib.new();
+        link(TransferRollup, rollupUtilsLib);
         const logger = await loggerContract.new();
         const registryContract = await BLSAccountRegistry.new(logger.address);
         registry = await AccountRegistry.new(registryContract);
@@ -54,9 +56,7 @@ describe("Rollup Transfer Commitment", () => {
     });
 
     beforeEach(async function() {
-        let rollupUtilsLib = await RollupUtilsLib.new();
         const merkleTreeUtils = await MerkleTreeUtils.new(STATE_TREE_DEPTH);
-        link(TransferRollup, rollupUtilsLib);
         rollup = await TransferRollup.new(merkleTreeUtils.address);
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
