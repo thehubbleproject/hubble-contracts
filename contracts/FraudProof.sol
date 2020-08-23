@@ -10,7 +10,6 @@ import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
-import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 
 contract FraudProofSetup {
@@ -20,8 +19,6 @@ contract FraudProofSetup {
 
     bytes32
         public constant ZERO_BYTES32 = 0x0000000000000000000000000000000000000000000000000000000000000000;
-
-    Governance public governance;
 }
 
 contract FraudProofHelpers is FraudProofSetup {
