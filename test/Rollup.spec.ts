@@ -10,12 +10,13 @@ import { Rollup } from "../types/ethers-contracts/Rollup";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import * as mcl from "./utils/mcl";
 import { Tree, Hasher } from "./utils/tree";
+import { allContracts } from "../ts/all-contracts-interfaces";
 
 describe("Rollup", async function() {
     let Alice: Account;
     let Bob: Account;
 
-    let contracts: any;
+    let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry2;
     before(async function() {
@@ -44,6 +45,13 @@ describe("Rollup", async function() {
 
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);
+    });
+    it("test deployment (for the time being)", async function() {
+        const onchainParam = await contracts.governance.MAX_DEPOSIT_SUBTREE();
+        assert.equal(
+            Number(onchainParam),
+            TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
+        );
     });
 
     xit("submit a batch and dispute", async function() {

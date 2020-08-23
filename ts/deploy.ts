@@ -9,11 +9,11 @@ import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { PobFactory } from "../types/ethers-contracts/PobFactory";
-import { CreateAccountFactory } from "../types/ethers-contracts/CreateAccountFactory";
-import { AirdropFactory } from "../types/ethers-contracts/AirdropFactory";
-import { TransferFactory } from "../types/ethers-contracts/TransferFactory";
-import { BurnConsentFactory } from "../types/ethers-contracts/BurnConsentFactory";
-import { BurnExecutionFactory } from "../types/ethers-contracts/BurnExecutionFactory";
+import { CreateAccountProductionFactory } from "../types/ethers-contracts/CreateAccountProductionFactory";
+import { AirdropProductionFactory } from "../types/ethers-contracts/AirdropProductionFactory";
+import { TransferProductionFactory } from "../types/ethers-contracts/TransferProductionFactory";
+import { BurnConsentProductionFactory } from "../types/ethers-contracts/BurnConsentProductionFactory";
+import { BurnExecutionProductionFactory } from "../types/ethers-contracts/BurnExecutionProductionFactory";
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
 import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
@@ -126,7 +126,7 @@ export async function deployAll(
 
     // deploy Reddit contracts
 
-    const createAccount = await new CreateAccountFactory(
+    const createAccount = await new CreateAccountProductionFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
@@ -138,9 +138,10 @@ export async function deployAll(
         await paramManager.CREATE_ACCOUNT()
     );
 
-    const airdrop = await new AirdropFactory(allLinkRefs, signer).deploy(
-        nameRegistry.address
-    );
+    const airdrop = await new AirdropProductionFactory(
+        allLinkRefs,
+        signer
+    ).deploy(nameRegistry.address);
     await waitAndRegister(
         airdrop,
         "airdrop",
@@ -149,7 +150,10 @@ export async function deployAll(
         await paramManager.AIRDROP()
     );
 
-    const transfer = await new TransferFactory(allLinkRefs, signer).deploy();
+    const transfer = await new TransferProductionFactory(
+        allLinkRefs,
+        signer
+    ).deploy(nameRegistry.address);
     await waitAndRegister(
         transfer,
         "transfer",
@@ -158,7 +162,7 @@ export async function deployAll(
         await paramManager.TRANSFER()
     );
 
-    const burnConsent = await new BurnConsentFactory(
+    const burnConsent = await new BurnConsentProductionFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
@@ -170,7 +174,7 @@ export async function deployAll(
         await paramManager.BURN_CONSENT()
     );
 
-    const burnExecution = await new BurnExecutionFactory(
+    const burnExecution = await new BurnExecutionProductionFactory(
         allLinkRefs,
         signer
     ).deploy(nameRegistry.address);
