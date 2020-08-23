@@ -2,11 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { Governance } from "./Governance.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 
@@ -140,25 +136,6 @@ contract Transfer is FraudProofHelpers {
     }
 
     // BLS PROOF VALIDITY IMPL END
-
-    // /*********************
-    //  * Constructor *
-    //  ********************/
-    // constructor(address _registryAddr) public {
-    //     nameRegistry = Registry(_registryAddr);
-
-    //     governance = Governance(
-    //         nameRegistry.getContractDetails(ParamManager.Governance())
-    //     );
-
-    //     merkleUtils = MTUtils(
-    //         nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-    //     );
-
-    //     tokenRegistry = ITokenRegistry(
-    //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-    //     );
-    // }
 
     /**
      * @notice processBatch processes a whole batch

@@ -3,27 +3,11 @@ pragma experimental ABIEncoderV2;
 
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
-import { Governance } from "./Governance.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
+import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 
 contract CreateAccount is FraudProofHelpers {
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
-
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
+    ITokenRegistry public tokenRegistry;
 
     modifier onlyReddit() {
         // TODO: Add only Reddit check
