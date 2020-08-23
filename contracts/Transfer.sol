@@ -260,12 +260,16 @@ contract Transfer is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyTx(accountProofs.from, txs, i);
+        (new_from_account, newRoot) = ApplyTransferTx(
+            accountProofs.from,
+            txs,
+            i
+        );
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
 
-        (new_to_account, newRoot) = ApplyTx(accountProofs.to, txs, i);
+        (new_to_account, newRoot) = ApplyTransferTx(accountProofs.to, txs, i);
 
         return (
             newRoot,
@@ -274,5 +278,28 @@ contract Transfer is FraudProofHelpers {
             Types.ErrorCode.NoError,
             true
         );
+    }
+
+    function ApplyTransferTx(
+        Types.AccountMerkleProof memory _merkle_proof,
+        bytes memory txs,
+        uint256 i
+    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
+        uint256 stateIndex = _merkle_proof.accountIP.pathToAccount;
+        if (stateIndex == txs.transfer_fromIndexOf(i)) {
+            stateLeaf = RemoveTokensFromAccount(
+                stateLeaf,
+                txs.transfer_amountOf(i)
+            );
+            stateLeaf.nonce++;
+        }
+
+        if (stateIndex == txs.transfer_toIndexOf(i)) {
+            stateLeaf = AddTokensToAccount(stateLeaf, txs.transfer_amountOf(i));
+        }
+        newRoot = UpdateAccountWithSiblings(stateLeaf, _merkle_proof);
+
+        return (RollupUtils.BytesFromAccount(stateLeaf), newRoot);
     }
 }

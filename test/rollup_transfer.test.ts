@@ -2,6 +2,7 @@ const RollupUtilsLib = artifacts.require("RollupUtils");
 const TransferRollup = artifacts.require("TestTransfer");
 const Rollup = artifacts.require("Rollup");
 const loggerContract = artifacts.require("Logger");
+const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 
 const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 import { TxTransfer, serialize, calculateRoot, Tx } from "./utils/tx";
@@ -54,8 +55,9 @@ describe("Rollup Transfer Commitment", () => {
 
     beforeEach(async function() {
         let rollupUtilsLib = await RollupUtilsLib.new();
+        const merkleTreeUtils = await MerkleTreeUtils.new(STATE_TREE_DEPTH);
         link(TransferRollup, rollupUtilsLib);
-        rollup = await TransferRollup.new();
+        rollup = await TransferRollup.new(merkleTreeUtils.address);
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             stateTree.createAccount(accounts[i]);
@@ -128,4 +130,55 @@ describe("Rollup Transfer Commitment", () => {
         );
         console.log("transaction gas cost:", tx.receipt.gasUsed);
     }).timeout(100000);
+
+    it("transfer applyTx", async function() {
+        const amount = 20;
+        for (let i = 0; i < BATCH_SIZE; i++) {
+            const senderIndex = i;
+            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
+            const sender = accounts[senderIndex];
+            const receiver = accounts[reciverIndex];
+            const tx = new TxTransfer(
+                sender.stateID,
+                receiver.stateID,
+                amount,
+                sender.nonce
+            );
+            const pubkeyWitness = registry.witness(sender.accountID);
+            const preRoot = stateTree.root;
+            const proof = stateTree.applyTxTransfer(tx);
+            const postRoot = stateTree.root;
+            const { serialized } = serialize([tx]);
+
+            const result = await rollup.testProcessTx(
+                preRoot,
+                serialized,
+                0,
+                {
+                    siblings: pubkeyWitness,
+                    _pda: {
+                        pathToPubkey: sender.accountID,
+                        pubkey_leaf: { pubkey: sender.encodePubkey() }
+                    }
+                },
+                {
+                    from: {
+                        accountIP: {
+                            pathToAccount: sender.stateID,
+                            account: proof.senderAccount
+                        },
+                        siblings: proof.senderWitness
+                    },
+                    to: {
+                        accountIP: {
+                            pathToAccount: receiver.stateID,
+                            account: proof.receiverAccount
+                        },
+                        siblings: proof.receiverWitness
+                    }
+                }
+            );
+            assert.equal(result[0], postRoot, "mismatch processed stateroot");
+        }
+    });
 });

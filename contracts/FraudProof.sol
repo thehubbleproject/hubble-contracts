@@ -91,41 +91,6 @@ contract FraudProofHelpers is FraudProofSetup {
         return original_account;
     }
 
-    function _ApplyTx(
-        Types.AccountMerkleProof memory _merkle_proof,
-        uint256 fromIndex,
-        uint256 toIndex,
-        uint256 amount
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
-        if (fromIndex == account.ID) {
-            account = RemoveTokensFromAccount(account, amount);
-            account.nonce++;
-        }
-
-        if (toIndex == account.ID) {
-            account = AddTokensToAccount(account, amount);
-        }
-
-        newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
-
-        return (RollupUtils.BytesFromAccount(account), newRoot);
-    }
-
-    function ApplyTx(
-        Types.AccountMerkleProof memory _merkle_proof,
-        bytes memory txs,
-        uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        return
-            _ApplyTx(
-                _merkle_proof,
-                txs.transfer_fromIndexOf(i),
-                txs.transfer_toIndexOf(i),
-                txs.transfer_amountOf(i)
-            );
-    }
-
     function AddTokensToAccount(
         Types.UserAccount memory account,
         uint256 numOfTokens
