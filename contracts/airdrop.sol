@@ -131,12 +131,21 @@ contract Airdrop is FraudProofHelpers {
         bytes memory txs,
         uint256 i
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        return
-            _ApplyTx(
-                _merkle_proof,
-                txs.transfer_fromIndexOf(i),
-                txs.transfer_toIndexOf(i),
+        Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
+        uint256 stateIndex = _merkle_proof.accountIP.pathToAccount;
+        if (stateIndex == txs.transfer_fromIndexOf(i)) {
+            stateLeaf = RemoveTokensFromAccount(
+                stateLeaf,
                 txs.transfer_amountOf(i)
             );
+            stateLeaf.nonce++;
+        }
+
+        if (stateIndex == txs.transfer_toIndexOf(i)) {
+            stateLeaf = AddTokensToAccount(stateLeaf, txs.transfer_amountOf(i));
+        }
+        newRoot = UpdateAccountWithSiblings(stateLeaf, _merkle_proof);
+
+        return (RollupUtils.BytesFromAccount(stateLeaf), newRoot);
     }
 }
