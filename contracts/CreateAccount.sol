@@ -5,7 +5,7 @@ import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
@@ -19,9 +19,6 @@ contract CreateAccount is FraudProofHelpers {
 
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
@@ -39,26 +36,8 @@ contract CreateAccount is FraudProofHelpers {
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+    ) public view returns (bytes32, bool) {
         uint256 length = txs.create_size();
-
-        bytes32 actualTxRoot = merkleUtils.getMerkleRootFromLeaves(
-            txs.create_toLeafs()
-        );
-        if (expectedTxRoot != ZERO_BYTES32) {
-            require(
-                actualTxRoot == expectedTxRoot,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
 
         bool isTxValid;
         for (uint256 i = 0; i < length; i++) {
@@ -78,14 +57,14 @@ contract CreateAccount is FraudProofHelpers {
             }
         }
 
-        return (stateRoot, actualTxRoot, !isTxValid);
+        return (stateRoot, !isTxValid);
     }
 
     function ApplyCreateAccountTx(
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
         uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account;
         account.ID = txs.create_accountIdOf(i);
         account.tokenType = txs.create_tokenOf(i);
@@ -129,9 +108,9 @@ contract CreateAccount is FraudProofHelpers {
 
         // Validate we are creating on a zero account
         if (
-            !merkleUtils.verifyLeaf(
+            !MerkleTreeUtilsLib.verifyLeaf(
                 _balanceRoot,
-                merkleUtils.defaultHashes(0), // Zero account leaf
+                keccak256(abi.encode(0)), // Zero account leaf
                 to_account_proof.accountIP.pathToAccount,
                 to_account_proof.siblings
             )

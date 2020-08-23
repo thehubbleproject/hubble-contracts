@@ -4,7 +4,6 @@ import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
@@ -160,20 +159,6 @@ contract Transfer is FraudProofHelpers {
     //         nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
     //     );
     // }
-
-    function generateTxRoot(Types.Transaction[] memory _txs)
-        public
-        view
-        returns (bytes32 txRoot)
-    {
-        // generate merkle tree from the txs provided by user
-        bytes[] memory txs = new bytes[](_txs.length);
-        for (uint256 i = 0; i < _txs.length; i++) {
-            txs[i] = RollupUtils.CompressTx(_txs[i]);
-        }
-        txRoot = merkleUtils.getMerkleRoot(txs);
-        return txRoot;
-    }
 
     /**
      * @notice processBatch processes a whole batch

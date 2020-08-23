@@ -53,42 +53,6 @@ describe("MerkleTreeUtils", async function() {
         }
     });
 
-    it("utils hash should be the same as keccak hash", async function() {
-        var data = utils.StringToBytes32("0x123");
-
-        var hash = utils.Hash(data);
-
-        var keccakHash = await mtlibInstance.keecakHash(data);
-        expect(keccakHash).to.be.deep.eq(hash);
-    });
-
-    it("test get parent", async function() {
-        let localHash = utils.getParentLeaf(firstDataBlock, secondDataBlock);
-        let contractHash = await mtlibInstance.getParent(
-            firstDataBlock,
-            secondDataBlock
-        );
-
-        expect(localHash).to.be.deep.eq(contractHash);
-    });
-
-    it("test index to path", async function() {
-        var result = await mtlibInstance.pathToIndex("10", 2);
-        expect(result.toNumber()).to.be.deep.eq(2);
-
-        var result2 = await mtlibInstance.pathToIndex("11", 2);
-        expect(result2.toNumber()).to.be.deep.eq(3);
-
-        var result3 = await mtlibInstance.pathToIndex("111", 3);
-        expect(result3.toNumber()).to.be.deep.eq(7);
-
-        // var result4 = await mtlibInstance.pathToIndex(
-        //   "11111111111111111111111",
-        //   "11111111111111111111111".length
-        // );
-        // expect(result4.toNumber()).to.be.deep.eq(8388607);
-    });
-
     it("[LEAF] [STATELESS] verifying correct proof", async function() {
         var root = await mtlibInstance.getMerkleRoot(dataBlocks);
 
@@ -107,23 +71,6 @@ describe("MerkleTreeUtils", async function() {
             path,
             siblings
         );
-
-        expect(isValid).to.be.deep.eq(true);
-    });
-
-    it("[DATABLOCK] [STATELESS] verifying correct proof", async function() {
-        var root = await mtlibInstance.getMerkleRoot(dataBlocks);
-
-        var siblings: Array<string> = [
-            dataLeaves[1],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
-        ];
-
-        var leaf = dataBlocks[0];
-
-        var path: string = "00";
-
-        var isValid = await mtlibInstance.verify(root, leaf, path, siblings);
 
         expect(isValid).to.be.deep.eq(true);
     });

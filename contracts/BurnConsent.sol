@@ -5,7 +5,6 @@ import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
@@ -19,10 +18,6 @@ contract BurnConsent is FraudProofHelpers {
 
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
 
         tokenRegistry = ITokenRegistry(
@@ -83,7 +78,7 @@ contract BurnConsent is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
         uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         account.burn = txs.burnConsent_amountOf(i);
         account.nonce++;
