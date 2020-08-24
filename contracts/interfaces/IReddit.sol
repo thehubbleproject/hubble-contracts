@@ -64,7 +64,7 @@ interface IReddit {
     // Transfer
     //
 
-    function ApplyTx(
+    function ApplyTransferTx(
         Types.AccountMerkleProof calldata _merkle_proof,
         bytes calldata txs,
         uint256 i
