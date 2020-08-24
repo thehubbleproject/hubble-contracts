@@ -17,7 +17,7 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 expectedTxHashCommitment
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes32,
@@ -41,7 +41,6 @@ contract BurnConsent is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i].from
             );
 
@@ -73,11 +72,10 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 _balanceRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes memory,

@@ -34,7 +34,6 @@ contract TestTransfer is Transfer {
     function testProcessTx(
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public
@@ -47,6 +46,6 @@ contract TestTransfer is Transfer {
             bool
         )
     {
-        return processTx(_balanceRoot, _tx, _from_pda_proof, accountProofs);
+        return processTx(_balanceRoot, _tx, accountProofs);
     }
 }

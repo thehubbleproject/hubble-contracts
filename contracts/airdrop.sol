@@ -17,7 +17,7 @@ contract Airdrop is FraudProofHelpers {
         bytes32 expectedTxHashCommitment
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes32,
@@ -41,7 +41,6 @@ contract Airdrop is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i]
             );
 
@@ -63,11 +62,10 @@ contract Airdrop is FraudProofHelpers {
         bytes32 _balanceRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes memory,
@@ -130,7 +128,7 @@ contract Airdrop is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         bytes memory txs,
         uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
         uint256 stateIndex = _merkle_proof.accountIP.pathToAccount;
         if (stateIndex == txs.transfer_fromIndexOf(i)) {
