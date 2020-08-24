@@ -6,10 +6,6 @@ import { Types } from "../libs/Types.sol";
 import { MerkleTreeUtils } from "../MerkleTreeUtils.sol";
 
 contract TestTransfer is Transfer {
-    constructor(MerkleTreeUtils _merkleUtils) public {
-        merkleUtils = _merkleUtils;
-    }
-
     function checkSignature(
         uint256[2] memory signature,
         InvalidSignatureProof memory proof,

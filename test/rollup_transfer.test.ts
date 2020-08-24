@@ -2,7 +2,6 @@ const RollupUtilsLib = artifacts.require("RollupUtils");
 const TransferRollup = artifacts.require("TestTransfer");
 const Rollup = artifacts.require("Rollup");
 const loggerContract = artifacts.require("Logger");
-const MerkleTreeUtils = artifacts.require("MerkleTreeUtils");
 
 const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 import { TxTransfer, serialize, calculateRoot, Tx } from "./utils/tx";
@@ -56,8 +55,7 @@ describe("Rollup Transfer Commitment", () => {
     });
 
     beforeEach(async function() {
-        const merkleTreeUtils = await MerkleTreeUtils.new(STATE_TREE_DEPTH);
-        rollup = await TransferRollup.new(merkleTreeUtils.address);
+        rollup = await TransferRollup.new();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             stateTree.createAccount(accounts[i]);
