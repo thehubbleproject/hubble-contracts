@@ -124,9 +124,8 @@ contract DepositManager {
             deposits[0] = pendingDeposits[pendingDeposits.length - 2];
             deposits[1] = pendingDeposits[pendingDeposits.length - 1];
 
-            pendingDeposits[pendingDeposits.length - 2] = merkleUtils.getParent(
-                deposits[0],
-                deposits[1]
+            pendingDeposits[pendingDeposits.length - 2] = keccak256(
+                abi.encode(deposits[0], deposits[1])
             );
 
             // remove 1 deposit from the pending deposit queue

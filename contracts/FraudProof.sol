@@ -10,7 +10,7 @@ import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { Governance } from "./Governance.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 
@@ -18,7 +18,6 @@ contract FraudProofSetup {
     using SafeMath for uint256;
     using Tx for bytes;
 
-    MTUtils public merkleUtils;
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
 
@@ -32,14 +31,14 @@ contract FraudProofHelpers is FraudProofSetup {
     function ValidateAccountMP(
         bytes32 root,
         Types.AccountMerkleProof memory merkle_proof
-    ) public view {
+    ) public pure {
         bytes32 accountLeaf = RollupUtils.HashFromAccount(
             merkle_proof.accountIP.account
         );
 
         // verify from leaf exists in the balance tree
         require(
-            merkleUtils.verifyLeaf(
+            MerkleTreeUtilsLib.verifyLeaf(
                 root,
                 accountLeaf,
                 merkle_proof.accountIP.pathToAccount,
@@ -97,7 +96,7 @@ contract FraudProofHelpers is FraudProofSetup {
         uint256 fromIndex,
         uint256 toIndex,
         uint256 amount
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         if (fromIndex == account.ID) {
             account = RemoveTokensFromAccount(account, amount);
@@ -153,12 +152,12 @@ contract FraudProofHelpers is FraudProofSetup {
     function UpdateAccountWithSiblings(
         Types.UserAccount memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
-    ) public view returns (bytes32) {
-        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
+    ) public pure returns (bytes32) {
+        bytes32 newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(RollupUtils.BytesFromAccount(new_account)),
             _merkle_proof.accountIP.pathToAccount,
             _merkle_proof.siblings
         );
-        return (newRoot);
+        return newRoot;
     }
 }
