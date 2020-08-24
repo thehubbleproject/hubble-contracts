@@ -166,7 +166,6 @@ contract Transfer is FraudProofHelpers {
      * */
     function processTransferBatch(
         bytes32 stateRoot,
-        bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxHashCommitment

@@ -59,7 +59,6 @@ contract RollupReddit {
 
     function processCreateAccountTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
@@ -79,7 +78,6 @@ contract RollupReddit {
         return
             createAccount.processCreateAccountTx(
                 _balanceRoot,
-                _accountsRoot,
                 txs,
                 0,
                 _to_pda_proof,
@@ -105,7 +103,6 @@ contract RollupReddit {
 
     function processAirdropTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory sig,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
@@ -126,7 +123,6 @@ contract RollupReddit {
         return
             airdrop.processAirdropTx(
                 _balanceRoot,
-                _accountsRoot,
                 txs,
                 0,
                 _from_pda_proof,
@@ -152,7 +148,6 @@ contract RollupReddit {
 
     function processTransferTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory sig,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
@@ -176,7 +171,6 @@ contract RollupReddit {
         return
             transfer.processTx(
                 _balanceRoot,
-                _accountsRoot,
                 txs,
                 0,
                 _from_pda_proof,
@@ -198,7 +192,6 @@ contract RollupReddit {
 
     function processBurnConsentTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory txBytes,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
@@ -216,7 +209,6 @@ contract RollupReddit {
         return
             burnConsent.processBurnConsentTx(
                 _balanceRoot,
-                _accountsRoot,
                 txs,
                 0,
                 _from_pda_proof,
@@ -264,7 +256,6 @@ contract RollupReddit {
 
     function processBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxHashCommitment,
@@ -282,7 +273,6 @@ contract RollupReddit {
             return
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
-                    accountsRoot,
                     txs,
                     batchProofs,
                     expectedTxHashCommitment
@@ -291,7 +281,6 @@ contract RollupReddit {
             return
                 airdrop.processAirdropBatch(
                     initialStateRoot,
-                    accountsRoot,
                     txs,
                     batchProofs,
                     expectedTxHashCommitment
@@ -300,7 +289,6 @@ contract RollupReddit {
             return
                 transfer.processTransferBatch(
                     initialStateRoot,
-                    accountsRoot,
                     txs,
                     batchProofs,
                     expectedTxHashCommitment
@@ -309,7 +297,6 @@ contract RollupReddit {
             return
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
-                    accountsRoot,
                     txs,
                     batchProofs,
                     expectedTxHashCommitment
@@ -318,7 +305,6 @@ contract RollupReddit {
             return
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
-                    accountsRoot,
                     txs,
                     batchProofs,
                     expectedTxHashCommitment

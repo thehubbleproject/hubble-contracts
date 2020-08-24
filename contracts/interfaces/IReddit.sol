@@ -19,7 +19,6 @@ interface IReddit {
 
     function processCreateAccountTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes calldata txs,
         uint256 i,
         Types.PDAMerkleProof calldata _to_pda_proof,
@@ -46,7 +45,6 @@ interface IReddit {
 
     function processAirdropTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes calldata txs,
         uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
@@ -74,7 +72,6 @@ interface IReddit {
 
     function processTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes calldata txs,
         uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
@@ -102,7 +99,6 @@ interface IReddit {
 
     function processBurnConsentTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes calldata txs,
         uint256 i,
         Types.PDAMerkleProof calldata _from_pda_proof,
@@ -142,7 +138,6 @@ interface IReddit {
 
     function processCreateAccountBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
@@ -157,7 +152,6 @@ interface IReddit {
 
     function processAirdropBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
@@ -172,7 +166,6 @@ interface IReddit {
 
     function processTransferBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
@@ -187,7 +180,6 @@ interface IReddit {
 
     function processBurnConsentBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
@@ -202,7 +194,6 @@ interface IReddit {
 
     function processBurnExecutionBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes calldata txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxRoot
