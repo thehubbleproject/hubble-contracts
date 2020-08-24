@@ -3,28 +3,9 @@ pragma experimental ABIEncoderV2;
 
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
-import { Governance } from "./Governance.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
 
 contract BurnExecution is FraudProofHelpers {
-    /*********************
-     * Constructor *
-     ********************/
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
-
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-    }
-
     /**
      * @notice processBatch processes a whole batch
      * @return returns updatedRoot, txRoot and if the batch is valid or not
