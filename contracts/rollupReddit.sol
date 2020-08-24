@@ -147,7 +147,7 @@ contract RollupReddit {
             txBytes,
             emptySig
         );
-        return transfer.ApplyTx(_merkle_proof, txs, 0);
+        return transfer.ApplyTransferTx(_merkle_proof, txs, 0);
     }
 
     function processTransferTx(
