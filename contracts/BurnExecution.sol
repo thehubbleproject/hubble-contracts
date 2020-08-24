@@ -31,7 +31,6 @@ contract BurnExecution is FraudProofHelpers {
      * */
     function processBurnExecutionBatch(
         bytes32 stateRoot,
-        bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxHashCommitment

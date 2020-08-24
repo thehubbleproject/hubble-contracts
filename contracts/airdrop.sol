@@ -31,7 +31,6 @@ contract Airdrop is FraudProofHelpers {
      * */
     function processAirdropBatch(
         bytes32 stateRoot,
-        bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxHashCommitment
@@ -59,7 +58,6 @@ contract Airdrop is FraudProofHelpers {
             // tx evaluates correctly
             (stateRoot, , , , isTxValid) = processAirdropTx(
                 stateRoot,
-                accountsRoot,
                 txs,
                 i,
                 batchProofs.pdaProof[i],
@@ -82,7 +80,6 @@ contract Airdrop is FraudProofHelpers {
      */
     function processAirdropTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
         Types.PDAMerkleProof memory _from_pda_proof,

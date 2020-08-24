@@ -32,7 +32,6 @@ contract CreateAccount is FraudProofHelpers {
 
     function processCreateAccountBatch(
         bytes32 stateRoot,
-        bytes32 accountsRoot,
         bytes memory txs,
         Types.BatchValidationProofs memory batchProofs,
         bytes32 expectedTxRoot
@@ -45,7 +44,6 @@ contract CreateAccount is FraudProofHelpers {
             // tx evaluates correctly
             (stateRoot, , , isTxValid) = processCreateAccountTx(
                 stateRoot,
-                accountsRoot,
                 txs,
                 i,
                 batchProofs.pdaProof[i],
@@ -80,7 +78,6 @@ contract CreateAccount is FraudProofHelpers {
 
     function processCreateAccountTx(
         bytes32 _balanceRoot,
-        bytes32 _accountsRoot,
         bytes memory txs,
         uint256 i,
         Types.PDAMerkleProof memory _to_pda_proof,

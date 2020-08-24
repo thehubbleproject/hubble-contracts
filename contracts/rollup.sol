@@ -20,7 +20,6 @@ import { DepositManager } from "./DepositManager.sol";
 interface IRollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
-        bytes32 accountsRoot,
         bytes calldata _txs,
         Types.BatchValidationProofs calldata batchProofs,
         bytes32 expectedTxHashCommitment,
@@ -368,7 +367,6 @@ contract Rollup is RollupHelpers {
         (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
             .processBatch(
             commitmentMP.commitment.stateRoot,
-            commitmentMP.commitment.accountRoot,
             txs,
             batchProofs,
             commitmentMP.commitment.txHashCommitment,
