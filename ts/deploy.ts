@@ -141,7 +141,7 @@ export async function deployAll(
     const airdrop = await new AirdropProductionFactory(
         allLinkRefs,
         signer
-    ).deploy(nameRegistry.address);
+    ).deploy();
     await waitAndRegister(
         airdrop,
         "airdrop",
@@ -153,7 +153,7 @@ export async function deployAll(
     const transfer = await new TransferProductionFactory(
         allLinkRefs,
         signer
-    ).deploy(nameRegistry.address);
+    ).deploy();
     await waitAndRegister(
         transfer,
         "transfer",
@@ -165,7 +165,7 @@ export async function deployAll(
     const burnConsent = await new BurnConsentProductionFactory(
         allLinkRefs,
         signer
-    ).deploy(nameRegistry.address);
+    ).deploy();
     await waitAndRegister(
         burnConsent,
         "burnConsent",
@@ -177,7 +177,7 @@ export async function deployAll(
     const burnExecution = await new BurnExecutionProductionFactory(
         allLinkRefs,
         signer
-    ).deploy(nameRegistry.address);
+    ).deploy();
     await waitAndRegister(
         burnExecution,
         "burnExecution",

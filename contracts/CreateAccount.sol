@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 
 contract CreateAccount is FraudProofHelpers {
