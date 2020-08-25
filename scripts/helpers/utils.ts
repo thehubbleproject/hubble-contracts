@@ -1,24 +1,11 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import {
-    Account,
-    Transaction,
-    Usage,
-    Wallet,
-    AccountMerkleProof,
-    PDAMerkleProof,
-    ProcessTxResult,
-    AccountProofs,
-    ApplyTxResult,
-    ApplyTxOffchainResult
-} from "./interfaces";
-import { StateStore } from "./store";
+import { Account, Transaction, Usage, Wallet } from "./interfaces";
 const TokenRegistry = artifacts.require("TokenRegistry");
 const RollupUtils = artifacts.require("RollupUtils");
 const RollupCore = artifacts.require("Rollup");
 const DepositManager = artifacts.require("DepositManager");
 const TestToken = artifacts.require("TestToken");
-const RollupReddit = artifacts.require("RollupReddit");
 const Governance = artifacts.require("Governance");
 
 // returns parent node hash given child node hashes
@@ -223,43 +210,4 @@ export async function getBatchId() {
     const rollupCoreInstance = await RollupCore.deployed();
     const batchLength = await rollupCoreInstance.numOfBatchesSubmitted();
     return Number(batchLength) - 1;
-}
-
-export async function ApplyTransferTx(
-    encodedTx: string,
-    merkleProof: AccountMerkleProof
-): Promise<ApplyTxResult> {
-    const rollupRedditInstance = await RollupReddit.deployed();
-    const result = await rollupRedditInstance.ApplyTransferTx(
-        merkleProof,
-        encodedTx
-    );
-    const newState = await AccountFromBytes(result[0]);
-    const newStateRoot = result[1];
-    return {
-        newState,
-        newStateRoot
-    };
-}
-
-// Side effects on stateStore! It updates the state root in stateStore
-export async function processTransferTxOffchain(
-    stateStore: StateStore,
-    tx: Transaction
-): Promise<ApplyTxOffchainResult> {
-    const txByte = await TxToBytes(tx);
-    const fromAccountMP = await stateStore.getAccountMerkleProof(tx.fromIndex);
-    const fromResult = await ApplyTransferTx(txByte, fromAccountMP);
-    await stateStore.update(tx.fromIndex, fromResult.newState);
-
-    const toAccountMP = await stateStore.getAccountMerkleProof(tx.toIndex);
-    const toResult = await ApplyTransferTx(txByte, toAccountMP);
-    await stateStore.update(tx.toIndex, toResult.newState);
-    return {
-        accountProofs: {
-            from: fromAccountMP,
-            to: toAccountMP
-        },
-        newStateRoot: toResult.newStateRoot
-    };
 }
