@@ -146,12 +146,10 @@ describe("Rollup Transfer Commitment", () => {
             const preRoot = stateTree.root;
             const proof = stateTree.applyTxTransfer(tx);
             const postRoot = stateTree.root;
-            const { serialized } = serialize([tx]);
 
             const result = await rollup.testProcessTx(
                 preRoot,
-                serialized,
-                0,
+                tx.extended(),
                 {
                     siblings: pubkeyWitness,
                     _pda: {

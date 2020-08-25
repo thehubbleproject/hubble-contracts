@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { Transfer } from "../Transfer.sol";
 import { Types } from "../libs/Types.sol";
-import { MerkleTreeUtils } from "../MerkleTreeUtils.sol";
+import { Tx } from "../libs/Tx.sol";
 
 contract TestTransfer is Transfer {
     function checkSignature(
@@ -30,13 +30,12 @@ contract TestTransfer is Transfer {
 
     function testProcessTx(
         bytes32 _balanceRoot,
-        bytes memory txs,
-        uint256 i,
+        Tx.Transfer memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes memory,
@@ -45,6 +44,6 @@ contract TestTransfer is Transfer {
             bool
         )
     {
-        return processTx(_balanceRoot, txs, i, _from_pda_proof, accountProofs);
+        return processTx(_balanceRoot, _tx, _from_pda_proof, accountProofs);
     }
 }

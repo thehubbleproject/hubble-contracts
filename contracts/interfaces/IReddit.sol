@@ -2,6 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { Types } from "../libs/Types.sol";
+import { Tx } from "../libs/Tx.sol";
 
 interface IReddit {
     //
@@ -64,16 +65,19 @@ interface IReddit {
     // Transfer
     //
 
-    function ApplyTransferTx(
+    function ApplyTransferTxSender(
         Types.AccountMerkleProof calldata _merkle_proof,
-        bytes calldata txs,
-        uint256 i
+        Tx.Transfer calldata _tx
+    ) external view returns (bytes memory, bytes32 newRoot);
+
+    function ApplyTransferTxReceiver(
+        Types.AccountMerkleProof calldata _merkle_proof,
+        Tx.Transfer calldata _tx
     ) external view returns (bytes memory, bytes32 newRoot);
 
     function processTx(
         bytes32 _balanceRoot,
-        bytes calldata txs,
-        uint256 i,
+        Tx.Transfer calldata _tx,
         Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
