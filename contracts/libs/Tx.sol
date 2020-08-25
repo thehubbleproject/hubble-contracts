@@ -368,7 +368,6 @@ library Tx {
         uint256 sender;
         uint256 receiver;
         uint256 amount;
-        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
