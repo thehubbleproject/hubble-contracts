@@ -7,8 +7,8 @@ import { Logger } from "./logger.sol";
 contract BLSAccountRegistry is AccountTree {
     Logger logger;
 
-    constructor(Logger _logger) public AccountTree() {
-        logger = _logger;
+    constructor(address _logger) public AccountTree() {
+        logger = Logger(_logger);
     }
 
     function register(uint256[4] calldata pubkey) external returns (uint256) {
