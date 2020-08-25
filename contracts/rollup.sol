@@ -429,30 +429,22 @@ contract Rollup is RollupHelpers {
                 "Already successfully disputed. Roll back in process"
             );
         }
-
         // verify is the commitment exits in the batch
-        {
-            require(
-                merkleUtils.verifyLeaf(
-                    batches[batchID].commitmentRoot,
-                    RollupUtils.CommitmentToHash(
-                        commitmentProof.commitment.stateRoot,
-                        commitmentProof.commitment.accountRoot,
-                        commitmentProof.commitment.txHashCommitment,
-                        commitmentProof.commitment.signature,
-                        uint8(commitmentProof.commitment.batchType)
-                    ),
-                    commitmentProof.pathToCommitment,
-                    commitmentProof.witness
+        require(
+            merkleUtils.verifyLeaf(
+                batches[batchID].commitmentRoot,
+                RollupUtils.CommitmentToHash(
+                    commitmentProof.commitment.stateRoot,
+                    commitmentProof.commitment.accountRoot,
+                    keccak256(txs),
+                    commitmentProof.commitment.signature,
+                    uint8(commitmentProof.commitment.batchType)
                 ),
-                "Commitment not present in batch"
-            );
-
-            require(
-                commitmentProof.commitment.txHashCommitment != ZERO_BYTES32,
-                "Cannot dispute blocks with no transaction"
-            );
-        }
+                commitmentProof.pathToCommitment,
+                commitmentProof.witness
+            ),
+            "Commitment not present in batch"
+        );
 
         Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
             APP_ID,
