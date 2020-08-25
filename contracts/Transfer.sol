@@ -172,8 +172,7 @@ contract Transfer is FraudProofHelpers {
             // tx evaluates correctly
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
-                txs,
-                i,
+                txs.transfer_decode(i),
                 batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i]
             );
@@ -195,13 +194,12 @@ contract Transfer is FraudProofHelpers {
      */
     function processTx(
         bytes32 _balanceRoot,
-        bytes memory txs,
-        uint256 i,
+        Tx.Transfer memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes memory,
@@ -214,7 +212,7 @@ contract Transfer is FraudProofHelpers {
         ValidateAccountMP(_balanceRoot, accountProofs.from);
 
         Types.ErrorCode err_code = validateTxBasic(
-            txs.transfer_amountOf(i),
+            _tx.amount,
             accountProofs.from.accountIP.account
         );
         if (err_code != Types.ErrorCode.NoError)
@@ -236,16 +234,18 @@ contract Transfer is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyTransferTx(
+        (new_from_account, newRoot) = ApplyTransferTxSender(
             accountProofs.from,
-            txs,
-            i
+            _tx
         );
 
         // validate if leaf exists in the updated balance tree
         ValidateAccountMP(newRoot, accountProofs.to);
 
-        (new_to_account, newRoot) = ApplyTransferTx(accountProofs.to, txs, i);
+        (new_to_account, newRoot) = ApplyTransferTxReceiver(
+            accountProofs.to,
+            _tx
+        );
 
         return (
             newRoot,
@@ -256,24 +256,24 @@ contract Transfer is FraudProofHelpers {
         );
     }
 
-    function ApplyTransferTx(
+    function ApplyTransferTxSender(
         Types.AccountMerkleProof memory _merkle_proof,
-        bytes memory txs,
-        uint256 i
-    ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Tx.Transfer memory _tx
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
-        uint256 stateIndex = _merkle_proof.accountIP.pathToAccount;
-        if (stateIndex == txs.transfer_fromIndexOf(i)) {
-            stateLeaf = RemoveTokensFromAccount(
-                stateLeaf,
-                txs.transfer_amountOf(i)
-            );
-            stateLeaf.nonce++;
-        }
+        stateLeaf = RemoveTokensFromAccount(stateLeaf, _tx.amount);
+        stateLeaf.nonce++;
+        newRoot = UpdateAccountWithSiblings(stateLeaf, _merkle_proof);
 
-        if (stateIndex == txs.transfer_toIndexOf(i)) {
-            stateLeaf = AddTokensToAccount(stateLeaf, txs.transfer_amountOf(i));
-        }
+        return (RollupUtils.BytesFromAccount(stateLeaf), newRoot);
+    }
+
+    function ApplyTransferTxReceiver(
+        Types.AccountMerkleProof memory _merkle_proof,
+        Tx.Transfer memory _tx
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
+        Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
+        stateLeaf = AddTokensToAccount(stateLeaf, _tx.amount);
         newRoot = UpdateAccountWithSiblings(stateLeaf, _merkle_proof);
 
         return (RollupUtils.BytesFromAccount(stateLeaf), newRoot);
