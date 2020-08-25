@@ -427,29 +427,46 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        Types.CommitmentInclusionProof memory commitmentMP,
+        Types.CommitmentInclusionProof memory previous,
+        Types.CommitmentInclusionProof memory fraudulent,
         Types.AccountMerkleProof[] memory accountProofs
     ) public isDisputable(_batch_id) {
         // verify is the commitment exits in the batch
         require(
-            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
+            fraudulent.pathToCommitment == 0 ||
+                (fraudulent.pathToCommitment - 1 ==
+                    previous.pathToCommitment),
+            "Invalid previous commiitment"
+        );
+        require(
+            checkInclusion(batches[_batch_id].commitmentRoot, fraudulent),
             "Commitment not present in batch"
         );
 
         require(
-            commitmentMP.commitment.txs.length != 0,
+            fraudulent.commitment.txs.length != 0,
             "Cannot dispute blocks with no transaction"
+        );
+        bytes32 root;
+        if (fraudulent.pathToCommitment == 0) {
+            root = batches[_batch_id - 1].commitmentRoot;
+        } else {
+            root = batches[_batch_id].commitmentRoot;
+        }
+        require(
+            checkInclusion(root, previous),
+            "Commitment not present in batch"
         );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
         (updatedBalanceRoot, isDisputeValid) = rollupReddit.processBatch(
-            commitmentMP.commitment.stateRoot,
-            commitmentMP.commitment.txs,
+            previous.commitment.stateRoot,
+            fraudulent.commitment.txs,
             accountProofs,
-            commitmentMP.commitment.tokenType,
-            commitmentMP.commitment.feeReceiver,
-            commitmentMP.commitment.batchType
+            fraudulent.commitment.tokenType,
+            fraudulent.commitment.feeReceiver,
+            fraudulent.commitment.batchType
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -463,7 +480,7 @@ contract Rollup is RollupHelpers {
 
         // if new root doesnt match what was submitted by coordinator
         // slash and rollback
-        if (updatedBalanceRoot != commitmentMP.commitment.stateRoot) {
+        if (updatedBalanceRoot != fraudulent.commitment.stateRoot) {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;
