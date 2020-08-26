@@ -16,7 +16,8 @@ module.exports = {
     networks: {
         buidlerevm: {
             chainId: 123,
-            accounts: accounts
+            accounts: accounts,
+            throwOnCallFailures: false
         }
     },
     solc: {
