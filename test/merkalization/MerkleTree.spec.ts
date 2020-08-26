@@ -1,7 +1,7 @@
 import { MerkleTreeUtils } from "../../types/ethers-contracts/MerkleTreeUtils";
 import { MerkleTreeUtilsFactory } from "../../types/ethers-contracts/MerkleTreeUtilsFactory";
 import * as utils from "../../scripts/helpers/utils";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 
 // Test all stateless operations
