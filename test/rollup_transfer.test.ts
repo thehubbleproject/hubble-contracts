@@ -1,15 +1,18 @@
-const RollupUtilsLib = artifacts.require("RollupUtils");
-const TransferRollup = artifacts.require("TestTransfer");
-const Rollup = artifacts.require("Rollup");
-const loggerContract = artifacts.require("Logger");
+import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
+import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
+import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFactory";
+import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
+import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-const BLSAccountRegistry = artifacts.require("BLSAccountRegistry");
 import { TxTransfer, serialize, calculateRoot, Tx } from "./utils/tx";
 import * as mcl from "./utils/mcl";
 import { StateTree } from "./utils/state_tree";
 import { AccountRegistry } from "./utils/account_tree";
 import { Account } from "./utils/state_account";
-import { TestTransferInstance } from "../types/truffle-contracts";
+import { assert } from "chai";
+import { ethers } from "@nomiclabs/buidler";
+import { ErrorCode } from "../scripts/helpers/interfaces";
+import { parseEvents } from "../ts/utils";
 
 let appID =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -17,12 +20,8 @@ let ACCOUNT_SIZE = 32;
 let BATCH_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
 
-function link(contract: any, instance: any) {
-    contract.link(instance);
-}
-
 describe("Rollup Transfer Commitment", () => {
-    let rollup: TestTransferInstance;
+    let rollup: TestTransfer;
     let registry: AccountRegistry;
     let stateTree: StateTree;
     const accounts: Account[] = [];
@@ -32,10 +31,12 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
-        let rollupUtilsLib = await RollupUtilsLib.new();
-        link(TransferRollup, rollupUtilsLib);
-        const logger = await loggerContract.new();
-        const registryContract = await BLSAccountRegistry.new(logger.address);
+        const [signer, ...rest] = await ethers.getSigners();
+        const logger = await new LoggerFactory(signer).deploy();
+        const registryContract = await new BlsAccountRegistryFactory(
+            signer
+        ).deploy(logger.address);
+
         registry = await AccountRegistry.new(registryContract);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             const accountID = i;
@@ -55,7 +56,14 @@ describe("Rollup Transfer Commitment", () => {
     });
 
     beforeEach(async function() {
-        rollup = await TransferRollup.new();
+        const [signer, ...rest] = await ethers.getSigners();
+        let rollupUtilsLib = await new RollupUtilsFactory(signer).deploy();
+        rollup = await new TestTransferFactory(
+            {
+                __$a6b8846b3184b62d6aec39d1f36e30dab3$__: rollupUtilsLib.address
+            },
+            signer
+        ).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             stateTree.createAccount(accounts[i]);
@@ -108,16 +116,6 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        const res = await rollup.checkSignature.call(
-            signature,
-            proof,
-            postStateRoot,
-            accountRoot,
-            appID,
-            serialized
-        );
-        assert.equal(0, res[0].toNumber());
-        console.log("operation gas cost:", res[1].toString());
         const tx = await rollup.checkSignature(
             signature,
             proof,
@@ -126,8 +124,12 @@ describe("Rollup Transfer Commitment", () => {
             appID,
             serialized
         );
-        console.log("transaction gas cost:", tx.receipt.gasUsed);
-    }).timeout(100000);
+        const receipt = await tx.wait();
+        const events = parseEvents(receipt);
+        assert.equal(events.Return2[0], ErrorCode.NoError);
+        console.log("operation gas cost:", events.Return1[0].toNumber());
+        console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
+    }).timeout(400000);
 
     it("transfer applyTx", async function() {
         const amount = 20;

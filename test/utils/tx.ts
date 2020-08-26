@@ -1,5 +1,6 @@
 import { Tree } from "./tree";
 import { ethers } from "ethers";
+import { paddedHex, randomNum } from "../../ts/utils";
 
 const amountLen = 4;
 const accountIDLen = 4;
@@ -32,19 +33,17 @@ export function calculateRoot(txs: Tx[]) {
 
 export function serialize(txs: Tx[]) {
     const serialized = "0x" + txs.map(tx => tx.encode()).join("");
-    const commit = web3.utils.soliditySha3({ t: "bytes", v: serialized });
+    const commit = ethers.utils.solidityKeccak256(["bytes"], [serialized]);
     return { serialized, commit };
 }
 
 export class TxTransfer implements SignableTx {
     private readonly TX_TYPE = "01";
     public static rand(): TxTransfer {
-        const sender = web3.utils.hexToNumber(web3.utils.randomHex(stateIDLen));
-        const receiver = web3.utils.hexToNumber(
-            web3.utils.randomHex(stateIDLen)
-        );
-        const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
-        const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
+        const sender = randomNum(stateIDLen);
+        const receiver = randomNum(stateIDLen);
+        const amount = randomNum(amountLen);
+        const nonce = randomNum(nonceLen);
         return new TxTransfer(sender, receiver, amount, nonce);
     }
     constructor(
@@ -55,10 +54,7 @@ export class TxTransfer implements SignableTx {
     ) {}
 
     public message(domain: string): string {
-        let nonce = web3.utils.padLeft(
-            web3.utils.toHex(this.nonce),
-            nonceLen * 2
-        );
+        let nonce = paddedHex(this.nonce, nonceLen);
 
         return domain + this.TX_TYPE + nonce.slice(2) + this.encode(false);
     }
@@ -82,18 +78,9 @@ export class TxTransfer implements SignableTx {
     }
 
     public encode(prefix: boolean = false): string {
-        let fromIndex = web3.utils.padLeft(
-            web3.utils.toHex(this.fromIndex),
-            stateIDLen * 2
-        );
-        let toIndex = web3.utils.padLeft(
-            web3.utils.toHex(this.toIndex),
-            stateIDLen * 2
-        );
-        let amount = web3.utils.padLeft(
-            web3.utils.toHex(this.amount),
-            amountLen * 2
-        );
+        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
+        let toIndex = paddedHex(this.toIndex, stateIDLen);
+        let amount = paddedHex(this.amount, amountLen);
 
         let encoded = fromIndex.slice(2) + toIndex.slice(2) + amount.slice(2);
         if (prefix) {
@@ -105,15 +92,9 @@ export class TxTransfer implements SignableTx {
 
 export class TxCreate implements Tx {
     public static rand(): TxCreate {
-        const accountID = web3.utils.hexToNumber(
-            web3.utils.randomHex(accountIDLen)
-        );
-        const stateID = web3.utils.hexToNumber(
-            web3.utils.randomHex(stateIDLen)
-        );
-        const tokenType = web3.utils.hexToNumber(
-            web3.utils.randomHex(tokenLen)
-        );
+        const accountID = randomNum(accountIDLen);
+        const stateID = randomNum(stateIDLen);
+        const tokenType = randomNum(tokenLen);
         return new TxCreate(accountID, stateID, tokenType);
     }
     constructor(
@@ -139,18 +120,9 @@ export class TxCreate implements Tx {
     }
 
     public encode(prefix: boolean = false): string {
-        let accountID = web3.utils.padLeft(
-            web3.utils.toHex(this.accountID),
-            accountIDLen * 2
-        );
-        let stateID = web3.utils.padLeft(
-            web3.utils.toHex(this.stateID),
-            stateIDLen * 2
-        );
-        let tokenType = web3.utils.padLeft(
-            web3.utils.toHex(this.tokenType),
-            tokenLen * 2
-        );
+        let accountID = paddedHex(this.accountID, accountIDLen);
+        let stateID = paddedHex(this.stateID, stateIDLen);
+        let tokenType = paddedHex(this.tokenType, tokenLen);
         let encoded =
             accountID.slice(2) + stateID.slice(2) + tokenType.slice(2);
         if (prefix) {
@@ -162,11 +134,9 @@ export class TxCreate implements Tx {
 
 export class TxBurnConsent implements SignableTx {
     public static rand(): TxBurnConsent {
-        const fromIndex = web3.utils.hexToNumber(
-            web3.utils.randomHex(stateIDLen)
-        );
-        const amount = web3.utils.hexToNumber(web3.utils.randomHex(amountLen));
-        const nonce = web3.utils.hexToNumber(web3.utils.randomHex(nonceLen));
+        const fromIndex = randomNum(stateIDLen);
+        const amount = randomNum(amountLen);
+        const nonce = randomNum(nonceLen);
         return new TxBurnConsent(fromIndex, amount, nonce);
     }
     constructor(
@@ -192,14 +162,8 @@ export class TxBurnConsent implements SignableTx {
     }
 
     public encode(prefix: boolean = false): string {
-        let fromIndex = web3.utils.padLeft(
-            web3.utils.toHex(this.fromIndex),
-            stateIDLen * 2
-        );
-        let amount = web3.utils.padLeft(
-            web3.utils.toHex(this.amount),
-            amountLen * 2
-        );
+        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
+        let amount = paddedHex(this.amount, amountLen);
         let encoded = fromIndex.slice(2) + amount.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
@@ -213,9 +177,7 @@ export class TxBurnConsent implements SignableTx {
 
 export class TxBurnExecution implements Tx {
     public static rand(): TxBurnExecution {
-        const fromIndex = web3.utils.hexToNumber(
-            web3.utils.randomHex(stateIDLen)
-        );
+        const fromIndex = randomNum(stateIDLen);
         return new TxBurnExecution(fromIndex);
     }
     constructor(public readonly fromIndex: number) {}
@@ -232,10 +194,7 @@ export class TxBurnExecution implements Tx {
     }
 
     public encode(prefix: boolean = false): string {
-        let fromIndex = web3.utils.padLeft(
-            web3.utils.toHex(this.fromIndex),
-            stateIDLen * 2
-        );
+        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
         let encoded = fromIndex.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
