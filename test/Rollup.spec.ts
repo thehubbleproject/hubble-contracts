@@ -11,6 +11,7 @@ import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import * as mcl from "./utils/mcl";
 import { Tree, Hasher } from "./utils/tree";
 import { allContracts } from "../ts/all-contracts-interfaces";
+import { assert } from "chai";
 
 describe("Rollup", async function() {
     let Alice: Account;

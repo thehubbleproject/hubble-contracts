@@ -9,8 +9,8 @@ import {
     BurnExecutionTx
 } from "../../scripts/helpers/interfaces";
 import { DummyECDSASignature } from "../../scripts/helpers/constants";
-import { RollupUtilsFactory } from "../../types/ethers-contracts/RollupUtilsFactory"
-import { RollupUtils } from "../../types/ethers-contracts/RollupUtils"
+import { RollupUtilsFactory } from "../../types/ethers-contracts/RollupUtilsFactory";
+import { RollupUtils } from "../../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
 
 describe("RollupUtils", async function() {

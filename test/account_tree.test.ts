@@ -3,6 +3,7 @@ import { TestAccountTree } from "../types/ethers-contracts/TestAccountTree";
 import { Tree, Hasher } from "./utils/tree";
 import { ethers } from "@nomiclabs/buidler";
 import { assert } from "chai";
+import { parseEvents } from "../ts/utils";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
@@ -76,7 +77,7 @@ describe("Account Tree", async () => {
             const receipt = await (
                 await accountTree.checkInclusion(leaf, leafIndex, witness)
             ).wait();
-            assert.isTrue(receipt.events!.pop()!.args![1]);
+            assert.isTrue(parseEvents(receipt).Return2[1]);
         }
     });
     it("witness for right side", async function() {
@@ -97,14 +98,14 @@ describe("Account Tree", async () => {
             let receipt = await (
                 await accountTree.checkInclusion(leaf, leafIndex, witness)
             ).wait();
-            assert.isTrue(receipt.events!.pop()!.args![1]);
+            assert.isTrue(parseEvents(receipt).Return2[1]);
         }
     });
 
     it("gas cost: update tree single", async function() {
         const leaf = ethers.utils.randomBytes(32);
         const receipt = await (await accountTree.updateSingle(leaf)).wait();
-        const gasCost = receipt.events!.pop()!.args![0];
+        const gasCost = parseEvents(receipt).Return[0];
         console.log(gasCost.toNumber());
     });
     it("gas cost: update tree batch", async function() {
@@ -113,7 +114,7 @@ describe("Account Tree", async () => {
             leafs.push(ethers.utils.randomBytes(32));
         }
         const receipt = await (await accountTree.updateBatch(leafs)).wait();
-        const gasCost = receipt.events!.pop()!.args![0];
+        const gasCost = parseEvents(receipt).Return[0];
         console.log(gasCost.toNumber());
     });
 });
