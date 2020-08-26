@@ -2,7 +2,7 @@ import { usePlugin } from "@nomiclabs/buidler/config";
 import { generateFirstWallets, mnemonics } from "./scripts/helpers/wallet";
 import { ethers } from "ethers";
 
-usePlugin("@nomiclabs/buidler-ethers");
+usePlugin("@nomiclabs/buidler-waffle");
 
 const accounts = generateFirstWallets(mnemonics, 10).map(x => {
     return {
