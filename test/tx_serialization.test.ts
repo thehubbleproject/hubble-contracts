@@ -1,5 +1,5 @@
-const TestTx = artifacts.require("TestTx");
-import { TestTxInstance } from "../types/truffle-contracts";
+import { TestTxFactory } from "../types/ethers-contracts/TestTxFactory";
+import { TestTx } from "../types/ethers-contracts/TestTx";
 import {
     TxTransfer,
     serialize,
@@ -7,14 +7,14 @@ import {
     TxBurnConsent,
     TxBurnExecution
 } from "./utils/tx";
-
-import * as walletHelper from "../scripts/helpers/wallet";
-import * as utils from "../scripts/helpers/utils";
+import { assert } from "chai";
+import { ethers } from "@nomiclabs/buidler";
 
 describe("Tx Serialization", async () => {
-    let c: TestTxInstance;
+    let c: TestTx;
     before(async function() {
-        c = await TestTx.new();
+        const [signer, ...rest] = await ethers.getSigners();
+        c = await new TestTxFactory(signer).deploy();
     });
 
     it("parse transfer transaction", async function() {
