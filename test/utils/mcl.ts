@@ -15,7 +15,7 @@ export const ZERO = web3.utils.toBN("0x00");
 
 export async function init() {
     await mcl.init(mcl.BN_SNARK1);
-    mcl.setMapToMode(1);
+    mcl.setMapToMode(mcl.MCL_MAP_TO_MODE_ORIGINAL);
 }
 
 export function hashToPoint(data: string) {

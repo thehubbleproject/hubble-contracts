@@ -14,6 +14,17 @@ describe("BLS", async () => {
         bls = await new TestBlsFactory(accounts[0]).deploy();
         await bls.deployed();
     });
+    it.only("hash to point examples", async function() {
+        console.log(mcl.g1ToHex(mcl.hashToPoint("0x01")));
+        // [ '0x075495c26e341374295f5d93d20020e9667e6239e9ad588dcd744982255436da',
+        //   '0x1a1c25fd693d272132d1e1ba99bd74defaf3d1676e8a0551b92f14b40813e62f' ]
+        console.log(mcl.g1ToHex(mcl.hashToPoint("0x02")));
+        // [ '0x2b4e6ec2deec2e2aa4f19bd65d96f59c96903bda03f3424cf67db217427f6817',
+        //   '0x19d4abedd06c7e08c9359f6aa9e0ac072eae53690cc2c96d9ebcaa927d958de0' ]
+        console.log(mcl.g1ToHex(mcl.hashToPoint("0xabcd")));
+        // [ '0x10fb7a8049f8f51f2ea470d208c8d1cb6c76242f27fda0ccd0fcadf06b7b32dd',
+        //   '0x16d8d4ad29223d1813005a9daada417d527513d13b109d5138674e551b2a9fc3' ]
+    });
     it("hash to point", async function() {
         for (let i = 0; i < 20; i++) {
             const data = web3.utils.randomHex(12);
