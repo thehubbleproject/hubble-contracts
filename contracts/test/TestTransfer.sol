@@ -3,6 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { Transfer } from "../Transfer.sol";
 import { Types } from "../libs/Types.sol";
+import { Tx } from "../libs/Tx.sol";
 
 contract TestTransfer is Transfer {
     function checkSignature(
@@ -25,5 +26,24 @@ contract TestTransfer is Transfer {
             ),
             operationCost - gasleft()
         );
+    }
+
+    function testProcessTx(
+        bytes32 _balanceRoot,
+        Tx.Transfer memory _tx,
+        Types.PDAMerkleProof memory _from_pda_proof,
+        Types.AccountProofs memory accountProofs
+    )
+        public
+        pure
+        returns (
+            bytes32,
+            bytes memory,
+            bytes memory,
+            Types.ErrorCode,
+            bool
+        )
+    {
+        return processTx(_balanceRoot, _tx, _from_pda_proof, accountProofs);
     }
 }

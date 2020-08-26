@@ -32,6 +32,8 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
+        let rollupUtilsLib = await RollupUtilsLib.new();
+        link(TransferRollup, rollupUtilsLib);
         const logger = await loggerContract.new();
         const registryContract = await BLSAccountRegistry.new(logger.address);
         registry = await AccountRegistry.new(registryContract);
@@ -53,8 +55,6 @@ describe("Rollup Transfer Commitment", () => {
     });
 
     beforeEach(async function() {
-        let rollupUtilsLib = await RollupUtilsLib.new();
-        link(TransferRollup, rollupUtilsLib);
         rollup = await TransferRollup.new();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
@@ -128,4 +128,53 @@ describe("Rollup Transfer Commitment", () => {
         );
         console.log("transaction gas cost:", tx.receipt.gasUsed);
     }).timeout(100000);
+
+    it("transfer applyTx", async function() {
+        const amount = 20;
+        for (let i = 0; i < BATCH_SIZE; i++) {
+            const senderIndex = i;
+            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
+            const sender = accounts[senderIndex];
+            const receiver = accounts[reciverIndex];
+            const tx = new TxTransfer(
+                sender.stateID,
+                receiver.stateID,
+                amount,
+                sender.nonce
+            );
+            const pubkeyWitness = registry.witness(sender.accountID);
+            const preRoot = stateTree.root;
+            const proof = stateTree.applyTxTransfer(tx);
+            const postRoot = stateTree.root;
+
+            const result = await rollup.testProcessTx(
+                preRoot,
+                tx.extended(),
+                {
+                    siblings: pubkeyWitness,
+                    _pda: {
+                        pathToPubkey: sender.accountID,
+                        pubkey_leaf: { pubkey: sender.encodePubkey() }
+                    }
+                },
+                {
+                    from: {
+                        accountIP: {
+                            pathToAccount: sender.stateID,
+                            account: proof.senderAccount
+                        },
+                        siblings: proof.senderWitness
+                    },
+                    to: {
+                        accountIP: {
+                            pathToAccount: receiver.stateID,
+                            account: proof.receiverAccount
+                        },
+                        siblings: proof.receiverWitness
+                    }
+                }
+            );
+            assert.equal(result[0], postRoot, "mismatch processed stateroot");
+        }
+    });
 });

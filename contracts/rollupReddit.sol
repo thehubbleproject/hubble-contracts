@@ -6,8 +6,10 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
+import { Tx } from "./libs/Tx.sol";
 
 contract RollupReddit {
+    using Tx for bytes;
     Registry public nameRegistry;
     IReddit public createAccount;
     IReddit public airdrop;
@@ -136,14 +138,15 @@ contract RollupReddit {
 
     function ApplyTransferTx(
         Types.AccountMerkleProof memory _merkle_proof,
-        bytes memory txBytes
+        bytes memory txBytes,
+        bool isSender
     ) public view returns (bytes memory, bytes32 newRoot) {
-        bytes memory emptySig = new bytes(65);
-        bytes memory txs = RollupUtils.CompressTransferFromEncoded(
-            txBytes,
-            emptySig
-        );
-        return transfer.ApplyTx(_merkle_proof, txs, 0);
+        Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
+        if (isSender) {
+            return transfer.ApplyTransferTxSender(_merkle_proof, _tx);
+        } else {
+            return transfer.ApplyTransferTxReceiver(_merkle_proof, _tx);
+        }
     }
 
     function processTransferTx(
@@ -163,16 +166,12 @@ contract RollupReddit {
             bool
         )
     {
-        bytes memory txs = RollupUtils.CompressTransferFromEncoded(
-            txBytes,
-            sig
-        );
-        // Validate ECDSA sig
+        Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
+        // Validate BLS sig
         return
             transfer.processTx(
                 _balanceRoot,
-                txs,
-                0,
+                _tx,
                 _from_pda_proof,
                 accountProofs
             );

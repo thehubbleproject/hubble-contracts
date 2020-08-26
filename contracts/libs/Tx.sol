@@ -245,10 +245,10 @@ library Tx {
         return txs.length / TX_LEN_0;
     }
 
-    function transfer_encodedFromBytes(bytes memory txBytes)
+    function transfer_fromEncoded(bytes memory txBytes)
         internal
         pure
-        returns (Types.Transfer memory)
+        returns (Tx.Transfer memory)
     {
         Types.Transfer memory _tx;
         (
@@ -262,7 +262,12 @@ library Tx {
             txBytes,
             (uint256, uint256, uint256, uint256, uint256, uint256)
         );
-        return _tx;
+        Tx.Transfer memory _txCompressed = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount
+        );
+        return _txCompressed;
     }
 
     function serialize(bytes[] memory txs)
@@ -368,7 +373,6 @@ library Tx {
         uint256 sender;
         uint256 receiver;
         uint256 amount;
-        bytes memory signature = new bytes(65);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
