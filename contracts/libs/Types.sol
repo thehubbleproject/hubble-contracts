@@ -6,9 +6,9 @@ pragma solidity ^0.5.15;
 library Types {
     struct SignatureProof {
         Types.UserAccount[] stateAccounts;
-        bytes32[32][] stateWitnesses;
+        bytes32[][] stateWitnesses;
         uint256[4][] pubkeys;
-        bytes32[32][] pubkeyWitnesses;
+        bytes32[][] pubkeyWitnesses;
     }
 
     // We define Usage for a batch or for a tx
