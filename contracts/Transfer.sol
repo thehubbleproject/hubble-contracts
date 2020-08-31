@@ -5,6 +5,7 @@ import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
 contract Transfer is FraudProofHelpers {
     // BLS PROOF VALIDITY IMPL START
@@ -193,7 +194,7 @@ contract Transfer is FraudProofHelpers {
      * @return Total number of batches submitted onchain
      */
     function processTx(
-        bytes32 _balanceRoot,
+        bytes32 stateRoot,
         Tx.Transfer memory _tx,
         Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
@@ -209,7 +210,19 @@ contract Transfer is FraudProofHelpers {
         )
     {
         // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, accountProofs.from);
+        ValidateAccountMP(stateRoot, accountProofs.from);
+
+        require(
+            MerkleTreeUtilsLib.verifyLeaf(
+                stateRoot,
+                RollupUtils.HashFromAccount(
+                    accountProofs.from.accountIP.account
+                ),
+                _tx.fromIndex,
+                accountProofs.from.siblings
+            ),
+            "Transfer: sender does not exist"
+        );
 
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
@@ -239,8 +252,15 @@ contract Transfer is FraudProofHelpers {
             _tx
         );
 
-        // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newRoot, accountProofs.to);
+        require(
+            MerkleTreeUtilsLib.verifyLeaf(
+                newRoot,
+                RollupUtils.HashFromAccount(accountProofs.to.accountIP.account),
+                _tx.toIndex,
+                accountProofs.to.siblings
+            ),
+            "Transfer: receiver does not exist"
+        );
 
         (new_to_account, newRoot) = ApplyTransferTxReceiver(
             accountProofs.to,
@@ -260,22 +280,28 @@ contract Transfer is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
-        stateLeaf = RemoveTokensFromAccount(stateLeaf, _tx.amount);
-        stateLeaf.nonce++;
-        newRoot = UpdateAccountWithSiblings(stateLeaf, _merkle_proof);
-
-        return (RollupUtils.BytesFromAccount(stateLeaf), newRoot);
+        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        account = RemoveTokensFromAccount(account, _tx.amount);
+        account.nonce++;
+        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
+            keccak256(RollupUtils.BytesFromAccount(account)),
+            _tx.fromIndex,
+            _merkle_proof.siblings
+        );
+        return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 
     function ApplyTransferTxReceiver(
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
-        stateLeaf = AddTokensToAccount(stateLeaf, _tx.amount);
-        newRoot = UpdateAccountWithSiblings(stateLeaf, _merkle_proof);
-
-        return (RollupUtils.BytesFromAccount(stateLeaf), newRoot);
+        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        account = AddTokensToAccount(account, _tx.amount);
+        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
+            keccak256(RollupUtils.BytesFromAccount(account)),
+            _tx.toIndex,
+            _merkle_proof.siblings
+        );
+        return (RollupUtils.BytesFromAccount(account), newRoot);
     }
 }
