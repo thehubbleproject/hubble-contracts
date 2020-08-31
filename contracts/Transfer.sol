@@ -209,9 +209,6 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
-        // Validate the from account merkle proof
-        ValidateAccountMP(stateRoot, accountProofs.from);
-
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
@@ -283,12 +280,13 @@ contract Transfer is FraudProofHelpers {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         account = RemoveTokensFromAccount(account, _tx.amount);
         account.nonce++;
+        bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(RollupUtils.BytesFromAccount(account)),
+            keccak256(accountInBytes),
             _tx.fromIndex,
             _merkle_proof.siblings
         );
-        return (RollupUtils.BytesFromAccount(account), newRoot);
+        return (accountInBytes, newRoot);
     }
 
     function ApplyTransferTxReceiver(
@@ -297,11 +295,12 @@ contract Transfer is FraudProofHelpers {
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.accountIP.account;
         account = AddTokensToAccount(account, _tx.amount);
+        bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(RollupUtils.BytesFromAccount(account)),
+            keccak256(accountInBytes),
             _tx.toIndex,
             _merkle_proof.siblings
         );
-        return (RollupUtils.BytesFromAccount(account), newRoot);
+        return (accountInBytes, newRoot);
     }
 }
