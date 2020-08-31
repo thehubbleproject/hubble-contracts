@@ -3,7 +3,7 @@ import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "./utils/state_tree";
-import { AccountRegistry2 } from "./utils/account_tree";
+import { AccountRegistry } from "./utils/account_tree";
 import { Account } from "./utils/state_account";
 import { TxTransfer } from "./utils/tx";
 import { Rollup } from "../types/ethers-contracts/Rollup";
@@ -11,6 +11,7 @@ import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import * as mcl from "./utils/mcl";
 import { Tree, Hasher } from "./utils/tree";
 import { allContracts } from "../ts/all-contracts-interfaces";
+import { assert } from "chai";
 
 describe("Rollup", async function() {
     let Alice: Account;
@@ -18,7 +19,7 @@ describe("Rollup", async function() {
 
     let contracts: allContracts;
     let stateTree: StateTree;
-    let registry: AccountRegistry2;
+    let registry: AccountRegistry;
     before(async function() {
         await mcl.init();
     });
@@ -28,7 +29,7 @@ describe("Rollup", async function() {
         contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
-        registry = await AccountRegistry2.new(registryContract);
+        registry = await AccountRegistry.new(registryContract);
         const appID =
             "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         const tokenID = 1;

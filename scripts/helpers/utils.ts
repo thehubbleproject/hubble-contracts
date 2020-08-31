@@ -1,12 +1,6 @@
 import { ethers } from "ethers";
 import * as ethUtils from "ethereumjs-util";
-import { Account, Transaction, Usage, Wallet } from "./interfaces";
-const TokenRegistry = artifacts.require("TokenRegistry");
-const RollupUtils = artifacts.require("RollupUtils");
-const RollupCore = artifacts.require("Rollup");
-const DepositManager = artifacts.require("DepositManager");
-const TestToken = artifacts.require("TestToken");
-const Governance = artifacts.require("Governance");
+import { Wallet } from "./interfaces";
 
 // returns parent node hash given child node hashes
 export function getParentLeaf(left: string, right: string) {
@@ -29,31 +23,6 @@ export function PubKeyHash(pubkey: string) {
 
 export function StringToBytes32(data: string) {
     return ethers.utils.formatBytes32String(data);
-}
-
-export async function CreateAccountLeaf(account: Account) {
-    const rollupUtils = await RollupUtils.deployed();
-    const result = await rollupUtils.getAccountHash(
-        account.ID,
-        account.balance,
-        account.nonce,
-        account.tokenType,
-        account.burn,
-        account.lastBurn
-    );
-    return result;
-}
-
-export async function createLeaf(accountAlias: any) {
-    const account: Account = {
-        ID: accountAlias.AccID,
-        balance: accountAlias.Amount,
-        tokenType: accountAlias.TokenType,
-        nonce: accountAlias.nonce,
-        burn: 0,
-        lastBurn: 0
-    };
-    return await CreateAccountLeaf(account);
 }
 
 // returns parent node hash given child node hashes
@@ -108,106 +77,8 @@ export async function getMerkleRootFromLeaves(
     return nodes[0];
 }
 
-export async function getTokenRegistry() {
-    return TokenRegistry.deployed();
-}
-
 export function sign(signBytes: string, wallet: Wallet) {
     const h = ethUtils.toBuffer(signBytes);
     const signature = ethUtils.ecsign(h, wallet.getPrivateKey());
     return ethUtils.toRpcSig(signature.v, signature.r, signature.s);
-}
-
-export async function signTx(tx: Transaction, wallet: Wallet) {
-    const RollupUtilsInstance = await RollupUtils.deployed();
-    const dataToSign = await RollupUtilsInstance.getTxSignBytes(
-        tx.txType,
-        tx.fromIndex,
-        tx.toIndex,
-        tx.nonce,
-        tx.amount
-    );
-    return sign(dataToSign, wallet);
-}
-
-export async function TxToBytes(tx: Transaction) {
-    const RollupUtilsInstance = await RollupUtils.deployed();
-    const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-        tx.txType,
-        tx.fromIndex,
-        tx.toIndex,
-        tx.tokenType,
-        tx.nonce,
-        tx.amount
-    );
-    return txBytes;
-}
-
-export async function compressAndSubmitBatch(tx: Transaction, newRoot: string) {
-    const RollupUtilsInstance = await RollupUtils.deployed();
-    const txBytes = await TxToBytes(tx);
-    const compressedTxs = await RollupUtilsInstance.CompressTransferFromEncoded(
-        txBytes,
-        tx.signature
-    );
-    await submitBatch(compressedTxs, newRoot, Usage.Transfer);
-}
-export async function submitBatch(
-    compressedTxs: string,
-    newRoot: string,
-    usage: Usage
-) {
-    const rollupCoreInstance = await RollupCore.deployed();
-    const govInstance = await Governance.deployed();
-    const stakeAmount = (await govInstance.STAKE_AMOUNT()).toString();
-
-    await rollupCoreInstance.submitBatch(
-        [compressedTxs],
-        [newRoot],
-        usage,
-        [[]],
-        {
-            value: stakeAmount
-        }
-    );
-}
-
-export async function registerToken(wallet: Wallet) {
-    const testTokenInstance = await TestToken.deployed();
-    const tokenRegistryInstance = await TokenRegistry.deployed();
-    const depositManagerInstance = await DepositManager.deployed();
-    await tokenRegistryInstance.requestTokenRegistration(
-        testTokenInstance.address,
-        { from: wallet.getAddressString() }
-    );
-    await tokenRegistryInstance.finaliseTokenRegistration(
-        testTokenInstance.address,
-        { from: wallet.getAddressString() }
-    );
-    await testTokenInstance.approve(
-        depositManagerInstance.address,
-        ethers.utils.parseEther("1").toString(),
-        { from: wallet.getAddressString() }
-    );
-    return testTokenInstance;
-}
-
-export async function AccountFromBytes(accountBytes: string): Promise<Account> {
-    const RollupUtilsInstance = await RollupUtils.deployed();
-    const result = await RollupUtilsInstance.AccountFromBytes(accountBytes);
-    const account: Account = {
-        ID: result[0].toNumber(),
-        balance: result[1].toNumber(),
-        nonce: result[2].toNumber(),
-        tokenType: result[3].toNumber(),
-        burn: result[4].toNumber(),
-        lastBurn: result[5].toNumber()
-    };
-    return account;
-}
-
-export async function getBatchId() {
-    const rollupCoreInstance = await RollupCore.deployed();
-    const batchLength = await rollupCoreInstance.numOfBatchesSubmitted();
-    return Number(batchLength) - 1;
 }

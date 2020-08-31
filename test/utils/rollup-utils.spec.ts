@@ -9,14 +9,15 @@ import {
     BurnExecutionTx
 } from "../../scripts/helpers/interfaces";
 import { DummyECDSASignature } from "../../scripts/helpers/constants";
-import { RollupUtilsInstance as RollupUtilsInstanceType } from "../../types/truffle-contracts";
-
-const RollupUtils = artifacts.require("RollupUtils");
+import { RollupUtilsFactory } from "../../types/ethers-contracts/RollupUtilsFactory";
+import { RollupUtils } from "../../types/ethers-contracts/RollupUtils";
+import { ethers } from "@nomiclabs/buidler";
 
 describe("RollupUtils", async function() {
-    let RollupUtilsInstance: RollupUtilsInstanceType;
+    let RollupUtilsInstance: RollupUtils;
     before(async function() {
-        RollupUtilsInstance = await RollupUtils.new();
+        const [signer, ...rest] = await ethers.getSigners();
+        RollupUtilsInstance = await new RollupUtilsFactory(signer).deploy();
     });
 
     it("test account encoding and decoding", async function() {

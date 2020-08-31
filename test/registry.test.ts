@@ -1,10 +1,12 @@
-const AccountRegistry = artifacts.require("BLSAccountRegistry");
-const loggerContract = artifacts.require("Logger");
-import { BlsAccountRegistryInstance } from "../types/truffle-contracts";
+import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
+import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
+import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
+
 import { Tree, Hasher } from "./utils/tree";
 
 import * as mcl from "./utils/mcl";
-import { ethers } from "ethers";
+import { ethers } from "@nomiclabs/buidler";
+import { assert } from "chai";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
@@ -21,14 +23,17 @@ function pubkeyToLeaf(p: Pubkey) {
     return { uncompressed, leaf };
 }
 
-describe.skip("Registry", async () => {
-    let registry: BlsAccountRegistryInstance;
+describe("Registry", async () => {
+    let registry: BlsAccountRegistry;
     let treeLeft: Tree;
     let treeRight: Tree;
     beforeEach(async function() {
         await mcl.init();
-        const logger = await loggerContract.new();
-        registry = await AccountRegistry.new(logger.address);
+        const accounts = await ethers.getSigners();
+        const logger = await new LoggerFactory(accounts[0]).deploy();
+        registry = await new BlsAccountRegistryFactory(accounts[0]).deploy(
+            logger.address
+        );
         DEPTH = (await registry.DEPTH()).toNumber();
         BATCH_DEPTH = (await registry.BATCH_DEPTH()).toNumber();
         treeLeft = Tree.new(DEPTH);
@@ -48,7 +53,7 @@ describe.skip("Registry", async () => {
         const root = hasher.hash2(treeLeft.root, treeRight.root);
         assert.equal(root, await registry.root());
     });
-    it("batch update", async function() {
+    it.skip("batch update", async function() {
         const batchSize = 1 << BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
             let leafs = [];

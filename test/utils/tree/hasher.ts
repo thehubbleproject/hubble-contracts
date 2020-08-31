@@ -1,3 +1,4 @@
+import { ethers } from "ethers";
 export type Node = string;
 
 const ZERO =
@@ -11,18 +12,15 @@ export class Hasher {
     constructor(private leafType = "uint256", private zero = ZERO) {}
 
     public toLeaf(data: string): string {
-        return web3.utils.soliditySha3({ t: this.leafType, v: data })!;
+        return ethers.utils.solidityKeccak256([this.leafType], [data]);
     }
 
     public hash(x0: string): string {
-        return web3.utils.soliditySha3({ t: "uint256", v: x0 })!;
+        return ethers.utils.solidityKeccak256(["uint256"], [x0]);
     }
 
     public hash2(x0: string, x1: string): string {
-        return web3.utils.soliditySha3(
-            { t: "uint256", v: x0 },
-            { t: "uint256", v: x1 }
-        )!;
+        return ethers.utils.solidityKeccak256(["uint256", "uint256"], [x0, x1]);
     }
 
     public zeros(depth: number): Array<Node> {

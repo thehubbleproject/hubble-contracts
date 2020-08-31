@@ -6,6 +6,9 @@ import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
 
 contract TestTransfer is Transfer {
+    event Return1(uint256);
+    event Return2(Types.ErrorCode);
+
     function checkSignature(
         uint256[2] memory signature,
         InvalidSignatureProof memory proof,
@@ -13,19 +16,19 @@ contract TestTransfer is Transfer {
         bytes32 accountRoot,
         bytes32 appID,
         bytes memory txs
-    ) public returns (Types.ErrorCode, uint256 operationCost) {
-        operationCost = gasleft();
-        return (
-            _checkSignature(
-                signature,
-                proof,
-                stateRoot,
-                accountRoot,
-                appID,
-                txs
-            ),
-            operationCost - gasleft()
+    ) public {
+        uint256 operationCost = gasleft();
+        Types.ErrorCode err = _checkSignature(
+            signature,
+            proof,
+            stateRoot,
+            accountRoot,
+            appID,
+            txs
         );
+
+        emit Return1(operationCost - gasleft());
+        emit Return2(err);
     }
 
     function testProcessTx(
