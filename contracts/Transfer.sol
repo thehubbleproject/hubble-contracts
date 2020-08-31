@@ -209,6 +209,12 @@ contract Transfer is FraudProofHelpers {
             bool
         )
     {
+<<<<<<< HEAD
+=======
+        // Validate the from account merkle proof
+        ValidateAccountMP(stateRoot, accountProofs.from);
+
+>>>>>>> fixes thehubbleproject/contracts#94
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
