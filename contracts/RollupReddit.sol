@@ -272,6 +272,7 @@ contract RollupReddit {
         bytes32 initialStateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
+        uint256 feeReceiver,
         Types.Usage batchType
     ) public view returns (bytes32, bool) {
         if (batchType == Types.Usage.CreateAccount) {
@@ -293,7 +294,8 @@ contract RollupReddit {
                 transfer.processTransferBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs
+                    accountProofs,
+                    feeReceiver
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
             return

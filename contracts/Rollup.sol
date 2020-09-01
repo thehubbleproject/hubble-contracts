@@ -21,6 +21,7 @@ interface IRollupReddit {
         bytes32 initialStateRoot,
         bytes calldata _txs,
         Types.AccountMerkleProof[] calldata accountProofs,
+        uint256 feeReceiver,
         Types.Usage batchType
     ) external view returns (bytes32, bool);
 
@@ -210,6 +211,7 @@ contract Rollup is RollupHelpers {
             accountRegistry.root(),
             ZERO_AGG_SIG,
             "",
+            0, // Zero fee receiver
             uint8(Types.Usage.Genesis)
         );
         Types.Batch memory newBatch = Types.Batch({
@@ -233,18 +235,20 @@ contract Rollup is RollupHelpers {
         bytes[] calldata txs,
         bytes32[] calldata updatedRoots,
         Types.Usage batchType,
-        uint256[2][] calldata signatures
+        uint256[2][] calldata signatures,
+        uint256 feeReceiver
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-        uint256 commmitmentLength = updatedRoots.length;
-        bytes32[] memory commitments = new bytes32[](commmitmentLength);
-        for (uint256 i = 0; i < commmitmentLength; i++) {
+        bytes32[] memory commitments = new bytes32[](updatedRoots.length);
+        bytes32 pubkeyTreeRoot = accountRegistry.root();
+        for (uint256 i = 0; i < updatedRoots.length; i++) {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
                     accountRegistry.root(),
                     signatures[i],
                     txs[i],
+                    feeReceiver,
                     uint8(batchType)
                 )
             );
@@ -293,6 +297,7 @@ contract Rollup is RollupHelpers {
             accountRegistry.root(),
             ZERO_AGG_SIG,
             "",
+            0, // Zero fee receiver
             uint8(Types.Usage.Deposit)
         );
 
@@ -352,6 +357,7 @@ contract Rollup is RollupHelpers {
                         commitmentMP.commitment.accountRoot,
                         commitmentMP.commitment.signature,
                         commitmentMP.commitment.txs,
+                        commitmentMP.commitment.feeReceiver,
                         uint8(commitmentMP.commitment.batchType)
                     ),
                     commitmentMP.pathToCommitment,
@@ -372,6 +378,7 @@ contract Rollup is RollupHelpers {
             commitmentMP.commitment.stateRoot,
             commitmentMP.commitment.txs,
             accountProofs,
+            commitmentMP.commitment.feeReceiver,
             commitmentMP.commitment.batchType
         );
 

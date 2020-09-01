@@ -38,6 +38,7 @@ library Types {
         bytes32 accountRoot;
         uint256[2] signature;
         bytes txs;
+        uint256 feeReceiver;
         Usage batchType;
     }
 
