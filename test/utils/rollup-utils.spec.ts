@@ -75,19 +75,6 @@ describe("RollupUtils", async function() {
         assert.equal(txData.nonce.toString(), tx.nonce.toString());
         assert.equal(txData.txType.toString(), tx.txType.toString());
         assert.equal(txData.amount.toString(), tx.amount.toString());
-
-        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
-            txBytes,
-            tx.signature
-        );
-
-        const decompressedTx = await RollupUtilsInstance.DecompressTx(
-            compressedTx
-        );
-        assert.equal(decompressedTx[0].toNumber(), tx.fromIndex);
-        assert.equal(decompressedTx[1].toNumber(), tx.toIndex);
-        assert.equal(decompressedTx[2].toNumber(), tx.amount);
-        assert.equal(decompressedTx[3].toString(), tx.signature);
     });
     it("test createAccount utils", async function() {
         const tx: CreateAccount = {
@@ -108,12 +95,6 @@ describe("RollupUtils", async function() {
         assert.equal(Number(result.accountID), tx.accountID);
         assert.equal(Number(result.stateID), tx.stateID);
         assert.equal(Number(result.tokenType), tx.tokenType);
-        const compressedTx = await RollupUtilsInstance.CompressCreateAccountNoStruct(
-            tx.accountID,
-            tx.stateID,
-            tx.tokenType
-        );
-        await RollupUtilsInstance.DecompressCreateAccount(compressedTx);
         await RollupUtilsInstance.CompressCreateAccountFromEncoded(txBytes);
         const txs = await RollupUtilsInstance.CompressManyCreateAccountFromEncoded(
             [txBytes, txBytes]
@@ -147,18 +128,6 @@ describe("RollupUtils", async function() {
         );
         const result = await RollupUtilsInstance.AirdropFromBytes(txBytes);
         assert.equal(Number(result.toIndex), tx.toIndex);
-        const compressedTx1 = await RollupUtilsInstance.CompressAirdropNoStruct(
-            tx.toIndex,
-            tx.amount,
-            tx.signature
-        );
-        const compressedTx2 = await RollupUtilsInstance.CompressAirdropTxWithMessage(
-            txBytes,
-            tx.signature
-        );
-        assert.equal(compressedTx1, compressedTx2);
-        await RollupUtilsInstance.DecompressCreateAccount(compressedTx1);
-        await RollupUtilsInstance.DecompressCreateAccount(compressedTx2);
         await RollupUtilsInstance.CompressAirdropFromEncoded(
             txBytes,
             tx.signature
@@ -194,11 +163,6 @@ describe("RollupUtils", async function() {
             tx.nonce,
             tx.amount
         );
-        const compressedTx = await RollupUtilsInstance.CompressTxWithMessage(
-            txBytes,
-            tx.signature
-        );
-        await RollupUtilsInstance.DecompressTx(compressedTx);
         await RollupUtilsInstance.CompressTransferFromEncoded(
             txBytes,
             tx.signature
@@ -230,13 +194,6 @@ describe("RollupUtils", async function() {
             tx.nonce
         );
         await RollupUtilsInstance.BurnConsentFromBytes(txBytes);
-        const compressedTx = await RollupUtilsInstance.CompressBurnConsentNoStruct(
-            tx.fromIndex,
-            tx.amount,
-            tx.nonce,
-            tx.signature
-        );
-        await RollupUtilsInstance.DecompressBurnConsent(compressedTx);
         await RollupUtilsInstance.CompressBurnConsentFromEncoded(txBytes);
         const txs = await RollupUtilsInstance.CompressManyBurnConsentFromEncoded(
             [txBytes, txBytes]
@@ -253,10 +210,6 @@ describe("RollupUtils", async function() {
             tx.fromIndex
         );
         await RollupUtilsInstance.BurnExecutionFromBytes(txBytes);
-        const compressedTx = await RollupUtilsInstance.CompressBurnExecutionNoStruct(
-            tx.fromIndex
-        );
-        await RollupUtilsInstance.DecompressBurnExecution(compressedTx);
         await RollupUtilsInstance.CompressBurnExecutionFromEncoded(txBytes);
         const txs = await RollupUtilsInstance.CompressManyBurnExecutionFromEncoded(
             [txBytes, txBytes]
