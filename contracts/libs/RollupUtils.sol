@@ -192,10 +192,9 @@ library RollupUtils {
         BytesFromXNoStruct
         XFromBytes
         XSignBytes
-        CompressX
-        CompressXNoStruct
-        CompressXWithMessage
-        DecompressX
+        CompressXFromEncoded
+        CompressManyXFromEncoded
+        DecompressManyX
      */
 
     //
