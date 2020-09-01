@@ -65,8 +65,9 @@ contract Transfer is FraudProofHelpers {
     uint256 constant OFF_TX_TYPE = 64;
     uint256 constant OFF_NONCE = 65;
     uint256 constant OFF_TX_DATA = 69;
-    uint256 constant MSG_LEN_0 = 49;
-    uint256 constant TX_LEN_0 = 12;
+    // [appID<32>|TX_TYPE<1>|nonce<4>|tx<16>]
+    uint256 constant MSG_LEN_0 = 53;
+    uint256 constant TX_LEN_0 = 16;
 
     function _checkSignature(
         uint256[2] memory signature,
