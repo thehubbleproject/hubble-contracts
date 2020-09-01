@@ -36,6 +36,7 @@ library Types {
         bytes32 stateRoot;
         bytes32 accountRoot;
         bytes32 txHashCommitment;
+        uint256[2] aggregatedSignature;
         Usage batchType;
     }
 

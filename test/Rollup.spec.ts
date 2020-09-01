@@ -89,6 +89,7 @@ describe("Rollup", async function() {
             stateRoot,
             accountRoot: root,
             txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
+            aggregatedSignature: mcl.g1ToHex(signature),
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -105,16 +106,18 @@ describe("Rollup", async function() {
             commitment.stateRoot,
             commitment.accountRoot,
             commitment.txHashCommitment,
+            commitment.aggregatedSignature,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
-                ["bytes32", "bytes32", "bytes32", "uint8"],
+                ["bytes32", "bytes32", "bytes32", "uint256[2]", "uint8"],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
                     commitment.txHashCommitment,
+                    commitment.aggregatedSignature,
                     commitment.batchType
                 ]
             )
