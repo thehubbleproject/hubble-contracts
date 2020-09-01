@@ -468,7 +468,7 @@ library RollupUtils {
     // Transfer
     //
 
-    function BytesFromTx(Types.Transaction memory _tx)
+    function BytesFromTx(Types.Transfer memory _tx)
         public
         pure
         returns (bytes memory)
@@ -498,10 +498,10 @@ library RollupUtils {
     function TxFromBytes(bytes memory txBytes)
         public
         pure
-        returns (Types.Transaction memory)
+        returns (Types.Transfer memory)
     {
         // TODO: use txBytes.transfer_transfer_encodedFromBytes(...)
-        Types.Transaction memory transaction;
+        Types.Transfer memory transaction;
         (
             transaction.txType,
             transaction.fromIndex,
@@ -546,7 +546,7 @@ library RollupUtils {
         return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
     }
 
-    function CompressTx(Types.Transaction memory _tx)
+    function CompressTx(Types.Transfer memory _tx)
         public
         pure
         returns (bytes memory)
@@ -560,7 +560,7 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        Types.Transaction memory _tx = TxFromBytes(message);
+        Types.Transfer memory _tx = TxFromBytes(message);
         return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
     }
 
@@ -590,7 +590,7 @@ library RollupUtils {
         return _txs;
     }
 
-    function HashFromTx(Types.Transaction memory _tx)
+    function HashFromTx(Types.Transfer memory _tx)
         public
         pure
         returns (bytes32)
@@ -613,7 +613,7 @@ library RollupUtils {
         pure
         returns (bytes memory)
     {
-        Types.Transaction memory _tx = TxFromBytes(txBytes);
+        Types.Transfer memory _tx = TxFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
         _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
         return Tx.serialize(_txs);
@@ -625,7 +625,7 @@ library RollupUtils {
     ) public pure returns (bytes memory) {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
-            Types.Transaction memory _tx = TxFromBytes(txBytes[i]);
+            Types.Transfer memory _tx = TxFromBytes(txBytes[i]);
             _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
         }
         return Tx.serialize(_txs);

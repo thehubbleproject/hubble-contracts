@@ -57,16 +57,6 @@ library Types {
         uint256 amount;
     }
 
-    struct Transaction {
-        uint256 txType;
-        uint256 fromIndex;
-        uint256 toIndex;
-        uint256 tokenType;
-        uint256 nonce;
-        uint256 amount;
-        bytes signature;
-    }
-
     struct CreateAccount {
         uint256 txType;
         uint256 accountID;
@@ -106,7 +96,7 @@ library Types {
 
     struct TranasctionInclusionProof {
         uint256 pathToTx;
-        Transaction data;
+        Transfer data;
     }
 
     struct PDAInclusionProof {
