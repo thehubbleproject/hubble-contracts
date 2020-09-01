@@ -261,6 +261,46 @@ contract Rollup is RollupHelpers {
         );
     }
 
+
+    function submitBatchWithMM(
+        bytes[] calldata txs,
+        bytes32[] calldata updatedRoots,
+        uint256[] calldata spokeIDs,
+        bytes32[] calldata withdrawsPerSpokeID,
+        uint256[] calldata tokenIDs,
+        uint256[] calldata amounts,
+        uint256[2][] calldata aggregatedSignatures
+    ) external payable onlyCoordinator {
+        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
+        uint256 commmitmentLength = updatedRoots.length;
+        bytes32[] memory commitments = new bytes32[](commmitmentLength);
+        bytes32 pubkeyTreeRoot = accountRegistry.root();
+        for (uint256 i = 0; i < commmitmentLength; i++) {
+            commitments[i] = (
+                RollupUtils.CommitmentToHash(
+                    updatedRoots[i],
+                    pubkeyTreeRoot,
+                    keccak256(abi.encode(txs[i], aggregatedSignatures[i])),
+                    uint8(batchType)
+                )
+            );
+        }
+        Types.Batch memory newBatch = Types.Batch({
+            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
+            committer: msg.sender,
+            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
+            depositRoot: ZERO_BYTES32,
+            withdrawn: false
+        });
+        batches.push(newBatch);
+        logger.logNewBatch(
+            newBatch.committer,
+            updatedRoots[updatedRoots.length - 1],
+            batches.length - 1,
+            batchType
+        );
+    }
+
     /**
      * @notice finalise deposits and submit batch
      */
