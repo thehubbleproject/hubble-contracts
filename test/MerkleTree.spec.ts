@@ -1,27 +1,15 @@
-import { MerkleTreeUtils } from "../../types/ethers-contracts/MerkleTreeUtils";
-import { MerkleTreeUtilsFactory } from "../../types/ethers-contracts/MerkleTreeUtilsFactory";
-import * as utils from "../../scripts/helpers/utils";
+import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
+import { MerkleTreeUtilsFactory } from "../types/ethers-contracts/MerkleTreeUtilsFactory";
+import { getParentLeaf, getMerkleRootFromLeaves } from "../ts/utils";
 import { assert, expect } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 
 // Test all stateless operations
 describe("MerkleTreeUtils", async function() {
-    var firstDataBlock = utils.StringToBytes32("0x123");
-    var secondDataBlock = utils.StringToBytes32("0x334");
-    var thirdDataBlock = utils.StringToBytes32("0x4343");
-    var fourthDataBlock = utils.StringToBytes32("0x334");
-    var dataBlocks = [
-        firstDataBlock,
-        secondDataBlock,
-        thirdDataBlock,
-        fourthDataBlock
-    ];
-    var dataLeaves = [
-        utils.Hash(firstDataBlock),
-        utils.Hash(secondDataBlock),
-        utils.Hash(thirdDataBlock),
-        utils.Hash(fourthDataBlock)
-    ];
+    const dataBlocks = ["0x123", "0x334", "0x4343", "0x334"].map(
+        ethers.utils.formatBytes32String
+    );
+    const dataLeaves = dataBlocks.map(ethers.utils.keccak256);
     let mtlibInstance: MerkleTreeUtils;
     before(async function() {
         const MAX_DEPTH = 4;
@@ -41,10 +29,7 @@ describe("MerkleTreeUtils", async function() {
             const rootFromContract = await mtlibInstance.getMerkleRootFromLeaves(
                 leaves
             );
-            const rootFromJs = await utils.getMerkleRootFromLeaves(
-                leaves,
-                maxSize
-            );
+            const rootFromJs = await getMerkleRootFromLeaves(leaves, maxSize);
             assert.equal(
                 rootFromContract,
                 rootFromJs,
@@ -58,7 +43,7 @@ describe("MerkleTreeUtils", async function() {
 
         var siblings: Array<string> = [
             dataLeaves[1],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+            getParentLeaf(dataLeaves[2], dataLeaves[3])
         ];
 
         var leaf = dataLeaves[0];
@@ -80,7 +65,7 @@ describe("MerkleTreeUtils", async function() {
         var root = await mtlibInstance.getMerkleRoot(dataBlocks);
         var siblings: Array<string> = [
             dataLeaves[1],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+            getParentLeaf(dataLeaves[2], dataLeaves[3])
         ];
         var leaf = dataLeaves[0];
         var path: string = "01";
@@ -99,7 +84,7 @@ describe("MerkleTreeUtils", async function() {
 
         var siblings: Array<string> = [
             dataLeaves[1],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+            getParentLeaf(dataLeaves[2], dataLeaves[3])
         ];
         var leaf = dataLeaves[0];
         var path: string = "01";
@@ -117,7 +102,7 @@ describe("MerkleTreeUtils", async function() {
 
         var siblings: Array<string> = [
             dataLeaves[0],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+            getParentLeaf(dataLeaves[2], dataLeaves[3])
         ];
         var leaf = dataLeaves[1];
         var path: string = "01";
@@ -135,7 +120,7 @@ describe("MerkleTreeUtils", async function() {
 
         var siblings: Array<string> = [
             dataLeaves[0],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+            getParentLeaf(dataLeaves[2], dataLeaves[3])
         ];
         var leaf = dataLeaves[1];
         var path: string = "01";
@@ -153,7 +138,7 @@ describe("MerkleTreeUtils", async function() {
 
         var siblings: Array<string> = [
             dataLeaves[0],
-            utils.getParentLeaf(dataLeaves[2], dataLeaves[3])
+            getParentLeaf(dataLeaves[2], dataLeaves[3])
         ];
         var leaf = dataLeaves[1];
         var path: string = "010";
