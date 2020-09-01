@@ -54,6 +54,7 @@ describe("RollupUtils", async function() {
             toIndex: 2,
             tokenType: 1,
             amount: 10,
+            fee: 1,
             signature:
                 "0x1ad4773ace8ee65b8f1d94a3ca7adba51ee2ca0bdb550907715b3b65f1e3ad9f69e610383dc9ceb8a50c882da4b1b98b96500bdf308c1bdce2187cb23b7d736f1b",
             nonce: 0
@@ -65,7 +66,8 @@ describe("RollupUtils", async function() {
             tx.toIndex,
             tx.tokenType,
             tx.nonce,
-            tx.amount
+            tx.amount,
+            tx.fee
         );
 
         const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
@@ -146,6 +148,7 @@ describe("RollupUtils", async function() {
             tokenType: 1,
             nonce: 3,
             amount: 1,
+            fee: 1,
             signature: DummyECDSASignature
         };
         const signBytes = await RollupUtilsInstance.getTxSignBytes(
@@ -153,7 +156,8 @@ describe("RollupUtils", async function() {
             tx.fromIndex,
             tx.toIndex,
             tx.nonce,
-            tx.amount
+            tx.amount,
+            tx.fee
         );
         const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
             tx.txType,
@@ -161,7 +165,8 @@ describe("RollupUtils", async function() {
             tx.toIndex,
             tx.tokenType,
             tx.nonce,
-            tx.amount
+            tx.amount,
+            tx.fee
         );
         await RollupUtilsInstance.CompressTransferFromEncoded(
             txBytes,

@@ -453,9 +453,10 @@ library RollupUtils {
         uint256 to,
         uint256 tokenType,
         uint256 nonce,
-        uint256 amount
+        uint256 amount,
+        uint256 fee
     ) public pure returns (bytes memory) {
-        return abi.encode(txType, from, to, tokenType, nonce, amount);
+        return abi.encode(txType, from, to, tokenType, nonce, amount, fee);
     }
 
     function TxFromBytes(bytes memory txBytes)
@@ -505,9 +506,13 @@ library RollupUtils {
         uint256 fromIndex,
         uint256 toIndex,
         uint256 nonce,
-        uint256 amount
+        uint256 amount,
+        uint256 fee
     ) public pure returns (bytes32) {
-        return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
+        return
+            keccak256(
+                abi.encode(txType, fromIndex, toIndex, nonce, amount, fee)
+            );
     }
 
     function DecompressTransfers(bytes memory txs)
@@ -536,7 +541,8 @@ library RollupUtils {
                     _tx.toIndex,
                     _tx.tokenType,
                     _tx.nonce,
-                    _tx.amount
+                    _tx.amount,
+                    _tx.fee
                 )
             );
     }
