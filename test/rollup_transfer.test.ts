@@ -159,17 +159,13 @@ describe("Rollup Transfer Commitment", () => {
 
             const result = await rollup.testProcessTx(preRoot, tx.extended(), {
                 from: {
-                    accountIP: {
-                        pathToAccount: sender.stateID,
-                        account: proof.senderAccount
-                    },
+                    pathToAccount: sender.stateID,
+                    account: proof.senderAccount,
                     siblings: proof.senderWitness
                 },
                 to: {
-                    accountIP: {
-                        pathToAccount: receiver.stateID,
-                        account: proof.receiverAccount
-                    },
+                    pathToAccount: receiver.stateID,
+                    account: proof.receiverAccount,
                     siblings: proof.receiverWitness
                 }
             });
