@@ -546,37 +546,6 @@ library RollupUtils {
         return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
     }
 
-    function CompressTx(Types.Transfer memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return
-            abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.signature);
-    }
-
-    function CompressTxWithMessage(bytes memory message, bytes memory sig)
-        public
-        pure
-        returns (bytes memory)
-    {
-        Types.Transfer memory _tx = TxFromBytes(message);
-        return abi.encode(_tx.fromIndex, _tx.toIndex, _tx.amount, sig);
-    }
-
-    function DecompressTx(bytes memory txBytes)
-        public
-        pure
-        returns (
-            uint256 from,
-            uint256 to,
-            uint256 amount,
-            bytes memory sig
-        )
-    {
-        return abi.decode(txBytes, (uint256, uint256, uint256, bytes));
-    }
-
     function DecompressTransfers(bytes memory txs)
         public
         pure
