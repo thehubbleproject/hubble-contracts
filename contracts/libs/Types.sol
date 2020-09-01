@@ -128,16 +128,10 @@ library Types {
 
     struct BatchValidationProofs {
         AccountProofs[] accountProofs;
-        PDAMerkleProof[] pdaProof;
     }
 
     struct TransactionMerkleProof {
         TranasctionInclusionProof _tx;
-        bytes32[] siblings;
-    }
-
-    struct PDAMerkleProof {
-        PDAInclusionProof _pda;
         bytes32[] siblings;
     }
 
