@@ -150,7 +150,7 @@ describe("Rollup Transfer Commitment", () => {
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
 
-    it("transfer applyTx", async function() {
+    it.only("transfer applyTx", async function() {
         const amount = 20;
         const fee = 1;
         for (let i = 0; i < BATCH_SIZE; i++) {

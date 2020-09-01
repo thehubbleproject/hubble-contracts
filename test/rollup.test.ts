@@ -70,6 +70,7 @@ describe("Rollup", async function() {
             [stateRoot],
             Usage.Transfer,
             [aggregatedSignature0],
+            Alice.stateID,
             { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
         );
 
@@ -84,6 +85,7 @@ describe("Rollup", async function() {
             accountRoot: root,
             signature: aggregatedSignature0,
             txs,
+            feeReceiver: Alice.stateID,
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -101,17 +103,19 @@ describe("Rollup", async function() {
             commitment.accountRoot,
             commitment.signature,
             commitment.txs,
+            commitment.feeReceiver,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
-                ["bytes32", "bytes32", "uint256[2]", "bytes", "uint8"],
+                ["bytes32", "bytes32", "uint256[2]", "bytes", "uint256", "uint8"],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
                     commitment.signature,
                     commitment.txs,
+                    commitment.feeReceiver,
                     commitment.batchType
                 ]
             )

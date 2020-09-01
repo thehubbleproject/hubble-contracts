@@ -431,6 +431,7 @@ contract Rollup is RollupHelpers {
                     commitmentProof.commitment.accountRoot,
                     commitmentProof.commitment.signature,
                     txs,
+                    commitmentProof.commitment.feeReceiver,
                     uint8(commitmentProof.commitment.batchType)
                 ),
                 commitmentProof.pathToCommitment,

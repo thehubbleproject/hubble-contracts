@@ -124,7 +124,7 @@ contract Transfer is FraudProofHelpers {
                 stateRoot,
                 fees,
                 feeReceiver,
-                batchProofs.accountProofs[length]
+                accountProofs[length]
             );
         }
 
@@ -166,6 +166,7 @@ contract Transfer is FraudProofHelpers {
 
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
+            _tx.fee,
             fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)
@@ -251,7 +252,7 @@ contract Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         uint256 fees,
         uint256 feeReceiver,
-        Types.AccountProofs memory stateLeafProof
+        Types.AccountMerkleProof memory stateLeafProof
     )
         public
         pure
@@ -261,7 +262,7 @@ contract Transfer is FraudProofHelpers {
             bool isValid
         )
     {
-        Types.UserAccount memory account = stateLeafProof.to.accountIP.account;
+        Types.UserAccount memory account = stateLeafProof.account;
         if (account.tokenType != 1) {
             return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
         }
@@ -270,12 +271,12 @@ contract Transfer is FraudProofHelpers {
                 stateRoot,
                 RollupUtils.HashFromAccount(account),
                 feeReceiver,
-                stateLeafProof.to.siblings
+                stateLeafProof.siblings
             ),
             "Transfer: fee receiver does not exist"
         );
         account.balance = account.balance.add(fees);
-        newRoot = UpdateAccountWithSiblings(account, stateLeafProof.to);
+        newRoot = UpdateAccountWithSiblings(account, stateLeafProof);
         return (newRoot, Types.ErrorCode.NoError, true);
     }
 }

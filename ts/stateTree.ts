@@ -139,7 +139,7 @@ export class StateTree {
             const senderAccStruct = senderAccount.toSolStruct();
             // FIX: handle burning account
             if (
-                senderAccount.balance < tx.amount ||
+                senderAccount.balance < tx.amount + tx.fee ||
                 senderAccount.tokenType != receiverAccount.tokenType
             ) {
                 return {
@@ -151,7 +151,7 @@ export class StateTree {
                 };
             }
 
-            senderAccount.balance -= tx.amount;
+            senderAccount.balance -= tx.amount + tx.fee;
             senderAccount.nonce += 1;
             this.accounts[senderID] = senderAccount;
             this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
