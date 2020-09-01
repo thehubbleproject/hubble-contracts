@@ -51,6 +51,7 @@ describe("Rollup", async function() {
             Alice.stateID,
             Bob.stateID,
             5,
+            1,
             Alice.nonce + 1
         );
 

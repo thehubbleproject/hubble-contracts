@@ -402,7 +402,7 @@ library RollupUtils {
     {
         Types.DropTx memory _tx = AirdropFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, 0);
         return Tx.serialize(_txs);
     }
 
@@ -414,7 +414,7 @@ library RollupUtils {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.DropTx memory _tx = AirdropFromBytes(txBytes[i]);
-            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, 0);
         }
         return Tx.serialize(_txs);
     }
@@ -453,9 +453,10 @@ library RollupUtils {
         uint256 to,
         uint256 tokenType,
         uint256 nonce,
-        uint256 amount
+        uint256 amount,
+        uint256 fee
     ) public pure returns (bytes memory) {
-        return abi.encode(txType, from, to, tokenType, nonce, amount);
+        return abi.encode(txType, from, to, tokenType, nonce, amount, fee);
     }
 
     function TxFromBytes(bytes memory txBytes)
@@ -471,10 +472,11 @@ library RollupUtils {
             transaction.toIndex,
             transaction.tokenType,
             transaction.nonce,
-            transaction.amount
+            transaction.amount,
+            transaction.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
         return transaction;
     }
@@ -504,9 +506,13 @@ library RollupUtils {
         uint256 fromIndex,
         uint256 toIndex,
         uint256 nonce,
-        uint256 amount
+        uint256 amount,
+        uint256 fee
     ) public pure returns (bytes32) {
-        return keccak256(abi.encode(txType, fromIndex, toIndex, nonce, amount));
+        return
+            keccak256(
+                abi.encode(txType, fromIndex, toIndex, nonce, amount, fee)
+            );
     }
 
     function DecompressTransfers(bytes memory txs)
@@ -535,7 +541,8 @@ library RollupUtils {
                     _tx.toIndex,
                     _tx.tokenType,
                     _tx.nonce,
-                    _tx.amount
+                    _tx.amount,
+                    _tx.fee
                 )
             );
     }
@@ -547,7 +554,7 @@ library RollupUtils {
     {
         Types.Transfer memory _tx = TxFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.fee);
         return Tx.serialize(_txs);
     }
 
@@ -558,7 +565,12 @@ library RollupUtils {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.Transfer memory _tx = TxFromBytes(txBytes[i]);
-            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+            _txs[i] = Tx.Transfer(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                _tx.fee
+            );
         }
         return Tx.serialize(_txs);
     }

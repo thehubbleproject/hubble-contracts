@@ -73,6 +73,7 @@ describe("Rollup Transfer Commitment", () => {
     it("transfer commitment: signature check", async function() {
         const txs: TxTransfer[] = [];
         const amount = 20;
+        const fee = 1;
         let aggSignature = mcl.newG1();
         let s0 = stateTree.root;
         let signers = [];
@@ -87,6 +88,7 @@ describe("Rollup Transfer Commitment", () => {
                 sender.stateID,
                 receiver.stateID,
                 amount,
+                fee,
                 sender.nonce
             );
             txs.push(tx);
@@ -126,13 +128,18 @@ describe("Rollup Transfer Commitment", () => {
         );
         const receipt = await tx.wait();
         const events = parseEvents(receipt);
-        assert.equal(events.Return2[0], ErrorCode.NoError);
+        assert.equal(
+            events.Return2[0],
+            ErrorCode.NoError,
+            `Getting Error for signature check: ${ErrorCode[events.Return2[0]]}`
+        );
         console.log("operation gas cost:", events.Return1[0].toNumber());
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
 
     it("transfer applyTx", async function() {
         const amount = 20;
+        const fee = 1;
         for (let i = 0; i < BATCH_SIZE; i++) {
             const senderIndex = i;
             const reciverIndex = (i + 5) % ACCOUNT_SIZE;
@@ -142,6 +149,7 @@ describe("Rollup Transfer Commitment", () => {
                 sender.stateID,
                 receiver.stateID,
                 amount,
+                fee,
                 sender.nonce
             );
             const pubkeyWitness = registry.witness(sender.accountID);

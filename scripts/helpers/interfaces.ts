@@ -46,6 +46,7 @@ export interface Transaction {
     toIndex: number;
     tokenType: number;
     amount: number;
+    fee: number;
     nonce: number;
     signature: string;
 }

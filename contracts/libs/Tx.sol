@@ -15,18 +15,19 @@ library Tx {
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
     uint256 public constant MASK_AMOUNT = 0xffffffff;
+    uint256 public constant MASK_FEE = 0xffffffff;
     uint256 public constant MASK_NONCE = 0xffffffff;
     uint256 public constant MASK_TOKEN_ID = 0xffff;
     uint256 public constant MASK_BYTE = 0xff;
 
     // transaction_type: transfer
-    // [sender_state_id<4>|receiver_state_id<4>|amount<4>]
-    uint256 public constant TX_LEN_0 = 12;
-    uint256 public constant MASK_TX_0 = 0xffffffffffffffffffffffffffffffff;
+    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|fee<4>]
+    uint256 public constant TX_LEN_0 = 16;
     // positions in bytes
     uint256 public constant POSITION_SENDER_0 = 4;
     uint256 public constant POSITION_RECEIVER_0 = 8;
     uint256 public constant POSITION_AMOUNT_0 = 12;
+    uint256 public constant POSITION_FEE_0 = 16;
 
     // transaction_type: create
     // [receiver_account_id<4>|receiver_state_id<4>|token<2>]
@@ -56,6 +57,7 @@ library Tx {
         uint256 fromIndex;
         uint256 toIndex;
         uint256 amount;
+        uint256 fee;
     }
 
     struct CreateAccount {
@@ -257,15 +259,17 @@ library Tx {
             _tx.toIndex,
             _tx.tokenType,
             _tx.nonce,
-            _tx.amount
+            _tx.amount,
+            _tx.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
         Tx.Transfer memory _txCompressed = Tx.Transfer(
             _tx.fromIndex,
             _tx.toIndex,
-            _tx.amount
+            _tx.amount,
+            _tx.fee
         );
         return _txCompressed;
     }
@@ -281,14 +285,16 @@ library Tx {
             uint256 fromIndex;
             uint256 toIndex;
             uint256 amount;
-            (, fromIndex, toIndex, , , amount) = abi.decode(
+            uint256 fee;
+            (, fromIndex, toIndex, , , amount, fee) = abi.decode(
                 txs[i],
-                (uint256, uint256, uint256, uint256, uint256, uint256)
+                (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
             );
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount)
+                uint32(amount),
+                uint32(fee)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -309,10 +315,12 @@ library Tx {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 toIndex = txs[i].toIndex;
             uint256 amount = txs[i].amount;
+            uint256 fee = txs[i].fee;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount)
+                uint32(amount),
+                uint32(fee)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -333,10 +341,12 @@ library Tx {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 toIndex = txs[i].toIndex;
             uint256 amount = txs[i].amount;
+            uint256 fee = txs[i].fee;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount)
+                uint32(amount),
+                uint32(fee)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -358,7 +368,8 @@ library Tx {
                 abi.encodePacked(
                     uint32(txs[i].fromIndex),
                     uint32(txs[i].toIndex),
-                    uint32(txs[i].amount)
+                    uint32(txs[i].amount),
+                    uint32(txs[i].fee)
                 )
             );
         }
@@ -373,6 +384,7 @@ library Tx {
         uint256 sender;
         uint256 receiver;
         uint256 amount;
+        uint256 fee;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_0))
@@ -382,8 +394,9 @@ library Tx {
                 MASK_STATE_ID
             )
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
+            fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
         }
-        return Transfer(sender, receiver, amount);
+        return Transfer(sender, receiver, amount, fee);
     }
 
     function transfer_fromIndexOf(bytes memory txs, uint256 index)
@@ -420,7 +433,18 @@ library Tx {
             let p_tx := add(txs, mul(index, TX_LEN_0))
             amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
         }
-        return amount;
+    }
+
+    function transfer_feeOf(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (uint256 fee)
+    {
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_0))
+            fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
+        }
     }
 
     // Burn Consent
