@@ -211,9 +211,7 @@ contract Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtils.HashFromAccount(
-                    accountProofs.from.accountIP.account
-                ),
+                RollupUtils.HashFromAccount(accountProofs.from.account),
                 _tx.fromIndex,
                 accountProofs.from.siblings
             ),
@@ -222,14 +220,14 @@ contract Transfer is FraudProofHelpers {
 
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
-            accountProofs.from.accountIP.account
+            accountProofs.from.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
         if (
-            accountProofs.from.accountIP.account.tokenType !=
-            accountProofs.to.accountIP.account.tokenType
+            accountProofs.from.account.tokenType !=
+            accountProofs.to.account.tokenType
         )
             return (
                 ZERO_BYTES32,
@@ -251,7 +249,7 @@ contract Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 newRoot,
-                RollupUtils.HashFromAccount(accountProofs.to.accountIP.account),
+                RollupUtils.HashFromAccount(accountProofs.to.account),
                 _tx.toIndex,
                 accountProofs.to.siblings
             ),
@@ -276,7 +274,7 @@ contract Transfer is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        Types.UserAccount memory account = _merkle_proof.account;
         account = RemoveTokensFromAccount(account, _tx.amount);
         account.nonce++;
         bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
@@ -292,7 +290,7 @@ contract Transfer is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        Types.UserAccount memory account = _merkle_proof.account;
         account = AddTokensToAccount(account, _tx.amount);
         bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(

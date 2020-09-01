@@ -74,20 +74,17 @@ contract Airdrop is FraudProofHelpers {
             bool
         )
     {
-        // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, accountProofs.from);
-
         Types.ErrorCode err_code = validateTxBasic(
             txs.transfer_amountOf(i),
-            accountProofs.from.accountIP.account
+            accountProofs.from.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
         if (
-            accountProofs.from.accountIP.account.tokenType !=
-            accountProofs.to.accountIP.account.tokenType
+            accountProofs.from.account.tokenType !=
+            accountProofs.to.account.tokenType
         )
             // invalid state transition
             // needs to be slashed because the submitted transaction
@@ -110,9 +107,6 @@ contract Airdrop is FraudProofHelpers {
             i
         );
 
-        // validate if leaf exists in the updated balance tree
-        ValidateAccountMP(newRoot, accountProofs.to);
-
         (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, txs, i);
 
         return (
@@ -129,8 +123,8 @@ contract Airdrop is FraudProofHelpers {
         bytes memory txs,
         uint256 i
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory stateLeaf = _merkle_proof.accountIP.account;
-        uint256 stateIndex = _merkle_proof.accountIP.pathToAccount;
+        Types.UserAccount memory stateLeaf = _merkle_proof.account;
+        uint256 stateIndex = _merkle_proof.pathToAccount;
         if (stateIndex == txs.transfer_fromIndexOf(i)) {
             stateLeaf = RemoveTokensFromAccount(
                 stateLeaf,

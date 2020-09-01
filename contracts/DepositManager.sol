@@ -185,7 +185,7 @@ contract DepositManager {
         bool isValid = merkleUtils.verifyLeaf(
             latestBalanceTree,
             emptySubtreeRoot,
-            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.pathToAccount,
             _zero_account_mp.siblings
         );
 
@@ -197,7 +197,7 @@ contract DepositManager {
         // emit the event
         logger.logDepositFinalised(
             depositsSubTreeRoot,
-            _zero_account_mp.accountIP.pathToAccount
+            _zero_account_mp.pathToAccount
         );
 
         // return the updated merkle tree root

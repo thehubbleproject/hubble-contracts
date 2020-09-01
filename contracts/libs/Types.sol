@@ -81,19 +81,6 @@ library Types {
         uint256 fromIndex;
     }
 
-    // AccountInclusionProof consists of the following fields
-    // 1. Path to the account leaf from root in the balances tree
-    // 2. Actual data stored in the leaf
-    struct AccountInclusionProof {
-        uint256 pathToAccount;
-        UserAccount account;
-    }
-
-    struct TranasctionInclusionProof {
-        uint256 pathToTx;
-        Transfer data;
-    }
-
     // UserAccount contains the actual data stored in the leaf of balance tree
     struct UserAccount {
         // ID is the path to the pubkey in the PDA tree
@@ -106,7 +93,8 @@ library Types {
     }
 
     struct AccountMerkleProof {
-        AccountInclusionProof accountIP;
+        UserAccount account;
+        uint256 pathToAccount; // This field is kept for backward competibility, don't use it.
         bytes32[] siblings;
     }
 
@@ -120,7 +108,7 @@ library Types {
     }
 
     struct TransactionMerkleProof {
-        TranasctionInclusionProof _tx;
+        Transfer _tx;
         bytes32[] siblings;
     }
 

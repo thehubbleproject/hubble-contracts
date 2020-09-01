@@ -74,9 +74,7 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        if (
-            to_account_proof.accountIP.pathToAccount != txs.create_stateIdOf(i)
-        ) {
+        if (to_account_proof.pathToAccount != txs.create_stateIdOf(i)) {
             return ("", "", Types.ErrorCode.NotOnDesignatedStateLeaf, false);
         }
         if (
@@ -90,7 +88,7 @@ contract CreateAccount is FraudProofHelpers {
             !MerkleTreeUtilsLib.verifyLeaf(
                 _balanceRoot,
                 keccak256(abi.encode(0)), // Zero account leaf
-                to_account_proof.accountIP.pathToAccount,
+                to_account_proof.pathToAccount,
                 to_account_proof.siblings
             )
         ) {
