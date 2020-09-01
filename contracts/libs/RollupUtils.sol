@@ -402,7 +402,7 @@ library RollupUtils {
     {
         Types.DropTx memory _tx = AirdropFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, 0);
         return Tx.serialize(_txs);
     }
 
@@ -414,7 +414,7 @@ library RollupUtils {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.DropTx memory _tx = AirdropFromBytes(txBytes[i]);
-            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, 0);
         }
         return Tx.serialize(_txs);
     }
@@ -471,10 +471,11 @@ library RollupUtils {
             transaction.toIndex,
             transaction.tokenType,
             transaction.nonce,
-            transaction.amount
+            transaction.amount,
+            transaction.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
         return transaction;
     }
@@ -547,7 +548,7 @@ library RollupUtils {
     {
         Types.Transfer memory _tx = TxFromBytes(txBytes);
         Tx.Transfer[] memory _txs = new Tx.Transfer[](1);
-        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+        _txs[0] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.fee);
         return Tx.serialize(_txs);
     }
 
@@ -558,7 +559,12 @@ library RollupUtils {
         Tx.Transfer[] memory _txs = new Tx.Transfer[](txBytes.length);
         for (uint256 i = 0; i < txBytes.length; i++) {
             Types.Transfer memory _tx = TxFromBytes(txBytes[i]);
-            _txs[i] = Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount);
+            _txs[i] = Tx.Transfer(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                _tx.fee
+            );
         }
         return Tx.serialize(_txs);
     }

@@ -55,6 +55,7 @@ library Types {
         uint256 tokenType;
         uint256 nonce;
         uint256 amount;
+        uint256 fee;
     }
 
     struct CreateAccount {

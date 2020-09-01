@@ -27,18 +27,15 @@ describe("Tx Serialization", async () => {
         assert.equal(txSize, (await c.transfer_size(serialized)).toNumber());
         assert.isFalse(await c.transfer_hasExcessData(serialized));
         for (let i = 0; i < txSize; i++) {
-            const amount = (
-                await c.transfer_amountOf(serialized, i)
-            ).toNumber();
-            const fromIndex = (
-                await c.transfer_fromIndexOf(serialized, i)
-            ).toNumber();
-            const toIndex = (
-                await c.transfer_toIndexOf(serialized, i)
-            ).toNumber();
-            assert.equal(amount, txs[i].amount);
-            assert.equal(fromIndex, txs[i].fromIndex);
-            assert.equal(toIndex, txs[i].toIndex);
+            const fromIndex = await c.transfer_fromIndexOf(serialized, i);
+            const toIndex = await c.transfer_toIndexOf(serialized, i);
+            const amount = await c.transfer_amountOf(serialized, i);
+            const fee = await c.transfer_feeOf(serialized, i);
+
+            assert.equal(fromIndex.toNumber(), txs[i].fromIndex);
+            assert.equal(toIndex.toNumber(), txs[i].toIndex);
+            assert.equal(amount.toNumber(), txs[i].amount);
+            assert.equal(fee.toNumber(), txs[i].fee);
             const decoded = await c.transfer_decode(serialized, i);
             assert.equal(
                 decoded.fromIndex.toString(),

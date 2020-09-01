@@ -35,7 +35,8 @@ contract TestTx {
                 _tx.toIndex,
                 _tx.tokenType,
                 _tx.nonce,
-                _tx.amount
+                _tx.amount,
+                _tx.fee
             );
     }
 
@@ -81,6 +82,14 @@ contract TestTx {
         returns (uint256)
     {
         return txs.transfer_toIndexOf(index);
+    }
+
+    function transfer_feeOf(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.transfer_feeOf(index);
     }
 
     function transfer_messageOf(
