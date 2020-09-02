@@ -18,7 +18,7 @@ contract CreateAccount is FraudProofHelpers {
     function processCreateAccountBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs
+        Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
         uint256 length = txs.create_size();
 
@@ -30,7 +30,7 @@ contract CreateAccount is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.accountProofs[i].to
+                accountProofs[i]
             );
 
             if (!isTxValid) {

@@ -47,7 +47,8 @@ interface IReddit {
         bytes32 _balanceRoot,
         bytes calldata txs,
         uint256 i,
-        Types.AccountProofs calldata accountProofs
+        Types.AccountMerkleProof calldata fromAccountProof,
+        Types.AccountMerkleProof calldata toAccountProof
     )
         external
         view
@@ -76,7 +77,8 @@ interface IReddit {
     function processTx(
         bytes32 _balanceRoot,
         Tx.Transfer calldata _tx,
-        Types.AccountProofs calldata accountProofs
+        Types.AccountMerkleProof calldata fromAccountProof,
+        Types.AccountMerkleProof calldata toAccountProof
     )
         external
         view
@@ -139,7 +141,7 @@ interface IReddit {
     function processCreateAccountBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.BatchValidationProofs calldata batchProofs,
+        Types.AccountMerkleProof[] calldata accountProofs,
         bytes32 expectedTxRoot
     )
         external
@@ -153,7 +155,7 @@ interface IReddit {
     function processAirdropBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.BatchValidationProofs calldata batchProofs,
+        Types.AccountMerkleProof[] calldata accountProofs,
         bytes32 expectedTxRoot
     )
         external
@@ -167,7 +169,7 @@ interface IReddit {
     function processTransferBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.BatchValidationProofs calldata batchProofs,
+        Types.AccountMerkleProof[] calldata accountProofs,
         bytes32 expectedTxRoot
     )
         external
@@ -181,7 +183,7 @@ interface IReddit {
     function processBurnConsentBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.BatchValidationProofs calldata batchProofs,
+        Types.AccountMerkleProof[] calldata accountProofs,
         bytes32 expectedTxRoot
     )
         external
@@ -195,7 +197,7 @@ interface IReddit {
     function processBurnExecutionBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.BatchValidationProofs calldata batchProofs,
+        Types.AccountMerkleProof[] calldata accountProofs,
         bytes32 expectedTxRoot
     )
         external

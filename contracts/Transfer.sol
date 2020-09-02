@@ -96,7 +96,7 @@ contract Transfer is FraudProofHelpers {
     function processTransferBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment
     )
         public
@@ -125,7 +125,8 @@ contract Transfer is FraudProofHelpers {
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
                 txs.transfer_decode(i),
-                batchProofs.accountProofs[i]
+                accountProofs[i * 2],
+                accountProofs[i * 2 + 1]
             );
 
             if (!isTxValid) {
@@ -146,7 +147,8 @@ contract Transfer is FraudProofHelpers {
     function processTx(
         bytes32 stateRoot,
         Tx.Transfer memory _tx,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         pure
@@ -161,23 +163,23 @@ contract Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtils.HashFromAccount(accountProofs.from.account),
+                RollupUtils.HashFromAccount(fromAccountProof.account),
                 _tx.fromIndex,
-                accountProofs.from.siblings
+                fromAccountProof.siblings
             ),
             "Transfer: sender does not exist"
         );
 
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
-            accountProofs.from.account
+            fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
         if (
-            accountProofs.from.account.tokenType !=
-            accountProofs.to.account.tokenType
+            fromAccountProof.account.tokenType !=
+            toAccountProof.account.tokenType
         )
             return (
                 ZERO_BYTES32,
@@ -192,22 +194,22 @@ contract Transfer is FraudProofHelpers {
         bytes memory new_to_account;
 
         (new_from_account, newRoot) = ApplyTransferTxSender(
-            accountProofs.from,
+            fromAccountProof,
             _tx
         );
 
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 newRoot,
-                RollupUtils.HashFromAccount(accountProofs.to.account),
+                RollupUtils.HashFromAccount(toAccountProof.account),
                 _tx.toIndex,
-                accountProofs.to.siblings
+                toAccountProof.siblings
             ),
             "Transfer: receiver does not exist"
         );
 
         (new_to_account, newRoot) = ApplyTransferTxReceiver(
-            accountProofs.to,
+            toAccountProof,
             _tx
         );
 

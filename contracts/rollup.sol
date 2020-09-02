@@ -21,7 +21,7 @@ interface IRollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes calldata _txs,
-        Types.BatchValidationProofs calldata batchProofs,
+        Types.AccountMerkleProof[] calldata accountProofs,
         bytes32 expectedTxHashCommitment,
         Types.Usage batchType
     )
@@ -334,7 +334,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory commitmentMP,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs
+        Types.AccountMerkleProof[] memory accountProofs
     ) public {
         {
             // check if batch is disputable
@@ -384,7 +384,7 @@ contract Rollup is RollupHelpers {
             .processBatch(
             commitmentMP.commitment.stateRoot,
             txs,
-            batchProofs,
+            accountProofs,
             commitmentMP.commitment.txHashCommitment,
             commitmentMP.commitment.batchType
         );
