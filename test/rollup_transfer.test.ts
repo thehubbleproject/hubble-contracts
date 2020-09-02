@@ -157,33 +157,22 @@ describe("Rollup Transfer Commitment", () => {
             const proof = stateTree.applyTxTransfer(tx);
             const postRoot = stateTree.root;
 
-            const result = await rollup.testProcessTx(
-                preRoot,
-                tx.extended(),
-                {
-                    siblings: pubkeyWitness,
-                    _pda: {
-                        pathToPubkey: sender.accountID,
-                        pubkey_leaf: { pubkey: sender.encodePubkey() }
-                    }
-                },
-                {
-                    from: {
-                        accountIP: {
-                            pathToAccount: sender.stateID,
-                            account: proof.senderAccount
-                        },
-                        siblings: proof.senderWitness
+            const result = await rollup.testProcessTx(preRoot, tx.extended(), {
+                from: {
+                    accountIP: {
+                        pathToAccount: sender.stateID,
+                        account: proof.senderAccount
                     },
-                    to: {
-                        accountIP: {
-                            pathToAccount: receiver.stateID,
-                            account: proof.receiverAccount
-                        },
-                        siblings: proof.receiverWitness
-                    }
+                    siblings: proof.senderWitness
+                },
+                to: {
+                    accountIP: {
+                        pathToAccount: receiver.stateID,
+                        account: proof.receiverAccount
+                    },
+                    siblings: proof.receiverWitness
                 }
-            );
+            });
             assert.equal(result[0], postRoot, "mismatch processed stateroot");
         }
     });

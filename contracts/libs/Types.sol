@@ -17,12 +17,6 @@ library Types {
         Deposit
     }
 
-    // PDALeaf represents the leaf in
-    // Pubkey DataAvailability Tree
-    struct PDALeaf {
-        uint256[4] pubkey;
-    }
-
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
         bytes32 commitmentRoot;
@@ -100,11 +94,6 @@ library Types {
         Transfer data;
     }
 
-    struct PDAInclusionProof {
-        uint256 pathToPubkey;
-        PDALeaf pubkey_leaf;
-    }
-
     // UserAccount contains the actual data stored in the leaf of balance tree
     struct UserAccount {
         // ID is the path to the pubkey in the PDA tree
@@ -128,16 +117,10 @@ library Types {
 
     struct BatchValidationProofs {
         AccountProofs[] accountProofs;
-        PDAMerkleProof[] pdaProof;
     }
 
     struct TransactionMerkleProof {
         TranasctionInclusionProof _tx;
-        bytes32[] siblings;
-    }
-
-    struct PDAMerkleProof {
-        PDAInclusionProof _pda;
         bytes32[] siblings;
     }
 

@@ -150,7 +150,7 @@ contract Transfer is FraudProofHelpers {
         bytes32 expectedTxHashCommitment
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes32,
@@ -175,7 +175,6 @@ contract Transfer is FraudProofHelpers {
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
                 txs.transfer_decode(i),
-                batchProofs.pdaProof[i],
                 batchProofs.accountProofs[i]
             );
 
@@ -197,7 +196,6 @@ contract Transfer is FraudProofHelpers {
     function processTx(
         bytes32 stateRoot,
         Tx.Transfer memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public

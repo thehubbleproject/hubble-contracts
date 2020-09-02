@@ -62,7 +62,6 @@ contract RollupReddit {
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
         public
@@ -82,7 +81,6 @@ contract RollupReddit {
                 _balanceRoot,
                 txs,
                 0,
-                _to_pda_proof,
                 to_account_proof
             );
     }
@@ -107,7 +105,6 @@ contract RollupReddit {
         bytes32 _balanceRoot,
         bytes memory sig,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public
@@ -122,14 +119,7 @@ contract RollupReddit {
     {
         bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes, sig);
         // Validate ECDSA sig
-        return
-            airdrop.processAirdropTx(
-                _balanceRoot,
-                txs,
-                0,
-                _from_pda_proof,
-                accountProofs
-            );
+        return airdrop.processAirdropTx(_balanceRoot, txs, 0, accountProofs);
     }
 
     //
@@ -153,7 +143,6 @@ contract RollupReddit {
         bytes32 _balanceRoot,
         bytes memory sig,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountProofs memory accountProofs
     )
         public
@@ -168,13 +157,7 @@ contract RollupReddit {
     {
         Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
         // Validate BLS sig
-        return
-            transfer.processTx(
-                _balanceRoot,
-                _tx,
-                _from_pda_proof,
-                accountProofs
-            );
+        return transfer.processTx(_balanceRoot, _tx, accountProofs);
     }
 
     //
@@ -192,7 +175,6 @@ contract RollupReddit {
     function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
     )
         public
@@ -210,7 +192,6 @@ contract RollupReddit {
                 _balanceRoot,
                 txs,
                 0,
-                _from_pda_proof,
                 _fromAccountProof
             );
     }

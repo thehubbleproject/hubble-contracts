@@ -29,13 +29,6 @@ library RollupUtils {
     }
 
     // ---------- Account Related Utils -------------------
-    function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
-        public
-        pure
-        returns (bytes32)
-    {
-        return keccak256(abi.encode(_PDA_Leaf.pubkey));
-    }
 
     // AccountFromBytes decodes the bytes to account
     function AccountFromBytes(bytes memory accountBytes)

@@ -22,7 +22,6 @@ interface IReddit {
         bytes32 _balanceRoot,
         bytes calldata txs,
         uint256 i,
-        Types.PDAMerkleProof calldata _to_pda_proof,
         Types.AccountMerkleProof calldata to_account_proof
     )
         external
@@ -48,7 +47,6 @@ interface IReddit {
         bytes32 _balanceRoot,
         bytes calldata txs,
         uint256 i,
-        Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
         external
@@ -78,7 +76,6 @@ interface IReddit {
     function processTx(
         bytes32 _balanceRoot,
         Tx.Transfer calldata _tx,
-        Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountProofs calldata accountProofs
     )
         external
@@ -105,7 +102,6 @@ interface IReddit {
         bytes32 _balanceRoot,
         bytes calldata txs,
         uint256 i,
-        Types.PDAMerkleProof calldata _from_pda_proof,
         Types.AccountMerkleProof calldata _fromAccountProof
     )
         external
