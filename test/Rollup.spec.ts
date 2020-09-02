@@ -147,19 +147,6 @@ describe("Rollup", async function() {
                         )
                     }
                 }
-            ],
-            pdaProof: [
-                {
-                    _pda: {
-                        pathToPubkey: Alice.accountID,
-                        pubkey_leaf: {
-                            pubkey: mcl.g2ToHex(Alice.publicKey)
-                        }
-                    },
-                    siblings: registry
-                        .witness(Alice.accountID)
-                        .map(ethers.utils.arrayify)
-                }
             ]
         });
     });
