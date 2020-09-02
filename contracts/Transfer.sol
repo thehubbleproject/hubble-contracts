@@ -3,62 +3,14 @@ pragma experimental ABIEncoderV2;
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
 contract Transfer is FraudProofHelpers {
-    // BLS PROOF VALIDITY IMPL START
-
     using Tx for bytes;
-
-    uint256 constant STATE_WITNESS_LENGTH = 32;
-    uint256 constant PUBKEY_WITNESS_LENGTH = 32;
-
-    struct InvalidSignatureProof {
-        Types.UserAccount[] stateAccounts;
-        bytes32[STATE_WITNESS_LENGTH][] stateWitnesses;
-        uint256[4][] pubkeys;
-        bytes32[PUBKEY_WITNESS_LENGTH][] pubkeyWitnesses;
-    }
-
-    function checkStateInclusion(
-        bytes32 root,
-        uint256 stateIndex,
-        bytes32 stateAccountHash,
-        bytes32[STATE_WITNESS_LENGTH] memory witness
-    ) internal pure returns (bool) {
-        bytes32 acc = stateAccountHash;
-        uint256 path = stateIndex;
-        for (uint256 i = 0; i < STATE_WITNESS_LENGTH; i++) {
-            if (path & 1 == 1) {
-                acc = keccak256(abi.encode(witness[i], acc));
-            } else {
-                acc = keccak256(abi.encode(acc, witness[i]));
-            }
-            path >>= 1;
-        }
-        return root == acc;
-    }
-
-    function checkPubkeyInclusion(
-        bytes32 root,
-        uint256 pubkeyIndex,
-        bytes32 pubkeyHash,
-        bytes32[STATE_WITNESS_LENGTH] memory witness
-    ) internal pure returns (bool) {
-        bytes32 acc = pubkeyHash;
-        uint256 path = pubkeyIndex;
-        for (uint256 i = 0; i < STATE_WITNESS_LENGTH; i++) {
-            if (path & 1 == 1) {
-                acc = keccak256(abi.encode(witness[i], acc));
-            } else {
-                acc = keccak256(abi.encode(acc, witness[i]));
-            }
-            path >>= 1;
-        }
-        return root == acc;
-    }
 
     uint256 constant MASK_4BYTES = 0xffffffff;
     uint256 constant MASK_1BYTES = 0xff;
@@ -69,14 +21,14 @@ contract Transfer is FraudProofHelpers {
     uint256 constant MSG_LEN_0 = 53;
     uint256 constant TX_LEN_0 = 16;
 
-    function _checkSignature(
+    function checkSignature(
         uint256[2] memory signature,
-        InvalidSignatureProof memory proof,
+        Types.SignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
         bytes memory txs
-    ) internal view returns (Types.ErrorCode) {
+    ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
@@ -91,10 +43,10 @@ contract Transfer is FraudProofHelpers {
 
             // check state inclustion
             require(
-                checkStateInclusion(
+                MerkleTreeUtilsLib.verifyLeaf(
                     stateRoot,
-                    signerStateID,
                     RollupUtils.HashFromAccount(proof.stateAccounts[i]),
+                    signerStateID,
                     proof.stateWitnesses[i]
                 ),
                 "Rollup: state inclusion signer"
@@ -103,10 +55,10 @@ contract Transfer is FraudProofHelpers {
             // check pubkey inclusion
             uint256 signerAccountID = proof.stateAccounts[i].ID;
             require(
-                checkPubkeyInclusion(
+                MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
-                    signerAccountID,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    signerAccountID,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Rollup: account does not exists"
@@ -136,8 +88,6 @@ contract Transfer is FraudProofHelpers {
         }
         return Types.ErrorCode.NoError;
     }
-
-    // BLS PROOF VALIDITY IMPL END
 
     /**
      * @notice processBatch processes a whole batch

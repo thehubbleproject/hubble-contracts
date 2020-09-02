@@ -4,6 +4,13 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
+    struct SignatureProof {
+        Types.UserAccount[] stateAccounts;
+        bytes32[][] stateWitnesses;
+        uint256[4][] pubkeys;
+        bytes32[][] pubkeyWitnesses;
+    }
+
     // We define Usage for a batch or for a tx
     // to check if the usage of a batch and all txs in it are the same
     enum Usage {
@@ -30,14 +37,14 @@ library Types {
         bytes32 stateRoot;
         bytes32 accountRoot;
         bytes32 txHashCommitment;
-        uint256[2] aggregatedSignature;
+        uint256[2] signature;
         Usage batchType;
     }
 
     struct CommitmentInclusionProof {
         Commitment commitment;
         uint256 pathToCommitment;
-        bytes32[] siblings;
+        bytes32[] witness;
     }
 
     // Transaction represents how each transaction looks like for

@@ -118,7 +118,7 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        const tx = await rollup.checkSignature(
+        const tx = await rollup._checkSignature(
             signature,
             proof,
             postStateRoot,

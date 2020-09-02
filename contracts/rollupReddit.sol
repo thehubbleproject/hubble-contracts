@@ -2,6 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { IReddit } from "./interfaces/IReddit.sol";
+import { Transfer } from "./Transfer.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
@@ -10,10 +11,29 @@ import { Tx } from "./libs/Tx.sol";
 
 contract RollupReddit {
     using Tx for bytes;
+    Transfer public transfer;
+
+    function checkTransferSignature(
+        bytes32 appID,
+        uint256[2] memory signature,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        Types.SignatureProof memory proof,
+        bytes memory txs
+    ) public view returns (Types.ErrorCode) {
+        transfer.checkSignature(
+            signature,
+            proof,
+            stateRoot,
+            accountRoot,
+            appID,
+            txs
+        );
+    }
+
     Registry public nameRegistry;
     IReddit public createAccount;
     IReddit public airdrop;
-    IReddit public transfer;
     IReddit public burnConsent;
     IReddit public burnExecution;
 
@@ -23,11 +43,10 @@ contract RollupReddit {
         createAccount = IReddit(
             nameRegistry.getContractDetails(ParamManager.CREATE_ACCOUNT())
         );
-
         airdrop = IReddit(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
-        transfer = IReddit(
+        transfer = Transfer(
             nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
         burnConsent = IReddit(

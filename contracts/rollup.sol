@@ -32,6 +32,15 @@ interface IRollupReddit {
             bytes32,
             bool
         );
+
+    function checkTransferSignature(
+        bytes32 appID,
+        uint256[2] calldata signature,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        Types.SignatureProof calldata proof,
+        bytes calldata txs
+    ) external view returns (Types.ErrorCode);
 }
 
 contract RollupSetup {
@@ -175,6 +184,7 @@ contract Rollup is RollupHelpers {
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     uint256[2] public ZERO_AGG_SIG = [0, 0];
+    bytes32 public APP_ID;
 
     /*********************
      * Constructor *
@@ -226,25 +236,25 @@ contract Rollup is RollupHelpers {
             batches.length - 1,
             Types.Usage.Genesis
         );
+        APP_ID = keccak256(abi.encodePacked(address(this)));
     }
 
     function submitBatch(
         bytes[] calldata txs,
         bytes32[] calldata updatedRoots,
         Types.Usage batchType,
-        uint256[2][] calldata aggregatedSignatures
+        uint256[2][] calldata signatures
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         uint256 commmitmentLength = updatedRoots.length;
         bytes32[] memory commitments = new bytes32[](commmitmentLength);
-        bytes32 pubkeyTreeRoot = accountRegistry.root();
         for (uint256 i = 0; i < commmitmentLength; i++) {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
-                    pubkeyTreeRoot,
+                    accountRegistry.root(),
                     keccak256(txs[i]),
-                    aggregatedSignatures[i],
+                    signatures[i],
                     uint8(batchType)
                 )
             );
@@ -352,11 +362,11 @@ contract Rollup is RollupHelpers {
                         commitmentMP.commitment.stateRoot,
                         commitmentMP.commitment.accountRoot,
                         commitmentMP.commitment.txHashCommitment,
-                        commitmentMP.commitment.aggregatedSignature,
+                        commitmentMP.commitment.signature,
                         uint8(commitmentMP.commitment.batchType)
                     ),
                     commitmentMP.pathToCommitment,
-                    commitmentMP.siblings
+                    commitmentMP.witness
                 ),
                 "Commitment not present in batch"
             );
@@ -394,6 +404,60 @@ contract Rollup is RollupHelpers {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;
+        }
+    }
+
+    function disputeSignature(
+        uint256 batchID,
+        Types.CommitmentInclusionProof memory commitmentProof,
+        Types.SignatureProof memory signatureProof,
+        bytes memory txs
+    ) public {
+        {
+            // check if batch is disputable
+            require(
+                !batches[batchID].withdrawn,
+                "No point dispute a withdrawn batch"
+            );
+            require(
+                block.number < batches[batchID].finalisesOn,
+                "Batch already finalised"
+            );
+
+            require(
+                (batchID < invalidBatchMarker || invalidBatchMarker == 0),
+                "Already successfully disputed. Roll back in process"
+            );
+        }
+        // verify is the commitment exits in the batch
+        require(
+            merkleUtils.verifyLeaf(
+                batches[batchID].commitmentRoot,
+                RollupUtils.CommitmentToHash(
+                    commitmentProof.commitment.stateRoot,
+                    commitmentProof.commitment.accountRoot,
+                    keccak256(txs),
+                    commitmentProof.commitment.signature,
+                    uint8(commitmentProof.commitment.batchType)
+                ),
+                commitmentProof.pathToCommitment,
+                commitmentProof.witness
+            ),
+            "Commitment not present in batch"
+        );
+
+        Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
+            APP_ID,
+            commitmentProof.commitment.signature,
+            commitmentProof.commitment.stateRoot,
+            commitmentProof.commitment.accountRoot,
+            signatureProof,
+            txs
+        );
+
+        if (errCode != Types.ErrorCode.NoError) {
+            invalidBatchMarker = batchID;
+            SlashAndRollback();
         }
     }
 
