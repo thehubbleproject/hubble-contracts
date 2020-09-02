@@ -152,23 +152,24 @@ describe("Rollup Transfer Commitment", () => {
                 fee,
                 sender.nonce
             );
-            const pubkeyWitness = registry.witness(sender.accountID);
             const preRoot = stateTree.root;
             const proof = stateTree.applyTxTransfer(tx);
             const postRoot = stateTree.root;
 
-            const result = await rollup.testProcessTx(preRoot, tx.extended(), {
-                from: {
+            const result = await rollup.testProcessTx(
+                preRoot,
+                tx.extended(),
+                {
                     pathToAccount: sender.stateID,
                     account: proof.senderAccount,
                     siblings: proof.senderWitness
                 },
-                to: {
+                {
                     pathToAccount: receiver.stateID,
                     account: proof.receiverAccount,
                     siblings: proof.receiverWitness
                 }
-            });
+            );
             assert.equal(result[0], postRoot, "mismatch processed stateroot");
         }
     });

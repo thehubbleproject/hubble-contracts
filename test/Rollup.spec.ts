@@ -128,23 +128,17 @@ describe("Rollup", async function() {
             witness: tree.witness(0).nodes
         };
 
-        await rollup.disputeBatch(batchId, commitmentMP, txs, {
-            accountProofs: [
-                {
-                    from: {
-                        pathToAccount: Alice.stateID,
-                        account: proof.senderAccount,
-                        siblings: proof.senderWitness.map(ethers.utils.arrayify)
-                    },
-                    to: {
-                        pathToAccount: Bob.stateID,
-                        account: proof.receiverAccount,
-                        siblings: proof.receiverWitness.map(
-                            ethers.utils.arrayify
-                        )
-                    }
-                }
-            ]
-        });
+        await rollup.disputeBatch(batchId, commitmentMP, txs, [
+            {
+                pathToAccount: Alice.stateID,
+                account: proof.senderAccount,
+                siblings: proof.senderWitness.map(ethers.utils.arrayify)
+            },
+            {
+                pathToAccount: Bob.stateID,
+                account: proof.receiverAccount,
+                siblings: proof.receiverWitness.map(ethers.utils.arrayify)
+            }
+        ]);
     });
 });
