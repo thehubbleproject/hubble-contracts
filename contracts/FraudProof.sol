@@ -22,26 +22,6 @@ contract FraudProofSetup {
 }
 
 contract FraudProofHelpers is FraudProofSetup {
-    function ValidateAccountMP(
-        bytes32 root,
-        Types.AccountMerkleProof memory merkle_proof
-    ) public pure {
-        bytes32 accountLeaf = RollupUtils.HashFromAccount(
-            merkle_proof.accountIP.account
-        );
-
-        // verify from leaf exists in the balance tree
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                root,
-                accountLeaf,
-                merkle_proof.accountIP.pathToAccount,
-                merkle_proof.siblings
-            ),
-            "Merkle Proof is incorrect"
-        );
-    }
-
     function validateTxBasic(
         uint256 amount,
         Types.UserAccount memory _from_account
@@ -114,7 +94,7 @@ contract FraudProofHelpers is FraudProofSetup {
     ) public pure returns (bytes32) {
         bytes32 newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(RollupUtils.BytesFromAccount(new_account)),
-            _merkle_proof.accountIP.pathToAccount,
+            _merkle_proof.pathToAccount,
             _merkle_proof.siblings
         );
         return newRoot;

@@ -132,17 +132,13 @@ describe("Rollup", async function() {
             accountProofs: [
                 {
                     from: {
-                        accountIP: {
-                            pathToAccount: Alice.stateID,
-                            account: proof.senderAccount
-                        },
+                        pathToAccount: Alice.stateID,
+                        account: proof.senderAccount,
                         siblings: proof.senderWitness.map(ethers.utils.arrayify)
                     },
                     to: {
-                        accountIP: {
-                            pathToAccount: Bob.stateID,
-                            account: proof.receiverAccount
-                        },
+                        pathToAccount: Bob.stateID,
+                        account: proof.receiverAccount,
                         siblings: proof.receiverWitness.map(
                             ethers.utils.arrayify
                         )

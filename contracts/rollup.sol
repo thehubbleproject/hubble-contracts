@@ -295,7 +295,7 @@ contract Rollup is RollupHelpers {
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
-            _zero_account_mp.accountIP.pathToAccount,
+            _zero_account_mp.pathToAccount,
             _zero_account_mp.siblings
         );
         bytes32 depositCommitment = RollupUtils.CommitmentToHash(
