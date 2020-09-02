@@ -1,5 +1,5 @@
 import { Tree } from "./tree";
-import { BlsAccountRegistry } from "../../types/ethers-contracts/BlsAccountRegistry";
+import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { ethers } from "ethers";
 import { assert } from "chai";
 

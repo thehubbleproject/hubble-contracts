@@ -3,7 +3,7 @@ import { TestBls } from "../types/ethers-contracts/TestBls";
 import web3 from "web3";
 import { assert } from "chai";
 
-import * as mcl from "./utils/mcl";
+import * as mcl from "../ts/mcl";
 import { ethers } from "@nomiclabs/buidler";
 
 describe("BLS", async () => {

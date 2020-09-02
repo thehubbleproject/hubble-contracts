@@ -1,6 +1,6 @@
 import { TestAccountTreeFactory } from "../types/ethers-contracts/TestAccountTreeFactory";
 import { TestAccountTree } from "../types/ethers-contracts/TestAccountTree";
-import { Tree, Hasher } from "./utils/tree";
+import { Tree, Hasher } from "../ts/tree";
 import { ethers } from "@nomiclabs/buidler";
 import { assert } from "chai";
 import { parseEvents } from "../ts/utils";

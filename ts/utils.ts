@@ -30,8 +30,7 @@ export function getParentLeaf(left: string, right: string) {
 }
 
 export function getZeroHash(zeroValue: any) {
-    const abiCoder = ethers.utils.defaultAbiCoder;
-    return ethers.utils.keccak256(abiCoder.encode(["uint256"], [zeroValue]));
+    return ethers.utils.solidityKeccak256(["uint256"], [zeroValue]);
 }
 
 export function defaultHashes(depth: number) {
