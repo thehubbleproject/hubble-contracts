@@ -1,15 +1,14 @@
 import { assert } from "chai";
 import { TxTransfer, TxCreate, TxBurnConsent, TxBurnExecution } from "../ts/tx";
 import { EMPTY_ACCOUNT } from "../ts/state_account";
-import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
 
 describe("RollupUtils", async function() {
     let RollupUtilsInstance: RollupUtils;
     before(async function() {
-        const [signer, ...rest] = await ethers.getSigners();
-        RollupUtilsInstance = await new RollupUtilsFactory(signer).deploy();
+        const factory = await ethers.getContractFactory("RollupUtils");
+        RollupUtilsInstance = (await factory.deploy()) as RollupUtils;
     });
 
     it("test account encoding and decoding", async function() {

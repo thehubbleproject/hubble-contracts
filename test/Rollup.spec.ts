@@ -132,12 +132,12 @@ describe("Rollup", async function() {
             {
                 pathToAccount: Alice.stateID,
                 account: proof.senderAccount,
-                siblings: proof.senderWitness.map(ethers.utils.arrayify)
+                siblings: proof.senderWitness
             },
             {
                 pathToAccount: Bob.stateID,
                 account: proof.receiverAccount,
-                siblings: proof.receiverWitness.map(ethers.utils.arrayify)
+                siblings: proof.receiverWitness
             }
         ]);
     });
