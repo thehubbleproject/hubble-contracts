@@ -13,7 +13,7 @@ contract BurnConsent is FraudProofHelpers {
     function processBurnConsentBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment
     )
         public
@@ -41,7 +41,7 @@ contract BurnConsent is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.accountProofs[i].from
+                accountProofs[i]
             );
 
             if (!isTxValid) {

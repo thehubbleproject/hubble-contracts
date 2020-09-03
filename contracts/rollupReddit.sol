@@ -124,7 +124,8 @@ contract RollupReddit {
         bytes32 _balanceRoot,
         bytes memory sig,
         bytes memory txBytes,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         view
@@ -138,7 +139,14 @@ contract RollupReddit {
     {
         bytes memory txs = RollupUtils.CompressAirdropFromEncoded(txBytes, sig);
         // Validate ECDSA sig
-        return airdrop.processAirdropTx(_balanceRoot, txs, 0, accountProofs);
+        return
+            airdrop.processAirdropTx(
+                _balanceRoot,
+                txs,
+                0,
+                fromAccountProof,
+                toAccountProof
+            );
     }
 
     //
@@ -162,7 +170,8 @@ contract RollupReddit {
         bytes32 _balanceRoot,
         bytes memory sig,
         bytes memory txBytes,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         view
@@ -176,7 +185,13 @@ contract RollupReddit {
     {
         Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
         // Validate BLS sig
-        return transfer.processTx(_balanceRoot, _tx, accountProofs);
+        return
+            transfer.processTx(
+                _balanceRoot,
+                _tx,
+                fromAccountProof,
+                toAccountProof
+            );
     }
 
     //
@@ -256,7 +271,7 @@ contract RollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment,
         Types.Usage batchType
     )
@@ -273,7 +288,7 @@ contract RollupReddit {
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.Airdrop) {
@@ -281,7 +296,7 @@ contract RollupReddit {
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.Transfer) {
@@ -289,7 +304,7 @@ contract RollupReddit {
                 transfer.processTransferBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
@@ -297,7 +312,7 @@ contract RollupReddit {
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
@@ -305,7 +320,7 @@ contract RollupReddit {
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else {

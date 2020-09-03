@@ -13,7 +13,7 @@ contract Airdrop is FraudProofHelpers {
     function processAirdropBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment
     )
         public
@@ -41,7 +41,8 @@ contract Airdrop is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.accountProofs[i]
+                accountProofs[i * 2],
+                accountProofs[i * 2 + 1]
             );
 
             if (!isTxValid) {
@@ -62,7 +63,8 @@ contract Airdrop is FraudProofHelpers {
         bytes32 _balanceRoot,
         bytes memory txs,
         uint256 i,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         pure
@@ -76,15 +78,15 @@ contract Airdrop is FraudProofHelpers {
     {
         Types.ErrorCode err_code = validateTxBasic(
             txs.transfer_amountOf(i),
-            accountProofs.from.account
+            fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
         // account holds the token type in the tx
         if (
-            accountProofs.from.account.tokenType !=
-            accountProofs.to.account.tokenType
+            fromAccountProof.account.tokenType !=
+            toAccountProof.account.tokenType
         )
             // invalid state transition
             // needs to be slashed because the submitted transaction
@@ -101,13 +103,9 @@ contract Airdrop is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyAirdropTx(
-            accountProofs.from,
-            txs,
-            i
-        );
+        (new_from_account, newRoot) = ApplyAirdropTx(fromAccountProof, txs, i);
 
-        (new_to_account, newRoot) = ApplyAirdropTx(accountProofs.to, txs, i);
+        (new_to_account, newRoot) = ApplyAirdropTx(toAccountProof, txs, i);
 
         return (
             newRoot,

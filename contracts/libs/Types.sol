@@ -105,15 +105,6 @@ library Types {
         bytes32[] siblings;
     }
 
-    struct AccountProofs {
-        AccountMerkleProof from;
-        AccountMerkleProof to;
-    }
-
-    struct BatchValidationProofs {
-        AccountProofs[] accountProofs;
-    }
-
     struct TransactionMerkleProof {
         Transfer _tx;
         bytes32[] siblings;

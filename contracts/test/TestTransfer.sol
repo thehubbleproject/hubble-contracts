@@ -34,7 +34,8 @@ contract TestTransfer is Transfer {
     function testProcessTx(
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         pure
@@ -46,6 +47,6 @@ contract TestTransfer is Transfer {
             bool
         )
     {
-        return processTx(_balanceRoot, _tx, accountProofs);
+        return processTx(_balanceRoot, _tx, fromAccountProof, toAccountProof);
     }
 }
