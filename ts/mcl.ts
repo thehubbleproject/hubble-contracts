@@ -54,10 +54,6 @@ export function mclToHex(p: mclFP, prefix: boolean = true) {
     return prefix ? "0x" + s : s;
 }
 
-export function mclToArray(p: mclFP): Uint8Array {
-    return ethers.utils.arrayify(mclToHex(p, true));
-}
-
 export function g1() {
     const g1 = new mcl.G1();
     g1.setStr("1 0x01 0x02", 16);
