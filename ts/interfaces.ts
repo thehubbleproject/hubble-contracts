@@ -4,3 +4,26 @@ export interface DeploymentParameters {
     STAKE_AMOUNT: string;
     GENESIS_STATE_ROOT?: string;
 }
+
+export enum Usage {
+    Genesis,
+    Transfer,
+    CreateAccount,
+    Airdrop,
+    BurnConsent,
+    BurnExecution
+}
+
+export enum ErrorCode {
+    NoError,
+    InvalidTokenAddress,
+    InvalidTokenAmount,
+    NotEnoughTokenBalance,
+    BadFromTokenType,
+    BadToTokenType,
+    BadFromIndex,
+    BurnAlreadyExecuted,
+    NotOnDesignatedStateLeaf,
+    NotCreatingOnZeroAccount,
+    BadSignature
+}

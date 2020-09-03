@@ -2,9 +2,9 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 
-import { Tree, Hasher } from "./utils/tree";
+import { Tree, Hasher } from "../ts/tree";
 
-import * as mcl from "./utils/mcl";
+import * as mcl from "../ts/mcl";
 import { ethers } from "@nomiclabs/buidler";
 import { assert } from "chai";
 

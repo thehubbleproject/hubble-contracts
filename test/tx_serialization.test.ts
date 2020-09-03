@@ -6,7 +6,7 @@ import {
     TxCreate,
     TxBurnConsent,
     TxBurnExecution
-} from "./utils/tx";
+} from "../ts/tx";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 

@@ -1,13 +1,13 @@
-import { Usage } from "../scripts/helpers/interfaces";
+import { Usage } from "../ts/interfaces";
 import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
-import { StateTree } from "./utils/state_tree";
-import { AccountRegistry } from "./utils/account_tree";
-import { Account } from "./utils/state_account";
-import { TxTransfer } from "./utils/tx";
-import * as mcl from "./utils/mcl";
-import { Tree, Hasher } from "./utils/tree";
+import { StateTree } from "../ts/state_tree";
+import { AccountRegistry } from "../ts/account_tree";
+import { Account } from "../ts/state_account";
+import { TxTransfer } from "../ts/tx";
+import * as mcl from "../ts/mcl";
+import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/all-contracts-interfaces";
 import { assert } from "chai";
 

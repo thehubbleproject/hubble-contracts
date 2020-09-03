@@ -1,6 +1,6 @@
 import { Tree } from "./tree";
 import { ethers } from "ethers";
-import { paddedHex, randomNum } from "../../ts/utils";
+import { paddedHex, randomNum } from "./utils";
 
 const amountLen = 4;
 const feeLen = 4;

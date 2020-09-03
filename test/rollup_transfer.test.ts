@@ -4,14 +4,14 @@ import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFacto
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { TxTransfer, serialize, calculateRoot, Tx } from "./utils/tx";
-import * as mcl from "./utils/mcl";
-import { StateTree } from "./utils/state_tree";
-import { AccountRegistry } from "./utils/account_tree";
-import { Account } from "./utils/state_account";
+import { TxTransfer, serialize, calculateRoot, Tx } from "../ts/tx";
+import * as mcl from "../ts/mcl";
+import { StateTree } from "../ts/state_tree";
+import { AccountRegistry } from "../ts/account_tree";
+import { Account } from "../ts/state_account";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
-import { ErrorCode } from "../scripts/helpers/interfaces";
+import { ErrorCode } from "../ts/interfaces";
 import { parseEvents } from "../ts/utils";
 
 let appID =
