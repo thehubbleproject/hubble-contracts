@@ -44,4 +44,23 @@ contract TestTransfer is Transfer {
     {
         return processTx(_balanceRoot, _tx, fromAccountProof, toAccountProof);
     }
+
+    function testProcessTransferBatch(
+        bytes32 stateRoot,
+        bytes memory txs,
+        Types.AccountMerkleProof[] memory accountProofs,
+        bytes32 expectedTxHashCommitment,
+        uint256 feeReceiver
+    ) public returns (bytes32, uint256) {
+        bytes32 newRoot;
+        uint256 operationCost = gasleft();
+        (newRoot, , ) = processTransferBatch(
+            stateRoot,
+            txs,
+            accountProofs,
+            expectedTxHashCommitment,
+            feeReceiver
+        );
+        return (newRoot, operationCost - gasleft());
+    }
 }

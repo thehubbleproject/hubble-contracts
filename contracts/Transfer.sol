@@ -124,7 +124,7 @@ contract Transfer is FraudProofHelpers {
                 stateRoot,
                 fees,
                 feeReceiver,
-                accountProofs[length]
+                accountProofs[length * 2]
             );
         }
 
