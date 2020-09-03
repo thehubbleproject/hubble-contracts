@@ -13,7 +13,7 @@ describe("Account Tree", async () => {
     let hasher: Hasher;
     beforeEach(async function() {
         const factory = await ethers.getContractFactory("TestAccountTree");
-        accountTree = (await factory.deploy()) as TestAccountTree;
+        accountTree = ((await factory.deploy()) as unknown) as TestAccountTree;
         DEPTH = (await accountTree.DEPTH()).toNumber();
         BATCH_DEPTH = (await accountTree.BATCH_DEPTH()).toNumber();
         treeLeft = Tree.new(DEPTH);

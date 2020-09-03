@@ -1,4 +1,6 @@
-import { ethers } from "ethers";
+import { ethers, ContractFactory } from "ethers";
+import { readArtifact } from "@nomiclabs/buidler/plugins";
+import { BuidlerRuntimeEnvironment } from "@nomiclabs/buidler/types";
 
 export function randomHex(numBytes: number) {
     return ethers.utils.randomBytes(numBytes).toString();
@@ -73,4 +75,46 @@ export async function getMerkleRootFromLeaves(
         level += 1;
     }
     return nodes[0];
+}
+
+function linkSolidity5(
+    bytecode: string,
+    libraryName: string,
+    libraryAddress: string
+) {
+    const address = libraryAddress.replace("0x", "");
+    const encodedLibraryName = ethers.utils
+        .solidityKeccak256(["string"], [libraryName])
+        .slice(2, 36);
+    const pattern = new RegExp(`_+\\$${encodedLibraryName}\\$_+`, "g");
+    if (!pattern.exec(bytecode)) {
+        throw new Error(`Can't link '${libraryName}'.`);
+    }
+    return bytecode.replace(pattern, address);
+}
+
+export interface Library {
+    // Should be a path like "contracts/libs/RollupUtils.sol:RollupUtils"
+    name: string;
+    // The address of a deployed instance of the library
+    address: string;
+}
+
+export async function getLinkedFactory(
+    bre: BuidlerRuntimeEnvironment,
+    name: string,
+    libraries: Library[]
+) {
+    const artifact = await readArtifact(bre.config.paths.artifacts, name);
+
+    let linkedBytecode = artifact.bytecode;
+    for (const library of libraries) {
+        linkedBytecode = linkSolidity5(
+            linkedBytecode,
+            library.name,
+            library.address
+        );
+    }
+    const signers = await bre.ethers.getSigners();
+    return new ContractFactory(artifact.abi, linkedBytecode, signers[0]);
 }

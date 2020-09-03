@@ -1,8 +1,4 @@
-import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
-import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
-import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFactory";
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
-import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
 import { TxTransfer, serialize, calculateRoot, Tx } from "../ts/tx";
 import * as mcl from "../ts/mcl";
@@ -10,9 +6,11 @@ import { StateTree } from "../ts/state_tree";
 import { AccountRegistry } from "../ts/account_tree";
 import { Account } from "../ts/state_account";
 import { assert } from "chai";
-import { ethers } from "@nomiclabs/buidler";
+import { ethers, default as bre } from "@nomiclabs/buidler";
 import { ErrorCode } from "../ts/interfaces";
-import { parseEvents } from "../ts/utils";
+import { getLinkedFactory, parseEvents } from "../ts/utils";
+import { Logger } from "../types/ethers-contracts/Logger";
+import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 
 let appID =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -31,11 +29,14 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
-        const [signer, ...rest] = await ethers.getSigners();
-        const logger = await new LoggerFactory(signer).deploy();
-        const registryContract = await new BlsAccountRegistryFactory(
-            signer
-        ).deploy(logger.address);
+        const loggerFactory = await ethers.getContractFactory("Logger");
+        const registryFactory = await ethers.getContractFactory(
+            "BlsAccountRegistry"
+        );
+        const logger = ((await loggerFactory.deploy()) as unknown) as Logger;
+        const registryContract = (await registryFactory.deploy(
+            logger.address
+        )) as BlsAccountRegistry;
 
         registry = await AccountRegistry.new(registryContract);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
@@ -56,14 +57,18 @@ describe("Rollup Transfer Commitment", () => {
     });
 
     beforeEach(async function() {
-        const [signer, ...rest] = await ethers.getSigners();
-        let rollupUtilsLib = await new RollupUtilsFactory(signer).deploy();
-        rollup = await new TestTransferFactory(
+        const rollupUtilsFactory = await ethers.getContractFactory(
+            "RollupUtils"
+        );
+        let rollupUtilsLib = await rollupUtilsFactory.deploy();
+        const factory = await getLinkedFactory(bre, "TestTransfer", [
             {
-                __$a6b8846b3184b62d6aec39d1f36e30dab3$__: rollupUtilsLib.address
-            },
-            signer
-        ).deploy();
+                name: "contracts/libs/RollupUtils.sol:RollupUtils",
+                address: rollupUtilsLib.address
+            }
+        ]);
+
+        rollup = (await factory.deploy()) as TestTransfer;
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             stateTree.createAccount(accounts[i]);

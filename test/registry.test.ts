@@ -1,7 +1,4 @@
-import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
-import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
-
 import { Tree, Hasher } from "../ts/tree";
 
 import * as mcl from "../ts/mcl";
@@ -29,11 +26,13 @@ describe("Registry", async () => {
     let treeRight: Tree;
     beforeEach(async function() {
         await mcl.init();
-        const accounts = await ethers.getSigners();
-        const logger = await new LoggerFactory(accounts[0]).deploy();
-        registry = await new BlsAccountRegistryFactory(accounts[0]).deploy(
+        const logger = await (
+            await ethers.getContractFactory("Logger")
+        ).deploy();
+        const factory = await ethers.getContractFactory("BlsAccountRegistry");
+        registry = ((await factory.deploy(
             logger.address
-        );
+        )) as unknown) as BlsAccountRegistry;
         DEPTH = (await registry.DEPTH()).toNumber();
         BATCH_DEPTH = (await registry.BATCH_DEPTH()).toNumber();
         treeLeft = Tree.new(DEPTH);

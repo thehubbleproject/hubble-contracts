@@ -1,5 +1,4 @@
 import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
-import { MerkleTreeUtilsFactory } from "../types/ethers-contracts/MerkleTreeUtilsFactory";
 import { getParentLeaf, getMerkleRootFromLeaves } from "../ts/utils";
 import { assert, expect } from "chai";
 import { ethers } from "@nomiclabs/buidler";
@@ -13,10 +12,8 @@ describe("MerkleTreeUtils", async function() {
     let mtlibInstance: MerkleTreeUtils;
     before(async function() {
         const MAX_DEPTH = 4;
-        const signers = await ethers.getSigners();
-        mtlibInstance = await new MerkleTreeUtilsFactory(signers[0]).deploy(
-            MAX_DEPTH
-        );
+        const factory = await ethers.getContractFactory("MerkleTreeUtils");
+        mtlibInstance = (await factory.deploy(MAX_DEPTH)) as MerkleTreeUtils;
     });
 
     it("ensure root created on-chain and via utils is the same", async function() {
