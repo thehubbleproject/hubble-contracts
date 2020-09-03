@@ -1,22 +1,12 @@
 import { usePlugin } from "@nomiclabs/buidler/config";
-import { generateFirstWallets, mnemonics } from "./scripts/helpers/wallet";
-import { ethers } from "ethers";
 
 usePlugin("@nomiclabs/buidler-waffle");
-
-const accounts = generateFirstWallets(mnemonics, 10).map(x => {
-    return {
-        privateKey: `0x${x.getPrivateKey().toString("hex")}`,
-        balance: ethers.utils.parseEther("10000").toString()
-    };
-});
 
 module.exports = {
     defaultNetwork: "buidlerevm",
     networks: {
         buidlerevm: {
             chainId: 123,
-            accounts: accounts,
             throwOnCallFailures: false
         }
     },
