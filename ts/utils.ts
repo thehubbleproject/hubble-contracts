@@ -6,7 +6,7 @@ export function randomHex(numBytes: number) {
 
 export function randomNum(numBytes: number): number {
     const bytes = ethers.utils.randomBytes(numBytes);
-    return ethers.utils.bigNumberify(bytes).toNumber();
+    return ethers.BigNumber.from(bytes).toNumber();
 }
 
 // with zeros prepended to length bytes.

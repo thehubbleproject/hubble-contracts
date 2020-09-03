@@ -1,4 +1,3 @@
-import { TestAccountTreeFactory } from "../types/ethers-contracts/TestAccountTreeFactory";
 import { TestAccountTree } from "../types/ethers-contracts/TestAccountTree";
 import { Tree, Hasher } from "../ts/tree";
 import { ethers } from "@nomiclabs/buidler";
@@ -13,8 +12,8 @@ describe("Account Tree", async () => {
     let treeRight: Tree;
     let hasher: Hasher;
     beforeEach(async function() {
-        const accounts = await ethers.getSigners();
-        accountTree = await new TestAccountTreeFactory(accounts[0]).deploy();
+        const factory = await ethers.getContractFactory("TestAccountTree");
+        accountTree = (await factory.deploy()) as TestAccountTree;
         DEPTH = (await accountTree.DEPTH()).toNumber();
         BATCH_DEPTH = (await accountTree.BATCH_DEPTH()).toNumber();
         treeLeft = Tree.new(DEPTH);
@@ -88,9 +87,7 @@ describe("Account Tree", async () => {
         }
         treeRight.updateBatch(0, leafs);
         await accountTree.updateBatch(leafs);
-        let offset = ethers.utils
-            .bigNumberify(2)
-            .pow(ethers.utils.bigNumberify(DEPTH));
+        let offset = ethers.BigNumber.from(2).pow(ethers.BigNumber.from(DEPTH));
         for (let i = 0; i < batchSize; i += 41) {
             const leafIndex = offset.add(i);
             let leaf = leafs[i];
