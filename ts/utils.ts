@@ -1,12 +1,14 @@
 import { ethers } from "ethers";
 
 export function randomHex(numBytes: number) {
-    return ethers.utils.randomBytes(numBytes).toString();
+    return ethers.BigNumber.from(
+        ethers.utils.randomBytes(numBytes)
+    ).toHexString();
 }
 
 export function randomNum(numBytes: number): number {
     const bytes = ethers.utils.randomBytes(numBytes);
-    return ethers.utils.bigNumberify(bytes).toNumber();
+    return ethers.BigNumber.from(bytes).toNumber();
 }
 
 // with zeros prepended to length bytes.

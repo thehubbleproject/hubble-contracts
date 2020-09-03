@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import "solidity-bytes-utils/contracts/BytesLib.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
@@ -45,7 +44,6 @@ interface IRollupReddit {
 
 contract RollupSetup {
     using SafeMath for uint256;
-    using BytesLib for bytes;
     using Tx for bytes;
 
     /*********************
