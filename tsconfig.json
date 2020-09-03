@@ -13,7 +13,7 @@
     "lib": ["es2015", "esnext.asynciterable"],
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types", "./types"],
-    "types": ["node", "truffle-contracts"]
+    "types": ["node"]
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "example", "build"],
