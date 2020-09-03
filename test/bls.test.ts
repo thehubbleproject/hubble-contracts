@@ -1,7 +1,8 @@
 import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
 import { TestBls } from "../types/ethers-contracts/TestBls";
-import web3 from "web3";
 import { assert } from "chai";
+import BN from "bn.js";
+import { randomHex } from "../ts/utils";
 
 import * as mcl from "../ts/mcl";
 import { ethers } from "@nomiclabs/buidler";
@@ -16,7 +17,7 @@ describe("BLS", async () => {
     });
     it("hash to point", async function() {
         for (let i = 0; i < 20; i++) {
-            const data = web3.utils.randomHex(12);
+            const data = randomHex(12);
             let expect = mcl.g1ToHex(mcl.hashToPoint(data));
             let res = await bls.hashToPoint(ethers.utils.arrayify(data));
             assert.equal(
@@ -35,7 +36,7 @@ describe("BLS", async () => {
         const pubkeys = [];
         let aggSignature = mcl.newG1();
         for (let i = 0; i < n; i++) {
-            const message = web3.utils.randomHex(12);
+            const message = randomHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
             const { signature, M } = mcl.sign(message, secret);
             aggSignature = mcl.aggreagate(aggSignature, signature);
@@ -49,7 +50,7 @@ describe("BLS", async () => {
         assert.isTrue(res);
     });
     it("verify single signature", async function() {
-        const message = web3.utils.randomHex(12);
+        const message = randomHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
         let message_ser = mcl.g1ToHex(M);
@@ -241,16 +242,16 @@ describe("BLS", async () => {
         const pubkeys = [];
         let aggSignature = mcl.newG1();
         for (let i = 0; i < n; i++) {
-            const message = web3.utils.randomHex(12);
+            const message = randomHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
             const { signature, M } = mcl.sign(message, secret);
             aggSignature = mcl.aggreagate(aggSignature, signature);
             messages.push(M);
             pubkeys.push(pubkey);
         }
-        let messages_ser = messages.map(p => mcl.g1ToBN(p));
-        let pubkeys_ser = pubkeys.map(p => mcl.g2ToBN(p));
-        let sig_ser = mcl.g1ToBN(aggSignature);
+        let messages_ser = messages.map(p => mcl.g1ToHex(p));
+        let pubkeys_ser = pubkeys.map(p => mcl.g2ToHex(p));
+        let sig_ser = mcl.g1ToHex(aggSignature);
         let cost = await bls.estimateGas.verifyMultipleGasCost(
             sig_ser,
             pubkeys_ser,
@@ -259,12 +260,12 @@ describe("BLS", async () => {
         console.log(`verify signature for ${n} message: ${cost.toNumber()}`);
     });
     it.skip("gas cost: verify single signature", async function() {
-        const message = web3.utils.randomHex(12);
+        const message = randomHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
-        let message_ser = mcl.g1ToBN(M);
-        let pubkey_ser = mcl.g2ToBN(pubkey);
-        let sig_ser = mcl.g1ToBN(signature);
+        let message_ser = mcl.g1ToHex(M);
+        let pubkey_ser = mcl.g2ToHex(pubkey);
+        let sig_ser = mcl.g1ToHex(signature);
         let cost = await bls.estimateGas.verifySingleeGasCost(
             sig_ser,
             pubkey_ser,
@@ -276,7 +277,7 @@ describe("BLS", async () => {
         const n = 50;
         let totalCost = 0;
         for (let i = 0; i < n; i++) {
-            const data = web3.utils.randomHex(12);
+            const data = randomHex(12);
             let cost = await bls.estimateGas.hashToPointGasCost(data);
             totalCost += cost.toNumber();
         }
@@ -285,7 +286,7 @@ describe("BLS", async () => {
     it.skip("gas cost: is on curve", async function() {
         let point = mcl.randG2();
         console.log(mcl.g2ToHex(point));
-        let cost = await bls.estimateGas.isOnCurveG2GasCost(mcl.g2ToBN(point));
+        let cost = await bls.estimateGas.isOnCurveG2GasCost(mcl.g2ToHex(point));
         console.log(`is on curve g2 gas cost: ${cost.toNumber()}`);
         cost = await bls.estimateGas.isOnCurveG2CompressedGasCost(
             mcl.g2ToCompressed(point)

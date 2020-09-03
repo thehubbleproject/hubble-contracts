@@ -1,5 +1,7 @@
 const mcl = require("mcl-wasm");
-import web3 from "web3";
+import { randomHex } from "./utils";
+import BN from "bn.js";
+import { ethers } from "ethers";
 
 export type mclG2 = any;
 export type mclG1 = any;
@@ -8,10 +10,10 @@ export type mclFR = any;
 export type PublicKey = mclG2;
 export type SecretKey = mclFR;
 
-export const FIELD_ORDER = web3.utils.toBN(
+export const FIELD_ORDER = bn(
     "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
 );
-export const ZERO = web3.utils.toBN("0x00");
+export const ZERO = bn("0x00");
 
 export async function init() {
     await mcl.init(mcl.BN_SNARK1);
@@ -19,28 +21,28 @@ export async function init() {
 }
 
 export function hashToPoint(data: string) {
-    const e0 = web3.utils.toBN(web3.utils.soliditySha3(data)!);
+    const e0 = bn(ethers.utils.keccak256(data)!);
     let e1 = new mcl.Fp();
     e1.setStr(e0.mod(FIELD_ORDER).toString());
     return e1.mapToG1();
 }
 
 export function mapToPoint(eHex: string) {
-    const e0 = web3.utils.toBN(eHex);
+    const e0 = bn(eHex);
     let e1 = new mcl.Fp();
     e1.setStr(e0.mod(FIELD_ORDER).toString());
     return e1.mapToG1();
 }
 
 export function bnToHex(n: any) {
-    return "0x" + web3.utils.padLeft(n.toString(16), 64);
+    return ethers.utils.hexZeroPad("0x" + n.toString(16), 32);
 }
 
 export function bn(n: string) {
     if (n.length > 2 && n.slice(0, 2) == "0x") {
-        return web3.utils.toBN(n);
+        return new BN(n.slice(2), "hex");
     }
-    return web3.utils.toBN("0x" + n);
+    return new BN(n, "hex");
 }
 
 export function mclToHex(p: mclFP, prefix: boolean = true) {
@@ -50,6 +52,10 @@ export function mclToHex(p: mclFP, prefix: boolean = true) {
         s += ("0" + arr[i].toString(16)).slice(-2);
     }
     return prefix ? "0x" + s : s;
+}
+
+export function mclToArray(p: mclFP): Uint8Array {
+    return ethers.utils.arrayify(mclToHex(p, true));
 }
 
 export function g1() {
@@ -183,14 +189,14 @@ export function newG2() {
 }
 
 export function randFr() {
-    const r = web3.utils.randomHex(12);
+    const r = randomHex(12);
     let fr = new mcl.Fr();
     fr.setHashOf(r);
     return fr;
 }
 
 export function randFs() {
-    const r = bn(web3.utils.randomHex(32));
+    const r = bn(randomHex(32));
     return r.umod(FIELD_ORDER);
 }
 
