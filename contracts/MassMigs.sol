@@ -73,7 +73,7 @@ contract MassMigs is FraudProofHelpers {
             ) = processMassMigrationTx(
                 commitment.stateRoot,
                 _tx,
-                 accountProofs[i * 2],
+                accountProofs[i * 2],
                 accountProofs[i * 2 + 1]
             );
 
@@ -104,7 +104,7 @@ contract MassMigs is FraudProofHelpers {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMig memory _tx,
-         Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory fromAccountProof,
         Types.AccountMerkleProof memory toAccountProof
     )
         public
@@ -118,7 +118,7 @@ contract MassMigs is FraudProofHelpers {
             bool
         )
     {
-          require(
+        require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
                 RollupUtils.HashFromAccount(fromAccountProof.account),
@@ -127,7 +127,7 @@ contract MassMigs is FraudProofHelpers {
             ),
             "Transfer: sender does not exist"
         );
- Types.ErrorCode err_code = validateTxBasic(
+        Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
             fromAccountProof.account
         );
@@ -137,7 +137,7 @@ contract MassMigs is FraudProofHelpers {
         bytes32 newRoot;
         bytes memory new_from_account;
         bytes memory new_to_account;
-  (new_from_account, newRoot) = ApplyMassMigTxSender(
+        (new_from_account, newRoot) = ApplyMassMigTxSender(
             fromAccountProof,
             _tx
         );

@@ -463,7 +463,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.MMCommitmentInclusionProof memory commitmentMP,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs 
+        Types.AccountMerkleProof[] memory accountProofs
     ) public {
         {
             // check if batch is disputable
@@ -556,7 +556,8 @@ contract Rollup is RollupHelpers {
                 "Batch already finalised"
             );
 
-            require(batchID < invalidBatchMarker || invalidBatchMarker == 0,
+            require(
+                batchID < invalidBatchMarker || invalidBatchMarker == 0,
                 "Already successfully disputed. Roll back in process"
             );
         }

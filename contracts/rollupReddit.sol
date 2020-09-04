@@ -336,7 +336,7 @@ contract RollupReddit {
     function processMMBatch(
         Types.MMCommitment memory commitment,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs 
+        Types.AccountMerkleProof[] memory accountProofs
     )
         public
         view
