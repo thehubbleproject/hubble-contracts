@@ -5,7 +5,7 @@ import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { Account } from "../ts/stateAccount";
-import { TxTransfer } from "../ts/tx";
+import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/allContractsInterfaces";
@@ -49,11 +49,13 @@ describe("Rollup", async function() {
     });
 
     it("submit a batch and dispute", async function() {
+        const feeReceiver = Alice.stateID;
+        const fee = 1;
         const tx = new TxTransfer(
             Alice.stateID,
             Bob.stateID,
             5,
-            1,
+            fee,
             Alice.nonce + 1
         );
 
@@ -62,16 +64,24 @@ describe("Rollup", async function() {
         const rollup = contracts.rollup;
         const rollupUtils = contracts.rollupUtils;
         const stateRoot = stateTree.root;
-        const proof = stateTree.applyTxTransfer(tx);
-        const txs = ethers.utils.arrayify(tx.encode(true));
+        const { proof, feeProof, safe } = stateTree.applyTransferBatch(
+            [tx],
+            feeReceiver
+        );
+        assert.isTrue(safe);
+        const { serialized, commit } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
-        const _tx = await rollup.submitBatch(
-            [txs],
+        const _txSubmit = await rollup.submitBatch(
+            [serialized],
             [stateRoot],
             Usage.Transfer,
             [aggregatedSignature0],
-            Alice.stateID,
+            feeReceiver,
             { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
+        );
+        console.log(
+            "submitBatch execution cost",
+            await (await _txSubmit.wait()).gasUsed.toNumber()
         );
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
@@ -85,7 +95,7 @@ describe("Rollup", async function() {
             accountRoot: root,
             signature: aggregatedSignature0,
             txs,
-            feeReceiver: Alice.stateID,
+            feeReceiver,
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -134,17 +144,30 @@ describe("Rollup", async function() {
             witness: tree.witness(0).nodes
         };
 
-        await rollup.disputeBatch(batchId, commitmentMP, [
-            {
-                pathToAccount: Alice.stateID,
-                account: proof.senderAccount,
-                siblings: proof.senderWitness
-            },
-            {
-                pathToAccount: Bob.stateID,
-                account: proof.receiverAccount,
-                siblings: proof.receiverWitness
-            }
-        ]);
+        const pathToAccount = 0; // Dummy value
+
+        const _tx = await rollup.disputeBatch(
+            batchId,
+            commitmentMP,
+            [
+                {
+                    pathToAccount,
+                    account: proof[0].senderAccount,
+                    siblings: proof[0].senderWitness
+                },
+                {
+                    pathToAccount,
+                    account: proof[0].receiverAccount,
+                    siblings: proof[0].receiverWitness
+                },
+                {
+                    pathToAccount,
+                    account: feeProof.feeReceiverAccount,
+                    siblings: feeProof.feeReceiverWitness
+                }
+            ]
+        );
+        const receipt = await _tx.wait();
+        console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());
     });
 });
