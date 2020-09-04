@@ -4,6 +4,13 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
+    struct SignatureProof {
+        Types.UserAccount[] stateAccounts;
+        bytes32[][] stateWitnesses;
+        uint256[4][] pubkeys;
+        bytes32[][] pubkeyWitnesses;
+    }
+
     // We define Usage for a batch or for a tx
     // to check if the usage of a batch and all txs in it are the same
     enum Usage {
@@ -16,12 +23,6 @@ library Types {
         // Only applicable to batch and not tx
         Deposit,
         MassMigration
-    }
-
-    // PDALeaf represents the leaf in
-    // Pubkey DataAvailability Tree
-    struct PDALeaf {
-        uint256[4] pubkey;
     }
 
     // Batch represents the batch submitted periodically to the ethereum chain
@@ -37,7 +38,7 @@ library Types {
         bytes32 stateRoot;
         bytes32 accountRoot;
         bytes32 txHashCommitment;
-        uint256[2] aggregatedSignature;
+        uint256[2] signature;
         Usage batchType;
     }
 
@@ -60,7 +61,7 @@ library Types {
     struct CommitmentInclusionProof {
         Commitment commitment;
         uint256 pathToCommitment;
-        bytes32[] siblings;
+        bytes32[] witness;
     }
 
     struct MMCommitmentInclusionProof {
@@ -78,16 +79,7 @@ library Types {
         uint256 tokenType;
         uint256 nonce;
         uint256 amount;
-    }
-
-    struct Transaction {
-        uint256 txType;
-        uint256 fromIndex;
-        uint256 toIndex;
-        uint256 tokenType;
-        uint256 nonce;
-        uint256 amount;
-        bytes signature;
+        uint256 fee;
     }
 
     struct CreateAccount {
@@ -119,24 +111,6 @@ library Types {
         uint256 fromIndex;
     }
 
-    // AccountInclusionProof consists of the following fields
-    // 1. Path to the account leaf from root in the balances tree
-    // 2. Actual data stored in the leaf
-    struct AccountInclusionProof {
-        uint256 pathToAccount;
-        UserAccount account;
-    }
-
-    struct TranasctionInclusionProof {
-        uint256 pathToTx;
-        Transaction data;
-    }
-
-    struct PDAInclusionProof {
-        uint256 pathToPubkey;
-        PDALeaf pubkey_leaf;
-    }
-
     // UserAccount contains the actual data stored in the leaf of balance tree
     struct UserAccount {
         // ID is the path to the pubkey in the PDA tree
@@ -149,27 +123,13 @@ library Types {
     }
 
     struct AccountMerkleProof {
-        AccountInclusionProof accountIP;
+        UserAccount account;
+        uint256 pathToAccount; // This field is kept for backward competibility, don't use it.
         bytes32[] siblings;
-    }
-
-    struct AccountProofs {
-        AccountMerkleProof from;
-        AccountMerkleProof to;
-    }
-
-    struct BatchValidationProofs {
-        AccountProofs[] accountProofs;
-        PDAMerkleProof[] pdaProof;
     }
 
     struct TransactionMerkleProof {
-        TranasctionInclusionProof _tx;
-        bytes32[] siblings;
-    }
-
-    struct PDAMerkleProof {
-        PDAInclusionProof _pda;
+        Transfer _tx;
         bytes32[] siblings;
     }
 

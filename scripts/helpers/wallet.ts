@@ -1,7 +1,13 @@
-import { Wallet } from "./interfaces";
 const bip39 = require("bip39");
 const hdkey = require("ethereumjs-wallet/hdkey");
 const packageJSON = require("../../package.json");
+
+export interface Wallet {
+    getAddressString(): string;
+    getPublicKeyString(): string;
+    getPrivateKey(): Buffer;
+}
+
 export const mnemonics = packageJSON.config.mnemonics;
 
 export function generateFirstWallets(

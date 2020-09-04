@@ -13,11 +13,11 @@ contract BurnConsent is FraudProofHelpers {
     function processBurnConsentBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes32,
@@ -41,8 +41,7 @@ contract BurnConsent is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
-                batchProofs.accountProofs[i].from
+                accountProofs[i]
             );
 
             if (!isTxValid) {
@@ -58,7 +57,7 @@ contract BurnConsent is FraudProofHelpers {
         bytes memory txs,
         uint256 i
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        Types.UserAccount memory account = _merkle_proof.account;
         account.burn = txs.burnConsent_amountOf(i);
         account.nonce++;
         newRoot = UpdateAccountWithSiblings(account, _merkle_proof);
@@ -73,11 +72,10 @@ contract BurnConsent is FraudProofHelpers {
         bytes32 _balanceRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
     )
         public
-        view
+        pure
         returns (
             bytes32,
             bytes memory,
@@ -85,10 +83,7 @@ contract BurnConsent is FraudProofHelpers {
             bool
         )
     {
-        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
-
-        // Validate the from account merkle proof
-        ValidateAccountMP(_balanceRoot, _fromAccountProof);
+        Types.UserAccount memory account = _fromAccountProof.account;
 
         // TODO: Validate only certain token is allow to burn
 

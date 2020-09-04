@@ -1,15 +1,13 @@
-import { Usage } from "../scripts/helpers/interfaces";
+import { Usage } from "../ts/interfaces";
 import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
-import { StateTree } from "./utils/state_tree";
-import { AccountRegistry } from "./utils/account_tree";
-import { Account } from "./utils/state_account";
-import { TxTransfer } from "./utils/tx";
-import { Rollup } from "../types/ethers-contracts/Rollup";
-import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
-import * as mcl from "./utils/mcl";
-import { Tree, Hasher } from "./utils/tree";
+import { StateTree } from "../ts/state_tree";
+import { AccountRegistry } from "../ts/account_tree";
+import { Account } from "../ts/state_account";
+import { TxTransfer } from "../ts/tx";
+import * as mcl from "../ts/mcl";
+import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/all-contracts-interfaces";
 import { assert } from "chai";
 
@@ -47,37 +45,31 @@ describe("Rollup", async function() {
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);
     });
-    it("test deployment (for the time being)", async function() {
-        const onchainParam = await contracts.governance.MAX_DEPOSIT_SUBTREE();
-        assert.equal(
-            Number(onchainParam),
-            TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
-        );
-    });
 
-    xit("submit a batch and dispute", async function() {
+    it("submit a batch and dispute", async function() {
         const tx = new TxTransfer(
             Alice.stateID,
             Bob.stateID,
             5,
+            1,
             Alice.nonce + 1
         );
 
         const signature = Alice.sign(tx);
 
-        const rollup = contracts.rollup as Rollup;
-        const rollupUtils = contracts.rollupUtils as RollupUtils;
+        const rollup = contracts.rollup;
+        const rollupUtils = contracts.rollupUtils;
         const stateRoot = stateTree.root;
         const proof = stateTree.applyTxTransfer(tx);
         const txs = ethers.utils.arrayify(tx.encode(true));
+        const aggregatedSignature0 = mcl.g1ToHex(signature);
         const _tx = await rollup.submitBatch(
             [txs],
             [stateRoot],
             Usage.Transfer,
-            [mcl.g1ToHex(signature)],
+            [aggregatedSignature0],
             { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
         );
-        await _tx.wait();
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
         const root = await registry.root();
@@ -89,7 +81,7 @@ describe("Rollup", async function() {
             stateRoot,
             accountRoot: root,
             txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
-            aggregatedSignature: mcl.g1ToHex(signature),
+            signature: aggregatedSignature0,
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -106,7 +98,7 @@ describe("Rollup", async function() {
             commitment.stateRoot,
             commitment.accountRoot,
             commitment.txHashCommitment,
-            commitment.aggregatedSignature,
+            aggregatedSignature0,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
@@ -117,7 +109,7 @@ describe("Rollup", async function() {
                     commitment.stateRoot,
                     commitment.accountRoot,
                     commitment.txHashCommitment,
-                    commitment.aggregatedSignature,
+                    commitment.signature,
                     commitment.batchType
                 ]
             )
@@ -133,43 +125,20 @@ describe("Rollup", async function() {
         const commitmentMP = {
             commitment,
             pathToCommitment: 0,
-            siblings: tree.witness(0).nodes
+            witness: tree.witness(0).nodes
         };
 
-        await rollup.disputeBatch(batchId, commitmentMP, txs, {
-            accountProofs: [
-                {
-                    from: {
-                        accountIP: {
-                            pathToAccount: Alice.stateID,
-                            account: proof.senderAccount
-                        },
-                        siblings: proof.senderWitness.map(ethers.utils.arrayify)
-                    },
-                    to: {
-                        accountIP: {
-                            pathToAccount: Bob.stateID,
-                            account: proof.receiverAccount
-                        },
-                        siblings: proof.receiverWitness.map(
-                            ethers.utils.arrayify
-                        )
-                    }
-                }
-            ],
-            pdaProof: [
-                {
-                    _pda: {
-                        pathToPubkey: Alice.accountID,
-                        pubkey_leaf: {
-                            pubkey: mcl.g2ToHex(Alice.publicKey)
-                        }
-                    },
-                    siblings: registry
-                        .witness(Alice.accountID)
-                        .map(ethers.utils.arrayify)
-                }
-            ]
-        });
+        await rollup.disputeBatch(batchId, commitmentMP, txs, [
+            {
+                pathToAccount: Alice.stateID,
+                account: proof.senderAccount,
+                siblings: proof.senderWitness
+            },
+            {
+                pathToAccount: Bob.stateID,
+                account: proof.receiverAccount,
+                siblings: proof.receiverWitness
+            }
+        ]);
     });
 });

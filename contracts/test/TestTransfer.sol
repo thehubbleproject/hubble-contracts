@@ -9,16 +9,16 @@ contract TestTransfer is Transfer {
     event Return1(uint256);
     event Return2(Types.ErrorCode);
 
-    function checkSignature(
+    function _checkSignature(
         uint256[2] memory signature,
-        InvalidSignatureProof memory proof,
+        Types.SignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 appID,
         bytes memory txs
     ) public {
         uint256 operationCost = gasleft();
-        Types.ErrorCode err = _checkSignature(
+        Types.ErrorCode err = checkSignature(
             signature,
             proof,
             stateRoot,
@@ -34,8 +34,8 @@ contract TestTransfer is Transfer {
     function testProcessTx(
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         pure
@@ -47,6 +47,6 @@ contract TestTransfer is Transfer {
             bool
         )
     {
-        return processTx(_balanceRoot, _tx, _from_pda_proof, accountProofs);
+        return processTx(_balanceRoot, _tx, fromAccountProof, toAccountProof);
     }
 }

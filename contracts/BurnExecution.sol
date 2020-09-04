@@ -13,7 +13,7 @@ contract BurnExecution is FraudProofHelpers {
     function processBurnExecutionBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment
     )
         public
@@ -43,7 +43,7 @@ contract BurnExecution is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.accountProofs[i].from
+                accountProofs[i]
             );
 
             if (!isTxValid) {
@@ -57,7 +57,7 @@ contract BurnExecution is FraudProofHelpers {
     function ApplyBurnExecutionTx(
         Types.AccountMerkleProof memory _fromAccountProof
     ) public view returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
+        Types.UserAccount memory account = _fromAccountProof.account;
         account.balance -= account.burn;
         account.lastBurn = RollupUtils.GetYearMonth();
         updatedAccount = RollupUtils.BytesFromAccount(account);
@@ -83,8 +83,7 @@ contract BurnExecution is FraudProofHelpers {
             bool
         )
     {
-        ValidateAccountMP(_balanceRoot, _fromAccountProof);
-        Types.UserAccount memory account = _fromAccountProof.accountIP.account;
+        Types.UserAccount memory account = _fromAccountProof.account;
         // FIX:
         // if (txs.burnExecution_fromIndexOf(i) != account.ID) {
         //     return (ZERO_BYTES32, "", Types.ErrorCode.BadFromIndex, false);

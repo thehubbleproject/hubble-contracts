@@ -2,6 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { IReddit } from "./interfaces/IReddit.sol";
+import { Transfer } from "./Transfer.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
@@ -11,10 +12,29 @@ import { MassMigs } from "./MassMigs.sol";
 
 contract RollupReddit {
     using Tx for bytes;
+    Transfer public transfer;
+
+    function checkTransferSignature(
+        bytes32 appID,
+        uint256[2] memory signature,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        Types.SignatureProof memory proof,
+        bytes memory txs
+    ) public view returns (Types.ErrorCode) {
+        transfer.checkSignature(
+            signature,
+            proof,
+            stateRoot,
+            accountRoot,
+            appID,
+            txs
+        );
+    }
+
     Registry public nameRegistry;
     IReddit public createAccount;
     IReddit public airdrop;
-    IReddit public transfer;
     IReddit public burnConsent;
     IReddit public burnExecution;
     MassMigs public massMigs;
@@ -25,11 +45,10 @@ contract RollupReddit {
         createAccount = IReddit(
             nameRegistry.getContractDetails(ParamManager.CREATE_ACCOUNT())
         );
-
         airdrop = IReddit(
             nameRegistry.getContractDetails(ParamManager.AIRDROP())
         );
-        transfer = IReddit(
+        transfer = Transfer(
             nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
         burnConsent = IReddit(
@@ -67,7 +86,6 @@ contract RollupReddit {
     function processCreateAccountTx(
         bytes32 _balanceRoot,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
         public
@@ -87,7 +105,6 @@ contract RollupReddit {
                 _balanceRoot,
                 txs,
                 0,
-                _to_pda_proof,
                 to_account_proof
             );
     }
@@ -112,8 +129,8 @@ contract RollupReddit {
         bytes32 _balanceRoot,
         bytes memory sig,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         view
@@ -132,8 +149,8 @@ contract RollupReddit {
                 _balanceRoot,
                 txs,
                 0,
-                _from_pda_proof,
-                accountProofs
+                fromAccountProof,
+                toAccountProof
             );
     }
 
@@ -158,8 +175,8 @@ contract RollupReddit {
         bytes32 _balanceRoot,
         bytes memory sig,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
-        Types.AccountProofs memory accountProofs
+        Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         view
@@ -177,8 +194,8 @@ contract RollupReddit {
             transfer.processTx(
                 _balanceRoot,
                 _tx,
-                _from_pda_proof,
-                accountProofs
+                fromAccountProof,
+                toAccountProof
             );
     }
 
@@ -197,7 +214,6 @@ contract RollupReddit {
     function processBurnConsentTx(
         bytes32 _balanceRoot,
         bytes memory txBytes,
-        Types.PDAMerkleProof memory _from_pda_proof,
         Types.AccountMerkleProof memory _fromAccountProof
     )
         public
@@ -215,7 +231,6 @@ contract RollupReddit {
                 _balanceRoot,
                 txs,
                 0,
-                _from_pda_proof,
                 _fromAccountProof
             );
     }
@@ -261,7 +276,7 @@ contract RollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
+        Types.AccountMerkleProof[] memory accountProofs,
         bytes32 expectedTxHashCommitment,
         Types.Usage batchType
     )
@@ -278,7 +293,7 @@ contract RollupReddit {
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.Airdrop) {
@@ -286,7 +301,7 @@ contract RollupReddit {
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.Transfer) {
@@ -294,7 +309,7 @@ contract RollupReddit {
                 transfer.processTransferBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
@@ -302,7 +317,7 @@ contract RollupReddit {
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
@@ -310,7 +325,7 @@ contract RollupReddit {
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     txs,
-                    batchProofs,
+                    accountProofs,
                     expectedTxHashCommitment
                 );
         } else {

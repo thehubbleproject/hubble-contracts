@@ -18,8 +18,7 @@ contract CreateAccount is FraudProofHelpers {
     function processCreateAccountBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs,
-        bytes32 expectedTxRoot
+        Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
         uint256 length = txs.create_size();
 
@@ -31,8 +30,7 @@ contract CreateAccount is FraudProofHelpers {
                 stateRoot,
                 txs,
                 i,
-                batchProofs.pdaProof[i],
-                batchProofs.accountProofs[i].to
+                accountProofs[i]
             );
 
             if (!isTxValid) {
@@ -65,7 +63,6 @@ contract CreateAccount is FraudProofHelpers {
         bytes32 _balanceRoot,
         bytes memory txs,
         uint256 i,
-        Types.PDAMerkleProof memory _to_pda_proof,
         Types.AccountMerkleProof memory to_account_proof
     )
         public
@@ -77,9 +74,7 @@ contract CreateAccount is FraudProofHelpers {
             bool
         )
     {
-        if (
-            to_account_proof.accountIP.pathToAccount != txs.create_stateIdOf(i)
-        ) {
+        if (to_account_proof.pathToAccount != txs.create_stateIdOf(i)) {
             return ("", "", Types.ErrorCode.NotOnDesignatedStateLeaf, false);
         }
         if (
@@ -93,7 +88,7 @@ contract CreateAccount is FraudProofHelpers {
             !MerkleTreeUtilsLib.verifyLeaf(
                 _balanceRoot,
                 keccak256(abi.encode(0)), // Zero account leaf
-                to_account_proof.accountIP.pathToAccount,
+                to_account_proof.pathToAccount,
                 to_account_proof.siblings
             )
         ) {

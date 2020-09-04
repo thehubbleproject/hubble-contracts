@@ -1,8 +1,9 @@
 import { Tree } from "./tree";
 import { ethers } from "ethers";
-import { paddedHex, randomNum } from "../../ts/utils";
+import { paddedHex, randomNum } from "./utils";
 
 const amountLen = 4;
+const feeLen = 4;
 const accountIDLen = 4;
 const stateIDLen = 4;
 const tokenLen = 2;
@@ -43,13 +44,15 @@ export class TxTransfer implements SignableTx {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
         const amount = randomNum(amountLen);
+        const fee = randomNum(feeLen);
         const nonce = randomNum(nonceLen);
-        return new TxTransfer(sender, receiver, amount, nonce);
+        return new TxTransfer(sender, receiver, amount, fee, nonce);
     }
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
         public readonly amount: number,
+        public readonly fee: number,
         public nonce: number
     ) {}
 
@@ -61,8 +64,8 @@ export class TxTransfer implements SignableTx {
 
     public hash(): string {
         return ethers.utils.solidityKeccak256(
-            ["uint32", "uint32", "uint32"],
-            [this.fromIndex, this.toIndex, this.amount]
+            ["uint32", "uint32", "uint32", "uint32"],
+            [this.fromIndex, this.toIndex, this.amount, this.fee]
         );
     }
 
@@ -71,6 +74,7 @@ export class TxTransfer implements SignableTx {
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
             amount: this.amount,
+            fee: this.fee,
             nonce: this.nonce,
             tokenType: 0,
             txType: 0
@@ -81,8 +85,13 @@ export class TxTransfer implements SignableTx {
         let fromIndex = paddedHex(this.fromIndex, stateIDLen);
         let toIndex = paddedHex(this.toIndex, stateIDLen);
         let amount = paddedHex(this.amount, amountLen);
+        let fee = paddedHex(this.fee, feeLen);
 
-        let encoded = fromIndex.slice(2) + toIndex.slice(2) + amount.slice(2);
+        let encoded =
+            fromIndex.slice(2) +
+            toIndex.slice(2) +
+            amount.slice(2) +
+            fee.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
