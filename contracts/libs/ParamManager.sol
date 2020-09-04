@@ -69,6 +69,10 @@ library ParamManager {
         return keccak256("burn_execution");
     }
 
+    function MASS_MIGS() public pure returns (bytes32) {
+        return keccak256("mass_migs");
+    }
+
     bytes32 public constant _CHAIN_ID = keccak256("opru-123");
 
     function CHAIN_ID() public pure returns (bytes32) {

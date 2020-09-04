@@ -14,7 +14,8 @@ library Types {
         BurnConsent,
         BurnExecution,
         // Only applicable to batch and not tx
-        Deposit
+        Deposit,
+        MassMigration
     }
 
     // PDALeaf represents the leaf in
@@ -40,8 +41,30 @@ library Types {
         Usage batchType;
     }
 
+    struct MMCommitment {
+        bytes32 stateRoot;
+        bytes32 accountRoot;
+        bytes32 txHashCommitment;
+        uint256[2] aggregatedSignature;
+        MassMigrationMetaInfo massMigrationMetaInfo;
+        Usage batchType;
+    }
+
+    struct MassMigrationMetaInfo {
+        uint256 targetSpokeID;
+        bytes32 withdrawRoot;
+        uint256 tokenID;
+        uint256 amount;
+    }
+
     struct CommitmentInclusionProof {
         Commitment commitment;
+        uint256 pathToCommitment;
+        bytes32[] siblings;
+    }
+
+    struct MMCommitmentInclusionProof {
+        MMCommitment commitment;
         uint256 pathToCommitment;
         bytes32[] siblings;
     }

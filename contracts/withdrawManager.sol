@@ -21,9 +21,6 @@ contract WithdrawManager {
     Registry public nameRegistry;
     Rollup public rollup;
 
-    // Stores transaction paths claimed per batch
-    bool[][] withdrawTxClaimed;
-
     /*********************
      * Constructor *
      ********************/
@@ -44,6 +41,7 @@ contract WithdrawManager {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
-        withdrawTxClaimed = new bool[][](governance.MAX_TXS_PER_BATCH());
     }
+
+    function ProcessWithdraw() external {}
 }

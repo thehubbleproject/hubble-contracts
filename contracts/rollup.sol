@@ -32,6 +32,19 @@ interface IRollupReddit {
             bytes32,
             bool
         );
+
+    function processMMBatch(
+        Types.MMCommitment calldata commitment,
+        bytes calldata txs,
+        Types.BatchValidationProofs calldata batchProofs
+    )
+        external
+        view
+        returns (
+            bytes32,
+            bytes32,
+            bool
+        );
 }
 
 contract RollupSetup {
@@ -265,27 +278,28 @@ contract Rollup is RollupHelpers {
         );
     }
 
-
     function submitBatchWithMM(
         bytes[] calldata txs,
         bytes32[] calldata updatedRoots,
-        uint256[] calldata spokeIDs,
-        bytes32[] calldata withdrawsPerSpokeID,
-        uint256[] calldata tokenIDs,
-        uint256[] calldata amounts,
-        uint256[2][] calldata aggregatedSignatures
+        uint256[2][] calldata aggregatedSignatures,
+        Types.MassMigrationMetaInfo[] calldata MMInfo
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-        uint256 commmitmentLength = updatedRoots.length;
-        bytes32[] memory commitments = new bytes32[](commmitmentLength);
+        bytes32[] memory commitments = new bytes32[](updatedRoots.length);
         bytes32 pubkeyTreeRoot = accountRegistry.root();
-        for (uint256 i = 0; i < commmitmentLength; i++) {
-            commitments[i] = (
-                RollupUtils.CommitmentToHash(
+        for (uint256 i = 0; i < updatedRoots.length; i++) {
+            // FIX: This is essentially RollupUtils.MMCommitmentToHash but could not use because of STDeep
+            commitments[i] = keccak256(
+                abi.encode(
                     updatedRoots[i],
                     pubkeyTreeRoot,
-                    keccak256(abi.encode(txs[i], aggregatedSignatures[i])),
-                    uint8(batchType)
+                    keccak256(txs[i]),
+                    MMInfo[i].tokenID,
+                    MMInfo[i].amount,
+                    MMInfo[i].withdrawRoot,
+                    MMInfo[i].targetSpokeID,
+                    aggregatedSignatures[i],
+                    Types.Usage.MassMigration
                 )
             );
         }
@@ -301,7 +315,7 @@ contract Rollup is RollupHelpers {
             newBatch.committer,
             updatedRoots[updatedRoots.length - 1],
             batches.length - 1,
-            batchType
+            Types.Usage.MassMigration
         );
     }
 
@@ -418,6 +432,86 @@ contract Rollup is RollupHelpers {
             commitmentMP.commitment.txHashCommitment,
             commitmentMP.commitment.batchType
         );
+
+        // dispute is valid, we need to slash and rollback :(
+        if (isDisputeValid) {
+            // before rolling back mark the batch invalid
+            // so we can pause and unpause
+            invalidBatchMarker = _batch_id;
+            SlashAndRollback();
+            return;
+        }
+
+        // if new root doesnt match what was submitted by coordinator
+        // slash and rollback
+        if (updatedBalanceRoot != commitmentMP.commitment.stateRoot) {
+            invalidBatchMarker = _batch_id;
+            SlashAndRollback();
+            return;
+        }
+    }
+
+    function disputeMMBatch(
+        uint256 _batch_id,
+        Types.MMCommitmentInclusionProof memory commitmentMP,
+        bytes memory txs,
+        Types.BatchValidationProofs memory batchProofs
+    ) public {
+        {
+            // check if batch is disputable
+            require(
+                !batches[_batch_id].withdrawn,
+                "No point dispute a withdrawn batch"
+            );
+            require(
+                block.number < batches[_batch_id].finalisesOn,
+                "Batch already finalised"
+            );
+
+            require(
+                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+                "Already successfully disputed. Roll back in process"
+            );
+        }
+
+        // verify is the commitment exits in the batch
+        {
+            require(
+                merkleUtils.verifyLeaf(
+                    batches[_batch_id].commitmentRoot,
+                    RollupUtils.MMCommitmentToHash(
+                        commitmentMP.commitment.stateRoot,
+                        commitmentMP.commitment.accountRoot,
+                        commitmentMP.commitment.txHashCommitment,
+                        commitmentMP.commitment.massMigrationMetaInfo.tokenID,
+                        commitmentMP.commitment.massMigrationMetaInfo.amount,
+                        commitmentMP
+                            .commitment
+                            .massMigrationMetaInfo
+                            .withdrawRoot,
+                        commitmentMP
+                            .commitment
+                            .massMigrationMetaInfo
+                            .targetSpokeID,
+                        commitmentMP.commitment.aggregatedSignature
+                    ),
+                    commitmentMP.pathToCommitment,
+                    commitmentMP.siblings
+                ),
+                "Commitment not present in batch"
+            );
+
+            require(
+                commitmentMP.commitment.txHashCommitment != ZERO_BYTES32,
+                "Cannot dispute blocks with no transaction"
+            );
+        }
+
+        bytes32 updatedBalanceRoot;
+        bool isDisputeValid;
+        bytes32 txRoot;
+        (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
+            .processMMBatch(commitmentMP.commitment, txs, batchProofs);
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {

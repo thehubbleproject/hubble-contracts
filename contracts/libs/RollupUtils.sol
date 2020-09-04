@@ -28,6 +28,32 @@ library RollupUtils {
             );
     }
 
+    function MMCommitmentToHash(
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 txCommitment,
+        uint256 tokenID,
+        uint256 amount,
+        bytes32 withdrawRoot,
+        uint256 targetSpokeID,
+        uint256[2] memory aggregatedSignature
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    stateRoot,
+                    accountRoot,
+                    txCommitment,
+                    tokenID,
+                    amount,
+                    withdrawRoot,
+                    targetSpokeID,
+                    aggregatedSignature,
+                    Types.Usage.MassMigration
+                )
+            );
+    }
+
     // ---------- Account Related Utils -------------------
     function PDALeafToHash(Types.PDALeaf memory _PDA_Leaf)
         public

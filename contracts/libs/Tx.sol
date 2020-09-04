@@ -16,6 +16,7 @@ library Tx {
     uint256 public constant MASK_STATE_ID = 0xffffffff;
     uint256 public constant MASK_AMOUNT = 0xffffffff;
     uint256 public constant MASK_NONCE = 0xffffffff;
+    uint256 public constant MASK_SPOKE = 0xffffffff;
     uint256 public constant MASK_TOKEN_ID = 0xffff;
     uint256 public constant MASK_BYTE = 0xff;
 
@@ -52,6 +53,18 @@ library Tx {
     // positions in bytes
     uint256 public constant POSITION_STATE_4 = 4;
 
+    // transaction_type: Mass Migrations
+    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|spokeID<4>]]
+    uint256 public constant TX_LEN_5 = 16;
+
+    // TODO Fix
+    uint256 public constant MASK_TX_5 = 0xffffffffffffffffffffffffffffffff;
+    // positions in bytes
+    uint256 public constant POSITION_SENDER_5 = 4;
+    uint256 public constant POSITION_RECEIVER_5 = 8;
+    uint256 public constant POSITION_AMOUNT_5 = 12;
+    uint256 public constant POSITION_SPOKE_5 = 16;
+
     struct Transfer {
         uint256 fromIndex;
         uint256 toIndex;
@@ -82,6 +95,13 @@ library Tx {
         uint256 accountID;
         uint256 stateID;
         uint256 nonce;
+    }
+
+    struct MassMig {
+        uint256 fromIndex;
+        uint256 toIndex;
+        uint256 amount;
+        uint256 spokeID;
     }
 
     function create_serializeFromEncoded(bytes[] memory txs)
@@ -784,5 +804,32 @@ library Tx {
             keccak256(
                 abi.encodePacked(BURN_CONCENT, _tx.fromIndex, nonce, _tx.amount)
             );
+    }
+
+    function mass_migration_decode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (MassMig memory _tx)
+    {
+        uint256 sender;
+        uint256 receiver;
+        uint256 amount;
+        uint256 spokeID;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_5))
+            sender := and(mload(add(p_tx, POSITION_SENDER_5)), MASK_STATE_ID)
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_5)),
+                MASK_STATE_ID
+            )
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_5)), MASK_AMOUNT)
+            spokeID := and(mload(add(p_tx, POSITION_SPOKE_5)), MASK_SPOKE)
+        }
+        return MassMig(sender, receiver, amount, spokeID);
+    }
+
+    function mass_mig_size(bytes memory txs) internal pure returns (uint256) {
+        return txs.length / TX_LEN_5;
     }
 }
