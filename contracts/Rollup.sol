@@ -245,7 +245,7 @@ contract Rollup is RollupHelpers {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
-                    accountRegistry.root(),
+                    pubkeyTreeRoot,
                     signatures[i],
                     txs[i],
                     feeReceiver,
