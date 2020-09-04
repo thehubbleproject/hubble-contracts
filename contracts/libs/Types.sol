@@ -46,8 +46,8 @@ library Types {
         bytes32 stateRoot;
         bytes32 accountRoot;
         bytes32 txHashCommitment;
-        uint256[2] aggregatedSignature;
         MassMigrationMetaInfo massMigrationMetaInfo;
+        uint256[2] signature;
         Usage batchType;
     }
 

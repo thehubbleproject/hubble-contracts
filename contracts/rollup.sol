@@ -501,7 +501,7 @@ contract Rollup is RollupHelpers {
                             .commitment
                             .massMigrationMetaInfo
                             .targetSpokeID,
-                        commitmentMP.commitment.aggregatedSignature
+                        commitmentMP.commitment.signature
                     ),
                     commitmentMP.pathToCommitment,
                     commitmentMP.siblings
