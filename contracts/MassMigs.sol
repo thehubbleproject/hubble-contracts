@@ -18,7 +18,7 @@ contract MassMigs is FraudProofHelpers {
     function processMassMigsBatch(
         Types.MMCommitment memory commitment,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs
+        Types.AccountMerkleProof[] memory accountProofs
     )
         public
         view
@@ -73,7 +73,8 @@ contract MassMigs is FraudProofHelpers {
             ) = processMassMigrationTx(
                 commitment.stateRoot,
                 _tx,
-                batchProofs.accountProofs[i]
+                 accountProofs[i * 2],
+                accountProofs[i * 2 + 1]
             );
 
             // cache token of first tx to evaluate others
@@ -103,7 +104,8 @@ contract MassMigs is FraudProofHelpers {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMig memory _tx,
-        Types.AccountProofs memory accountProofs
+         Types.AccountMerkleProof memory fromAccountProof,
+        Types.AccountMerkleProof memory toAccountProof
     )
         public
         pure
@@ -116,21 +118,18 @@ contract MassMigs is FraudProofHelpers {
             bool
         )
     {
-        require(
+          require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtils.HashFromAccount(
-                    accountProofs.from.accountIP.account
-                ),
+                RollupUtils.HashFromAccount(fromAccountProof.account),
                 _tx.fromIndex,
-                accountProofs.from.siblings
+                fromAccountProof.siblings
             ),
             "Transfer: sender does not exist"
         );
-
-        Types.ErrorCode err_code = validateTxBasic(
+ Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
-            accountProofs.from.accountIP.account
+            fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", 0, err_code, false);
@@ -138,9 +137,8 @@ contract MassMigs is FraudProofHelpers {
         bytes32 newRoot;
         bytes memory new_from_account;
         bytes memory new_to_account;
-
-        (new_from_account, newRoot) = ApplyMassMigTxSender(
-            accountProofs.from,
+  (new_from_account, newRoot) = ApplyMassMigTxSender(
+            fromAccountProof,
             _tx
         );
 
@@ -148,7 +146,7 @@ contract MassMigs is FraudProofHelpers {
             newRoot,
             new_from_account,
             new_to_account,
-            accountProofs.from.accountIP.account.tokenType,
+            fromAccountProof.account.tokenType,
             Types.ErrorCode.NoError,
             true
         );
@@ -158,28 +156,13 @@ contract MassMigs is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.MassMig memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
+        Types.UserAccount memory account = _merkle_proof.account;
         account = RemoveTokensFromAccount(account, _tx.amount);
         account.nonce++;
         bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.fromIndex,
-            _merkle_proof.siblings
-        );
-        return (accountInBytes, newRoot);
-    }
-
-    function ApplyMassMigTxReceiver(
-        Types.AccountMerkleProof memory _merkle_proof,
-        Tx.MassMig memory _tx
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.accountIP.account;
-        account = AddTokensToAccount(account, _tx.amount);
-        bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(accountInBytes),
-            _tx.toIndex,
             _merkle_proof.siblings
         );
         return (accountInBytes, newRoot);

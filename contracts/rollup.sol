@@ -35,7 +35,7 @@ interface IRollupReddit {
     function processMMBatch(
         Types.MMCommitment calldata commitment,
         bytes calldata txs,
-        Types.BatchValidationProofs calldata batchProofs
+        Types.AccountMerkleProof[] calldata accountProofs
     )
         external
         view
@@ -463,7 +463,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.MMCommitmentInclusionProof memory commitmentMP,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs
+        Types.AccountMerkleProof[] memory accountProofs 
     ) public {
         {
             // check if batch is disputable
@@ -519,7 +519,7 @@ contract Rollup is RollupHelpers {
         bool isDisputeValid;
         bytes32 txRoot;
         (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
-            .processMMBatch(commitmentMP.commitment, txs, batchProofs);
+            .processMMBatch(commitmentMP.commitment, txs, accountProofs);
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {
@@ -548,16 +548,15 @@ contract Rollup is RollupHelpers {
         {
             // check if batch is disputable
             require(
-                !batches[_batch_id].withdrawn,
+                !batches[batchID].withdrawn,
                 "No point dispute a withdrawn batch"
             );
             require(
-                block.number < batches[_batch_id].finalisesOn,
+                block.number < batches[batchID].finalisesOn,
                 "Batch already finalised"
             );
-            require(
-                block.number < batches[batchID].finalisesOn,
-                (batchID < invalidBatchMarker || invalidBatchMarker == 0),
+
+            require(batchID < invalidBatchMarker || invalidBatchMarker == 0,
                 "Already successfully disputed. Roll back in process"
             );
         }

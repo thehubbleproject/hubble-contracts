@@ -336,7 +336,7 @@ contract RollupReddit {
     function processMMBatch(
         Types.MMCommitment memory commitment,
         bytes memory txs,
-        Types.BatchValidationProofs memory batchProofs
+        Types.AccountMerkleProof[] memory accountProofs 
     )
         public
         view
@@ -347,6 +347,6 @@ contract RollupReddit {
         )
     {
         // call mass mig contract
-        return massMigs.processMassMigsBatch(commitment, txs, batchProofs);
+        return massMigs.processMassMigsBatch(commitment, txs, accountProofs);
     }
 }
