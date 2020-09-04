@@ -8,6 +8,7 @@ const accountIDLen = 4;
 const stateIDLen = 4;
 const tokenLen = 2;
 const nonceLen = 4;
+const spokeLen = 4;
 
 function log2(n: number) {
     return Math.ceil(Math.log2(n));
@@ -205,6 +206,72 @@ export class TxBurnExecution implements Tx {
     public encode(prefix: boolean = false): string {
         let fromIndex = paddedHex(this.fromIndex, stateIDLen);
         let encoded = fromIndex.slice(2);
+        if (prefix) {
+            encoded = "0x" + encoded;
+        }
+        return encoded;
+    }
+}
+
+export class TxMassMig implements SignableTx {
+    private readonly TX_TYPE = "07";
+    public static rand(): TxMassMig {
+        const sender = randomNum(stateIDLen);
+        const receiver = randomNum(stateIDLen);
+        const amount = randomNum(amountLen);
+        const fee = randomNum(feeLen);
+        const nonce = randomNum(nonceLen);
+        const spokeID = randomNum(spokeLen);
+        return new TxMassMig(sender, receiver, amount, spokeID, fee, nonce);
+    }
+    constructor(
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
+        public readonly amount: number,
+        public readonly spokeID: number,
+        public readonly fee: number,
+        public nonce: number
+    ) {}
+
+    public message(domain: string): string {
+        let nonce = paddedHex(this.nonce, nonceLen);
+
+        return domain + this.TX_TYPE + nonce.slice(2) + this.encode(false);
+    }
+
+    public hash(): string {
+        return ethers.utils.solidityKeccak256(
+            ["uint32", "uint32", "uint32", "uint32", "uint32"],
+            [this.fromIndex, this.toIndex, this.amount, this.spokeID, this.fee]
+        );
+    }
+
+    public extended() {
+        return {
+            fromIndex: this.fromIndex,
+            toIndex: this.toIndex,
+            amount: this.amount,
+            spokeID: this.spokeID,
+            fee: this.fee,
+            nonce: this.nonce,
+            tokenType: 0,
+            txType: 0
+        };
+    }
+
+    public encode(prefix: boolean = false): string {
+        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
+        let toIndex = paddedHex(this.toIndex, stateIDLen);
+        let amount = paddedHex(this.amount, amountLen);
+        let spokeID = paddedHex(this.spokeID, spokeLen);
+        let fee = paddedHex(this.fee, feeLen);
+
+        let encoded =
+            fromIndex.slice(2) +
+            toIndex.slice(2) +
+            amount.slice(2) +
+            spokeID.slice(2) +
+            fee.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
