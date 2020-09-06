@@ -63,16 +63,6 @@ contract TestBLS {
         return BLS.isOnCurveG2(point);
     }
 
-    function isNonResidueFP(uint256 e) external view returns (bool) {
-        return BLS.isNonResidueFP(e);
-    }
-
-    function isNonResidueFPGasCost(uint256 e) external returns (uint256) {
-        uint256 g = gasleft();
-        BLS.isNonResidueFP(e);
-        return g - gasleft();
-    }
-
     function verifyMultipleGasCost(
         uint256[2] calldata signature,
         uint256[4][] calldata pubkeys,

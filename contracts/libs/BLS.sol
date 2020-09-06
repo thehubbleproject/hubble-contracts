@@ -138,7 +138,9 @@ library BLS {
     {
         require(_x < N, "mapToPointFT: invalid field element");
         uint256 x = _x;
-        bool decision = isNonResidueFP(x);
+
+        (, bool decision) = sqrtFaster(x);
+
         uint256 a0 = mulmod(x, x, N);
         a0 = addmod(a0, 4, N);
         uint256 a1 = mulmod(x, z0, N);
@@ -157,7 +159,7 @@ library BLS {
         bool found;
         (a1, found) = sqrtFaster(a1);
         if (found) {
-            if (decision) {
+            if (!decision) {
                 a1 = N - a1;
             }
             return [x, a1];
@@ -171,7 +173,7 @@ library BLS {
         a1 = addmod(a1, 3, N);
         (a1, found) = sqrtFaster(a1);
         if (found) {
-            if (decision) {
+            if (!decision) {
                 a1 = N - a1;
             }
             return [x, a1];
@@ -189,7 +191,7 @@ library BLS {
         a1 = addmod(a1, 3, N);
         (a1, found) = sqrtFaster(a1);
         require(found, "BLS: bad ft mapping implementation");
-        if (decision) {
+        if (!decision) {
             a1 = N - a1;
         }
         return [x, a1];
@@ -285,43 +287,6 @@ library BLS {
             // y ^ 2 == x ^ 3 + b
             _isOnCurve := and(eq(t0, t4), eq(t1, t3))
         }
-    }
-
-    function isNonResidueFP(uint256 e)
-        internal
-        view
-        returns (bool isNonResidue)
-    {
-        bool callSuccess;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let freemem := mload(0x40)
-            mstore(freemem, 0x20)
-            mstore(add(freemem, 0x20), 0x20)
-            mstore(add(freemem, 0x40), 0x20)
-            mstore(add(freemem, 0x60), e)
-            // (N - 1) / 2 = 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            mstore(
-                add(freemem, 0x80),
-                0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            )
-            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            mstore(
-                add(freemem, 0xA0),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            )
-            callSuccess := staticcall(
-                sub(gas(), 2000),
-                5,
-                freemem,
-                0xC0,
-                freemem,
-                0x20
-            )
-            isNonResidue := eq(1, mload(freemem))
-        }
-        require(callSuccess, "BLS: isNonResidueFP modexp call failed");
-        return !isNonResidue;
     }
 
     function sqrtFaster(uint256 xx)

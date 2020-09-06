@@ -122,35 +122,6 @@ describe("BLS", async () => {
             assert.isFalse(isOnCurve);
         }
     });
-    it("fp is non residue", async function() {
-        const MINUS_ONE =
-            "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd46";
-
-        let r = await bls.isNonResidueFP(MINUS_ONE);
-        assert.isTrue(r);
-        r = await bls.isNonResidueFP("0x04");
-        assert.isFalse(r);
-        const residues = [];
-        for (let i = 0; i < 5; i++) {
-            const a = randFs();
-            residues.push(a.mul(a).mod(FIELD_ORDER));
-        }
-        const nonResidues = [
-            "0x23d9bb51d142f4a4b8a533721a30648b5ff7f9387b43d4fc8232db20377611bc",
-            "0x107662a378d9198183bd183db9f6e5ba271fbf2ec6b8b077dfc0a40119f104cb",
-            "0x0df617c7a009e07c841d683108b8747a842ce0e76f03f0ce9939473d569ea4ba",
-            "0x276496bfeb07b8ccfc041a1706fbe3d96f4d42ffb707edc5e31cae16690fddc7",
-            "0x20fcdf224c9982c72a3e659884fdad7cb59b736d6d57d54799c57434b7869bb3"
-        ];
-        for (let i = 0; i < residues.length; i++) {
-            r = await bls.isNonResidueFP(residues[i].toString());
-            assert.isFalse(r);
-        }
-        for (let i = 0; i < nonResidues.length; i++) {
-            r = await bls.isNonResidueFP(nonResidues[i].toString());
-            assert.isTrue(r);
-        }
-    });
     it.skip("gas cost: verify signature", async function() {
         const n = 100;
         const messages = [];
