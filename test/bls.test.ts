@@ -8,14 +8,14 @@ import { ethers } from "@nomiclabs/buidler";
 import { randomBytes, hexlify, arrayify, zeroPad } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../ts/hash_to_field";
 
-const DOMAIN_STR = randHex(32);
-const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_STR.slice(2), "hex"));
+const DOMAIN_HEX = randHex(32);
+const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
 
 describe("BLS", async () => {
     let bls: TestBls;
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN_STR);
+        mcl.setDomainHex(DOMAIN_HEX);
         const accounts = await ethers.getSigners();
         bls = await new TestBlsFactory(accounts[0]).deploy();
         await bls.deployed();
