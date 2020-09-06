@@ -133,19 +133,19 @@ library BLS {
 
     function mapToPoint(uint256 _x)
         internal
-        view
+        pure
         returns (uint256[2] memory p)
     {
         require(_x < N, "mapToPointFT: invalid field element");
         uint256 x = _x;
 
-        (, bool decision) = sqrtFaster(x);
+        (, bool decision) = sqrt(x);
 
         uint256 a0 = mulmod(x, x, N);
         a0 = addmod(a0, 4, N);
         uint256 a1 = mulmod(x, z0, N);
         uint256 a2 = mulmod(a1, a0, N);
-        a2 = inverseFaster(a2);
+        a2 = inverse(a2);
         a1 = mulmod(a1, a1, N);
         a1 = mulmod(a1, a2, N);
 
@@ -157,7 +157,7 @@ library BLS {
         a1 = mulmod(a1, x, N);
         a1 = addmod(a1, 3, N);
         bool found;
-        (a1, found) = sqrtFaster(a1);
+        (a1, found) = sqrt(a1);
         if (found) {
             if (!decision) {
                 a1 = N - a1;
@@ -171,7 +171,7 @@ library BLS {
         a1 = mulmod(x, x, N);
         a1 = mulmod(a1, x, N);
         a1 = addmod(a1, 3, N);
-        (a1, found) = sqrtFaster(a1);
+        (a1, found) = sqrt(a1);
         if (found) {
             if (!decision) {
                 a1 = N - a1;
@@ -189,7 +189,7 @@ library BLS {
         a1 = mulmod(x, x, N);
         a1 = mulmod(a1, x, N);
         a1 = addmod(a1, 3, N);
-        (a1, found) = sqrtFaster(a1);
+        (a1, found) = sqrt(a1);
         require(found, "BLS: bad ft mapping implementation");
         if (!decision) {
             a1 = N - a1;
@@ -289,82 +289,17 @@ library BLS {
         }
     }
 
-    function sqrtFaster(uint256 xx)
+    function sqrt(uint256 xx)
         internal
-        view
+        pure
         returns (uint256 x, bool hasRoot)
     {
         x = modexp_c191_3f52.run(xx);
         hasRoot = mulmod(x, x, N) == xx;
     }
 
-    function sqrt(uint256 xx) internal view returns (uint256 x, bool hasRoot) {
-        bool callSuccess;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let freemem := mload(0x40)
-            mstore(freemem, 0x20)
-            mstore(add(freemem, 0x20), 0x20)
-            mstore(add(freemem, 0x40), 0x20)
-            mstore(add(freemem, 0x60), xx)
-            // (N + 1) / 4 = 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52
-            mstore(
-                add(freemem, 0x80),
-                0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52
-            )
-            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            mstore(
-                add(freemem, 0xA0),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            )
-            callSuccess := staticcall(
-                sub(gas(), 2000),
-                5,
-                freemem,
-                0xC0,
-                freemem,
-                0x20
-            )
-            x := mload(freemem)
-            hasRoot := eq(xx, mulmod(x, x, N))
-        }
-        require(callSuccess, "BLS: sqrt modexp call failed");
-    }
-
-    function inverseFaster(uint256 a) internal view returns (uint256) {
+    function inverse(uint256 a) internal pure returns (uint256) {
         return modexp_3064_fd54.run(a);
-    }
-
-    function inverse(uint256 x) internal view returns (uint256 ix) {
-        bool callSuccess;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let freemem := mload(0x40)
-            mstore(freemem, 0x20)
-            mstore(add(freemem, 0x20), 0x20)
-            mstore(add(freemem, 0x40), 0x20)
-            mstore(add(freemem, 0x60), x)
-            // (N - 2) = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd45
-            mstore(
-                add(freemem, 0x80),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd45
-            )
-            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            mstore(
-                add(freemem, 0xA0),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            )
-            callSuccess := staticcall(
-                sub(gas(), 2000),
-                5,
-                freemem,
-                0xC0,
-                freemem,
-                0x20
-            )
-            ix := mload(freemem)
-        }
-        require(callSuccess, "BLS: inverse modexp call failed");
     }
 
     function hashToField(bytes32 domain, bytes memory messages)
