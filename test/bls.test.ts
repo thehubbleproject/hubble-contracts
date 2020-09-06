@@ -5,7 +5,7 @@ import { randFs, FIELD_ORDER, randHex, randFsHex, bigToHex } from "../ts/utils";
 
 import * as mcl from "../ts/mcl";
 import { ethers } from "@nomiclabs/buidler";
-import { randomBytes, hexlify, arrayify, zeroPad } from "ethers/lib/utils";
+import { randomBytes, hexlify } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../ts/hash_to_field";
 
 const DOMAIN_HEX = randHex(32);

@@ -1,5 +1,7 @@
 pragma solidity ^0.5.15;
 
+import { modexp_3064_fd54, modexp_c191_3f52 } from "./modexp.sol";
+
 library BLS {
     // Field order
     uint256 constant N = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
@@ -141,7 +143,7 @@ library BLS {
         a0 = addmod(a0, 4, N);
         uint256 a1 = mulmod(x, z0, N);
         uint256 a2 = mulmod(a1, a0, N);
-        a2 = inverse(a2);
+        a2 = inverseFaster(a2);
         a1 = mulmod(a1, a1, N);
         a1 = mulmod(a1, a2, N);
 
@@ -153,7 +155,7 @@ library BLS {
         a1 = mulmod(a1, x, N);
         a1 = addmod(a1, 3, N);
         bool found;
-        (a1, found) = sqrt(a1);
+        (a1, found) = sqrtFaster(a1);
         if (found) {
             if (decision) {
                 a1 = N - a1;
@@ -167,7 +169,7 @@ library BLS {
         a1 = mulmod(x, x, N);
         a1 = mulmod(a1, x, N);
         a1 = addmod(a1, 3, N);
-        (a1, found) = sqrt(a1);
+        (a1, found) = sqrtFaster(a1);
         if (found) {
             if (decision) {
                 a1 = N - a1;
@@ -185,7 +187,7 @@ library BLS {
         a1 = mulmod(x, x, N);
         a1 = mulmod(a1, x, N);
         a1 = addmod(a1, 3, N);
-        (a1, found) = sqrt(a1);
+        (a1, found) = sqrtFaster(a1);
         require(found, "BLS: bad ft mapping implementation");
         if (decision) {
             a1 = N - a1;
@@ -322,6 +324,15 @@ library BLS {
         return !isNonResidue;
     }
 
+    function sqrtFaster(uint256 xx)
+        internal
+        view
+        returns (uint256 x, bool hasRoot)
+    {
+        x = modexp_c191_3f52.run(xx);
+        hasRoot = mulmod(x, x, N) == xx;
+    }
+
     function sqrt(uint256 xx) internal view returns (uint256 x, bool hasRoot) {
         bool callSuccess;
         // solium-disable-next-line security/no-inline-assembly
@@ -353,6 +364,10 @@ library BLS {
             hasRoot := eq(xx, mulmod(x, x, N))
         }
         require(callSuccess, "BLS: sqrt modexp call failed");
+    }
+
+    function inverseFaster(uint256 a) internal view returns (uint256) {
+        return modexp_3064_fd54.run(a);
     }
 
     function inverse(uint256 x) internal view returns (uint256 ix) {
