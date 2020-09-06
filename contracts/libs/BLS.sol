@@ -289,11 +289,7 @@ library BLS {
         }
     }
 
-    function sqrt(uint256 xx)
-        internal
-        pure
-        returns (uint256 x, bool hasRoot)
-    {
+    function sqrt(uint256 xx) internal pure returns (uint256 x, bool hasRoot) {
         x = modexp_c191_3f52.run(xx);
         hasRoot = mulmod(x, x, N) == xx;
     }
