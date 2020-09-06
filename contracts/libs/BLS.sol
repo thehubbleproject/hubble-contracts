@@ -153,64 +153,6 @@ library BLS {
         }
     }
 
-    function pubkeyToUncompresed(
-        uint256[2] memory compressed,
-        uint256[2] memory y
-    ) internal pure returns (uint256[4] memory uncompressed) {
-        uint256 desicion = compressed[0] & SIGN_MASK;
-        require(
-            desicion == ODD_NUM || y[0] & 1 != 1,
-            "BLS: bad y coordinate for uncompressing key"
-        );
-        uncompressed[0] = compressed[0] & FIELD_MASK;
-        uncompressed[1] = compressed[1];
-        uncompressed[2] = y[0];
-        uncompressed[3] = y[1];
-    }
-
-    function signatureToUncompresed(uint256 compressed, uint256 y)
-        internal
-        pure
-        returns (uint256[2] memory uncompressed)
-    {
-        uint256 desicion = compressed & SIGN_MASK;
-        require(
-            desicion == ODD_NUM || y & 1 != 1,
-            "BLS: bad y coordinate for uncompressing key"
-        );
-        return [compressed & FIELD_MASK, y];
-    }
-
-    function isValidCompressedPublicKey(uint256[2] memory publicKey)
-        internal
-        view
-        returns (bool)
-    {
-        uint256 x0 = publicKey[0] & FIELD_MASK;
-        uint256 x1 = publicKey[1];
-        if ((x0 >= N) || (x1 >= N)) {
-            return false;
-        } else if ((x0 == 0) && (x1 == 0)) {
-            return false;
-        } else {
-            return isOnCurveG2([x0, x1]);
-        }
-    }
-
-    function isValidCompressedSignature(uint256 signature)
-        internal
-        view
-        returns (bool)
-    {
-        uint256 x = signature & FIELD_MASK;
-        if (x >= N) {
-            return false;
-        } else if (x == 0) {
-            return false;
-        }
-        return isOnCurveG1(x);
-    }
-
     function isOnCurveG1(uint256[2] memory point)
         internal
         pure
@@ -225,42 +167,6 @@ library BLS {
             t2 := addmod(t2, 3, N)
             t1 := mulmod(t1, t1, N)
             _isOnCurve := eq(t1, t2)
-        }
-    }
-
-    function isOnCurveG1(uint256 x) internal view returns (bool _isOnCurve) {
-        bool callSuccess;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let t0 := x
-            let t1 := mulmod(t0, t0, N)
-            t1 := mulmod(t1, t0, N)
-            t1 := addmod(t1, 3, N)
-
-            let freemem := mload(0x40)
-            mstore(freemem, 0x20)
-            mstore(add(freemem, 0x20), 0x20)
-            mstore(add(freemem, 0x40), 0x20)
-            mstore(add(freemem, 0x60), t1)
-            // (N - 1) / 2 = 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            mstore(
-                add(freemem, 0x80),
-                0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            )
-            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            mstore(
-                add(freemem, 0xA0),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            )
-            callSuccess := staticcall(
-                sub(gas(), 2000),
-                5,
-                freemem,
-                0xC0,
-                freemem,
-                0x20
-            )
-            _isOnCurve := eq(1, mload(freemem))
         }
     }
 
@@ -311,68 +217,6 @@ library BLS {
         }
     }
 
-    function isOnCurveG2(uint256[2] memory x)
-        internal
-        view
-        returns (bool _isOnCurve)
-    {
-        bool callSuccess;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            // x0, x1
-            let t0 := mload(add(x, 0))
-            let t1 := mload(add(x, 32))
-            // x0 ^ 2
-            let t2 := mulmod(t0, t0, N)
-            // x1 ^ 2
-            let t3 := mulmod(t1, t1, N)
-            // 3 * x0 ^ 2
-            let t4 := add(add(t2, t2), t2)
-            // 3 * x1 ^ 2
-            let t5 := addmod(add(t3, t3), t3, N)
-            // x0 * (x0 ^ 2 - 3 * x1 ^ 2)
-            t2 := mulmod(add(t2, sub(N, t5)), t0, N)
-            // x1 * (3 * x0 ^ 2 - x1 ^ 2)
-            t3 := mulmod(add(t4, sub(N, t3)), t1, N)
-            // x ^ 3 + b
-            t0 := add(
-                t2,
-                0x2b149d40ceb8aaae81be18991be06ac3b5b4c5e559dbefa33267e6dc24a138e5
-            )
-            t1 := add(
-                t3,
-                0x009713b03af0fed4cd2cafadeed8fdf4a74fa084e52d1852e4a2bd0685c315d2
-            )
-
-            // is non residue ?
-            t0 := addmod(mulmod(t0, t0, N), mulmod(t1, t1, N), N)
-            let freemem := mload(0x40)
-            mstore(freemem, 0x20)
-            mstore(add(freemem, 0x20), 0x20)
-            mstore(add(freemem, 0x40), 0x20)
-            mstore(add(freemem, 0x60), t0)
-            // (N - 1) / 2 = 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            mstore(
-                add(freemem, 0x80),
-                0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            )
-            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            mstore(
-                add(freemem, 0xA0),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            )
-            callSuccess := staticcall(
-                sub(gas(), 2000),
-                5,
-                freemem,
-                0xC0,
-                freemem,
-                0x20
-            )
-            _isOnCurve := eq(1, mload(freemem))
-        }
-    }
-
     function isNonResidueFP(uint256 e)
         internal
         view
@@ -407,44 +251,6 @@ library BLS {
             isNonResidue := eq(1, mload(freemem))
         }
         require(callSuccess, "BLS: isNonResidueFP modexp call failed");
-        return !isNonResidue;
-    }
-
-    function isNonResidueFP2(uint256[2] memory e)
-        internal
-        view
-        returns (bool isNonResidue)
-    {
-        uint256 a = addmod(mulmod(e[0], e[0], N), mulmod(e[1], e[1], N), N);
-        bool callSuccess;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let freemem := mload(0x40)
-            mstore(freemem, 0x20)
-            mstore(add(freemem, 0x20), 0x20)
-            mstore(add(freemem, 0x40), 0x20)
-            mstore(add(freemem, 0x60), a)
-            // (N - 1) / 2 = 0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            mstore(
-                add(freemem, 0x80),
-                0x183227397098d014dc2822db40c0ac2ecbc0b548b438e5469e10460b6c3e7ea3
-            )
-            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            mstore(
-                add(freemem, 0xA0),
-                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
-            )
-            callSuccess := staticcall(
-                sub(gas(), 2000),
-                5,
-                freemem,
-                0xC0,
-                freemem,
-                0x20
-            )
-            isNonResidue := eq(1, mload(freemem))
-        }
-        require(callSuccess, "BLS: isNonResidueFP2 modexp call failed");
         return !isNonResidue;
     }
 
