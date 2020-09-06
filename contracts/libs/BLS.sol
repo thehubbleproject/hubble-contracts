@@ -103,7 +103,7 @@ library BLS {
         return out[0] != 0;
     }
 
-    function hashToPoint(bytes memory domain, bytes memory message)
+    function hashToPoint(bytes32 domain, bytes memory message)
         internal
         view
         returns (uint256[2] memory)
@@ -387,42 +387,40 @@ library BLS {
         require(callSuccess, "BLS: inverse modexp call failed");
     }
 
-    function hashToField(bytes memory domain, bytes memory messages)
+    function hashToField(bytes32 domain, bytes memory messages)
         internal
         pure
         returns (uint256[2] memory)
     {
         bytes memory _msg = expandMsgTo96(domain, messages);
-        uint256 z0;
-        uint256 z1;
+        uint256 u0;
+        uint256 u1;
         uint256 a0;
         uint256 a1;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p := add(_msg, 24)
-            z1 := and(mload(p), MASK24)
+            u1 := and(mload(p), MASK24)
             p := add(_msg, 48)
-            z0 := and(mload(p), MASK24)
-            a0 := addmod(mulmod(z1, T24, N), z0, N)
+            u0 := and(mload(p), MASK24)
+            a0 := addmod(mulmod(u1, T24, N), u0, N)
             p := add(_msg, 72)
-            z1 := and(mload(p), MASK24)
+            u1 := and(mload(p), MASK24)
             p := add(_msg, 96)
-            z0 := and(mload(p), MASK24)
-            a1 := addmod(mulmod(z1, T24, N), z0, N)
+            u0 := and(mload(p), MASK24)
+            a1 := addmod(mulmod(u1, T24, N), u0, N)
         }
         return [a0, a1];
     }
 
-    function expandMsgTo96(bytes memory domain, bytes memory message)
+    function expandMsgTo96(bytes32 domain, bytes memory message)
         internal
         pure
         returns (bytes memory)
     {
-        uint256 t1 = domain.length;
-        require(t1 < 256, "BLS: invalid domain length");
         // zero<64>|msg<var>|lib_str<2>|I2OSP(0, 1)<1>|dst<var>|dst_len<1>
         uint256 t0 = message.length;
-        bytes memory msg0 = new bytes(t1 + t0 + 64 + 4);
+        bytes memory msg0 = new bytes(32 + t0 + 64 + 4);
         bytes memory out = new bytes(96);
         // b0
         // solium-disable-next-line security/no-inline-assembly
@@ -446,13 +444,13 @@ library BLS {
             mstore8(p, 0)
             p := add(p, 1)
 
-            mstore(p, mload(add(domain, 32)))
-            p := add(p, t1)
-            mstore8(p, t1)
+            mstore(p, domain)
+            p := add(p, 32)
+            mstore8(p, 32)
         }
         bytes32 b0 = sha256(msg0);
         bytes32 bi;
-        t0 = t1 + 34;
+        t0 = 32 + 34;
 
         // resize intermediate message
         // solium-disable-next-line security/no-inline-assembly
@@ -466,8 +464,8 @@ library BLS {
         assembly {
             mstore(add(msg0, 32), b0)
             mstore8(add(msg0, 64), 1)
-            mstore(add(msg0, 65), mload(add(domain, 32)))
-            mstore8(add(msg0, add(t1, 65)), t1)
+            mstore(add(msg0, 65), domain)
+            mstore8(add(msg0, add(32, 65)), 32)
         }
 
         bi = sha256(msg0);
@@ -484,8 +482,8 @@ library BLS {
             let t := xor(b0, bi)
             mstore(add(msg0, 32), t)
             mstore8(add(msg0, 64), 2)
-            mstore(add(msg0, 65), mload(add(domain, 32)))
-            mstore8(add(msg0, add(t1, 65)), t1)
+            mstore(add(msg0, 65), domain)
+            mstore8(add(msg0, add(32, 65)), 32)
         }
 
         bi = sha256(msg0);
@@ -495,15 +493,15 @@ library BLS {
             mstore(add(out, 64), bi)
         }
 
-        // // b3
+        // b3
 
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let t := xor(b0, bi)
             mstore(add(msg0, 32), t)
             mstore8(add(msg0, 64), 3)
-            mstore(add(msg0, 65), mload(add(domain, 32)))
-            mstore8(add(msg0, add(t1, 65)), t1)
+            mstore(add(msg0, 65), domain)
+            mstore8(add(msg0, add(32, 65)), 32)
         }
 
         bi = sha256(msg0);

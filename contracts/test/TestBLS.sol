@@ -19,15 +19,11 @@ contract TestBLS {
         return BLS.verifySingle(signature, pubkey, message);
     }
 
-    function mapToPoint(uint256 e)
-        external
-        view
-        returns (uint256[2] memory p)
-    {
+    function mapToPoint(uint256 e) external view returns (uint256[2] memory p) {
         return BLS.mapToPoint(e);
     }
 
-    function hashToPoint(bytes calldata domain, bytes calldata message)
+    function hashToPoint(bytes32 domain, bytes calldata message)
         external
         view
         returns (uint256[2] memory p)
@@ -35,7 +31,7 @@ contract TestBLS {
         return BLS.hashToPoint(domain, message);
     }
 
-    function expandMsg(bytes calldata domain, bytes calldata message)
+    function expandMsg(bytes32 domain, bytes calldata message)
         external
         pure
         returns (bytes memory)
@@ -43,7 +39,7 @@ contract TestBLS {
         return BLS.expandMsgTo96(domain, message);
     }
 
-    function hashToField(bytes calldata domain, bytes calldata message)
+    function hashToField(bytes32 domain, bytes calldata message)
         external
         pure
         returns (uint256[2] memory)
@@ -103,12 +99,12 @@ contract TestBLS {
         return g - gasleft();
     }
 
-    function hashToPointGasCost(bytes calldata domain, bytes calldata message)
+    function hashToPointGasCost(bytes32 domain, bytes calldata message)
         external
         returns (uint256 p)
     {
         uint256 g = gasleft();
-        BLS.hashToPoint(message, domain);
+        BLS.hashToPoint(domain, message);
         return g - gasleft();
     }
 

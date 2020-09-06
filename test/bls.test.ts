@@ -5,17 +5,17 @@ import { randFs, FIELD_ORDER, randHex, randFsHex, bigToHex } from "../ts/utils";
 
 import * as mcl from "../ts/mcl";
 import { ethers } from "@nomiclabs/buidler";
-import { randomBytes, hexlify } from "ethers/lib/utils";
+import { randomBytes, hexlify, arrayify, zeroPad } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../ts/hash_to_field";
 
-const DOMAIN_STR = "testing-evmbls";
-const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_STR, "utf8"));
+const DOMAIN_STR = randHex(32);
+const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_STR.slice(2), "hex"));
 
 describe("BLS", async () => {
     let bls: TestBls;
     before(async function() {
         await mcl.init();
-        mcl.setDomain(DOMAIN_STR);
+        mcl.setDomainHex(DOMAIN_STR);
         const accounts = await ethers.getSigners();
         bls = await new TestBlsFactory(accounts[0]).deploy();
         await bls.deployed();
