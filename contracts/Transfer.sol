@@ -81,7 +81,7 @@ contract Transfer is FraudProofHelpers {
                 )
             }
             // make the message
-            messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
+            // messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
             return Types.ErrorCode.BadSignature;

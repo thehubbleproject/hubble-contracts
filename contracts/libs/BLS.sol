@@ -10,6 +10,14 @@ library BLS {
     uint256 constant nG2y1 = 17805874995975841540914202342111839520379459829704422454583296818431106115052;
     uint256 constant nG2y0 = 13392588948715843804641432497768002650278120570034223513918757245338268106653;
 
+    // sqrt(-3)
+    uint256 constant z0 = 0x0000000000000000b3c4d79d41a91759a9e4c7e359b6b89eaec68e62effffffd;
+    // (sqrt(-3) - 1)  / 2
+    uint256 constant z1 = 0x000000000000000059e26bcea0d48bacd4f263f1acdb5c4f5763473177fffffe;
+
+    uint256 constant T24 = 0x1000000000000000000000000000000000000000000000000;
+    uint256 constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
+
     uint256 constant FIELD_MASK = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     uint256 constant SIGN_MASK = 0x8000000000000000000000000000000000000000000000000000000000000000;
     uint256 constant ODD_NUM = 0x8000000000000000000000000000000000000000000000000000000000000000;
@@ -95,34 +103,94 @@ library BLS {
         return out[0] != 0;
     }
 
-    function hashToPoint(bytes memory data)
+    function hashToPoint(bytes memory domain, bytes memory message)
         internal
         view
-        returns (uint256[2] memory p)
+        returns (uint256[2] memory)
     {
-        return mapToPoint(keccak256(data));
+        uint256[2] memory u = hashToField(domain, message);
+        uint256[2] memory p0 = mapToPoint(u[0]);
+        uint256[2] memory p1 = mapToPoint(u[1]);
+        uint256[4] memory bnAddInput;
+        bnAddInput[0] = p0[0];
+        bnAddInput[1] = p0[1];
+        bnAddInput[2] = p1[0];
+        bnAddInput[3] = p1[1];
+        bool success;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            success := staticcall(sub(gas(), 2000), 6, bnAddInput, 128, p0, 64)
+            switch success
+                case 0 {
+                    invalid()
+                }
+        }
+        require(success, "");
+        return p0;
     }
 
-    function mapToPoint(bytes32 _x)
+    function mapToPoint(uint256 _x)
         internal
         view
         returns (uint256[2] memory p)
     {
-        uint256 x = uint256(_x) % N;
-        uint256 y;
-        bool found = false;
-        while (true) {
-            y = mulmod(x, x, N);
-            y = mulmod(y, x, N);
-            y = addmod(y, 3, N);
-            (y, found) = sqrt(y);
-            if (found) {
-                p[0] = x;
-                p[1] = y;
-                break;
+        require(_x < N, "mapToPointFT: invalid field element");
+        uint256 x = _x;
+        bool decision = isNonResidueFP(x);
+        uint256 a0 = mulmod(x, x, N);
+        a0 = addmod(a0, 4, N);
+        uint256 a1 = mulmod(x, z0, N);
+        uint256 a2 = mulmod(a1, a0, N);
+        a2 = inverse(a2);
+        a1 = mulmod(a1, a1, N);
+        a1 = mulmod(a1, a2, N);
+
+        // x1
+        a1 = mulmod(x, a1, N);
+        x = addmod(z1, N - a1, N);
+        // check curve
+        a1 = mulmod(x, x, N);
+        a1 = mulmod(a1, x, N);
+        a1 = addmod(a1, 3, N);
+        bool found;
+        (a1, found) = sqrt(a1);
+        if (found) {
+            if (decision) {
+                a1 = N - a1;
             }
-            x = addmod(x, 1, N);
+            return [x, a1];
         }
+
+        // x2
+        x = N - addmod(x, 1, N);
+        // check curve
+        a1 = mulmod(x, x, N);
+        a1 = mulmod(a1, x, N);
+        a1 = addmod(a1, 3, N);
+        (a1, found) = sqrt(a1);
+        if (found) {
+            if (decision) {
+                a1 = N - a1;
+            }
+            return [x, a1];
+        }
+
+        // x3
+        x = mulmod(a0, a0, N);
+        x = mulmod(x, x, N);
+        x = mulmod(x, a2, N);
+        x = mulmod(x, a2, N);
+        x = addmod(x, 1, N);
+        // must be on curve
+        a1 = mulmod(x, x, N);
+        a1 = mulmod(a1, x, N);
+        a1 = addmod(a1, 3, N);
+        (a1, found) = sqrt(a1);
+        require(found, "BLS: bad ft mapping implementation");
+        if (decision) {
+            a1 = N - a1;
+        }
+        return [x, a1];
     }
 
     function isValidPublicKey(uint256[4] memory publicKey)
@@ -285,5 +353,166 @@ library BLS {
             hasRoot := eq(xx, mulmod(x, x, N))
         }
         require(callSuccess, "BLS: sqrt modexp call failed");
+    }
+
+    function inverse(uint256 x) internal view returns (uint256 ix) {
+        bool callSuccess;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let freemem := mload(0x40)
+            mstore(freemem, 0x20)
+            mstore(add(freemem, 0x20), 0x20)
+            mstore(add(freemem, 0x40), 0x20)
+            mstore(add(freemem, 0x60), x)
+            // (N - 2) = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd45
+            mstore(
+                add(freemem, 0x80),
+                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd45
+            )
+            // N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
+            mstore(
+                add(freemem, 0xA0),
+                0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
+            )
+            callSuccess := staticcall(
+                sub(gas(), 2000),
+                5,
+                freemem,
+                0xC0,
+                freemem,
+                0x20
+            )
+            ix := mload(freemem)
+        }
+        require(callSuccess, "BLS: inverse modexp call failed");
+    }
+
+    function hashToField(bytes memory domain, bytes memory messages)
+        internal
+        pure
+        returns (uint256[2] memory)
+    {
+        bytes memory _msg = expandMsgTo96(domain, messages);
+        uint256 z0;
+        uint256 z1;
+        uint256 a0;
+        uint256 a1;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p := add(_msg, 24)
+            z1 := and(mload(p), MASK24)
+            p := add(_msg, 48)
+            z0 := and(mload(p), MASK24)
+            a0 := addmod(mulmod(z1, T24, N), z0, N)
+            p := add(_msg, 72)
+            z1 := and(mload(p), MASK24)
+            p := add(_msg, 96)
+            z0 := and(mload(p), MASK24)
+            a1 := addmod(mulmod(z1, T24, N), z0, N)
+        }
+        return [a0, a1];
+    }
+
+    function expandMsgTo96(bytes memory domain, bytes memory message)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 t1 = domain.length;
+        require(t1 < 256, "BLS: invalid domain length");
+        // zero<64>|msg<var>|lib_str<2>|I2OSP(0, 1)<1>|dst<var>|dst_len<1>
+        uint256 t0 = message.length;
+        bytes memory msg0 = new bytes(t1 + t0 + 64 + 4);
+        bytes memory out = new bytes(96);
+        // b0
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p := add(msg0, 96)
+
+            let z := 0
+            for {
+
+            } lt(z, t0) {
+                z := add(z, 32)
+            } {
+                mstore(add(p, z), mload(add(message, add(z, 32))))
+            }
+            p := add(p, t0)
+
+            mstore8(p, 0)
+            p := add(p, 1)
+            mstore8(p, 96)
+            p := add(p, 1)
+            mstore8(p, 0)
+            p := add(p, 1)
+
+            mstore(p, mload(add(domain, 32)))
+            p := add(p, t1)
+            mstore8(p, t1)
+        }
+        bytes32 b0 = sha256(msg0);
+        bytes32 bi;
+        t0 = t1 + 34;
+
+        // resize intermediate message
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            mstore(msg0, t0)
+        }
+
+        // b1
+
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            mstore(add(msg0, 32), b0)
+            mstore8(add(msg0, 64), 1)
+            mstore(add(msg0, 65), mload(add(domain, 32)))
+            mstore8(add(msg0, add(t1, 65)), t1)
+        }
+
+        bi = sha256(msg0);
+
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            mstore(add(out, 32), bi)
+        }
+
+        // b2
+
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let t := xor(b0, bi)
+            mstore(add(msg0, 32), t)
+            mstore8(add(msg0, 64), 2)
+            mstore(add(msg0, 65), mload(add(domain, 32)))
+            mstore8(add(msg0, add(t1, 65)), t1)
+        }
+
+        bi = sha256(msg0);
+
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            mstore(add(out, 64), bi)
+        }
+
+        // // b3
+
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let t := xor(b0, bi)
+            mstore(add(msg0, 32), t)
+            mstore8(add(msg0, 64), 3)
+            mstore(add(msg0, 65), mload(add(domain, 32)))
+            mstore8(add(msg0, add(t1, 65)), t1)
+        }
+
+        bi = sha256(msg0);
+
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            mstore(add(out, 96), bi)
+        }
+
+        return out;
     }
 }
