@@ -53,7 +53,7 @@ library BLS {
                     invalid()
                 }
         }
-        require(success, "");
+        require(success, "BLS: pairing call failed");
         return out[0] != 0;
     }
 
@@ -101,7 +101,7 @@ library BLS {
                     invalid()
                 }
         }
-        require(success, "");
+        require(success, "BLS: pairing call failed");
         return out[0] != 0;
     }
 
@@ -127,7 +127,7 @@ library BLS {
                     invalid()
                 }
         }
-        require(success, "");
+        require(success, "BLS: bn add call failed");
         return p0;
     }
 
