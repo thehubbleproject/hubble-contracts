@@ -11,6 +11,9 @@ import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/all-contracts-interfaces";
 import { assert } from "chai";
 
+const DOMAIN =
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
 describe("Rollup", async function() {
     let Alice: Account;
     let Bob: Account;
@@ -20,6 +23,7 @@ describe("Rollup", async function() {
     let registry: AccountRegistry;
     before(async function() {
         await mcl.init();
+        mcl.setDomainHex(DOMAIN);
     });
 
     beforeEach(async function() {
@@ -28,16 +32,14 @@ describe("Rollup", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
-        const appID =
-            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
         const tokenID = 1;
 
-        Alice = Account.new(appID, -1, tokenID, 10, 0);
+        Alice = Account.new(-1, tokenID, 10, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
         Alice.accountID = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(appID, -1, tokenID, 10, 0);
+        Bob = Account.new(-1, tokenID, 10, 0);
         Bob.setStateID(3);
         Bob.newKeyPair();
         Bob.accountID = await registry.register(Bob.encodePubkey());
