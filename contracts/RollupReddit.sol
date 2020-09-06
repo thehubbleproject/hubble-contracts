@@ -158,7 +158,7 @@ contract RollupReddit {
         bytes memory txBytes,
         bool isSender
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
+        (Tx.Transfer memory _tx, ) = txBytes.transfer_fromEncoded();
         if (isSender) {
             return transfer.ApplyTransferTxSender(_merkle_proof, _tx);
         } else {
@@ -183,12 +183,14 @@ contract RollupReddit {
             bool
         )
     {
-        Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
+        (Tx.Transfer memory _tx, uint256 tokenType) = txBytes
+            .transfer_fromEncoded();
         // Validate BLS sig
         return
             transfer.processTx(
                 _balanceRoot,
                 _tx,
+                tokenType,
                 fromAccountProof,
                 toAccountProof
             );
@@ -272,6 +274,7 @@ contract RollupReddit {
         bytes32 initialStateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
+        uint256 tokenType,
         uint256 feeReceiver,
         Types.Usage batchType
     ) public view returns (bytes32, bool) {
@@ -295,6 +298,7 @@ contract RollupReddit {
                     initialStateRoot,
                     txs,
                     accountProofs,
+                    tokenType,
                     feeReceiver
                 );
         } else if (batchType == Types.Usage.BurnConsent) {

@@ -96,6 +96,7 @@ contract Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
+        uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, bool) {
         uint256 length = txs.transfer_size();
@@ -112,6 +113,7 @@ contract Transfer is FraudProofHelpers {
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
                 _tx,
+                tokenType,
                 accountProofs[i * 2],
                 accountProofs[i * 2 + 1]
             );
@@ -123,6 +125,7 @@ contract Transfer is FraudProofHelpers {
             (stateRoot, , isTxValid) = processFee(
                 stateRoot,
                 fees,
+                tokenType,
                 feeReceiver,
                 accountProofs[length * 2]
             );
@@ -141,6 +144,7 @@ contract Transfer is FraudProofHelpers {
     function processTx(
         bytes32 stateRoot,
         Tx.Transfer memory _tx,
+        uint256 tokenType,
         Types.AccountMerkleProof memory fromAccountProof,
         Types.AccountMerkleProof memory toAccountProof
     )
@@ -172,15 +176,22 @@ contract Transfer is FraudProofHelpers {
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
-        if (
-            fromAccountProof.account.tokenType !=
-            toAccountProof.account.tokenType
-        )
+        if (fromAccountProof.account.tokenType != tokenType) {
             return (
                 ZERO_BYTES32,
                 "",
                 "",
                 Types.ErrorCode.BadFromTokenType,
+                false
+            );
+        }
+
+        if (toAccountProof.account.tokenType != tokenType)
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadToTokenType,
                 false
             );
 
@@ -251,6 +262,7 @@ contract Transfer is FraudProofHelpers {
     function processFee(
         bytes32 stateRoot,
         uint256 fees,
+        uint256 tokenType,
         uint256 feeReceiver,
         Types.AccountMerkleProof memory stateLeafProof
     )
@@ -263,7 +275,7 @@ contract Transfer is FraudProofHelpers {
         )
     {
         Types.UserAccount memory account = stateLeafProof.account;
-        if (account.tokenType != 1) {
+        if (account.tokenType != tokenType) {
             return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
         }
         require(

@@ -21,6 +21,7 @@ interface IRollupReddit {
         bytes32 initialStateRoot,
         bytes calldata _txs,
         Types.AccountMerkleProof[] calldata accountProofs,
+        uint256 tokenType,
         uint256 feeReceiver,
         Types.Usage batchType
     ) external view returns (bytes32, bool);
@@ -211,6 +212,7 @@ contract Rollup is RollupHelpers {
             accountRegistry.root(),
             ZERO_AGG_SIG,
             "",
+            0, // Zero tokenType
             0, // Zero fee receiver
             uint8(Types.Usage.Genesis)
         );
@@ -236,6 +238,7 @@ contract Rollup is RollupHelpers {
         bytes32[] calldata updatedRoots,
         Types.Usage batchType,
         uint256[2][] calldata signatures,
+        uint256[] calldata tokenTypes,
         uint256 feeReceiver
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
@@ -248,6 +251,7 @@ contract Rollup is RollupHelpers {
                     pubkeyTreeRoot,
                     signatures[i],
                     txs[i],
+                    tokenTypes[i],
                     feeReceiver,
                     uint8(batchType)
                 )
@@ -297,6 +301,7 @@ contract Rollup is RollupHelpers {
             accountRegistry.root(),
             ZERO_AGG_SIG,
             "",
+            0, // Zero tokenType
             0, // Zero fee receiver
             uint8(Types.Usage.Deposit)
         );
@@ -357,6 +362,7 @@ contract Rollup is RollupHelpers {
                         commitmentMP.commitment.accountRoot,
                         commitmentMP.commitment.signature,
                         commitmentMP.commitment.txs,
+                        commitmentMP.commitment.tokenType,
                         commitmentMP.commitment.feeReceiver,
                         uint8(commitmentMP.commitment.batchType)
                     ),
@@ -378,6 +384,7 @@ contract Rollup is RollupHelpers {
             commitmentMP.commitment.stateRoot,
             commitmentMP.commitment.txs,
             accountProofs,
+            commitmentMP.commitment.tokenType,
             commitmentMP.commitment.feeReceiver,
             commitmentMP.commitment.batchType
         );
@@ -431,6 +438,7 @@ contract Rollup is RollupHelpers {
                     commitmentProof.commitment.accountRoot,
                     commitmentProof.commitment.signature,
                     txs,
+                    commitmentProof.commitment.tokenType,
                     commitmentProof.commitment.feeReceiver,
                     uint8(commitmentProof.commitment.batchType)
                 ),
