@@ -4,18 +4,19 @@ import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFacto
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { TxTransfer, serialize, calculateRoot, Tx } from "../ts/tx";
+import { TxTransfer, serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { StateTree } from "../ts/state_tree";
 import { AccountRegistry } from "../ts/account_tree";
 import { Account } from "../ts/state_account";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
-import { ErrorCode } from "../ts/interfaces";
-import { parseEvents } from "../ts/utils";
+import { randHex } from "../ts/utils";
 
-let appID =
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const DOMAIN_HEX = randHex(32);
+const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
+const BAD_DOMAIN = Uint8Array.from(Buffer.from(randHex(32).slice(2), "hex"));
+const BAD_SIGNATURE_ERR_CODE = 10;
 let ACCOUNT_SIZE = 32;
 let BATCH_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
@@ -31,6 +32,7 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
+        mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
         const logger = await new LoggerFactory(signer).deploy();
         const registryContract = await new BlsAccountRegistryFactory(
@@ -42,7 +44,6 @@ describe("Rollup Transfer Commitment", () => {
             const accountID = i;
             const stateID = i;
             const account = Account.new(
-                appID,
                 accountID,
                 tokenID,
                 initialBalance,
@@ -118,22 +119,34 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
+        let res = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            DOMAIN,
+            serialized
+        );
+        assert.equal(res[1], 0);
+        console.log("operation gas cost:", res[0].toString());
+        res = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            BAD_DOMAIN,
+            serialized
+        );
+        assert.equal(res[1], BAD_SIGNATURE_ERR_CODE);
         const tx = await rollup._checkSignature(
             signature,
             proof,
             postStateRoot,
             accountRoot,
-            appID,
+            DOMAIN,
             serialized
         );
         const receipt = await tx.wait();
-        const events = parseEvents(receipt);
-        assert.equal(
-            events.Return2[0],
-            ErrorCode.NoError,
-            `Getting Error for signature check: ${ErrorCode[events.Return2[0]]}`
-        );
-        console.log("operation gas cost:", events.Return1[0].toNumber());
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
 

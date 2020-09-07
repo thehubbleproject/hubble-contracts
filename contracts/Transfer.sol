@@ -14,11 +14,11 @@ contract Transfer is FraudProofHelpers {
 
     uint256 constant MASK_4BYTES = 0xffffffff;
     uint256 constant MASK_1BYTES = 0xff;
-    uint256 constant OFF_TX_TYPE = 64;
-    uint256 constant OFF_NONCE = 65;
-    uint256 constant OFF_TX_DATA = 69;
-    // [appID<32>|TX_TYPE<1>|nonce<4>|tx<16>]
-    uint256 constant MSG_LEN_0 = 53;
+    uint256 constant OFF_TX_TYPE = 32;
+    uint256 constant OFF_NONCE = 33;
+    uint256 constant OFF_TX_DATA = 37;
+    // [TX_TYPE<1>|nonce<4>|tx<16>]
+    uint256 constant MSG_LEN_0 = 21;
     uint256 constant TX_LEN_0 = 16;
 
     function checkSignature(
@@ -26,7 +26,7 @@ contract Transfer is FraudProofHelpers {
         Types.SignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
-        bytes32 appID,
+        bytes32 domain,
         bytes memory txs
     ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.transfer_size();
@@ -72,7 +72,6 @@ contract Transfer is FraudProofHelpers {
 
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                mstore(add(txMsg, 32), appID)
                 mstore8(add(txMsg, OFF_TX_TYPE), 1)
                 mstore(add(txMsg, OFF_NONCE), sub(nonce, 1))
                 mstore(
@@ -81,7 +80,7 @@ contract Transfer is FraudProofHelpers {
                 )
             }
             // make the message
-            messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
+            messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
             return Types.ErrorCode.BadSignature;

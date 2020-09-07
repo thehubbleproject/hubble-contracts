@@ -27,7 +27,6 @@ export class Account {
     publicKey: mcl.PublicKey;
     secretKey: mcl.SecretKey;
     public static new(
-        domain: string,
         accountID: number,
         tokenType: number,
         balance: number,
@@ -36,7 +35,6 @@ export class Account {
         lastBurn: number = 0
     ): Account {
         return new Account(
-            domain,
             accountID,
             tokenType,
             balance,
@@ -48,7 +46,6 @@ export class Account {
 
     public stateID = -1;
     constructor(
-        public domain: string,
         public accountID: number,
         public tokenType: number,
         public balance: number,
@@ -65,7 +62,7 @@ export class Account {
     }
 
     public sign(tx: SignableTx) {
-        const msg = tx.message(this.domain);
+        const msg = tx.message();
         const { signature, M } = mcl.sign(msg, this.secretKey);
         return signature;
     }
