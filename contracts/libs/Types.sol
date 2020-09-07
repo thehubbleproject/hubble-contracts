@@ -20,9 +20,9 @@ library Types {
         Airdrop,
         BurnConsent,
         BurnExecution,
+        MassMigration,
         // Only applicable to batch and not tx
-        Deposit,
-        MassMigration
+        Deposit
     }
 
     // Batch represents the batch submitted periodically to the ethereum chain

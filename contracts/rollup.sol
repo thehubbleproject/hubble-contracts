@@ -16,6 +16,8 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
 
+import "@nomiclabs/buidler/console.sol";
+
 interface IRollupReddit {
     function processBatch(
         bytes32 initialStateRoot,
@@ -121,7 +123,7 @@ contract RollupHelpers is RollupSetup {
      * @notice Returns the batch
      */
     function getBatch(uint256 _batch_id)
-        public
+        external
         view
         returns (Types.Batch memory batch)
     {

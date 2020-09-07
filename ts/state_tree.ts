@@ -1,6 +1,6 @@
 import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./state_account";
-import { TxTransfer } from "./tx";
+import { TxTransfer, TxMassMig } from "./tx";
 
 interface ProofTransferTx {
     senderAccount: StateAccountSolStruct;
@@ -127,7 +127,7 @@ export class StateTree {
         return { proof: proofs, safe };
     }
 
-    public applyTxTransfer(tx: TxTransfer): ProofTransferTx {
+    public applyTxTransfer(tx: TxTransfer | TxMassMig): ProofTransferTx {
         const senderID = tx.fromIndex;
         const receiverID = tx.toIndex;
 

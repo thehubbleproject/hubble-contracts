@@ -10,18 +10,18 @@ import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/all-contracts-interfaces";
 import { assert } from "chai";
-
-describe("Rollup", async function () {
+import { parseEvents } from "../ts/utils";
+describe("Rollup", async function() {
     let Alice: Account;
     let Bob: Account;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    before(async function () {
+    before(async function() {
         await mcl.init();
     });
 
-    beforeEach(async function () {
+    beforeEach(async function() {
         const accounts = await ethers.getSigners();
         contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
@@ -45,18 +45,9 @@ describe("Rollup", async function () {
         stateTree.createAccount(Bob);
     });
 
-    it("submit a batch and dispute", async function () {
-        const tx = new TxMassMig(
-            Alice.stateID,
-            Bob.stateID,
-            5,
-            1,
-            1,
-            Alice.nonce + 1
-        );
-
+    it("submit a batch and dispute", async function() {
+        const tx = new TxMassMig(Alice.stateID, 0, 5, 1, 1, Alice.nonce + 1);
         const signature = Alice.sign(tx);
-
         const rollup = contracts.rollup;
         const rollupUtils = contracts.rollupUtils;
         const stateRoot = stateTree.root;
@@ -68,7 +59,7 @@ describe("Rollup", async function () {
             withdrawRoot:
                 "0x0000000000000000000000000000000000000000000000000000000000000000",
             tokenID: 1,
-            amount: tx.amount,
+            amount: tx.amount
         };
         const _tx = await rollup.submitBatchWithMM(
             [txs],
@@ -83,17 +74,17 @@ describe("Rollup", async function () {
         const rootOnchain = await registry.registry.root();
         assert.equal(root, rootOnchain, "mismatch pubkey tree root");
         const batch = await rollup.getBatch(batchId);
-
+        console.log("batch obtained", batch);
         const commitment = {
             stateRoot,
             accountRoot: root,
             txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
-            aggregatedSignature: aggregatedSignature0,
-            massMigrationMetaInfo: {
-                MMInfo,
-            },
-            batchType: Usage.MassMigration,
+            massMigrationMetaInfo: MMInfo,
+            signature: aggregatedSignature0,
+            batchType: Usage.MassMigration
         };
+        console.log("commitment", commitment);
+
         const depth = 1; // Math.log2(commitmentLength + 1)
         const tree = Tree.new(
             depth,
@@ -104,16 +95,18 @@ describe("Rollup", async function () {
                 )
             )
         );
+
         const leaf = await rollupUtils.MMCommitmentToHash(
             commitment.stateRoot,
             commitment.accountRoot,
             commitment.txHashCommitment,
-            commitment.MMInfo.tokenID,
-            commitment.MMInfo.amount,
-            commitment.MMInfo.withhdrawRoot,
-            commitment.MMInfo.spokeID,
-            aggregatedSignature0
+            commitment.massMigrationMetaInfo.tokenID,
+            commitment.massMigrationMetaInfo.amount,
+            commitment.massMigrationMetaInfo.withdrawRoot,
+            commitment.massMigrationMetaInfo.targetSpokeID,
+            commitment.signature
         );
+
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
@@ -126,23 +119,23 @@ describe("Rollup", async function () {
                     "bytes32",
                     "uint256",
                     "uint256[2]",
-                    "uint8",
+                    "uint8"
                 ],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
                     commitment.txHashCommitment,
-                    commitment.MMInfo.tokenID,
-                    commitment.MMInfo.amount,
-                    commitment.MMInfo.withhdrawRoot,
-                    commitment.MMInfo.spokeID,
+                    commitment.massMigrationMetaInfo.tokenID,
+                    commitment.massMigrationMetaInfo.amount,
+                    commitment.massMigrationMetaInfo.withdrawRoot,
+                    commitment.massMigrationMetaInfo.targetSpokeID,
                     commitment.signature,
-                    commitment.batchType,
+                    commitment.batchType
                 ]
             )
         );
         assert.equal(hash, leaf, "mismatch commitment hash");
-        tree.updateSingle(0, hash);
+        tree.updateSingle(0, leaf);
         assert.equal(
             batch.commitmentRoot,
             tree.root,
@@ -152,20 +145,20 @@ describe("Rollup", async function () {
         const commitmentMP = {
             commitment,
             pathToCommitment: 0,
-            siblings: tree.witness(0).nodes,
+            siblings: tree.witness(0).nodes
         };
 
         await rollup.disputeMMBatch(batchId, commitmentMP, txs, [
             {
                 pathToAccount: Alice.stateID,
                 account: proof.senderAccount,
-                siblings: proof.senderWitness,
+                siblings: proof.senderWitness
             },
             {
                 pathToAccount: Bob.stateID,
                 account: proof.receiverAccount,
-                siblings: proof.receiverWitness,
-            },
+                siblings: proof.receiverWitness
+            }
         ]);
     });
 });

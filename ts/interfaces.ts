@@ -12,7 +12,7 @@ export enum Usage {
     Airdrop,
     BurnConsent,
     BurnExecution,
-    MassMigration,
+    MassMigration
 }
 
 export enum ErrorCode {
@@ -26,5 +26,5 @@ export enum ErrorCode {
     BurnAlreadyExecuted,
     NotOnDesignatedStateLeaf,
     NotCreatingOnZeroAccount,
-    BadSignature,
+    BadSignature
 }
