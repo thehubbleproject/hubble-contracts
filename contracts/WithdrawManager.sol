@@ -12,7 +12,7 @@ import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { POB } from "./POB.sol";
 import { Governance } from "./Governance.sol";
-import { Rollup } from "./rollup.sol";
+import { Rollup } from "./Rollup.sol";
 
 contract WithdrawManager {
     MTUtils public merkleUtils;

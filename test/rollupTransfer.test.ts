@@ -6,9 +6,9 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 
 import { TxTransfer, serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { StateTree } from "../ts/state_tree";
-import { AccountRegistry } from "../ts/account_tree";
-import { Account } from "../ts/state_account";
+import { StateTree } from "../ts/stateTree";
+import { AccountRegistry } from "../ts/accountTree";
+import { Account } from "../ts/stateAccount";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";

@@ -2,13 +2,13 @@ import { Usage } from "../ts/interfaces";
 import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
-import { StateTree } from "../ts/state_tree";
-import { AccountRegistry } from "../ts/account_tree";
-import { Account } from "../ts/state_account";
+import { StateTree } from "../ts/stateTree";
+import { AccountRegistry } from "../ts/accountTree";
+import { Account } from "../ts/stateAccount";
 import { TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
-import { allContracts } from "../ts/all-contracts-interfaces";
+import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 
 const DOMAIN =
