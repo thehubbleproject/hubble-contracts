@@ -57,17 +57,15 @@ contract TestTransfer is Transfer {
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment,
         uint256 tokenType,
         uint256 feeReceiver
     ) public returns (bytes32, uint256) {
         bytes32 newRoot;
         uint256 operationCost = gasleft();
-        (newRoot, , ) = processTransferBatch(
+        (newRoot, ) = processTransferBatch(
             stateRoot,
             txs,
             accountProofs,
-            expectedTxHashCommitment,
             tokenType,
             feeReceiver
         );

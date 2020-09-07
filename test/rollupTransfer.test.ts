@@ -172,6 +172,7 @@ describe("Rollup Transfer Commitment", () => {
             const result = await rollup.testProcessTx(
                 preRoot,
                 tx.extended(),
+                tokenID,
                 {
                     pathToAccount: sender.stateID,
                     account: proof.senderAccount,
@@ -217,7 +218,7 @@ describe("Rollup Transfer Commitment", () => {
             feeReceiver
         );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
-        const { serialized, commit } = serialize(txs);
+        const { serialized } = serialize(txs);
         const stateMerkleProof = [];
         // pathToAccount is just a placeholder, no effect
         const pathToAccount = 0;
@@ -247,7 +248,7 @@ describe("Rollup Transfer Commitment", () => {
             s0,
             serialized,
             stateMerkleProof,
-            commit,
+            tokenID,
             feeReceiver
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());

@@ -15,6 +15,7 @@ const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
 describe("Rollup", async function() {
+    const tokenID = 1;
     let Alice: Account;
     let Bob: Account;
 
@@ -32,7 +33,6 @@ describe("Rollup", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
-        const tokenID = 1;
 
         Alice = Account.new(-1, tokenID, 10, 0);
         Alice.setStateID(2);
@@ -69,13 +69,17 @@ describe("Rollup", async function() {
             feeReceiver
         );
         assert.isTrue(safe);
-        const { serialized, commit } = serialize([tx]);
+        const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
+        const submission = {
+            txs: serialized,
+            updatedRoot: stateRoot,
+            signature: aggregatedSignature0,
+            tokenType: tokenID
+        };
         const _txSubmit = await rollup.submitBatch(
-            [serialized],
-            [stateRoot],
+            [submission],
             Usage.Transfer,
-            [aggregatedSignature0],
             feeReceiver,
             { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
         );
@@ -94,7 +98,8 @@ describe("Rollup", async function() {
             stateRoot,
             accountRoot: root,
             signature: aggregatedSignature0,
-            txs,
+            txs: serialized,
+            tokenType: tokenID,
             feeReceiver,
             batchType: Usage.Transfer
         };
@@ -113,6 +118,7 @@ describe("Rollup", async function() {
             commitment.accountRoot,
             commitment.signature,
             commitment.txs,
+            commitment.tokenType,
             commitment.feeReceiver,
             commitment.batchType
         );
@@ -125,6 +131,7 @@ describe("Rollup", async function() {
                     "uint256[2]",
                     "bytes",
                     "uint256",
+                    "uint256",
                     "uint8"
                 ],
                 [
@@ -132,6 +139,7 @@ describe("Rollup", async function() {
                     commitment.accountRoot,
                     commitment.signature,
                     commitment.txs,
+                    commitment.tokenType,
                     commitment.feeReceiver,
                     commitment.batchType
                 ]
