@@ -82,8 +82,8 @@ describe("Rollup", async function() {
         const commitment = {
             stateRoot,
             accountRoot: root,
-            txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
             signature: aggregatedSignature0,
+            txs,
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -99,19 +99,19 @@ describe("Rollup", async function() {
         const leaf = await rollupUtils.CommitmentToHash(
             commitment.stateRoot,
             commitment.accountRoot,
-            commitment.txHashCommitment,
-            aggregatedSignature0,
+            commitment.signature,
+            commitment.txs,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
-                ["bytes32", "bytes32", "bytes32", "uint256[2]", "uint8"],
+                ["bytes32", "bytes32", "uint256[2]", "bytes", "uint8"],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
-                    commitment.txHashCommitment,
                     commitment.signature,
+                    commitment.txs,
                     commitment.batchType
                 ]
             )
@@ -130,7 +130,7 @@ describe("Rollup", async function() {
             witness: tree.witness(0).nodes
         };
 
-        await rollup.disputeBatch(batchId, commitmentMP, txs, [
+        await rollup.disputeBatch(batchId, commitmentMP, [
             {
                 pathToAccount: Alice.stateID,
                 account: proof.senderAccount,

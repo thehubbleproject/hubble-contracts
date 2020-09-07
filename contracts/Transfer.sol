@@ -95,26 +95,9 @@ contract Transfer is FraudProofHelpers {
     function processTransferBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment
-    )
-        public
-        pure
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+        Types.AccountMerkleProof[] memory accountProofs
+    ) public pure returns (bytes32, bool) {
         uint256 length = txs.transfer_size();
-
-        bytes32 actualTxHashCommitment = keccak256(txs);
-        if (expectedTxHashCommitment != ZERO_BYTES32) {
-            require(
-                actualTxHashCommitment == expectedTxHashCommitment,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
 
         bool isTxValid;
 
@@ -133,7 +116,7 @@ contract Transfer is FraudProofHelpers {
             }
         }
 
-        return (stateRoot, actualTxHashCommitment, !isTxValid);
+        return (stateRoot, !isTxValid);
     }
 
     /**

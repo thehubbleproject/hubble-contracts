@@ -272,56 +272,42 @@ contract RollupReddit {
         bytes32 initialStateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment,
         Types.Usage batchType
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+    ) public view returns (bytes32, bool) {
         if (batchType == Types.Usage.CreateAccount) {
             return
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.Airdrop) {
             return
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.Transfer) {
             return
                 transfer.processTransferBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
             return
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
             return
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else {
             revert("Invalid BatchType to dispute");
