@@ -94,13 +94,20 @@ contract DepositManager {
             _tokenType
         );
         tokenContract = IERC20(tokenContractAddress);
-        // transfer from msg.sender to vault 
+        // transfer from msg.sender to vault
         require(
             tokenContract.transferFrom(msg.sender, vault, _amount),
             "token transfer not approved"
         );
         // create a new account
-        Types.UserAccount memory newAccount = Types.UserAccount(accountID, _tokenType, _amount, 0, 0,0);
+        Types.UserAccount memory newAccount = Types.UserAccount(
+            accountID,
+            _tokenType,
+            _amount,
+            0,
+            0,
+            0
+        );
         // get new account hash
         bytes memory accountBytes = RollupUtils.BytesFromAccount(newAccount);
         // queue the deposit
