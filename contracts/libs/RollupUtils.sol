@@ -20,7 +20,15 @@ library RollupUtils {
     ) public pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(stateRoot, accountRoot, signature, txs, tokenType, feeReceiver, batchType)
+                abi.encode(
+                    stateRoot,
+                    accountRoot,
+                    signature,
+                    txs,
+                    tokenType,
+                    feeReceiver,
+                    batchType
+                )
             );
     }
 

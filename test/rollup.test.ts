@@ -119,7 +119,14 @@ describe("Rollup", async function() {
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
-                ["bytes32", "bytes32", "uint256[2]", "bytes", "uint256", "uint8"],
+                [
+                    "bytes32",
+                    "bytes32",
+                    "uint256[2]",
+                    "bytes",
+                    "uint256",
+                    "uint8"
+                ],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
@@ -146,27 +153,23 @@ describe("Rollup", async function() {
 
         const pathToAccount = 0; // Dummy value
 
-        const _tx = await rollup.disputeBatch(
-            batchId,
-            commitmentMP,
-            [
-                {
-                    pathToAccount,
-                    account: proof[0].senderAccount,
-                    siblings: proof[0].senderWitness
-                },
-                {
-                    pathToAccount,
-                    account: proof[0].receiverAccount,
-                    siblings: proof[0].receiverWitness
-                },
-                {
-                    pathToAccount,
-                    account: feeProof.feeReceiverAccount,
-                    siblings: feeProof.feeReceiverWitness
-                }
-            ]
-        );
+        const _tx = await rollup.disputeBatch(batchId, commitmentMP, [
+            {
+                pathToAccount,
+                account: proof[0].senderAccount,
+                siblings: proof[0].senderWitness
+            },
+            {
+                pathToAccount,
+                account: proof[0].receiverAccount,
+                siblings: proof[0].receiverWitness
+            },
+            {
+                pathToAccount,
+                account: feeProof.feeReceiverAccount,
+                siblings: feeProof.feeReceiverWitness
+            }
+        ]);
         const receipt = await _tx.wait();
         console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());
     });
