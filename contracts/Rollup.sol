@@ -235,8 +235,7 @@ contract Rollup is RollupHelpers {
 
     function submitBatch(
         Types.Submission[] calldata submissions,
-        Types.Usage batchType,
-        uint256 feeReceiver
+        Types.Usage batchType
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         bytes32[] memory commitments = new bytes32[](submissions.length);
@@ -249,7 +248,7 @@ contract Rollup is RollupHelpers {
                     submissions[i].signature,
                     submissions[i].txs,
                     submissions[i].tokenType,
-                    feeReceiver,
+                    submissions[i].feeReceiver,
                     uint8(batchType)
                 )
             );

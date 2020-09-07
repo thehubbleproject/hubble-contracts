@@ -34,10 +34,11 @@ library Types {
     }
 
     struct Submission {
-        bytes txs;
         bytes32 updatedRoot;
         uint256[2] signature;
         uint256 tokenType;
+        uint256 feeReceiver;
+        bytes txs;
     }
 
     struct Commitment {

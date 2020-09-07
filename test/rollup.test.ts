@@ -72,15 +72,15 @@ describe("Rollup", async function() {
         const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const submission = {
-            txs: serialized,
             updatedRoot: stateRoot,
             signature: aggregatedSignature0,
-            tokenType: tokenID
+            tokenType: tokenID,
+            feeReceiver,
+            txs: serialized
         };
         const _txSubmit = await rollup.submitBatch(
             [submission],
             Usage.Transfer,
-            feeReceiver,
             { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
         );
         console.log(
