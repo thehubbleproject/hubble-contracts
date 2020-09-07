@@ -9,7 +9,7 @@ import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
-import { Logger } from "./logger.sol";
+import { Logger } from "./Logger.sol";
 import { POB } from "./POB.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";

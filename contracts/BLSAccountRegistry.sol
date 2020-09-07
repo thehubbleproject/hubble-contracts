@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 
 import { AccountTree } from "./AccountTree.sol";
 import { BLS } from "./libs/BLS.sol";
-import { Logger } from "./logger.sol";
+import { Logger } from "./Logger.sol";
 
 contract BLSAccountRegistry is AccountTree {
     Logger logger;

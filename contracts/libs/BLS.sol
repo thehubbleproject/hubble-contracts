@@ -1,6 +1,6 @@
 pragma solidity ^0.5.15;
 
-import { modexp_3064_fd54, modexp_c191_3f52 } from "./modexp.sol";
+import { modexp_3064_fd54, modexp_c191_3f52 } from "./ModExp.sol";
 
 library BLS {
     // Field order

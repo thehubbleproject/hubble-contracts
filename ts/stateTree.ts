@@ -1,5 +1,5 @@
 import { Tree } from "./tree";
-import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./state_account";
+import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
 import { TxTransfer } from "./tx";
 
 interface ProofTransferTx {

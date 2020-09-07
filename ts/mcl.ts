@@ -1,7 +1,7 @@
 const mcl = require("mcl-wasm");
 import { ethers } from "ethers";
 import { toBig, FIELD_ORDER, randHex } from "./utils";
-import { hashToField } from "./hash_to_field";
+import { hashToField } from "./hashToField";
 import { hexlify } from "ethers/lib/utils";
 
 export type mclG2 = any;
