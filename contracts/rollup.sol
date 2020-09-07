@@ -16,8 +16,6 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
 
-import "@nomiclabs/buidler/console.sol";
-
 interface IRollupReddit {
     function processBatch(
         bytes32 initialStateRoot,

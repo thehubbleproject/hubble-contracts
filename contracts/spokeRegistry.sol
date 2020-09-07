@@ -15,7 +15,8 @@ contract SpokeRegistry {
         numSpokes++;
         registeredSpokes[numSpokes] = spokeContract;
     }
-    function getSpokeAddress(uint256 spokeID) external returns( address ) {
+
+    function getSpokeAddress(uint256 spokeID) external returns (address) {
         return registeredSpokes[spokeID];
     }
 }
