@@ -208,8 +208,8 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
             genesisStateRoot,
             accountRegistry.root(),
-            "",
             ZERO_AGG_SIG,
+            "",
             uint8(Types.Usage.Genesis)
         );
         Types.Batch memory newBatch = Types.Batch({
@@ -243,8 +243,8 @@ contract Rollup is RollupHelpers {
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
                     accountRegistry.root(),
-                    txs[i],
                     signatures[i],
+                    txs[i],
                     uint8(batchType)
                 )
             );
@@ -291,8 +291,8 @@ contract Rollup is RollupHelpers {
         bytes32 depositCommitment = RollupUtils.CommitmentToHash(
             newRoot,
             accountRegistry.root(),
-            "",
             ZERO_AGG_SIG,
+            "",
             uint8(Types.Usage.Deposit)
         );
 
@@ -350,8 +350,8 @@ contract Rollup is RollupHelpers {
                     RollupUtils.CommitmentToHash(
                         commitmentMP.commitment.stateRoot,
                         commitmentMP.commitment.accountRoot,
-                        commitmentMP.commitment.txs,
                         commitmentMP.commitment.signature,
+                        commitmentMP.commitment.txs,
                         uint8(commitmentMP.commitment.batchType)
                     ),
                     commitmentMP.pathToCommitment,
@@ -422,8 +422,8 @@ contract Rollup is RollupHelpers {
                 RollupUtils.CommitmentToHash(
                     commitmentProof.commitment.stateRoot,
                     commitmentProof.commitment.accountRoot,
-                    txs,
                     commitmentProof.commitment.signature,
+                    txs,
                     uint8(commitmentProof.commitment.batchType)
                 ),
                 commitmentProof.pathToCommitment,

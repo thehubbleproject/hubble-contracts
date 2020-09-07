@@ -10,15 +10,15 @@ library RollupUtils {
     function CommitmentToHash(
         bytes32 stateRoot,
         bytes32 accountRoot,
-        bytes memory txs,
         uint256[2] memory signature,
+        bytes memory txs,
         // Typechain can't parse enum for library.
         // See https://github.com/ethereum-ts/TypeChain/issues/216
         uint8 batchType
     ) public pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(stateRoot, accountRoot, txs, signature, batchType)
+                abi.encode(stateRoot, accountRoot, signature, txs, batchType)
             );
     }
 

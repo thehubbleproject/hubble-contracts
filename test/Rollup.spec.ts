@@ -82,8 +82,8 @@ describe("Rollup", async function() {
         const commitment = {
             stateRoot,
             accountRoot: root,
-            txs,
             signature: aggregatedSignature0,
+            txs,
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -99,19 +99,19 @@ describe("Rollup", async function() {
         const leaf = await rollupUtils.CommitmentToHash(
             commitment.stateRoot,
             commitment.accountRoot,
+            commitment.signature,
             commitment.txs,
-            aggregatedSignature0,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
-                ["bytes32", "bytes32", "bytes", "uint256[2]", "uint8"],
+                ["bytes32", "bytes32", "uint256[2]", "bytes", "uint8"],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
-                    commitment.txs,
                     commitment.signature,
+                    commitment.txs,
                     commitment.batchType
                 ]
             )
