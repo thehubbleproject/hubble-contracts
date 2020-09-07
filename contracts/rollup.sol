@@ -21,16 +21,8 @@ interface IRollupReddit {
         bytes32 initialStateRoot,
         bytes calldata _txs,
         Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxHashCommitment,
         Types.Usage batchType
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+    ) external view returns (bytes32, bool);
 
     function checkTransferSignature(
         bytes32 appID,
@@ -216,7 +208,7 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
             genesisStateRoot,
             accountRegistry.root(),
-            ZERO_BYTES32,
+            "",
             ZERO_AGG_SIG,
             uint8(Types.Usage.Genesis)
         );
@@ -251,7 +243,7 @@ contract Rollup is RollupHelpers {
                 RollupUtils.CommitmentToHash(
                     updatedRoots[i],
                     accountRegistry.root(),
-                    keccak256(txs[i]),
+                    txs[i],
                     signatures[i],
                     uint8(batchType)
                 )
@@ -299,7 +291,7 @@ contract Rollup is RollupHelpers {
         bytes32 depositCommitment = RollupUtils.CommitmentToHash(
             newRoot,
             accountRegistry.root(),
-            ZERO_BYTES32,
+            "",
             ZERO_AGG_SIG,
             uint8(Types.Usage.Deposit)
         );
@@ -331,7 +323,6 @@ contract Rollup is RollupHelpers {
     function disputeBatch(
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory commitmentMP,
-        bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
     ) public {
         {
@@ -359,7 +350,7 @@ contract Rollup is RollupHelpers {
                     RollupUtils.CommitmentToHash(
                         commitmentMP.commitment.stateRoot,
                         commitmentMP.commitment.accountRoot,
-                        commitmentMP.commitment.txHashCommitment,
+                        commitmentMP.commitment.txs,
                         commitmentMP.commitment.signature,
                         uint8(commitmentMP.commitment.batchType)
                     ),
@@ -370,20 +361,17 @@ contract Rollup is RollupHelpers {
             );
 
             require(
-                commitmentMP.commitment.txHashCommitment != ZERO_BYTES32,
+                commitmentMP.commitment.txs.length != 0,
                 "Cannot dispute blocks with no transaction"
             );
         }
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        bytes32 txRoot;
-        (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
-            .processBatch(
+        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processBatch(
             commitmentMP.commitment.stateRoot,
-            txs,
+            commitmentMP.commitment.txs,
             accountProofs,
-            commitmentMP.commitment.txHashCommitment,
             commitmentMP.commitment.batchType
         );
 
@@ -434,7 +422,7 @@ contract Rollup is RollupHelpers {
                 RollupUtils.CommitmentToHash(
                     commitmentProof.commitment.stateRoot,
                     commitmentProof.commitment.accountRoot,
-                    keccak256(txs),
+                    txs,
                     commitmentProof.commitment.signature,
                     uint8(commitmentProof.commitment.batchType)
                 ),

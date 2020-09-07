@@ -36,7 +36,7 @@ library Types {
     struct Commitment {
         bytes32 stateRoot;
         bytes32 accountRoot;
-        bytes32 txHashCommitment;
+        bytes txs;
         uint256[2] signature;
         Usage batchType;
     }

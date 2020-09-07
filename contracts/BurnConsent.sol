@@ -13,25 +13,9 @@ contract BurnConsent is FraudProofHelpers {
     function processBurnConsentBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment
-    )
-        public
-        pure
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+        Types.AccountMerkleProof[] memory accountProofs
+    ) public pure returns (bytes32, bool) {
         uint256 length = txs.burnConsent_size();
-        bytes32 actualTxHashCommitment = keccak256(txs);
-        if (expectedTxHashCommitment != ZERO_BYTES32) {
-            require(
-                actualTxHashCommitment == expectedTxHashCommitment,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
 
         bool isTxValid;
         for (uint256 i = 0; i < length; i++) {
@@ -49,7 +33,7 @@ contract BurnConsent is FraudProofHelpers {
             }
         }
 
-        return (stateRoot, actualTxHashCommitment, !isTxValid);
+        return (stateRoot, !isTxValid);
     }
 
     function ApplyBurnConsentTx(
