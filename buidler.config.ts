@@ -19,6 +19,7 @@ module.exports = {
         evmVersion: "istanbul"
     },
     paths: {
-        artifacts: "./build"
+        artifacts: "./build",
+        tests: "./test"
     }
 };
