@@ -234,24 +234,21 @@ contract Rollup is RollupHelpers {
     }
 
     function submitBatch(
-        bytes[] calldata txs,
-        bytes32[] calldata updatedRoots,
+        Types.Submission[] calldata submissions,
         Types.Usage batchType,
-        uint256[2][] calldata signatures,
-        uint256[] calldata tokenTypes,
         uint256 feeReceiver
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-        bytes32[] memory commitments = new bytes32[](updatedRoots.length);
+        bytes32[] memory commitments = new bytes32[](submissions.length);
         bytes32 pubkeyTreeRoot = accountRegistry.root();
-        for (uint256 i = 0; i < updatedRoots.length; i++) {
+        for (uint256 i = 0; i < submissions.length; i++) {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
-                    updatedRoots[i],
+                    submissions[i].updatedRoot,
                     pubkeyTreeRoot,
-                    signatures[i],
-                    txs[i],
-                    tokenTypes[i],
+                    submissions[i].signature,
+                    submissions[i].txs,
+                    submissions[i].tokenType,
                     feeReceiver,
                     uint8(batchType)
                 )
@@ -267,7 +264,7 @@ contract Rollup is RollupHelpers {
         batches.push(newBatch);
         logger.logNewBatch(
             newBatch.committer,
-            updatedRoots[updatedRoots.length - 1],
+            submissions[submissions.length - 1].updatedRoot,
             batches.length - 1,
             batchType
         );

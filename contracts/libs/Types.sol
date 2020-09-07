@@ -33,6 +33,13 @@ library Types {
         bool withdrawn;
     }
 
+    struct Submission {
+        bytes txs;
+        bytes32 updatedRoot;
+        uint256[2] signature;
+        uint256 tokenType;
+    }
+
     struct Commitment {
         bytes32 stateRoot;
         bytes32 accountRoot;
