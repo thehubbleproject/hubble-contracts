@@ -77,6 +77,10 @@ library ParamManager {
         return keccak256("spoke_registry");
     }
 
+    function VAULT() public pure returns (bytes32) {
+        return keccak256("vault");
+    }
+
     bytes32 public constant _CHAIN_ID = keccak256("hubble-123");
 
     function CHAIN_ID() public pure returns (bytes32) {

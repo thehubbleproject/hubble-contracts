@@ -9,4 +9,6 @@ contract IERC20 {
     ) public returns (bool) {}
 
     function transfer(address recipient, uint256 value) public returns (bool) {}
+
+    function approve(address spender, uint256 value) external returns (bool) {}
 }

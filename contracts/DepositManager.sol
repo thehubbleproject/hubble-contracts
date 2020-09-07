@@ -16,6 +16,7 @@ contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
     bytes32[] public pendingDeposits;
+    address public vault;
     mapping(uint256 => bytes32) pendingFilledSubtrees;
     uint256 public firstElement = 1;
     uint256 public lastElement = 0;
@@ -73,6 +74,7 @@ contract DepositManager {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        vault = nameRegistry.getContractDetails(ParamManager.VAULT());
     }
 
     /**
@@ -96,7 +98,7 @@ contract DepositManager {
 
         // transfer from msg.sender to this contract
         require(
-            tokenContract.transferFrom(msg.sender, address(this), _amount),
+            tokenContract.transferFrom(msg.sender, vault, _amount),
             "token transfer not approved"
         );
 
