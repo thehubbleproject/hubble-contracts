@@ -128,6 +128,7 @@ contract MassMigs is FraudProofHelpers {
         );
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
+            _tx.fee,
             fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)

@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { TxTransfer, TxCreate, TxBurnConsent, TxBurnExecution } from "../ts/tx";
-import { EMPTY_ACCOUNT } from "../ts/state_account";
+import { EMPTY_ACCOUNT } from "../ts/stateAccount";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";

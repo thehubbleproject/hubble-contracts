@@ -14,11 +14,11 @@ contract Transfer is FraudProofHelpers {
 
     uint256 constant MASK_4BYTES = 0xffffffff;
     uint256 constant MASK_1BYTES = 0xff;
-    uint256 constant OFF_TX_TYPE = 64;
-    uint256 constant OFF_NONCE = 65;
-    uint256 constant OFF_TX_DATA = 69;
-    // [appID<32>|TX_TYPE<1>|nonce<4>|tx<16>]
-    uint256 constant MSG_LEN_0 = 53;
+    uint256 constant OFF_TX_TYPE = 32;
+    uint256 constant OFF_NONCE = 33;
+    uint256 constant OFF_TX_DATA = 37;
+    // [TX_TYPE<1>|nonce<4>|tx<16>]
+    uint256 constant MSG_LEN_0 = 21;
     uint256 constant TX_LEN_0 = 16;
 
     function checkSignature(
@@ -26,7 +26,7 @@ contract Transfer is FraudProofHelpers {
         Types.SignatureProof memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
-        bytes32 appID,
+        bytes32 domain,
         bytes memory txs
     ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.transfer_size();
@@ -72,7 +72,6 @@ contract Transfer is FraudProofHelpers {
 
             // solium-disable-next-line security/no-inline-assembly
             assembly {
-                mstore(add(txMsg, 32), appID)
                 mstore8(add(txMsg, OFF_TX_TYPE), 1)
                 mstore(add(txMsg, OFF_NONCE), sub(nonce, 1))
                 mstore(
@@ -81,7 +80,7 @@ contract Transfer is FraudProofHelpers {
                 )
             }
             // make the message
-            messages[i] = BLS.mapToPoint(keccak256(abi.encodePacked(txMsg)));
+            messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
             return Types.ErrorCode.BadSignature;
@@ -97,44 +96,42 @@ contract Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment
-    )
-        public
-        pure
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+        uint256 tokenType,
+        uint256 feeReceiver
+    ) public pure returns (bytes32, bool) {
         uint256 length = txs.transfer_size();
 
-        bytes32 actualTxHashCommitment = keccak256(txs);
-        if (expectedTxHashCommitment != ZERO_BYTES32) {
-            require(
-                actualTxHashCommitment == expectedTxHashCommitment,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
-
         bool isTxValid;
+        uint256 fees;
+        Tx.Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
+            _tx = txs.transfer_decode(i);
+            fees = fees.add(_tx.fee);
             (stateRoot, , , , isTxValid) = processTx(
                 stateRoot,
-                txs.transfer_decode(i),
+                _tx,
+                tokenType,
                 accountProofs[i * 2],
                 accountProofs[i * 2 + 1]
             );
-
             if (!isTxValid) {
                 break;
             }
         }
+        if (isTxValid) {
+            (stateRoot, , isTxValid) = processFee(
+                stateRoot,
+                fees,
+                tokenType,
+                feeReceiver,
+                accountProofs[length * 2]
+            );
+        }
 
-        return (stateRoot, actualTxHashCommitment, !isTxValid);
+        return (stateRoot, !isTxValid);
     }
 
     /**
@@ -147,6 +144,7 @@ contract Transfer is FraudProofHelpers {
     function processTx(
         bytes32 stateRoot,
         Tx.Transfer memory _tx,
+        uint256 tokenType,
         Types.AccountMerkleProof memory fromAccountProof,
         Types.AccountMerkleProof memory toAccountProof
     )
@@ -172,20 +170,28 @@ contract Transfer is FraudProofHelpers {
 
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
+            _tx.fee,
             fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
-        if (
-            fromAccountProof.account.tokenType !=
-            toAccountProof.account.tokenType
-        )
+        if (fromAccountProof.account.tokenType != tokenType) {
             return (
                 ZERO_BYTES32,
                 "",
                 "",
                 Types.ErrorCode.BadFromTokenType,
+                false
+            );
+        }
+
+        if (toAccountProof.account.tokenType != tokenType)
+            return (
+                ZERO_BYTES32,
+                "",
+                "",
+                Types.ErrorCode.BadToTokenType,
                 false
             );
 
@@ -227,7 +233,7 @@ contract Transfer is FraudProofHelpers {
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.account;
-        account = RemoveTokensFromAccount(account, _tx.amount);
+        account.balance = account.balance.sub(_tx.amount).sub(_tx.fee);
         account.nonce++;
         bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
@@ -243,7 +249,7 @@ contract Transfer is FraudProofHelpers {
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.account;
-        account = AddTokensToAccount(account, _tx.amount);
+        account.balance = account.balance.add(_tx.amount);
         bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
@@ -251,5 +257,38 @@ contract Transfer is FraudProofHelpers {
             _merkle_proof.siblings
         );
         return (accountInBytes, newRoot);
+    }
+
+    function processFee(
+        bytes32 stateRoot,
+        uint256 fees,
+        uint256 tokenType,
+        uint256 feeReceiver,
+        Types.AccountMerkleProof memory stateLeafProof
+    )
+        public
+        pure
+        returns (
+            bytes32 newRoot,
+            Types.ErrorCode err,
+            bool isValid
+        )
+    {
+        Types.UserAccount memory account = stateLeafProof.account;
+        if (account.tokenType != tokenType) {
+            return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
+        }
+        require(
+            MerkleTreeUtilsLib.verifyLeaf(
+                stateRoot,
+                RollupUtils.HashFromAccount(account),
+                feeReceiver,
+                stateLeafProof.siblings
+            ),
+            "Transfer: fee receiver does not exist"
+        );
+        account.balance = account.balance.add(fees);
+        newRoot = UpdateAccountWithSiblings(account, stateLeafProof);
+        return (newRoot, Types.ErrorCode.NoError, true);
     }
 }

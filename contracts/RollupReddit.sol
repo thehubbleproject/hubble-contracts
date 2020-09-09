@@ -163,7 +163,7 @@ contract RollupReddit {
         bytes memory txBytes,
         bool isSender
     ) public view returns (bytes memory, bytes32 newRoot) {
-        Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
+        (Tx.Transfer memory _tx, ) = txBytes.transfer_fromEncoded();
         if (isSender) {
             return transfer.ApplyTransferTxSender(_merkle_proof, _tx);
         } else {
@@ -188,12 +188,14 @@ contract RollupReddit {
             bool
         )
     {
-        Tx.Transfer memory _tx = txBytes.transfer_fromEncoded();
+        (Tx.Transfer memory _tx, uint256 tokenType) = txBytes
+            .transfer_fromEncoded();
         // Validate BLS sig
         return
             transfer.processTx(
                 _balanceRoot,
                 _tx,
+                tokenType,
                 fromAccountProof,
                 toAccountProof
             );
@@ -277,32 +279,23 @@ contract RollupReddit {
         bytes32 initialStateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment,
+        uint256 tokenType,
+        uint256 feeReceiver,
         Types.Usage batchType
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+    ) public view returns (bytes32, bool) {
         if (batchType == Types.Usage.CreateAccount) {
             return
                 createAccount.processCreateAccountBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.Airdrop) {
             return
                 airdrop.processAirdropBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.Transfer) {
             return
@@ -310,23 +303,22 @@ contract RollupReddit {
                     initialStateRoot,
                     txs,
                     accountProofs,
-                    expectedTxHashCommitment
+                    tokenType,
+                    feeReceiver
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
             return
                 burnConsent.processBurnConsentBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
             return
                 burnExecution.processBurnExecutionBatch(
                     initialStateRoot,
                     txs,
-                    accountProofs,
-                    expectedTxHashCommitment
+                    accountProofs
                 );
         } else {
             revert("Invalid BatchType to dispute");

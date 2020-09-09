@@ -55,16 +55,14 @@ library Tx {
     uint256 public constant POSITION_STATE_4 = 4;
 
     // transaction_type: Mass Migrations
-    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|spokeID<4>]]
-    uint256 public constant TX_LEN_5 = 16;
-
-    // TODO Fix
-    uint256 public constant MASK_TX_5 = 0xffffffffffffffffffffffffffffffff;
+    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|spokeID<4>|fee<4>]
+    uint256 public constant TX_LEN_5 = 20;
     // positions in bytes
     uint256 public constant POSITION_SENDER_5 = 4;
     uint256 public constant POSITION_RECEIVER_5 = 8;
     uint256 public constant POSITION_AMOUNT_5 = 12;
     uint256 public constant POSITION_SPOKE_5 = 16;
+    uint256 public constant POSITION_FEE_6 = 20;
 
     struct Transfer {
         uint256 fromIndex;
@@ -104,6 +102,7 @@ library Tx {
         uint256 toIndex;
         uint256 amount;
         uint256 spokeID;
+        uint256 fee;
     }
 
     function create_serializeFromEncoded(bytes[] memory txs)
@@ -270,7 +269,7 @@ library Tx {
     function transfer_fromEncoded(bytes memory txBytes)
         internal
         pure
-        returns (Tx.Transfer memory)
+        returns (Tx.Transfer memory, uint256 tokenType)
     {
         Types.Transfer memory _tx;
         (
@@ -291,7 +290,7 @@ library Tx {
             _tx.amount,
             _tx.fee
         );
-        return _txCompressed;
+        return (_txCompressed, _tx.tokenType);
     }
 
     function serialize(bytes[] memory txs)
@@ -839,6 +838,7 @@ library Tx {
         uint256 receiver;
         uint256 amount;
         uint256 spokeID;
+        uint256 fee;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_5))
@@ -849,8 +849,9 @@ library Tx {
             )
             amount := and(mload(add(p_tx, POSITION_AMOUNT_5)), MASK_AMOUNT)
             spokeID := and(mload(add(p_tx, POSITION_SPOKE_5)), MASK_SPOKE)
+            fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
         }
-        return MassMig(sender, receiver, amount, spokeID);
+        return MassMig(sender, receiver, amount, spokeID, fee);
     }
 
     function mass_mig_size(bytes memory txs) internal pure returns (uint256) {

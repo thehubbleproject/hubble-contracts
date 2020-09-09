@@ -21,7 +21,7 @@ export interface Tx {
 }
 
 export interface SignableTx extends Tx {
-    message(domain: string): string;
+    message(): string;
 }
 
 export function calculateRoot(txs: Tx[]) {
@@ -58,10 +58,10 @@ export class TxTransfer implements SignableTx {
         public nonce: number
     ) {}
 
-    public message(domain: string): string {
+    public message(): string {
         let nonce = paddedHex(this.nonce, nonceLen);
 
-        return domain + this.TX_TYPE + nonce.slice(2) + this.encode(false);
+        return "0x" + this.TX_TYPE + nonce.slice(2) + this.encode(false);
     }
 
     public hash(): string {
@@ -181,7 +181,7 @@ export class TxBurnConsent implements SignableTx {
         }
         return encoded;
     }
-    public message(domain: string): string {
+    public message(): string {
         throw new Error("not Implemented");
     }
 }
@@ -234,10 +234,10 @@ export class TxMassMig implements SignableTx {
         public nonce: number
     ) {}
 
-    public message(domain: string): string {
+    public message(): string {
         let nonce = paddedHex(this.nonce, nonceLen);
 
-        return domain + this.TX_TYPE + nonce.slice(2) + this.encode(false);
+        return "0x" + this.TX_TYPE + nonce.slice(2) + this.encode(false);
     }
 
     public hash(): string {
@@ -276,6 +276,7 @@ export class TxMassMig implements SignableTx {
         if (prefix) {
             encoded = "0x" + encoded;
         }
+
         return encoded;
     }
 }

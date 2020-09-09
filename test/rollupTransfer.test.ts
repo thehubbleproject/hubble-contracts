@@ -4,20 +4,21 @@ import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFacto
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { TxTransfer, serialize, calculateRoot, Tx } from "../ts/tx";
+import { TxTransfer, serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { StateTree } from "../ts/state_tree";
-import { AccountRegistry } from "../ts/account_tree";
-import { Account } from "../ts/state_account";
+import { StateTree } from "../ts/stateTree";
+import { AccountRegistry } from "../ts/accountTree";
+import { Account } from "../ts/stateAccount";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
-import { ErrorCode } from "../ts/interfaces";
-import { parseEvents } from "../ts/utils";
+import { randHex } from "../ts/utils";
 
-let appID =
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const DOMAIN_HEX = randHex(32);
+const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
+const BAD_DOMAIN = Uint8Array.from(Buffer.from(randHex(32).slice(2), "hex"));
+const BAD_SIGNATURE_ERR_CODE = 10;
 let ACCOUNT_SIZE = 32;
-let BATCH_SIZE = 32;
+let COMMIT_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
 
 describe("Rollup Transfer Commitment", () => {
@@ -31,6 +32,7 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
+        mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
         const logger = await new LoggerFactory(signer).deploy();
         const registryContract = await new BlsAccountRegistryFactory(
@@ -42,7 +44,6 @@ describe("Rollup Transfer Commitment", () => {
             const accountID = i;
             const stateID = i;
             const account = Account.new(
-                appID,
                 accountID,
                 tokenID,
                 initialBalance,
@@ -79,7 +80,7 @@ describe("Rollup Transfer Commitment", () => {
         let signers = [];
         const pubkeys = [];
         const pubkeyWitnesses = [];
-        for (let i = 0; i < BATCH_SIZE; i++) {
+        for (let i = 0; i < COMMIT_SIZE; i++) {
             const senderIndex = i;
             const reciverIndex = (i + 5) % ACCOUNT_SIZE;
             const sender = accounts[senderIndex];
@@ -99,12 +100,12 @@ describe("Rollup Transfer Commitment", () => {
             aggSignature = mcl.aggreagate(aggSignature, signature);
         }
         let signature = mcl.g1ToHex(aggSignature);
-        let stateTransitionProof = stateTree.applyTransferBatch(txs);
+        let stateTransitionProof = stateTree.applyTransferBatch(txs, 0);
         assert.isTrue(stateTransitionProof.safe);
         const { serialized, commit } = serialize(txs);
         const stateWitnesses = [];
         const stateAccounts = [];
-        for (let i = 0; i < BATCH_SIZE; i++) {
+        for (let i = 0; i < COMMIT_SIZE; i++) {
             stateWitnesses.push(
                 stateTree.getAccountWitness(signers[i].stateID)
             );
@@ -118,29 +119,41 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
+        let res = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            DOMAIN,
+            serialized
+        );
+        assert.equal(res[1], 0);
+        console.log("operation gas cost:", res[0].toString());
+        res = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            BAD_DOMAIN,
+            serialized
+        );
+        assert.equal(res[1], BAD_SIGNATURE_ERR_CODE);
         const tx = await rollup._checkSignature(
             signature,
             proof,
             postStateRoot,
             accountRoot,
-            appID,
+            DOMAIN,
             serialized
         );
         const receipt = await tx.wait();
-        const events = parseEvents(receipt);
-        assert.equal(
-            events.Return2[0],
-            ErrorCode.NoError,
-            `Getting Error for signature check: ${ErrorCode[events.Return2[0]]}`
-        );
-        console.log("operation gas cost:", events.Return1[0].toNumber());
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
 
-    it("transfer applyTx", async function() {
+    it("transfer commitment: processTx", async function() {
         const amount = 20;
         const fee = 1;
-        for (let i = 0; i < BATCH_SIZE; i++) {
+        for (let i = 0; i < COMMIT_SIZE; i++) {
             const senderIndex = i;
             const reciverIndex = (i + 5) % ACCOUNT_SIZE;
             const sender = accounts[senderIndex];
@@ -159,6 +172,7 @@ describe("Rollup Transfer Commitment", () => {
             const result = await rollup.testProcessTx(
                 preRoot,
                 tx.extended(),
+                tokenID,
                 {
                     pathToAccount: sender.stateID,
                     account: proof.senderAccount,
@@ -173,4 +187,71 @@ describe("Rollup Transfer Commitment", () => {
             assert.equal(result[0], postRoot, "mismatch processed stateroot");
         }
     });
+    it("transfer commitment: processTransferBatch", async function() {
+        const txs: TxTransfer[] = [];
+        const amount = 20;
+        const fee = 1;
+        let s0 = stateTree.root;
+        let senders = [];
+        let receivers = [];
+        const feeReceiver = 0;
+
+        for (let i = 0; i < COMMIT_SIZE; i++) {
+            const senderIndex = i;
+            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
+            const sender = accounts[senderIndex];
+            const receiver = accounts[reciverIndex];
+            const tx = new TxTransfer(
+                sender.stateID,
+                receiver.stateID,
+                amount,
+                fee,
+                sender.nonce
+            );
+            txs.push(tx);
+            senders.push(sender);
+            receivers.push(receiver);
+        }
+
+        const { proof, feeProof, safe } = stateTree.applyTransferBatch(
+            txs,
+            feeReceiver
+        );
+        assert.isTrue(safe, "Should be a valid applyTransferBatch");
+        const { serialized } = serialize(txs);
+        const stateMerkleProof = [];
+        // pathToAccount is just a placeholder, no effect
+        const pathToAccount = 0;
+        for (let i = 0; i < COMMIT_SIZE; i++) {
+            stateMerkleProof.push({
+                account: proof[i].senderAccount,
+                pathToAccount,
+                siblings: proof[i].senderWitness
+            });
+            stateMerkleProof.push({
+                account: proof[i].receiverAccount,
+                pathToAccount,
+                siblings: proof[i].receiverWitness
+            });
+        }
+        stateMerkleProof.push({
+            account: feeProof.feeReceiverAccount,
+            pathToAccount,
+            siblings: feeProof.feeReceiverWitness
+        });
+        const postStateRoot = stateTree.root;
+
+        const {
+            0: postRoot,
+            1: gasCost
+        } = await rollup.callStatic.testProcessTransferBatch(
+            s0,
+            serialized,
+            stateMerkleProof,
+            tokenID,
+            feeReceiver
+        );
+        console.log("processTransferBatch gas cost", gasCost.toNumber());
+        assert.equal(postRoot, postStateRoot, "Mismatch post state root");
+    }).timeout(80000);
 });

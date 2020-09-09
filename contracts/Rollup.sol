@@ -9,7 +9,7 @@ import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
-import { Logger } from "./logger.sol";
+import { Logger } from "./Logger.sol";
 import { POB } from "./POB.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
@@ -21,16 +21,10 @@ interface IRollupReddit {
         bytes32 initialStateRoot,
         bytes calldata _txs,
         Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxHashCommitment,
+        uint256 tokenType,
+        uint256 feeReceiver,
         Types.Usage batchType
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+    ) external view returns (bytes32, bool);
 
     function processMMBatch(
         Types.MMCommitment calldata commitment,
@@ -229,8 +223,10 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
             genesisStateRoot,
             accountRegistry.root(),
-            ZERO_BYTES32,
             ZERO_AGG_SIG,
+            "",
+            0, // Zero tokenType
+            0, // Zero fee receiver
             uint8(Types.Usage.Genesis)
         );
         Types.Batch memory newBatch = Types.Batch({
@@ -251,21 +247,21 @@ contract Rollup is RollupHelpers {
     }
 
     function submitBatch(
-        bytes[] calldata txs,
-        bytes32[] calldata updatedRoots,
-        Types.Usage batchType,
-        uint256[2][] calldata signatures
+        Types.Submission[] calldata submissions,
+        Types.Usage batchType
     ) external payable onlyCoordinator {
         // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
-        uint256 commmitmentLength = updatedRoots.length;
-        bytes32[] memory commitments = new bytes32[](commmitmentLength);
-        for (uint256 i = 0; i < commmitmentLength; i++) {
+        bytes32[] memory commitments = new bytes32[](submissions.length);
+        bytes32 pubkeyTreeRoot = accountRegistry.root();
+        for (uint256 i = 0; i < submissions.length; i++) {
             commitments[i] = (
                 RollupUtils.CommitmentToHash(
-                    updatedRoots[i],
-                    accountRegistry.root(),
-                    keccak256(txs[i]),
-                    signatures[i],
+                    submissions[i].updatedRoot,
+                    pubkeyTreeRoot,
+                    submissions[i].signature,
+                    submissions[i].txs,
+                    submissions[i].tokenType,
+                    submissions[i].feeReceiver,
                     uint8(batchType)
                 )
             );
@@ -280,7 +276,7 @@ contract Rollup is RollupHelpers {
         batches.push(newBatch);
         logger.logNewBatch(
             newBatch.committer,
-            updatedRoots[updatedRoots.length - 1],
+            submissions[submissions.length - 1].updatedRoot,
             batches.length - 1,
             batchType
         );
@@ -353,8 +349,10 @@ contract Rollup is RollupHelpers {
         bytes32 depositCommitment = RollupUtils.CommitmentToHash(
             newRoot,
             accountRegistry.root(),
-            ZERO_BYTES32,
             ZERO_AGG_SIG,
+            "",
+            0, // Zero tokenType
+            0, // Zero fee receiver
             uint8(Types.Usage.Deposit)
         );
 
@@ -385,7 +383,6 @@ contract Rollup is RollupHelpers {
     function disputeBatch(
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory commitmentMP,
-        bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
     ) public {
         {
@@ -413,8 +410,10 @@ contract Rollup is RollupHelpers {
                     RollupUtils.CommitmentToHash(
                         commitmentMP.commitment.stateRoot,
                         commitmentMP.commitment.accountRoot,
-                        commitmentMP.commitment.txHashCommitment,
                         commitmentMP.commitment.signature,
+                        commitmentMP.commitment.txs,
+                        commitmentMP.commitment.tokenType,
+                        commitmentMP.commitment.feeReceiver,
                         uint8(commitmentMP.commitment.batchType)
                     ),
                     commitmentMP.pathToCommitment,
@@ -424,20 +423,19 @@ contract Rollup is RollupHelpers {
             );
 
             require(
-                commitmentMP.commitment.txHashCommitment != ZERO_BYTES32,
+                commitmentMP.commitment.txs.length != 0,
                 "Cannot dispute blocks with no transaction"
             );
         }
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        bytes32 txRoot;
-        (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
-            .processBatch(
+        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processBatch(
             commitmentMP.commitment.stateRoot,
-            txs,
+            commitmentMP.commitment.txs,
             accountProofs,
-            commitmentMP.commitment.txHashCommitment,
+            commitmentMP.commitment.tokenType,
+            commitmentMP.commitment.feeReceiver,
             commitmentMP.commitment.batchType
         );
 
@@ -568,8 +566,10 @@ contract Rollup is RollupHelpers {
                 RollupUtils.CommitmentToHash(
                     commitmentProof.commitment.stateRoot,
                     commitmentProof.commitment.accountRoot,
-                    keccak256(txs),
                     commitmentProof.commitment.signature,
+                    txs,
+                    commitmentProof.commitment.tokenType,
+                    commitmentProof.commitment.feeReceiver,
                     uint8(commitmentProof.commitment.batchType)
                 ),
                 commitmentProof.pathToCommitment,

@@ -13,26 +13,9 @@ contract Airdrop is FraudProofHelpers {
     function processAirdropBatch(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
-        bytes32 expectedTxHashCommitment
-    )
-        public
-        pure
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+        Types.AccountMerkleProof[] memory accountProofs
+    ) public pure returns (bytes32, bool) {
         uint256 length = txs.transfer_size();
-
-        bytes32 actualTxHashCommitment = keccak256(txs);
-        if (expectedTxHashCommitment != ZERO_BYTES32) {
-            require(
-                actualTxHashCommitment == expectedTxHashCommitment,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
         bool isTxValid;
         for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
@@ -49,7 +32,7 @@ contract Airdrop is FraudProofHelpers {
                 break;
             }
         }
-        return (stateRoot, actualTxHashCommitment, !isTxValid);
+        return (stateRoot, !isTxValid);
     }
 
     /**
@@ -78,6 +61,7 @@ contract Airdrop is FraudProofHelpers {
     {
         Types.ErrorCode err_code = validateTxBasic(
             txs.transfer_amountOf(i),
+            0,
             fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)

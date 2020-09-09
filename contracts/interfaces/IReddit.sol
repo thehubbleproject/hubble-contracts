@@ -141,70 +141,31 @@ interface IReddit {
     function processCreateAccountBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxRoot
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+        Types.AccountMerkleProof[] calldata accountProofs
+    ) external view returns (bytes32, bool);
 
     function processAirdropBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxRoot
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+        Types.AccountMerkleProof[] calldata accountProofs
+    ) external view returns (bytes32, bool);
 
     function processTransferBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxRoot
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+        uint256 feeReceiver
+    ) external view returns (bytes32, bool);
 
     function processBurnConsentBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxRoot
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+        Types.AccountMerkleProof[] calldata accountProofs
+    ) external view returns (bytes32, bool);
 
     function processBurnExecutionBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.AccountMerkleProof[] calldata accountProofs,
-        bytes32 expectedTxRoot
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+        Types.AccountMerkleProof[] calldata accountProofs
+    ) external view returns (bytes32, bool);
 }

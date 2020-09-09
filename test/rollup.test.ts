@@ -2,16 +2,20 @@ import { Usage } from "../ts/interfaces";
 import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
-import { StateTree } from "../ts/state_tree";
-import { AccountRegistry } from "../ts/account_tree";
-import { Account } from "../ts/state_account";
-import { TxTransfer } from "../ts/tx";
+import { StateTree } from "../ts/stateTree";
+import { AccountRegistry } from "../ts/accountTree";
+import { Account } from "../ts/stateAccount";
+import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
-import { allContracts } from "../ts/all-contracts-interfaces";
+import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 
+const DOMAIN =
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
 describe("Rollup", async function() {
+    const tokenID = 1;
     let Alice: Account;
     let Bob: Account;
     let contracts: allContracts;
@@ -19,6 +23,7 @@ describe("Rollup", async function() {
     let registry: AccountRegistry;
     before(async function() {
         await mcl.init();
+        mcl.setDomainHex(DOMAIN);
     });
 
     beforeEach(async function() {
@@ -27,16 +32,13 @@ describe("Rollup", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
-        const appID =
-            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-        const tokenID = 1;
 
-        Alice = Account.new(appID, -1, tokenID, 10, 0);
+        Alice = Account.new(-1, tokenID, 10, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
         Alice.accountID = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(appID, -1, tokenID, 10, 0);
+        Bob = Account.new(-1, tokenID, 10, 0);
         Bob.setStateID(3);
         Bob.newKeyPair();
         Bob.accountID = await registry.register(Bob.encodePubkey());
@@ -46,11 +48,13 @@ describe("Rollup", async function() {
     });
 
     it("submit a batch and dispute", async function() {
+        const feeReceiver = Alice.stateID;
+        const fee = 1;
         const tx = new TxTransfer(
             Alice.stateID,
             Bob.stateID,
             5,
-            1,
+            fee,
             Alice.nonce + 1
         );
 
@@ -59,15 +63,28 @@ describe("Rollup", async function() {
         const rollup = contracts.rollup;
         const rollupUtils = contracts.rollupUtils;
         const stateRoot = stateTree.root;
-        const proof = stateTree.applyTxTransfer(tx);
-        const txs = ethers.utils.arrayify(tx.encode(true));
+        const { proof, feeProof, safe } = stateTree.applyTransferBatch(
+            [tx],
+            feeReceiver
+        );
+        assert.isTrue(safe);
+        const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
-        const _tx = await rollup.submitBatch(
-            [txs],
-            [stateRoot],
+        const submission = {
+            updatedRoot: stateRoot,
+            signature: aggregatedSignature0,
+            tokenType: tokenID,
+            feeReceiver,
+            txs: serialized
+        };
+        const _txSubmit = await rollup.submitBatch(
+            [submission],
             Usage.Transfer,
-            [aggregatedSignature0],
             { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
+        );
+        console.log(
+            "submitBatch execution cost",
+            await (await _txSubmit.wait()).gasUsed.toNumber()
         );
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
@@ -79,8 +96,10 @@ describe("Rollup", async function() {
         const commitment = {
             stateRoot,
             accountRoot: root,
-            txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
             signature: aggregatedSignature0,
+            txs: serialized,
+            tokenType: tokenID,
+            feeReceiver,
             batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
@@ -96,19 +115,31 @@ describe("Rollup", async function() {
         const leaf = await rollupUtils.CommitmentToHash(
             commitment.stateRoot,
             commitment.accountRoot,
-            commitment.txHashCommitment,
-            aggregatedSignature0,
+            commitment.signature,
+            commitment.txs,
+            commitment.tokenType,
+            commitment.feeReceiver,
             commitment.batchType
         );
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
-                ["bytes32", "bytes32", "bytes32", "uint256[2]", "uint8"],
+                [
+                    "bytes32",
+                    "bytes32",
+                    "uint256[2]",
+                    "bytes",
+                    "uint256",
+                    "uint256",
+                    "uint8"
+                ],
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
-                    commitment.txHashCommitment,
                     commitment.signature,
+                    commitment.txs,
+                    commitment.tokenType,
+                    commitment.feeReceiver,
                     commitment.batchType
                 ]
             )
@@ -127,17 +158,26 @@ describe("Rollup", async function() {
             witness: tree.witness(0).nodes
         };
 
-        await rollup.disputeBatch(batchId, commitmentMP, txs, [
+        const pathToAccount = 0; // Dummy value
+
+        const _tx = await rollup.disputeBatch(batchId, commitmentMP, [
             {
-                pathToAccount: Alice.stateID,
-                account: proof.senderAccount,
-                siblings: proof.senderWitness
+                pathToAccount,
+                account: proof[0].senderAccount,
+                siblings: proof[0].senderWitness
             },
             {
-                pathToAccount: Bob.stateID,
-                account: proof.receiverAccount,
-                siblings: proof.receiverWitness
+                pathToAccount,
+                account: proof[0].receiverAccount,
+                siblings: proof[0].receiverWitness
+            },
+            {
+                pathToAccount,
+                account: feeProof.feeReceiverAccount,
+                siblings: feeProof.feeReceiverWitness
             }
         ]);
+        const receipt = await _tx.wait();
+        console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());
     });
 });

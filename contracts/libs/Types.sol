@@ -34,11 +34,21 @@ library Types {
         bool withdrawn;
     }
 
+    struct Submission {
+        bytes32 updatedRoot;
+        uint256[2] signature;
+        uint256 tokenType;
+        uint256 feeReceiver;
+        bytes txs;
+    }
+
     struct Commitment {
         bytes32 stateRoot;
         bytes32 accountRoot;
-        bytes32 txHashCommitment;
         uint256[2] signature;
+        bytes txs;
+        uint256 tokenType;
+        uint256 feeReceiver;
         Usage batchType;
     }
 

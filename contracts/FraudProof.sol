@@ -24,6 +24,7 @@ contract FraudProofSetup {
 contract FraudProofHelpers is FraudProofSetup {
     function validateTxBasic(
         uint256 amount,
+        uint256 fee,
         Types.UserAccount memory _from_account
     ) public pure returns (Types.ErrorCode) {
         if (amount == 0) {
@@ -34,7 +35,7 @@ contract FraudProofHelpers is FraudProofSetup {
         }
 
         // check from leaf has enough balance
-        if (_from_account.balance < amount) {
+        if (_from_account.balance < amount.add(fee)) {
             // invalid state transition
             // needs to be slashed because the account doesnt have enough balance
             // for the transfer

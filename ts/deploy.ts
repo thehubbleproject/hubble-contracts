@@ -23,7 +23,7 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 
 import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
-import { allContracts } from "./all-contracts-interfaces";
+import { allContracts } from "./allContractsInterfaces";
 
 async function waitAndRegister(
     contract: Contract,
