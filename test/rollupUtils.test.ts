@@ -5,14 +5,14 @@ import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
 import { Usage } from "../ts/interfaces";
-describe("RollupUtils", async function() {
+describe("RollupUtils", async function () {
     let RollupUtilsInstance: RollupUtils;
-    before(async function() {
+    before(async function () {
         const [signer, ...rest] = await ethers.getSigners();
         RollupUtilsInstance = await new RollupUtilsFactory(signer).deploy();
     });
 
-    it("test account encoding and decoding", async function() {
+    it("test account encoding and decoding", async function () {
         const account = EMPTY_ACCOUNT;
 
         const accountBytes = await RollupUtilsInstance.BytesFromAccountDeconstructed(
@@ -53,7 +53,7 @@ describe("RollupUtils", async function() {
         assert.equal(txData.txType.toString(), tx.txType.toString());
         assert.equal(txData.amount.toString(), tx.amount.toString());
     });
-    it("test createAccount utils", async function() {
+    it("test createAccount utils", async function () {
         const tx = TxCreate.rand().extended();
         const txBytes = await RollupUtilsInstance.BytesFromCreateAccountNoStruct(
             tx.txType,
@@ -73,7 +73,7 @@ describe("RollupUtils", async function() {
         );
         await RollupUtilsInstance.DecompressManyCreateAccount(txs);
     });
-    it("test airdrop utils", async function() {
+    it("test airdrop utils", async function () {
         const tx = TxTransfer.rand().extended();
         const signBytes = await RollupUtilsInstance.AirdropSignBytes(
             tx.txType,
@@ -95,11 +95,11 @@ describe("RollupUtils", async function() {
         await RollupUtilsInstance.CompressAirdropFromEncoded(txBytes, "0x00");
         const txs = await RollupUtilsInstance.CompressManyAirdropFromEncoded([
             txBytes,
-            txBytes
+            txBytes,
         ]);
         await RollupUtilsInstance.DecompressManyAirdrop(txs);
     });
-    it("test transfer utils", async function() {
+    it("test transfer utils", async function () {
         const tx = TxTransfer.rand().extended();
         const signBytes = await RollupUtilsInstance.getTxSignBytes(
             tx.txType,
@@ -125,7 +125,7 @@ describe("RollupUtils", async function() {
         );
         await RollupUtilsInstance.DecompressManyTransfer(txs);
     });
-    it("test burn consent utils", async function() {
+    it("test burn consent utils", async function () {
         const tx = TxBurnConsent.rand().extended();
         const signBytes = await RollupUtilsInstance.BurnConsentSignBytes(
             tx.txType,
@@ -146,7 +146,7 @@ describe("RollupUtils", async function() {
         );
         await RollupUtilsInstance.DecompressManyBurnConsent(txs);
     });
-    it("test burn execution utils", async function() {
+    it("test burn execution utils", async function () {
         const tx = TxBurnExecution.rand().extended();
         const txBytes = await RollupUtilsInstance.BytesFromBurnExecutionNoStruct(
             tx.txType,
@@ -160,7 +160,7 @@ describe("RollupUtils", async function() {
         await RollupUtilsInstance.DecompressManyBurnExecution(txs);
     });
 
-    it("test mm commitment hash", async function() {
+    it("test mm commitment hash", async function () {
         var txs = ethers.utils.arrayify("0x122222");
         var emptyBytes32 =
             "0x0000000000000000000000000000000000000000000000000000000000000001";
@@ -168,7 +168,7 @@ describe("RollupUtils", async function() {
             targetSpokeID: 1,
             withdrawRoot: emptyBytes32,
             tokenID: 1,
-            amount: 1
+            amount: 1,
         };
         var sig = [1, 2];
         const commitment = {
@@ -177,31 +177,8 @@ describe("RollupUtils", async function() {
             txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
             massMigrationMetaInfo: MMInfo,
             signature: sig,
-            batchType: Usage.MassMigration
+            batchType: Usage.MassMigration,
         };
-        console.log("data los", [
-            commitment.stateRoot,
-            commitment.accountRoot,
-            commitment.txHashCommitment,
-            commitment.massMigrationMetaInfo.tokenID,
-            commitment.massMigrationMetaInfo.amount,
-            commitment.massMigrationMetaInfo.withdrawRoot,
-            commitment.massMigrationMetaInfo.targetSpokeID,
-            commitment.signature,
-            commitment.batchType
-        ]);
-
-        console.log(
-            "wrt",
-            commitment.stateRoot,
-            commitment.accountRoot,
-            commitment.txHashCommitment,
-            commitment.massMigrationMetaInfo.tokenID,
-            commitment.massMigrationMetaInfo.amount,
-            commitment.massMigrationMetaInfo.withdrawRoot,
-            commitment.massMigrationMetaInfo.targetSpokeID,
-            commitment.signature
-        );
         const abiCoder = ethers.utils.defaultAbiCoder;
         const hash = ethers.utils.keccak256(
             abiCoder.encode(
@@ -214,7 +191,7 @@ describe("RollupUtils", async function() {
                     "bytes32",
                     "uint256",
                     "uint256[2]",
-                    "uint8"
+                    "uint8",
                 ],
                 [
                     commitment.stateRoot,
@@ -225,7 +202,7 @@ describe("RollupUtils", async function() {
                     commitment.massMigrationMetaInfo.withdrawRoot,
                     commitment.massMigrationMetaInfo.targetSpokeID,
                     commitment.signature,
-                    commitment.batchType
+                    commitment.batchType,
                 ]
             )
         );
