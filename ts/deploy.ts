@@ -12,6 +12,7 @@ import { PobFactory } from "../types/ethers-contracts/PobFactory";
 import { CreateAccountProductionFactory } from "../types/ethers-contracts/CreateAccountProductionFactory";
 import { AirdropProductionFactory } from "../types/ethers-contracts/AirdropProductionFactory";
 import { TransferProductionFactory } from "../types/ethers-contracts/TransferProductionFactory";
+import { MassMigrationProductionFactory } from "../types/ethers-contracts/MassMigrationProductionFactory";
 import { BurnConsentProductionFactory } from "../types/ethers-contracts/BurnConsentProductionFactory";
 import { BurnExecutionProductionFactory } from "../types/ethers-contracts/BurnExecutionProductionFactory";
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
@@ -148,6 +149,18 @@ export async function deployAll(
         verbose,
         nameRegistry,
         await paramManager.AIRDROP()
+    );
+
+    const massMigration = await new MassMigrationProductionFactory(
+        allLinkRefs,
+        signer
+    ).deploy();
+    await waitAndRegister(
+        massMigration,
+        "mass_migs",
+        verbose,
+        nameRegistry,
+        await paramManager.MASS_MIGS()
     );
 
     const transfer = await new TransferProductionFactory(

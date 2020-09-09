@@ -4,7 +4,7 @@ import { EMPTY_ACCOUNT } from "../ts/state_account";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
-
+import { Usage } from "../ts/interfaces";
 describe("RollupUtils", async function() {
     let RollupUtilsInstance: RollupUtils;
     before(async function() {
@@ -158,5 +158,87 @@ describe("RollupUtils", async function() {
             [txBytes, txBytes]
         );
         await RollupUtilsInstance.DecompressManyBurnExecution(txs);
+    });
+
+    it("test mm commitment hash", async function() {
+        var txs = ethers.utils.arrayify("0x122222");
+        var emptyBytes32 =
+            "0x0000000000000000000000000000000000000000000000000000000000000001";
+        const MMInfo = {
+            targetSpokeID: 1,
+            withdrawRoot: emptyBytes32,
+            tokenID: 1,
+            amount: 1
+        };
+        var sig = [1, 2];
+        const commitment = {
+            stateRoot: emptyBytes32,
+            accountRoot: emptyBytes32,
+            txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
+            massMigrationMetaInfo: MMInfo,
+            signature: sig,
+            batchType: Usage.MassMigration
+        };
+        console.log("data los", [
+            commitment.stateRoot,
+            commitment.accountRoot,
+            commitment.txHashCommitment,
+            commitment.massMigrationMetaInfo.tokenID,
+            commitment.massMigrationMetaInfo.amount,
+            commitment.massMigrationMetaInfo.withdrawRoot,
+            commitment.massMigrationMetaInfo.targetSpokeID,
+            commitment.signature,
+            commitment.batchType
+        ]);
+
+        console.log(
+            "wrt",
+            commitment.stateRoot,
+            commitment.accountRoot,
+            commitment.txHashCommitment,
+            commitment.massMigrationMetaInfo.tokenID,
+            commitment.massMigrationMetaInfo.amount,
+            commitment.massMigrationMetaInfo.withdrawRoot,
+            commitment.massMigrationMetaInfo.targetSpokeID,
+            commitment.signature
+        );
+        const abiCoder = ethers.utils.defaultAbiCoder;
+        const hash = ethers.utils.keccak256(
+            abiCoder.encode(
+                [
+                    "bytes32",
+                    "bytes32",
+                    "bytes32",
+                    "uint256",
+                    "uint256",
+                    "bytes32",
+                    "uint256",
+                    "uint256[2]",
+                    "uint8"
+                ],
+                [
+                    commitment.stateRoot,
+                    commitment.accountRoot,
+                    commitment.txHashCommitment,
+                    commitment.massMigrationMetaInfo.tokenID,
+                    commitment.massMigrationMetaInfo.amount,
+                    commitment.massMigrationMetaInfo.withdrawRoot,
+                    commitment.massMigrationMetaInfo.targetSpokeID,
+                    commitment.signature,
+                    commitment.batchType
+                ]
+            )
+        );
+        const leaf = await RollupUtilsInstance.MMCommitmentToHash(
+            commitment.stateRoot,
+            commitment.accountRoot,
+            commitment.txHashCommitment,
+            commitment.massMigrationMetaInfo.tokenID,
+            commitment.massMigrationMetaInfo.amount,
+            commitment.massMigrationMetaInfo.withdrawRoot,
+            commitment.massMigrationMetaInfo.targetSpokeID,
+            commitment.signature
+        );
+        assert.equal(hash, leaf, "mismatch commitment hash");
     });
 });

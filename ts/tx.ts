@@ -1,6 +1,7 @@
 import { Tree } from "./tree";
 import { ethers } from "ethers";
 import { paddedHex, randomNum } from "./utils";
+import { Usage } from "../ts/interfaces";
 
 const amountLen = 4;
 const feeLen = 4;
@@ -214,7 +215,7 @@ export class TxBurnExecution implements Tx {
 }
 
 export class TxMassMig implements SignableTx {
-    private readonly TX_TYPE = "07";
+    private readonly TX_TYPE = "06";
     public static rand(): TxMassMig {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);

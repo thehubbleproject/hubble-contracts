@@ -50,31 +50,21 @@ describe("Rollup", async function() {
         const signature = Alice.sign(tx);
         const rollup = contracts.rollup;
         const rollupUtils = contracts.rollupUtils;
-        const stateRoot = stateTree.root;
-        const proof = stateTree.applyTxTransfer(tx);
+        var stateRoot = stateTree.root;
+        const proof = stateTree.applyMassMigration(tx);
+        // stateRoot = stateTree.root;
         const txs = ethers.utils.arrayify(tx.encode(true));
+        console.log("transaction", txs);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
+        const root = await registry.root();
         const MMInfo = {
-            targetSpokeID: 1,
+            targetSpokeID: tx.spokeID,
             withdrawRoot:
                 "0x0000000000000000000000000000000000000000000000000000000000000000",
             tokenID: 1,
             amount: tx.amount
         };
-        const _tx = await rollup.submitBatchWithMM(
-            [txs],
-            [stateRoot],
-            [aggregatedSignature0],
-            [MMInfo],
-            { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
-        );
 
-        const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
-        const root = await registry.root();
-        const rootOnchain = await registry.registry.root();
-        assert.equal(root, rootOnchain, "mismatch pubkey tree root");
-        const batch = await rollup.getBatch(batchId);
-        console.log("batch obtained", batch);
         const commitment = {
             stateRoot,
             accountRoot: root,
@@ -83,8 +73,30 @@ describe("Rollup", async function() {
             signature: aggregatedSignature0,
             batchType: Usage.MassMigration
         };
-        console.log("commitment", commitment);
+        var result = await contracts.rollupReddit.processMMBatch(
+            commitment,
+            txs,
+            [
+                {
+                    pathToAccount: Alice.stateID,
+                    account: proof.account,
+                    siblings: proof.witness
+                }
+            ]
+        );
 
+        await rollup.submitBatchWithMM(
+            [txs],
+            [stateRoot],
+            [aggregatedSignature0],
+            [MMInfo],
+            { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
+        );
+
+        const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
+        const rootOnchain = await registry.registry.root();
+        assert.equal(root, rootOnchain, "mismatch pubkey tree root");
+        const batch = await rollup.getBatch(batchId);
         const depth = 1; // Math.log2(commitmentLength + 1)
         const tree = Tree.new(
             depth,
@@ -151,13 +163,8 @@ describe("Rollup", async function() {
         await rollup.disputeMMBatch(batchId, commitmentMP, txs, [
             {
                 pathToAccount: Alice.stateID,
-                account: proof.senderAccount,
-                siblings: proof.senderWitness
-            },
-            {
-                pathToAccount: Bob.stateID,
-                account: proof.receiverAccount,
-                siblings: proof.receiverWitness
+                account: proof.account,
+                siblings: proof.witness
             }
         ]);
     });

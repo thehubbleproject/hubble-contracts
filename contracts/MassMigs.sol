@@ -6,6 +6,7 @@ import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import "@nomiclabs/buidler/console.sol";
 
 contract MassMigs is FraudProofHelpers {
     using Tx for bytes;
@@ -40,7 +41,7 @@ contract MassMigs is FraudProofHelpers {
         bool isTxValid;
         // contains a bunch of variables to bypass STD
         // [tokenInTx0, tokenInTxUnderValidation, amountAggregationVar, spokeIDForCommitment]
-        uint256[4] memory metaInfoCounters;
+        uint256[] memory metaInfoCounters = new uint256[](4);
         Tx.MassMig memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
@@ -73,8 +74,7 @@ contract MassMigs is FraudProofHelpers {
             ) = processMassMigrationTx(
                 commitment.stateRoot,
                 _tx,
-                accountProofs[i * 2],
-                accountProofs[i * 2 + 1]
+                accountProofs[i * 2]
             );
 
             // cache token of first tx to evaluate others
@@ -104,8 +104,7 @@ contract MassMigs is FraudProofHelpers {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMig memory _tx,
-        Types.AccountMerkleProof memory fromAccountProof,
-        Types.AccountMerkleProof memory toAccountProof
+        Types.AccountMerkleProof memory fromAccountProof
     )
         public
         pure

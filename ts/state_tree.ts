@@ -48,6 +48,12 @@ interface ProofCreateAccountTx {
 }
 type ProofCreateAccountBatch = ProofCreateAccountTx[];
 
+interface ProofOfMassMigTx {
+    account: StateAccountSolStruct;
+    witness: string[];
+    safe: boolean;
+}
+
 const STATE_WITNESS_LENGHT = 32;
 const ZERO =
     "0x0000000000000000000000000000000000000000000000000000000000000000";
@@ -127,7 +133,7 @@ export class StateTree {
         return { proof: proofs, safe };
     }
 
-    public applyTxTransfer(tx: TxTransfer | TxMassMig): ProofTransferTx {
+    public applyTxTransfer(tx: TxTransfer): ProofTransferTx {
         const senderID = tx.fromIndex;
         const receiverID = tx.toIndex;
 
@@ -192,5 +198,35 @@ export class StateTree {
                 safe: false
             };
         }
+    }
+
+    public applyMassMigration(tx: TxMassMig): ProofOfMassMigTx {
+        const senderID = tx.fromIndex;
+        if (tx.toIndex != 0) {
+            return {
+                account: PLACEHOLDER_PROOF_ACC,
+                witness: PLACEHOLDER_PROOF_WITNESS,
+                safe: false
+            };
+        }
+        const senderAccount = this.accounts[senderID];
+        const senderWitness = this.stateTree.witness(senderID).nodes;
+        const senderAccStruct = senderAccount.toSolStruct();
+        if (senderAccount.balance < tx.amount) {
+            return {
+                account: PLACEHOLDER_PROOF_ACC,
+                witness: PLACEHOLDER_PROOF_WITNESS,
+                safe: false
+            };
+        }
+        senderAccount.balance -= tx.amount;
+        senderAccount.nonce += 1;
+        this.accounts[senderID] = senderAccount;
+        this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
+        return {
+            account: senderAccStruct,
+            witness: senderWitness,
+            safe: true
+        };
     }
 }
