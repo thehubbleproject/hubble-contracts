@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
-import { Rollup } from "./rollup.sol";
+import { Rollup } from "./Rollup.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
