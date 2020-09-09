@@ -250,7 +250,7 @@ library Tx {
     function transfer_fromEncoded(bytes memory txBytes)
         internal
         pure
-        returns (Tx.Transfer memory)
+        returns (Tx.Transfer memory, uint256 tokenType)
     {
         Types.Transfer memory _tx;
         (
@@ -271,7 +271,7 @@ library Tx {
             _tx.amount,
             _tx.fee
         );
-        return _txCompressed;
+        return (_txCompressed, _tx.tokenType);
     }
 
     function serialize(bytes[] memory txs)

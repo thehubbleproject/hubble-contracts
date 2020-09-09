@@ -153,7 +153,8 @@ interface IReddit {
     function processTransferBatch(
         bytes32 initialStateRoot,
         bytes calldata txs,
-        Types.AccountMerkleProof[] calldata accountProofs
+        Types.AccountMerkleProof[] calldata accountProofs,
+        uint256 feeReceiver
     ) external view returns (bytes32, bool);
 
     function processBurnConsentBatch(

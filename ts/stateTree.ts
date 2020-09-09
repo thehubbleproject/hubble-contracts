@@ -1,6 +1,7 @@
 import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
 import { TxTransfer } from "./tx";
+import { ethers } from "ethers";
 
 interface ProofTransferTx {
     senderAccount: StateAccountSolStruct;
@@ -9,6 +10,12 @@ interface ProofTransferTx {
     receiverWitness: string[];
     safe: boolean;
 }
+interface ProofTransferFee {
+    feeReceiverAccount: StateAccountSolStruct;
+    feeReceiverWitness: string[];
+    safe: boolean;
+}
+
 type ProofTransferBatch = ProofTransferTx[];
 
 interface ProofAirdropTxReceiver {
@@ -111,8 +118,13 @@ export class StateTree {
     }
 
     public applyTransferBatch(
-        txs: TxTransfer[]
-    ): { proof: ProofTransferBatch; safe: boolean } {
+        txs: TxTransfer[],
+        feeReceiverID: number
+    ): {
+        proof: ProofTransferBatch;
+        feeProof: ProofTransferFee;
+        safe: boolean;
+    } {
         let safe = true;
         let proofs: ProofTransferTx[] = [];
         for (let i = 0; i < txs.length; i++) {
@@ -124,7 +136,33 @@ export class StateTree {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
             }
         }
-        return { proof: proofs, safe };
+        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a + b);
+        const feeProof = this.applyFee(sumOfFee, feeReceiverID);
+        safe = feeProof.safe;
+        return { proof: proofs, feeProof, safe };
+    }
+
+    public applyFee(sumOfFee: number, feeReceiverID: number): ProofTransferFee {
+        const account = this.accounts[feeReceiverID];
+
+        if (account) {
+            const accountStruct = account.toSolStruct();
+            const witness = this.stateTree.witness(feeReceiverID).nodes;
+            account.balance += sumOfFee;
+            this.accounts[feeReceiverID] = account;
+            this.stateTree.updateSingle(feeReceiverID, account.toStateLeaf());
+            return {
+                feeReceiverAccount: accountStruct,
+                feeReceiverWitness: witness,
+                safe: true
+            };
+        } else {
+            return {
+                feeReceiverAccount: PLACEHOLDER_PROOF_ACC,
+                feeReceiverWitness: PLACEHOLDER_PROOF_WITNESS,
+                safe: false
+            };
+        }
     }
 
     public applyTxTransfer(tx: TxTransfer): ProofTransferTx {
@@ -139,7 +177,7 @@ export class StateTree {
             const senderAccStruct = senderAccount.toSolStruct();
             // FIX: handle burning account
             if (
-                senderAccount.balance < tx.amount ||
+                senderAccount.balance < tx.amount + tx.fee ||
                 senderAccount.tokenType != receiverAccount.tokenType
             ) {
                 return {
@@ -151,7 +189,7 @@ export class StateTree {
                 };
             }
 
-            senderAccount.balance -= tx.amount;
+            senderAccount.balance -= tx.amount + tx.fee;
             senderAccount.nonce += 1;
             this.accounts[senderID] = senderAccount;
             this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());

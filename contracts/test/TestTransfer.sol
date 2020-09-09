@@ -29,6 +29,7 @@ contract TestTransfer is Transfer {
     function testProcessTx(
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
+        uint256 tokenType,
         Types.AccountMerkleProof memory fromAccountProof,
         Types.AccountMerkleProof memory toAccountProof
     )
@@ -42,6 +43,32 @@ contract TestTransfer is Transfer {
             bool
         )
     {
-        return processTx(_balanceRoot, _tx, fromAccountProof, toAccountProof);
+        return
+            processTx(
+                _balanceRoot,
+                _tx,
+                tokenType,
+                fromAccountProof,
+                toAccountProof
+            );
+    }
+
+    function testProcessTransferBatch(
+        bytes32 stateRoot,
+        bytes memory txs,
+        Types.AccountMerkleProof[] memory accountProofs,
+        uint256 tokenType,
+        uint256 feeReceiver
+    ) public returns (bytes32, uint256) {
+        bytes32 newRoot;
+        uint256 operationCost = gasleft();
+        (newRoot, ) = processTransferBatch(
+            stateRoot,
+            txs,
+            accountProofs,
+            tokenType,
+            feeReceiver
+        );
+        return (newRoot, operationCost - gasleft());
     }
 }

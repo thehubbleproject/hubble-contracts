@@ -12,13 +12,23 @@ library RollupUtils {
         bytes32 accountRoot,
         uint256[2] memory signature,
         bytes memory txs,
+        uint256 tokenType,
+        uint256 feeReceiver,
         // Typechain can't parse enum for library.
         // See https://github.com/ethereum-ts/TypeChain/issues/216
         uint8 batchType
     ) public pure returns (bytes32) {
         return
             keccak256(
-                abi.encode(stateRoot, accountRoot, signature, txs, batchType)
+                abi.encode(
+                    stateRoot,
+                    accountRoot,
+                    signature,
+                    txs,
+                    tokenType,
+                    feeReceiver,
+                    batchType
+                )
             );
     }
 

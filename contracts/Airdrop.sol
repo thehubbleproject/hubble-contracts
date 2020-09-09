@@ -61,6 +61,7 @@ contract Airdrop is FraudProofHelpers {
     {
         Types.ErrorCode err_code = validateTxBasic(
             txs.transfer_amountOf(i),
+            0,
             fromAccountProof.account
         );
         if (err_code != Types.ErrorCode.NoError)
