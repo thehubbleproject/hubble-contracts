@@ -18,7 +18,7 @@ export const EMPTY_ACCOUNT: StateAccountSolStruct = {
     balance: 0,
     nonce: 0,
     burn: 0,
-    lastBurn: 0
+    lastBurn: 0,
 };
 
 const nonceLen = 4;
@@ -63,7 +63,6 @@ export class Account {
 
     public sign(tx: SignableTx) {
         const msg = tx.message();
-        console.log("message", msg, this.secretKey);
         const { signature, M } = mcl.sign(msg, this.secretKey);
         return signature;
     }
@@ -86,7 +85,7 @@ export class Account {
                 this.nonce,
                 this.tokenType,
                 this.burn,
-                this.lastBurn
+                this.lastBurn,
             ]
         );
     }
@@ -98,7 +97,7 @@ export class Account {
             balance: this.balance,
             nonce: this.nonce,
             burn: this.burn,
-            lastBurn: this.lastBurn
+            lastBurn: this.lastBurn,
         };
     }
 
