@@ -75,6 +75,7 @@ contract RollupSetup {
             nameRegistry.getContractDetails(ParamManager.POB())
         );
         assert(msg.sender == pobContract.getCoordinator());
+        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         _;
     }
 
@@ -280,7 +281,6 @@ contract Rollup is RollupHelpers {
         Types.Submission[] calldata submissions,
         Types.Usage batchType
     ) external payable onlyCoordinator {
-        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         bytes32[] memory commitments = new bytes32[](submissions.length);
         bytes32 pubkeyTreeRoot = accountRegistry.root();
         for (uint256 i = 0; i < submissions.length; i++) {
@@ -364,11 +364,6 @@ contract Rollup is RollupHelpers {
             _subTreeDepth,
             _zero_account_mp,
             getLatestBalanceTreeRoot()
-        );
-
-        require(
-            msg.value >= governance.STAKE_AMOUNT(),
-            "Not enough stake committed"
         );
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
