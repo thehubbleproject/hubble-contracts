@@ -97,7 +97,7 @@ library Tx {
         uint256 nonce;
     }
 
-    struct MassMig {
+    struct MassMigration {
         uint256 fromIndex;
         uint256 toIndex;
         uint256 amount;
@@ -829,10 +829,10 @@ library Tx {
             );
     }
 
-    function mass_migration_decode(bytes memory txs, uint256 index)
+    function massMigration_decode(bytes memory txs, uint256 index)
         internal
         pure
-        returns (MassMig memory _tx)
+        returns (MassMigration memory _tx)
     {
         uint256 sender;
         uint256 receiver;
@@ -851,10 +851,14 @@ library Tx {
             spokeID := and(mload(add(p_tx, POSITION_SPOKE_5)), MASK_SPOKE)
             fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
         }
-        return MassMig(sender, receiver, amount, spokeID, fee);
+        return MassMigration(sender, receiver, amount, spokeID, fee);
     }
 
-    function mass_mig_size(bytes memory txs) internal pure returns (uint256) {
+    function massMigration_size(bytes memory txs)
+        internal
+        pure
+        returns (uint256)
+    {
         return txs.length / TX_LEN_5;
     }
 }

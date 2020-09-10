@@ -34,10 +34,10 @@ contract WithdrawManager {
         vault.requestApproval(_batch_id, commitmentMP);
         // txs are present in commitment
         require(commitmentMP.commitment.txHashCommitment == keccak256(txs));
-        Tx.MassMig memory _tx;
+        Tx.MassMigration memory _tx;
         // read all transactions and make the transfers
-        for (uint256 i = 0; i < txs.mass_mig_size(); i++) {
-            _tx = txs.mass_migration_decode(i);
+        for (uint256 i = 0; i < txs.massMigration_size(); i++) {
+            _tx = txs.massMigration_decode(i);
             balances[_tx.fromIndex][commitmentMP
                 .commitment
                 .massMigrationMetaInfo

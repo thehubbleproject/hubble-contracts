@@ -214,16 +214,23 @@ export class TxBurnExecution implements Tx {
     }
 }
 
-export class TxMassMig implements SignableTx {
+export class TxMassMigration implements SignableTx {
     private readonly TX_TYPE = "06";
-    public static rand(): TxMassMig {
+    public static rand(): TxMassMigration {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
         const amount = randomNum(amountLen);
         const fee = randomNum(feeLen);
         const nonce = randomNum(nonceLen);
         const spokeID = randomNum(spokeLen);
-        return new TxMassMig(sender, receiver, amount, spokeID, fee, nonce);
+        return new TxMassMigration(
+            sender,
+            receiver,
+            amount,
+            spokeID,
+            fee,
+            nonce
+        );
     }
     constructor(
         public readonly fromIndex: number,

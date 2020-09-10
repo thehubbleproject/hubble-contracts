@@ -1,6 +1,6 @@
 import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
-import { TxTransfer, TxMassMig } from "./tx";
+import { TxTransfer, TxMassMigration } from "./tx";
 import { ethers } from "ethers";
 
 interface ProofTransferTx {
@@ -55,7 +55,7 @@ interface ProofCreateAccountTx {
 }
 type ProofCreateAccountBatch = ProofCreateAccountTx[];
 
-interface ProofOfMassMigTx {
+interface ProofOfMassMigrationTx {
     account: StateAccountSolStruct;
     witness: string[];
     safe: boolean;
@@ -238,7 +238,7 @@ export class StateTree {
         }
     }
 
-    public applyMassMigration(tx: TxMassMig): ProofOfMassMigTx {
+    public applyMassMigration(tx: TxMassMigration): ProofOfMassMigrationTx {
         const senderID = tx.fromIndex;
         if (tx.toIndex != 0) {
             return {

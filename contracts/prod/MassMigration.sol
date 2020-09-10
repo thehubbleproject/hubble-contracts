@@ -1,6 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { MassMigs } from "../MassMigs.sol";
+import { MassMigration } from "../MassMigrations.sol";
 
-contract MassMigrationProduction is MassMigs {}
+contract MassMigrationProduction is MassMigration {}

@@ -8,7 +8,7 @@ import { Types } from "./libs/Types.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { Tx } from "./libs/Tx.sol";
-import { MassMigs } from "./MassMigs.sol";
+import { MassMigration } from "./MassMigrations.sol";
 
 contract RollupReddit {
     using Tx for bytes;
@@ -37,7 +37,7 @@ contract RollupReddit {
     IReddit public airdrop;
     IReddit public burnConsent;
     IReddit public burnExecution;
-    MassMigs public massMigs;
+    MassMigration public massMigs;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -57,7 +57,7 @@ contract RollupReddit {
         burnExecution = IReddit(
             nameRegistry.getContractDetails(ParamManager.BURN_EXECUTION())
         );
-        massMigs = MassMigs(
+        massMigs = MassMigration(
             nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
         );
     }

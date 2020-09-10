@@ -5,7 +5,7 @@ import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { Account } from "../ts/stateAccount";
-import { TxMassMig } from "../ts/tx";
+import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/allContractsInterfaces";
@@ -15,7 +15,7 @@ import { parseEvents } from "../ts/utils";
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-describe("Rollup", async function() {
+describe("Mass Migrations", async function() {
     let Alice: Account;
     let Bob: Account;
     let contracts: allContracts;
@@ -49,15 +49,20 @@ describe("Rollup", async function() {
     });
 
     it("submit a batch and dispute", async function() {
-        const tx = new TxMassMig(Alice.stateID, 0, 5, 1, 1, Alice.nonce + 1);
+        const tx = new TxMassMigration(
+            Alice.stateID,
+            0,
+            5,
+            1,
+            1,
+            Alice.nonce + 1
+        );
         const signature = Alice.sign(tx);
         const rollup = contracts.rollup;
         const rollupUtils = contracts.rollupUtils;
-        var stateRoot = stateTree.root;
+        const stateRoot = stateTree.root;
         const proof = stateTree.applyMassMigration(tx);
-        // stateRoot = stateTree.root;
         const txs = ethers.utils.arrayify(tx.encode(true));
-        console.log("transaction", txs);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
         const MMInfo = {
@@ -76,7 +81,7 @@ describe("Rollup", async function() {
             signature: aggregatedSignature0,
             batchType: Usage.MassMigration
         };
-        var result = await contracts.rollupReddit.processMMBatch(
+        const result = await contracts.rollupReddit.processMMBatch(
             commitment,
             txs,
             [
