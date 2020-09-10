@@ -1,4 +1,4 @@
-import { Tree } from "./tree";
+import { Hasher, Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
 import { TxTransfer, TxMassMigration } from "./tx";
 import { ethers } from "ethers";
@@ -102,7 +102,11 @@ export class StateTree {
     private stateTree: Tree;
     private accounts: { [key: number]: Account } = {};
     constructor(stateDepth: number) {
-        this.stateTree = Tree.new(stateDepth);
+        const hasher = new Hasher(
+            "uint256",
+            "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563"
+        );
+        this.stateTree = Tree.new(stateDepth, hasher);
     }
 
     public getAccountWitness(stateID: number) {

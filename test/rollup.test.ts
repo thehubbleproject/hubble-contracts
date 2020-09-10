@@ -4,7 +4,7 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { Account } from "../ts/stateAccount";
+import { Account, EMPTY_ACCOUNT } from "../ts/stateAccount";
 import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
@@ -21,6 +21,8 @@ describe("Rollup", async function() {
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
+    let genesisStateRoot: string;
+    let genesisRegistryRoot: string;
     before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
@@ -32,6 +34,14 @@ describe("Rollup", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
+        const genesisAccount0 = Account.new(0, 0, 0, 0);
+        genesisAccount0.setStateID(0);
+        const genesisAccount1 = Account.new(1, 0, 0, 0);
+        genesisAccount1.setStateID(1);
+        stateTree.createAccount(genesisAccount0);
+        stateTree.createAccount(genesisAccount1);
+        genesisStateRoot = stateTree.root;
+        genesisRegistryRoot = await registryContract.root();
 
         Alice = Account.new(-1, tokenID, 10, 0);
         Alice.setStateID(2);
@@ -62,11 +72,11 @@ describe("Rollup", async function() {
 
         const rollup = contracts.rollup;
         const rollupUtils = contracts.rollupUtils;
-        const stateRoot = stateTree.root;
         const { proof, feeProof, safe } = stateTree.applyTransferBatch(
             [tx],
             feeReceiver
         );
+        const stateRoot = stateTree.root;
         assert.isTrue(safe);
         const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
@@ -159,24 +169,44 @@ describe("Rollup", async function() {
         };
 
         const pathToAccount = 0; // Dummy value
+        const emptyWitness: string[] = [];
+        console.log("genesisStateRoot", genesisStateRoot);
+        const genesisCommitmentMP = {
+            commitment: {
+                stateRoot: genesisStateRoot,
+                accountRoot: genesisRegistryRoot,
+                signature: [0, 0],
+                txs: new Uint8Array(),
+                tokenType: 0,
+                feeReceiver: 0,
+                batchType: Usage.Genesis
+            },
+            pathToCommitment: 0,
+            witness: emptyWitness
+        };
 
-        const _tx = await rollup.disputeBatch(batchId, commitmentMP, [
-            {
-                pathToAccount,
-                account: proof[0].senderAccount,
-                siblings: proof[0].senderWitness
-            },
-            {
-                pathToAccount,
-                account: proof[0].receiverAccount,
-                siblings: proof[0].receiverWitness
-            },
-            {
-                pathToAccount,
-                account: feeProof.feeReceiverAccount,
-                siblings: feeProof.feeReceiverWitness
-            }
-        ]);
+        const _tx = await rollup.disputeBatch(
+            batchId,
+            genesisCommitmentMP,
+            commitmentMP,
+            [
+                {
+                    pathToAccount,
+                    account: proof[0].senderAccount,
+                    siblings: proof[0].senderWitness
+                },
+                {
+                    pathToAccount,
+                    account: proof[0].receiverAccount,
+                    siblings: proof[0].receiverWitness
+                },
+                {
+                    pathToAccount,
+                    account: feeProof.feeReceiverAccount,
+                    siblings: feeProof.feeReceiverWitness
+                }
+            ]
+        );
         const receipt = await _tx.wait();
         console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());
     });

@@ -448,15 +448,37 @@ contract Rollup is RollupHelpers {
             "Cannot dispute blocks with no transaction"
         );
         bytes32 root;
+        // If fraudulent is the first commmitment in the batch, previous commitment is in previous batch
         if (fraudulent.pathToCommitment == 0) {
-            root = batches[_batch_id - 1].commitmentRoot;
+            if (_batch_id == 1) {
+                require(
+                    batches[0].commitmentRoot ==
+                        RollupUtils.CommitmentToHash(
+                            previous.commitment.stateRoot,
+                            previous.commitment.accountRoot,
+                            previous.commitment.signature,
+                            previous.commitment.txs,
+                            previous.commitment.tokenType,
+                            previous.commitment.feeReceiver,
+                            uint8(previous.commitment.batchType)
+                        ),
+                    "Rollup: previous commitment hash is not genesis commitment hash"
+                );
+            } else {
+                require(
+                    checkInclusion(
+                        batches[_batch_id - 1].commitmentRoot,
+                        previous
+                    ),
+                    "Rollup: previous commitment not present in previous batch"
+                );
+            }
         } else {
-            root = batches[_batch_id].commitmentRoot;
+            require(
+                checkInclusion(batches[_batch_id].commitmentRoot, previous),
+                "Rollup: previous commitment not present in current batch"
+            );
         }
-        require(
-            checkInclusion(root, previous),
-            "Commitment not present in batch"
-        );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
