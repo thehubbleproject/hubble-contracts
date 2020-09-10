@@ -562,7 +562,7 @@ contract Rollup is RollupHelpers {
         // verify is the commitment exits in the batch
         require(
             checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
-            "Commitment not present in batch"
+            "Rollup: Commitment not present in batch"
         );
 
         Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
