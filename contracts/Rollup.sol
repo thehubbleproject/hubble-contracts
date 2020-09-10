@@ -87,6 +87,22 @@ contract RollupSetup {
         assert(invalidBatchMarker > 0);
         _;
     }
+    modifier isDisputable(uint256 _batch_id) {
+        require(
+            !batches[_batch_id].withdrawn,
+            "No point dispute a withdrawn batch"
+        );
+        require(
+            block.number < batches[_batch_id].finalisesOn,
+            "Batch already finalised"
+        );
+
+        require(
+            (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+            "Already successfully disputed. Roll back in process"
+        );
+        _;
+    }
 }
 
 contract RollupHelpers is RollupSetup {
@@ -398,39 +414,17 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory commitmentMP,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[_batch_id].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-                "Already successfully disputed. Roll back in process"
-            );
-        }
-
+    ) public isDisputable(_batch_id) {
         // verify is the commitment exits in the batch
-        {
-            require(
-                checkInclusion(
-                    batches[_batch_id].commitmentRoot,
-                    commitmentMP
-                ),
-                "Commitment not present in batch"
-            );
+        require(
+            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
+            "Commitment not present in batch"
+        );
 
-            require(
-                commitmentMP.commitment.txs.length != 0,
-                "Cannot dispute blocks with no transaction"
-            );
-        }
+        require(
+            commitmentMP.commitment.txs.length != 0,
+            "Cannot dispute blocks with no transaction"
+        );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
@@ -547,23 +541,7 @@ contract Rollup is RollupHelpers {
         uint256 batchID,
         Types.CommitmentInclusionProof memory commitmentProof,
         Types.SignatureProof memory signatureProof
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[batchID].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[batchID].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                batchID < invalidBatchMarker || invalidBatchMarker == 0,
-                "Already successfully disputed. Roll back in process"
-            );
-        }
+    ) public isDisputable(batchID) {
         // verify is the commitment exits in the batch
         require(
             checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
