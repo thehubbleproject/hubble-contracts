@@ -121,7 +121,7 @@ contract MassMigration is FraudProofHelpers {
         bytes32 newRoot;
         bytes memory new_from_account;
         bytes memory new_to_account;
-        (new_from_account, newRoot) = ApplyMassMigTxSender(
+        (new_from_account, newRoot) = ApplyMassMigrationTxSender(
             fromAccountProof,
             _tx
         );
@@ -136,7 +136,7 @@ contract MassMigration is FraudProofHelpers {
         );
     }
 
-    function ApplyMassMigTxSender(
+    function ApplyMassMigrationTxSender(
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.MassMigration memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
