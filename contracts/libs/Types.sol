@@ -55,7 +55,7 @@ library Types {
     struct MMCommitment {
         bytes32 stateRoot;
         bytes32 accountRoot;
-        bytes32 txHashCommitment;
+        bytes txs;
         MassMigrationMetaInfo massMigrationMetaInfo;
         uint256[2] signature;
         Usage batchType;

@@ -31,9 +31,8 @@ contract WithdrawManager {
         Types.MMCommitmentInclusionProof calldata commitmentMP,
         bytes calldata txs
     ) external {
-        vault.requestApproval(_batch_id, commitmentMP);
+        vault.requestApproval(_batch_id, commitmentMP, txs);
         // txs are present in commitment
-        require(commitmentMP.commitment.txHashCommitment == keccak256(txs));
         Tx.MassMigration memory _tx;
         // read all transactions and make the transfers
         for (uint256 i = 0; i < txs.massMigration_size(); i++) {

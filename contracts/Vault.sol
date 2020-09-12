@@ -35,7 +35,8 @@ contract Vault {
 
     function requestApproval(
         uint256 batch_id,
-        Types.MMCommitmentInclusionProof calldata commitmentMP
+        Types.MMCommitmentInclusionProof calldata commitmentMP,
+        bytes calldata txs
     ) external {
         // ensure msg.sender is the the target spoke
         require(
@@ -46,39 +47,46 @@ contract Vault {
         );
         // commitment is a mass migration commitment
         require(commitmentMP.commitment.batchType == Types.Usage.MassMigration);
+        {
+            // ensure batch is finalised
+            require(
+                block.number >= rollup.getBatch(batch_id).finalisesOn,
+                "Batch not finalised"
+            );
 
-        Types.Batch memory withdrawBatch = rollup.getBatch(batch_id);
-        // ensure batch is finalised
-        require(
-            block.number >= withdrawBatch.finalisesOn,
-            "Batch not finalised"
-        );
-
-        // check if commitment was submitted in the batch
-        require(
-            merkleUtils.verifyLeaf(
-                withdrawBatch.commitmentRoot,
-                RollupUtils.MMCommitmentToHash(
-                    commitmentMP.commitment.stateRoot,
-                    commitmentMP.commitment.accountRoot,
-                    commitmentMP.commitment.txHashCommitment,
-                    commitmentMP.commitment.massMigrationMetaInfo.tokenID,
-                    commitmentMP.commitment.massMigrationMetaInfo.amount,
-                    commitmentMP.commitment.massMigrationMetaInfo.withdrawRoot,
-                    commitmentMP.commitment.massMigrationMetaInfo.targetSpokeID,
-                    commitmentMP.commitment.signature
+            // check if commitment was submitted in the batch
+            require(
+                merkleUtils.verifyLeaf(
+                    rollup.getBatch(batch_id).commitmentRoot,
+                    RollupUtils.MMCommitmentToHash(
+                        commitmentMP.commitment.stateRoot,
+                        commitmentMP.commitment.accountRoot,
+                        txs,
+                        commitmentMP.commitment.massMigrationMetaInfo.tokenID,
+                        commitmentMP.commitment.massMigrationMetaInfo.amount,
+                        commitmentMP
+                            .commitment
+                            .massMigrationMetaInfo
+                            .withdrawRoot,
+                        commitmentMP
+                            .commitment
+                            .massMigrationMetaInfo
+                            .targetSpokeID,
+                        commitmentMP.commitment.signature
+                    ),
+                    commitmentMP.pathToCommitment,
+                    commitmentMP.siblings
                 ),
-                commitmentMP.pathToCommitment,
-                commitmentMP.siblings
-            ),
-            "Commitment not present in batch"
+                "Commitment not present in batch"
+            );
+        }
+
+        IERC20 tokenContract = IERC20(
+            tokenRegistry.registeredTokens(
+                commitmentMP.commitment.massMigrationMetaInfo.tokenID
+            )
         );
 
-        address tokenContractAddress = tokenRegistry.registeredTokens(
-            commitmentMP.commitment.massMigrationMetaInfo.tokenID
-        );
-
-        IERC20 tokenContract = IERC20(tokenContractAddress);
         require(
             tokenContract.approve(
                 msg.sender,

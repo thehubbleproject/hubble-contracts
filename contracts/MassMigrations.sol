@@ -19,23 +19,8 @@ contract MassMigration is FraudProofHelpers {
         Types.MMCommitment memory commitment,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+    ) public view returns (bytes32, bool) {
         uint256 length = txs.massMigration_size();
-        bytes32 actualTxHashCommitment = keccak256(txs);
-        if (commitment.txHashCommitment != ZERO_BYTES32) {
-            require(
-                actualTxHashCommitment == commitment.txHashCommitment,
-                "Invalid dispute, tx root doesn't match"
-            );
-        }
 
         bool isTxValid;
         // contains a bunch of variables to bypass STD
@@ -94,10 +79,10 @@ contract MassMigration is FraudProofHelpers {
 
         // if amount aggregation is incorrect, slash!
         if (metaInfoCounters[2] != commitment.massMigrationMetaInfo.amount) {
-            return (commitment.stateRoot, actualTxHashCommitment, false);
+            return (commitment.stateRoot, false);
         }
 
-        return (commitment.stateRoot, actualTxHashCommitment, !isTxValid);
+        return (commitment.stateRoot, !isTxValid);
     }
 
     function processMassMigrationTx(

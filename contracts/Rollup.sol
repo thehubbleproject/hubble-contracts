@@ -30,14 +30,7 @@ interface IRollupReddit {
         Types.MMCommitment calldata commitment,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs
-    )
-        external
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        );
+    ) external view returns (bytes32, bool);
 
     function checkTransferSignature(
         bytes32 appID,
@@ -297,7 +290,7 @@ contract Rollup is RollupHelpers {
                 abi.encode(
                     updatedRoots[i],
                     pubkeyTreeRoot,
-                    keccak256(txs[i]),
+                    txs[i],
                     MMInfo[i].tokenID,
                     MMInfo[i].amount,
                     MMInfo[i].withdrawRoot,
@@ -478,6 +471,11 @@ contract Rollup is RollupHelpers {
                 (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
                 "Already successfully disputed. Roll back in process"
             );
+
+            require(
+                txs.length != 0,
+                "Cannot dispute blocks with no transaction"
+            );
         }
 
         // verify is the commitment exits in the batch
@@ -488,7 +486,7 @@ contract Rollup is RollupHelpers {
                     RollupUtils.MMCommitmentToHash(
                         commitmentMP.commitment.stateRoot,
                         commitmentMP.commitment.accountRoot,
-                        commitmentMP.commitment.txHashCommitment,
+                        txs,
                         commitmentMP.commitment.massMigrationMetaInfo.tokenID,
                         commitmentMP.commitment.massMigrationMetaInfo.amount,
                         commitmentMP
@@ -506,18 +504,15 @@ contract Rollup is RollupHelpers {
                 ),
                 "Commitment not present in batch"
             );
-
-            require(
-                commitmentMP.commitment.txHashCommitment != ZERO_BYTES32,
-                "Cannot dispute blocks with no transaction"
-            );
         }
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        bytes32 txRoot;
-        (updatedBalanceRoot, txRoot, isDisputeValid) = rollupReddit
-            .processMMBatch(commitmentMP.commitment, txs, accountProofs);
+        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processMMBatch(
+            commitmentMP.commitment,
+            txs,
+            accountProofs
+        );
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {
@@ -574,6 +569,69 @@ contract Rollup is RollupHelpers {
                 ),
                 commitmentProof.pathToCommitment,
                 commitmentProof.witness
+            ),
+            "Commitment not present in batch"
+        );
+
+        Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
+            APP_ID,
+            commitmentProof.commitment.signature,
+            commitmentProof.commitment.stateRoot,
+            commitmentProof.commitment.accountRoot,
+            signatureProof,
+            txs
+        );
+
+        if (errCode != Types.ErrorCode.NoError) {
+            invalidBatchMarker = batchID;
+            SlashAndRollback();
+        }
+    }
+
+    function disputeSignatureinMM(
+        uint256 batchID,
+        Types.MMCommitmentInclusionProof memory commitmentProof,
+        Types.SignatureProof memory signatureProof,
+        bytes memory txs
+    ) public {
+        {
+            // check if batch is disputable
+            require(
+                !batches[batchID].withdrawn,
+                "No point dispute a withdrawn batch"
+            );
+            require(
+                block.number < batches[batchID].finalisesOn,
+                "Batch already finalised"
+            );
+
+            require(
+                batchID < invalidBatchMarker || invalidBatchMarker == 0,
+                "Already successfully disputed. Roll back in process"
+            );
+        }
+        // verify is the commitment exits in the batch
+        require(
+            merkleUtils.verifyLeaf(
+                batches[batchID].commitmentRoot,
+                RollupUtils.MMCommitmentToHash(
+                    commitmentProof.commitment.stateRoot,
+                    commitmentProof.commitment.accountRoot,
+                    txs,
+                    commitmentProof.commitment.massMigrationMetaInfo.tokenID,
+                    commitmentProof.commitment.massMigrationMetaInfo.amount,
+                    commitmentProof
+                        .commitment
+                        .massMigrationMetaInfo
+                        .withdrawRoot,
+                    commitmentProof
+                        .commitment
+                        .massMigrationMetaInfo
+                        .targetSpokeID,
+                    commitmentProof.commitment.signature
+                ),
+                commitmentProof.pathToCommitment,
+                commitmentProof.siblings
             ),
             "Commitment not present in batch"
         );

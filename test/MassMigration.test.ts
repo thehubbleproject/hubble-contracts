@@ -76,7 +76,7 @@ describe("Mass Migrations", async function() {
         const commitment = {
             stateRoot,
             accountRoot: root,
-            txHashCommitment: ethers.utils.solidityKeccak256(["bytes"], [txs]),
+            txs: txs,
             massMigrationMetaInfo: MMInfo,
             signature: aggregatedSignature0,
             batchType: Usage.MassMigration
@@ -119,7 +119,7 @@ describe("Mass Migrations", async function() {
         const leaf = await rollupUtils.MMCommitmentToHash(
             commitment.stateRoot,
             commitment.accountRoot,
-            commitment.txHashCommitment,
+            txs,
             commitment.massMigrationMetaInfo.tokenID,
             commitment.massMigrationMetaInfo.amount,
             commitment.massMigrationMetaInfo.withdrawRoot,
@@ -133,7 +133,7 @@ describe("Mass Migrations", async function() {
                 [
                     "bytes32",
                     "bytes32",
-                    "bytes32",
+                    "bytes",
                     "uint256",
                     "uint256",
                     "bytes32",
@@ -144,7 +144,7 @@ describe("Mass Migrations", async function() {
                 [
                     commitment.stateRoot,
                     commitment.accountRoot,
-                    commitment.txHashCommitment,
+                    txs,
                     commitment.massMigrationMetaInfo.tokenID,
                     commitment.massMigrationMetaInfo.amount,
                     commitment.massMigrationMetaInfo.withdrawRoot,

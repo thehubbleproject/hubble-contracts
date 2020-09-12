@@ -329,15 +329,7 @@ contract RollupReddit {
         Types.MMCommitment memory commitment,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
-    )
-        public
-        view
-        returns (
-            bytes32,
-            bytes32,
-            bool
-        )
-    {
+    ) public view returns (bytes32, bool) {
         // call mass mig contract
         return massMigs.processMassMigsBatch(commitment, txs, accountProofs);
     }
