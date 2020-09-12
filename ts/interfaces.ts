@@ -11,7 +11,8 @@ export enum Usage {
     CreateAccount,
     Airdrop,
     BurnConsent,
-    BurnExecution
+    BurnExecution,
+    MassMigration
 }
 
 export enum ErrorCode {

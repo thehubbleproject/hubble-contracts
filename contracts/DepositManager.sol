@@ -16,6 +16,7 @@ contract DepositManager {
     MTUtils public merkleUtils;
     Registry public nameRegistry;
     bytes32[] public pendingDeposits;
+    address public vault;
     mapping(uint256 => bytes32) pendingFilledSubtrees;
     uint256 public firstElement = 1;
     uint256 public lastElement = 0;
@@ -73,6 +74,7 @@ contract DepositManager {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        vault = nameRegistry.getContractDetails(ParamManager.VAULT());
     }
 
     /**
@@ -87,35 +89,31 @@ contract DepositManager {
     ) public {
         // check amount is greater than 0
         require(_amount > 0, "token deposit must be greater than 0");
-
         // check token type exists
         address tokenContractAddress = tokenRegistry.registeredTokens(
             _tokenType
         );
         tokenContract = IERC20(tokenContractAddress);
-
-        // transfer from msg.sender to this contract
+        // transfer from msg.sender to vault
         require(
-            tokenContract.transferFrom(msg.sender, address(this), _amount),
+            tokenContract.transferFrom(msg.sender, vault, _amount),
             "token transfer not approved"
         );
-
         // create a new account
-        Types.UserAccount memory newAccount;
-        newAccount.balance = _amount;
-        newAccount.tokenType = _tokenType;
-        newAccount.nonce = 0;
-        newAccount.ID = accountID;
-
+        Types.UserAccount memory newAccount = Types.UserAccount(
+            accountID,
+            _tokenType,
+            _amount,
+            0,
+            0,
+            0
+        );
         // get new account hash
         bytes memory accountBytes = RollupUtils.BytesFromAccount(newAccount);
-
         // queue the deposit
         pendingDeposits.push(keccak256(accountBytes));
-
         // emit the event
         logger.logDepositQueued(accountID, accountBytes);
-
         queueNumber++;
         uint256 tmpDepositSubtreeHeight = 0;
         uint256 tmp = queueNumber;

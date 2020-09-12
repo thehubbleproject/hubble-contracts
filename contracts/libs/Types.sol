@@ -20,6 +20,7 @@ library Types {
         Airdrop,
         BurnConsent,
         BurnExecution,
+        MassMigration,
         // Only applicable to batch and not tx
         Deposit
     }
@@ -51,10 +52,32 @@ library Types {
         Usage batchType;
     }
 
+    struct MMCommitment {
+        bytes32 stateRoot;
+        bytes32 accountRoot;
+        bytes txs;
+        MassMigrationMetaInfo massMigrationMetaInfo;
+        uint256[2] signature;
+        Usage batchType;
+    }
+
+    struct MassMigrationMetaInfo {
+        uint256 targetSpokeID;
+        bytes32 withdrawRoot;
+        uint256 tokenID;
+        uint256 amount;
+    }
+
     struct CommitmentInclusionProof {
         Commitment commitment;
         uint256 pathToCommitment;
         bytes32[] witness;
+    }
+
+    struct MMCommitmentInclusionProof {
+        MMCommitment commitment;
+        uint256 pathToCommitment;
+        bytes32[] siblings;
     }
 
     // Transaction represents how each transaction looks like for

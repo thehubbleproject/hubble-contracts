@@ -4,7 +4,7 @@ import { EMPTY_ACCOUNT } from "../ts/stateAccount";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
-
+import { Usage } from "../ts/interfaces";
 describe("RollupUtils", async function() {
     let RollupUtilsInstance: RollupUtils;
     before(async function() {

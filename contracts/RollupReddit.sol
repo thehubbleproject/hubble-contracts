@@ -8,6 +8,7 @@ import { Types } from "./libs/Types.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { Tx } from "./libs/Tx.sol";
+import { MassMigration } from "./MassMigrations.sol";
 
 contract RollupReddit {
     using Tx for bytes;
@@ -36,6 +37,7 @@ contract RollupReddit {
     IReddit public airdrop;
     IReddit public burnConsent;
     IReddit public burnExecution;
+    MassMigration public massMigs;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -54,6 +56,9 @@ contract RollupReddit {
         );
         burnExecution = IReddit(
             nameRegistry.getContractDetails(ParamManager.BURN_EXECUTION())
+        );
+        massMigs = MassMigration(
+            nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
         );
     }
 
@@ -318,5 +323,14 @@ contract RollupReddit {
         } else {
             revert("Invalid BatchType to dispute");
         }
+    }
+
+    function processMMBatch(
+        Types.MMCommitment memory commitment,
+        bytes memory txs,
+        Types.AccountMerkleProof[] memory accountProofs
+    ) public view returns (bytes32, bool) {
+        // call mass mig contract
+        return massMigs.processMassMigsBatch(commitment, txs, accountProofs);
     }
 }

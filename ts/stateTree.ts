@@ -1,6 +1,6 @@
 import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
-import { TxTransfer } from "./tx";
+import { TxTransfer, TxMassMigration } from "./tx";
 import { ethers } from "ethers";
 
 interface ProofTransferTx {
@@ -54,6 +54,12 @@ interface ProofCreateAccountTx {
     safe: boolean;
 }
 type ProofCreateAccountBatch = ProofCreateAccountTx[];
+
+interface ProofOfMassMigrationTx {
+    account: StateAccountSolStruct;
+    witness: string[];
+    safe: boolean;
+}
 
 const STATE_WITNESS_LENGHT = 32;
 const ZERO =
@@ -230,5 +236,35 @@ export class StateTree {
                 safe: false
             };
         }
+    }
+
+    public applyMassMigration(tx: TxMassMigration): ProofOfMassMigrationTx {
+        const senderID = tx.fromIndex;
+        if (tx.toIndex != 0) {
+            return {
+                account: PLACEHOLDER_PROOF_ACC,
+                witness: PLACEHOLDER_PROOF_WITNESS,
+                safe: false
+            };
+        }
+        const senderAccount = this.accounts[senderID];
+        const senderWitness = this.stateTree.witness(senderID).nodes;
+        const senderAccStruct = senderAccount.toSolStruct();
+        if (senderAccount.balance < tx.amount) {
+            return {
+                account: PLACEHOLDER_PROOF_ACC,
+                witness: PLACEHOLDER_PROOF_WITNESS,
+                safe: false
+            };
+        }
+        senderAccount.balance -= tx.amount;
+        senderAccount.nonce += 1;
+        this.accounts[senderID] = senderAccount;
+        this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
+        return {
+            account: senderAccStruct,
+            witness: senderWitness,
+            safe: true
+        };
     }
 }
