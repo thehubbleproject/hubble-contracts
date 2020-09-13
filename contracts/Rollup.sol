@@ -453,11 +453,10 @@ contract Rollup is RollupHelpers {
     function disputeMMBatch(
         uint256 _batch_id,
         Types.MMCommitmentInclusionProof memory commitmentMP,
-        bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
     ) public isDisputable(_batch_id){
         require(
-            txs.length != 0,
+            commitmentMP.commitment.txs.length != 0,
             "Cannot dispute blocks with no transaction"
         );
         // verify is the commitment exits in the batch
@@ -468,7 +467,7 @@ contract Rollup is RollupHelpers {
                     RollupUtils.MMCommitmentToHash(
                         commitmentMP.commitment.stateRoot,
                         commitmentMP.commitment.accountRoot,
-                        txs,
+                        commitmentMP.commitment.txs,
                         commitmentMP.commitment.massMigrationMetaInfo.tokenID,
                         commitmentMP.commitment.massMigrationMetaInfo.amount,
                         commitmentMP
@@ -492,7 +491,7 @@ contract Rollup is RollupHelpers {
         bool isDisputeValid;
         (updatedBalanceRoot, isDisputeValid) = rollupReddit.processMMBatch(
             commitmentMP.commitment,
-            txs,
+            commitmentMP.commitment.txs,
             accountProofs
         );
 
