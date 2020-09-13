@@ -543,8 +543,7 @@ contract Rollup is RollupHelpers {
     function disputeSignatureinMM(
         uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentProof,
-        Types.SignatureProof memory signatureProof,
-        bytes memory txs
+        Types.SignatureProof memory signatureProof
     ) public isDisputable(batchID) {
         // verify is the commitment exits in the batch
         require(
@@ -558,7 +557,7 @@ contract Rollup is RollupHelpers {
             commitmentProof.commitment.stateRoot,
             commitmentProof.commitment.accountRoot,
             signatureProof,
-            txs
+            commitmentProof.commitment.txs
         );
 
         if (errCode != Types.ErrorCode.NoError) {
