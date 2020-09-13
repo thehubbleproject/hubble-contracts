@@ -339,7 +339,6 @@ contract Rollup is RollupHelpers {
         uint256[2][] calldata aggregatedSignatures,
         Types.MassMigrationMetaInfo[] calldata MMInfo
     ) external payable onlyCoordinator {
-        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         bytes32[] memory commitments = new bytes32[](updatedRoots.length);
         bytes32 pubkeyTreeRoot = accountRegistry.root();
         for (uint256 i = 0; i < updatedRoots.length; i++) {
