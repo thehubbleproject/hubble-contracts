@@ -213,6 +213,28 @@ contract RollupHelpers is RollupSetup {
                 proof.witness
             );
     }
+
+    function checkInclusion(
+        bytes32 root,
+        Types.MMCommitmentInclusionProof memory proof
+    ) internal pure returns (bool) {
+        return
+            MerkleTreeUtilsLib.verifyLeaf(
+                root,
+                RollupUtils.MMCommitmentToHash(
+                    proof.commitment.stateRoot,
+                    proof.commitment.accountRoot,
+                    proof.commitment.txs,
+                    proof.commitment.massMigrationMetaInfo.tokenID,
+                    proof.commitment.massMigrationMetaInfo.amount,
+                    proof.commitment.massMigrationMetaInfo.withdrawRoot,
+                    proof.commitment.massMigrationMetaInfo.targetSpokeID,
+                    proof.commitment.signature
+                ),
+                proof.pathToCommitment,
+                proof.siblings
+            );
+    }
 }
 
 contract Rollup is RollupHelpers {
@@ -454,38 +476,17 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.MMCommitmentInclusionProof memory commitmentMP,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public isDisputable(_batch_id){
+    ) public isDisputable(_batch_id) {
         require(
             commitmentMP.commitment.txs.length != 0,
             "Cannot dispute blocks with no transaction"
         );
         // verify is the commitment exits in the batch
-        {
-            require(
-                merkleUtils.verifyLeaf(
-                    batches[_batch_id].commitmentRoot,
-                    RollupUtils.MMCommitmentToHash(
-                        commitmentMP.commitment.stateRoot,
-                        commitmentMP.commitment.accountRoot,
-                        commitmentMP.commitment.txs,
-                        commitmentMP.commitment.massMigrationMetaInfo.tokenID,
-                        commitmentMP.commitment.massMigrationMetaInfo.amount,
-                        commitmentMP
-                            .commitment
-                            .massMigrationMetaInfo
-                            .withdrawRoot,
-                        commitmentMP
-                            .commitment
-                            .massMigrationMetaInfo
-                            .targetSpokeID,
-                        commitmentMP.commitment.signature
-                    ),
-                    commitmentMP.pathToCommitment,
-                    commitmentMP.siblings
-                ),
-                "Commitment not present in batch"
-            );
-        }
+
+        require(
+            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
+            "Commitment not present in batch"
+        );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
@@ -547,27 +548,7 @@ contract Rollup is RollupHelpers {
     ) public isDisputable(batchID) {
         // verify is the commitment exits in the batch
         require(
-            merkleUtils.verifyLeaf(
-                batches[batchID].commitmentRoot,
-                RollupUtils.MMCommitmentToHash(
-                    commitmentProof.commitment.stateRoot,
-                    commitmentProof.commitment.accountRoot,
-                    txs,
-                    commitmentProof.commitment.massMigrationMetaInfo.tokenID,
-                    commitmentProof.commitment.massMigrationMetaInfo.amount,
-                    commitmentProof
-                        .commitment
-                        .massMigrationMetaInfo
-                        .withdrawRoot,
-                    commitmentProof
-                        .commitment
-                        .massMigrationMetaInfo
-                        .targetSpokeID,
-                    commitmentProof.commitment.signature
-                ),
-                commitmentProof.pathToCommitment,
-                commitmentProof.siblings
-            ),
+            checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
             "Commitment not present in batch"
         );
 
