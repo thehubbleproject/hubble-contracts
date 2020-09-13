@@ -28,7 +28,6 @@ interface IRollupReddit {
 
     function processMMBatch(
         Types.MMCommitment calldata commitment,
-        bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
 
@@ -492,7 +491,6 @@ contract Rollup is RollupHelpers {
         bool isDisputeValid;
         (updatedBalanceRoot, isDisputeValid) = rollupReddit.processMMBatch(
             commitmentMP.commitment,
-            commitmentMP.commitment.txs,
             accountProofs
         );
 
