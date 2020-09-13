@@ -99,7 +99,7 @@ contract RollupSetup {
         );
 
         require(
-            (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
+            _batch_id < invalidBatchMarker || invalidBatchMarker == 0,
             "Already successfully disputed. Roll back in process"
         );
         _;
@@ -455,29 +455,11 @@ contract Rollup is RollupHelpers {
         Types.MMCommitmentInclusionProof memory commitmentMP,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[_batch_id].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-                "Already successfully disputed. Roll back in process"
-            );
-
-            require(
-                txs.length != 0,
-                "Cannot dispute blocks with no transaction"
-            );
-        }
-
+    ) public isDisputable(_batch_id){
+        require(
+            txs.length != 0,
+            "Cannot dispute blocks with no transaction"
+        );
         // verify is the commitment exits in the batch
         {
             require(
@@ -563,23 +545,7 @@ contract Rollup is RollupHelpers {
         Types.MMCommitmentInclusionProof memory commitmentProof,
         Types.SignatureProof memory signatureProof,
         bytes memory txs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[batchID].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[batchID].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                batchID < invalidBatchMarker || invalidBatchMarker == 0,
-                "Already successfully disputed. Roll back in process"
-            );
-        }
+    ) public isDisputable(batchID) {
         // verify is the commitment exits in the batch
         require(
             merkleUtils.verifyLeaf(
