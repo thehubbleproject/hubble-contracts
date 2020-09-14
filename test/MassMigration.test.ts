@@ -10,7 +10,6 @@ import * as mcl from "../ts/mcl";
 import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
-import { parseEvents } from "../ts/utils";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -76,22 +75,18 @@ describe("Mass Migrations", async function() {
         const commitment = {
             stateRoot,
             accountRoot: root,
-            txs: txs,
+            txs,
             massMigrationMetaInfo: MMInfo,
             signature: aggregatedSignature0,
             batchType: Usage.MassMigration
         };
-        const result = await contracts.rollupReddit.processMMBatch(
-            commitment,
-            txs,
-            [
-                {
-                    pathToAccount: Alice.stateID,
-                    account: proof.account,
-                    siblings: proof.witness
-                }
-            ]
-        );
+        const result = await contracts.rollupReddit.processMMBatch(commitment, [
+            {
+                pathToAccount: Alice.stateID,
+                account: proof.account,
+                siblings: proof.witness
+            }
+        ]);
 
         await rollup.submitBatchWithMM(
             [txs],
@@ -168,7 +163,7 @@ describe("Mass Migrations", async function() {
             siblings: tree.witness(0).nodes
         };
 
-        await rollup.disputeMMBatch(batchId, commitmentMP, txs, [
+        await rollup.disputeMMBatch(batchId, commitmentMP, [
             {
                 pathToAccount: Alice.stateID,
                 account: proof.account,

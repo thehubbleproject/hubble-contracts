@@ -17,10 +17,9 @@ contract MassMigration is FraudProofHelpers {
      * */
     function processMassMigsBatch(
         Types.MMCommitment memory commitment,
-        bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
-        uint256 length = txs.massMigration_size();
+        uint256 length = commitment.txs.massMigration_size();
 
         bool isTxValid;
         // contains a bunch of variables to bypass STD
@@ -29,7 +28,7 @@ contract MassMigration is FraudProofHelpers {
         Tx.MassMigration memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            _tx = txs.massMigration_decode(i);
+            _tx = commitment.txs.massMigration_decode(i);
 
             // ensure the transaction is to burn account
             if (_tx.toIndex != BURN_STATE_INDEX) {

@@ -11,7 +11,7 @@ import { RollupUtils } from "./libs/RollupUtils.sol";
 import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./Logger.sol";
 import { POB } from "./POB.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { MerkleTreeUtils, MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
@@ -28,7 +28,6 @@ interface IRollupReddit {
 
     function processMMBatch(
         Types.MMCommitment calldata commitment,
-        bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
 
@@ -57,7 +56,7 @@ contract RollupSetup {
     ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
     Types.Batch[] public batches;
-    MTUtils public merkleUtils;
+    MerkleTreeUtils public merkleUtils;
 
     IRollupReddit public rollupReddit;
 
@@ -75,6 +74,7 @@ contract RollupSetup {
             nameRegistry.getContractDetails(ParamManager.POB())
         );
         assert(msg.sender == pobContract.getCoordinator());
+        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         _;
     }
 
@@ -85,6 +85,22 @@ contract RollupSetup {
 
     modifier isRollingBack() {
         assert(invalidBatchMarker > 0);
+        _;
+    }
+    modifier isDisputable(uint256 _batch_id) {
+        require(
+            !batches[_batch_id].withdrawn,
+            "No point dispute a withdrawn batch"
+        );
+        require(
+            block.number < batches[_batch_id].finalisesOn,
+            "Batch already finalised"
+        );
+
+        require(
+            _batch_id < invalidBatchMarker || invalidBatchMarker == 0,
+            "Already successfully disputed. Roll back in process"
+        );
         _;
     }
 }
@@ -175,6 +191,49 @@ contract RollupHelpers is RollupSetup {
 
         logger.logRollbackFinalisation(totalSlashings);
     }
+
+    function checkInclusion(
+        bytes32 root,
+        Types.CommitmentInclusionProof memory proof
+    ) internal pure returns (bool) {
+        return
+            MerkleTreeUtilsLib.verifyLeaf(
+                root,
+                RollupUtils.CommitmentToHash(
+                    proof.commitment.stateRoot,
+                    proof.commitment.accountRoot,
+                    proof.commitment.signature,
+                    proof.commitment.txs,
+                    proof.commitment.tokenType,
+                    proof.commitment.feeReceiver,
+                    uint8(proof.commitment.batchType)
+                ),
+                proof.pathToCommitment,
+                proof.witness
+            );
+    }
+
+    function checkInclusion(
+        bytes32 root,
+        Types.MMCommitmentInclusionProof memory proof
+    ) internal pure returns (bool) {
+        return
+            MerkleTreeUtilsLib.verifyLeaf(
+                root,
+                RollupUtils.MMCommitmentToHash(
+                    proof.commitment.stateRoot,
+                    proof.commitment.accountRoot,
+                    proof.commitment.txs,
+                    proof.commitment.massMigrationMetaInfo.tokenID,
+                    proof.commitment.massMigrationMetaInfo.amount,
+                    proof.commitment.massMigrationMetaInfo.withdrawRoot,
+                    proof.commitment.massMigrationMetaInfo.targetSpokeID,
+                    proof.commitment.signature
+                ),
+                proof.pathToCommitment,
+                proof.siblings
+            );
+    }
 }
 
 contract Rollup is RollupHelpers {
@@ -198,7 +257,7 @@ contract Rollup is RollupHelpers {
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
         );
-        merkleUtils = MTUtils(
+        merkleUtils = MerkleTreeUtils(
             nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
         accountRegistry = BLSAccountRegistry(
@@ -243,7 +302,6 @@ contract Rollup is RollupHelpers {
         Types.Submission[] calldata submissions,
         Types.Usage batchType
     ) external payable onlyCoordinator {
-        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         bytes32[] memory commitments = new bytes32[](submissions.length);
         bytes32 pubkeyTreeRoot = accountRegistry.root();
         for (uint256 i = 0; i < submissions.length; i++) {
@@ -281,7 +339,6 @@ contract Rollup is RollupHelpers {
         uint256[2][] calldata aggregatedSignatures,
         Types.MassMigrationMetaInfo[] calldata MMInfo
     ) external payable onlyCoordinator {
-        // require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         bytes32[] memory commitments = new bytes32[](updatedRoots.length);
         bytes32 pubkeyTreeRoot = accountRegistry.root();
         for (uint256 i = 0; i < updatedRoots.length; i++) {
@@ -329,11 +386,6 @@ contract Rollup is RollupHelpers {
             getLatestBalanceTreeRoot()
         );
 
-        require(
-            msg.value >= governance.STAKE_AMOUNT(),
-            "Not enough stake committed"
-        );
-
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
             _zero_account_mp.pathToAccount,
@@ -377,49 +429,17 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory commitmentMP,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[_batch_id].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-                "Already successfully disputed. Roll back in process"
-            );
-        }
-
+    ) public isDisputable(_batch_id) {
         // verify is the commitment exits in the batch
-        {
-            require(
-                merkleUtils.verifyLeaf(
-                    batches[_batch_id].commitmentRoot,
-                    RollupUtils.CommitmentToHash(
-                        commitmentMP.commitment.stateRoot,
-                        commitmentMP.commitment.accountRoot,
-                        commitmentMP.commitment.signature,
-                        commitmentMP.commitment.txs,
-                        commitmentMP.commitment.tokenType,
-                        commitmentMP.commitment.feeReceiver,
-                        uint8(commitmentMP.commitment.batchType)
-                    ),
-                    commitmentMP.pathToCommitment,
-                    commitmentMP.witness
-                ),
-                "Commitment not present in batch"
-            );
+        require(
+            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
+            "Commitment not present in batch"
+        );
 
-            require(
-                commitmentMP.commitment.txs.length != 0,
-                "Cannot dispute blocks with no transaction"
-            );
-        }
+        require(
+            commitmentMP.commitment.txs.length != 0,
+            "Cannot dispute blocks with no transaction"
+        );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
@@ -453,64 +473,23 @@ contract Rollup is RollupHelpers {
     function disputeMMBatch(
         uint256 _batch_id,
         Types.MMCommitmentInclusionProof memory commitmentMP,
-        bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[_batch_id].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[_batch_id].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                (_batch_id < invalidBatchMarker || invalidBatchMarker == 0),
-                "Already successfully disputed. Roll back in process"
-            );
-
-            require(
-                txs.length != 0,
-                "Cannot dispute blocks with no transaction"
-            );
-        }
-
+    ) public isDisputable(_batch_id) {
+        require(
+            commitmentMP.commitment.txs.length != 0,
+            "Cannot dispute blocks with no transaction"
+        );
         // verify is the commitment exits in the batch
-        {
-            require(
-                merkleUtils.verifyLeaf(
-                    batches[_batch_id].commitmentRoot,
-                    RollupUtils.MMCommitmentToHash(
-                        commitmentMP.commitment.stateRoot,
-                        commitmentMP.commitment.accountRoot,
-                        txs,
-                        commitmentMP.commitment.massMigrationMetaInfo.tokenID,
-                        commitmentMP.commitment.massMigrationMetaInfo.amount,
-                        commitmentMP
-                            .commitment
-                            .massMigrationMetaInfo
-                            .withdrawRoot,
-                        commitmentMP
-                            .commitment
-                            .massMigrationMetaInfo
-                            .targetSpokeID,
-                        commitmentMP.commitment.signature
-                    ),
-                    commitmentMP.pathToCommitment,
-                    commitmentMP.siblings
-                ),
-                "Commitment not present in batch"
-            );
-        }
+
+        require(
+            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
+            "Commitment not present in batch"
+        );
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
         (updatedBalanceRoot, isDisputeValid) = rollupReddit.processMMBatch(
             commitmentMP.commitment,
-            txs,
             accountProofs
         );
 
@@ -535,42 +514,12 @@ contract Rollup is RollupHelpers {
     function disputeSignature(
         uint256 batchID,
         Types.CommitmentInclusionProof memory commitmentProof,
-        Types.SignatureProof memory signatureProof,
-        bytes memory txs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[batchID].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[batchID].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                batchID < invalidBatchMarker || invalidBatchMarker == 0,
-                "Already successfully disputed. Roll back in process"
-            );
-        }
+        Types.SignatureProof memory signatureProof
+    ) public isDisputable(batchID) {
         // verify is the commitment exits in the batch
         require(
-            merkleUtils.verifyLeaf(
-                batches[batchID].commitmentRoot,
-                RollupUtils.CommitmentToHash(
-                    commitmentProof.commitment.stateRoot,
-                    commitmentProof.commitment.accountRoot,
-                    commitmentProof.commitment.signature,
-                    txs,
-                    commitmentProof.commitment.tokenType,
-                    commitmentProof.commitment.feeReceiver,
-                    uint8(commitmentProof.commitment.batchType)
-                ),
-                commitmentProof.pathToCommitment,
-                commitmentProof.witness
-            ),
-            "Commitment not present in batch"
+            checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
+            "Rollup: Commitment not present in batch"
         );
 
         Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
@@ -579,7 +528,7 @@ contract Rollup is RollupHelpers {
             commitmentProof.commitment.stateRoot,
             commitmentProof.commitment.accountRoot,
             signatureProof,
-            txs
+            commitmentProof.commitment.txs
         );
 
         if (errCode != Types.ErrorCode.NoError) {
@@ -591,48 +540,11 @@ contract Rollup is RollupHelpers {
     function disputeSignatureinMM(
         uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentProof,
-        Types.SignatureProof memory signatureProof,
-        bytes memory txs
-    ) public {
-        {
-            // check if batch is disputable
-            require(
-                !batches[batchID].withdrawn,
-                "No point dispute a withdrawn batch"
-            );
-            require(
-                block.number < batches[batchID].finalisesOn,
-                "Batch already finalised"
-            );
-
-            require(
-                batchID < invalidBatchMarker || invalidBatchMarker == 0,
-                "Already successfully disputed. Roll back in process"
-            );
-        }
+        Types.SignatureProof memory signatureProof
+    ) public isDisputable(batchID) {
         // verify is the commitment exits in the batch
         require(
-            merkleUtils.verifyLeaf(
-                batches[batchID].commitmentRoot,
-                RollupUtils.MMCommitmentToHash(
-                    commitmentProof.commitment.stateRoot,
-                    commitmentProof.commitment.accountRoot,
-                    txs,
-                    commitmentProof.commitment.massMigrationMetaInfo.tokenID,
-                    commitmentProof.commitment.massMigrationMetaInfo.amount,
-                    commitmentProof
-                        .commitment
-                        .massMigrationMetaInfo
-                        .withdrawRoot,
-                    commitmentProof
-                        .commitment
-                        .massMigrationMetaInfo
-                        .targetSpokeID,
-                    commitmentProof.commitment.signature
-                ),
-                commitmentProof.pathToCommitment,
-                commitmentProof.siblings
-            ),
+            checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
             "Commitment not present in batch"
         );
 
@@ -642,7 +554,7 @@ contract Rollup is RollupHelpers {
             commitmentProof.commitment.stateRoot,
             commitmentProof.commitment.accountRoot,
             signatureProof,
-            txs
+            commitmentProof.commitment.txs
         );
 
         if (errCode != Types.ErrorCode.NoError) {
