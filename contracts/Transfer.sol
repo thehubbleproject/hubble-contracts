@@ -89,10 +89,10 @@ contract Transfer is FraudProofHelpers {
     }
 
     /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
+     * @notice processes the state transition of a commitment
+     * @return updatedRoot, txRoot and if the batch is valid or not
      * */
-    function processTransferBatch(
+    function processTransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,

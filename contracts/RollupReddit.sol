@@ -275,7 +275,7 @@ contract RollupReddit {
             );
     }
 
-    function processBatch(
+    function processCommit(
         bytes32 initialStateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
@@ -285,21 +285,21 @@ contract RollupReddit {
     ) public view returns (bytes32, bool) {
         if (batchType == Types.Usage.CreateAccount) {
             return
-                createAccount.processCreateAccountBatch(
+                createAccount.processCreateAccountCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
                 );
         } else if (batchType == Types.Usage.Airdrop) {
             return
-                airdrop.processAirdropBatch(
+                airdrop.processAirdropCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
                 );
         } else if (batchType == Types.Usage.Transfer) {
             return
-                transfer.processTransferBatch(
+                transfer.processTransferCommit(
                     initialStateRoot,
                     txs,
                     accountProofs,
@@ -308,14 +308,14 @@ contract RollupReddit {
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
             return
-                burnConsent.processBurnConsentBatch(
+                burnConsent.processBurnConsentCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
             return
-                burnExecution.processBurnExecutionBatch(
+                burnExecution.processBurnExecutionCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
@@ -325,11 +325,11 @@ contract RollupReddit {
         }
     }
 
-    function processMMBatch(
+    function processMassMigrationCommit(
         Types.MMCommitment memory commitment,
         Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
         // call mass mig contract
-        return massMigs.processMassMigsBatch(commitment, accountProofs);
+        return massMigs.processMassMigrationCommit(commitment, accountProofs);
     }
 }

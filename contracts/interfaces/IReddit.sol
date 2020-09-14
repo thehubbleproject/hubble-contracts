@@ -138,32 +138,32 @@ interface IReddit {
             bool
         );
 
-    function processCreateAccountBatch(
+    function processCreateAccountCommit(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
 
-    function processAirdropBatch(
+    function processAirdropCommit(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
 
-    function processTransferBatch(
+    function processTransferCommit(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs,
         uint256 feeReceiver
     ) external view returns (bytes32, bool);
 
-    function processBurnConsentBatch(
+    function processBurnConsentCommit(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
 
-    function processBurnExecutionBatch(
+    function processBurnExecutionCommit(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs

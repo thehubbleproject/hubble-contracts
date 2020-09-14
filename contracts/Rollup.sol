@@ -17,7 +17,7 @@ import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
 
 interface IRollupReddit {
-    function processBatch(
+    function processCommit(
         bytes32 initialStateRoot,
         bytes calldata _txs,
         Types.AccountMerkleProof[] calldata accountProofs,
@@ -26,7 +26,7 @@ interface IRollupReddit {
         Types.Usage batchType
     ) external view returns (bytes32, bool);
 
-    function processMMBatch(
+    function processMassMigrationCommit(
         Types.MMCommitment calldata commitment,
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
@@ -443,7 +443,7 @@ contract Rollup is RollupHelpers {
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processBatch(
+        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processCommit(
             commitmentMP.commitment.stateRoot,
             commitmentMP.commitment.txs,
             accountProofs,
@@ -488,10 +488,8 @@ contract Rollup is RollupHelpers {
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processMMBatch(
-            commitmentMP.commitment,
-            accountProofs
-        );
+        (updatedBalanceRoot, isDisputeValid) = rollupReddit
+            .processMassMigrationCommit(commitmentMP.commitment, accountProofs);
 
         // dispute is valid, we need to slash and rollback :(
         if (isDisputeValid) {
