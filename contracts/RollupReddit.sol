@@ -285,14 +285,14 @@ contract RollupReddit {
     ) public view returns (bytes32, bool) {
         if (batchType == Types.Usage.CreateAccount) {
             return
-                createAccount.processCreateAccountBatch(
+                createAccount.processCreateAccountCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
                 );
         } else if (batchType == Types.Usage.Airdrop) {
             return
-                airdrop.processAirdropBatch(
+                airdrop.processAirdropCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
@@ -308,14 +308,14 @@ contract RollupReddit {
                 );
         } else if (batchType == Types.Usage.BurnConsent) {
             return
-                burnConsent.processBurnConsentBatch(
+                burnConsent.processBurnConsentCommit(
                     initialStateRoot,
                     txs,
                     accountProofs
                 );
         } else if (batchType == Types.Usage.BurnExecution) {
             return
-                burnExecution.processBurnExecutionBatch(
+                burnExecution.processBurnExecutionCommit(
                     initialStateRoot,
                     txs,
                     accountProofs

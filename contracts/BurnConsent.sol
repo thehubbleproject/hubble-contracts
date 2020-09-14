@@ -6,11 +6,7 @@ import { Types } from "./libs/Types.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 
 contract BurnConsent is FraudProofHelpers {
-    /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
-     * */
-    function processBurnConsentBatch(
+    function processBurnConsentCommit(
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs

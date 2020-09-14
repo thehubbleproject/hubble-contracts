@@ -15,7 +15,7 @@ contract CreateAccount is FraudProofHelpers {
         _;
     }
 
-    function processCreateAccountBatch(
+    function processCreateAccountCommit(
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs
