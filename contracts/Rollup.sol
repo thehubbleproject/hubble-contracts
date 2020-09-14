@@ -15,31 +15,8 @@ import { MerkleTreeUtils, MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
-
-interface IRollupReddit {
-    function processCommit(
-        bytes32 initialStateRoot,
-        bytes calldata _txs,
-        Types.AccountMerkleProof[] calldata accountProofs,
-        uint256 tokenType,
-        uint256 feeReceiver,
-        Types.Usage batchType
-    ) external view returns (bytes32, bool);
-
-    function processMassMigrationCommit(
-        Types.MMCommitment calldata commitment,
-        Types.AccountMerkleProof[] calldata accountProofs
-    ) external view returns (bytes32, bool);
-
-    function checkTransferSignature(
-        bytes32 appID,
-        uint256[2] calldata signature,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        Types.SignatureProof calldata proof,
-        bytes calldata txs
-    ) external view returns (Types.ErrorCode);
-}
+import { Transfer } from "./Transfer.sol";
+import { MassMigration } from "./MassMigrations.sol";
 
 contract RollupSetup {
     using SafeMath for uint256;
@@ -58,7 +35,8 @@ contract RollupSetup {
     Types.Batch[] public batches;
     MerkleTreeUtils public merkleUtils;
 
-    IRollupReddit public rollupReddit;
+    Transfer public transfer;
+    MassMigration public massMigration;
 
     address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
     uint256 STAKE_AMOUNT;
@@ -268,9 +246,13 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
 
-        rollupReddit = IRollupReddit(
-            nameRegistry.getContractDetails(ParamManager.ROLLUP_REDDIT())
+        transfer = Transfer(
+            nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
+        massMigration = MassMigration(
+            nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
+        );
+
         STAKE_AMOUNT = governance.STAKE_AMOUNT();
         bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
             genesisStateRoot,
@@ -443,13 +425,12 @@ contract Rollup is RollupHelpers {
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = rollupReddit.processCommit(
+        (updatedBalanceRoot, isDisputeValid) = transfer.processTransferCommit(
             commitmentMP.commitment.stateRoot,
             commitmentMP.commitment.txs,
             accountProofs,
             commitmentMP.commitment.tokenType,
-            commitmentMP.commitment.feeReceiver,
-            commitmentMP.commitment.batchType
+            commitmentMP.commitment.feeReceiver
         );
 
         // dispute is valid, we need to slash and rollback :(
@@ -488,7 +469,7 @@ contract Rollup is RollupHelpers {
 
         bytes32 updatedBalanceRoot;
         bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = rollupReddit
+        (updatedBalanceRoot, isDisputeValid) = massMigration
             .processMassMigrationCommit(commitmentMP.commitment, accountProofs);
 
         // dispute is valid, we need to slash and rollback :(
@@ -520,12 +501,12 @@ contract Rollup is RollupHelpers {
             "Rollup: Commitment not present in batch"
         );
 
-        Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
-            APP_ID,
+        Types.ErrorCode errCode = transfer.checkSignature(
             commitmentProof.commitment.signature,
+            signatureProof,
             commitmentProof.commitment.stateRoot,
             commitmentProof.commitment.accountRoot,
-            signatureProof,
+            APP_ID,
             commitmentProof.commitment.txs
         );
 
@@ -546,12 +527,12 @@ contract Rollup is RollupHelpers {
             "Commitment not present in batch"
         );
 
-        Types.ErrorCode errCode = rollupReddit.checkTransferSignature(
-            APP_ID,
+        Types.ErrorCode errCode = transfer.checkSignature(
             commitmentProof.commitment.signature,
+            signatureProof,
             commitmentProof.commitment.stateRoot,
             commitmentProof.commitment.accountRoot,
-            signatureProof,
+            APP_ID,
             commitmentProof.commitment.txs
         );
 

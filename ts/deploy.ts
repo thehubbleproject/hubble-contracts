@@ -14,7 +14,6 @@ import { MassMigrationProductionFactory } from "../types/ethers-contracts/MassMi
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
 import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
-import { RollupRedditFactory } from "../types/ethers-contracts/RollupRedditFactory";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
 import { Signer, Contract } from "ethers";
@@ -121,8 +120,6 @@ export async function deployAll(
         await paramManager.TOKEN_REGISTRY()
     );
 
-    // deploy Reddit contracts
-
     const massMigration = await new MassMigrationProductionFactory(
         allLinkRefs,
         signer
@@ -180,18 +177,6 @@ export async function deployAll(
         await paramManager.DEPOSIT_MANAGER()
     );
 
-    const rollupReddit = await new RollupRedditFactory(
-        allLinkRefs,
-        signer
-    ).deploy(nameRegistry.address);
-    await waitAndRegister(
-        rollupReddit,
-        "rollupReddit",
-        verbose,
-        nameRegistry,
-        await paramManager.ROLLUP_REDDIT()
-    );
-
     const root =
         parameters.GENESIS_STATE_ROOT ||
         (await getMerkleRootWithCoordinatorAccount(
@@ -223,10 +208,10 @@ export async function deployAll(
         blsAccountRegistry,
         tokenRegistry,
         transfer,
+        massMigration,
         pob,
         testToken,
         depositManager,
-        rollupReddit,
         rollup
     };
 }

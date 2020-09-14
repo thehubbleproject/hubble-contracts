@@ -25,10 +25,6 @@ library ParamManager {
         return keccak256("rollup_core");
     }
 
-    function ROLLUP_REDDIT() public pure returns (bytes32) {
-        return keccak256("rollup_reddit");
-    }
-
     function ACCOUNT_REGISTRY() public pure returns (bytes32) {
         return keccak256("account_registry");
     }
@@ -51,22 +47,6 @@ library ParamManager {
 
     function TRANSFER() public pure returns (bytes32) {
         return keccak256("transfer");
-    }
-
-    function CREATE_ACCOUNT() public pure returns (bytes32) {
-        return keccak256("create_account");
-    }
-
-    function AIRDROP() public pure returns (bytes32) {
-        return keccak256("airdrop");
-    }
-
-    function BURN_CONSENT() public pure returns (bytes32) {
-        return keccak256("burn_consent");
-    }
-
-    function BURN_EXECUTION() public pure returns (bytes32) {
-        return keccak256("burn_execution");
     }
 
     function MASS_MIGS() public pure returns (bytes32) {
