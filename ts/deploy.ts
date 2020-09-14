@@ -9,12 +9,8 @@ import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { PobFactory } from "../types/ethers-contracts/PobFactory";
-import { CreateAccountProductionFactory } from "../types/ethers-contracts/CreateAccountProductionFactory";
-import { AirdropProductionFactory } from "../types/ethers-contracts/AirdropProductionFactory";
 import { TransferProductionFactory } from "../types/ethers-contracts/TransferProductionFactory";
 import { MassMigrationProductionFactory } from "../types/ethers-contracts/MassMigrationProductionFactory";
-import { BurnConsentProductionFactory } from "../types/ethers-contracts/BurnConsentProductionFactory";
-import { BurnExecutionProductionFactory } from "../types/ethers-contracts/BurnExecutionProductionFactory";
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
 import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
@@ -127,30 +123,6 @@ export async function deployAll(
 
     // deploy Reddit contracts
 
-    const createAccount = await new CreateAccountProductionFactory(
-        allLinkRefs,
-        signer
-    ).deploy(nameRegistry.address);
-    await waitAndRegister(
-        createAccount,
-        "createAccount",
-        verbose,
-        nameRegistry,
-        await paramManager.CREATE_ACCOUNT()
-    );
-
-    const airdrop = await new AirdropProductionFactory(
-        allLinkRefs,
-        signer
-    ).deploy();
-    await waitAndRegister(
-        airdrop,
-        "airdrop",
-        verbose,
-        nameRegistry,
-        await paramManager.AIRDROP()
-    );
-
     const massMigration = await new MassMigrationProductionFactory(
         allLinkRefs,
         signer
@@ -173,30 +145,6 @@ export async function deployAll(
         verbose,
         nameRegistry,
         await paramManager.TRANSFER()
-    );
-
-    const burnConsent = await new BurnConsentProductionFactory(
-        allLinkRefs,
-        signer
-    ).deploy();
-    await waitAndRegister(
-        burnConsent,
-        "burnConsent",
-        verbose,
-        nameRegistry,
-        await paramManager.BURN_CONSENT()
-    );
-
-    const burnExecution = await new BurnExecutionProductionFactory(
-        allLinkRefs,
-        signer
-    ).deploy();
-    await waitAndRegister(
-        burnExecution,
-        "burnExecution",
-        verbose,
-        nameRegistry,
-        await paramManager.BURN_EXECUTION()
     );
 
     // deploy POB contract
@@ -274,11 +222,7 @@ export async function deployAll(
         merkleTreeUtils,
         blsAccountRegistry,
         tokenRegistry,
-        createAccount,
-        airdrop,
         transfer,
-        burnConsent,
-        burnExecution,
         pob,
         testToken,
         depositManager,

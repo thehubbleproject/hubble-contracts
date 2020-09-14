@@ -1,7 +1,6 @@
 import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
 import { TxTransfer, TxMassMigration } from "./tx";
-import { ethers } from "ethers";
 
 interface ProofTransferTx {
     senderAccount: StateAccountSolStruct;
@@ -17,43 +16,6 @@ interface ProofTransferFee {
 }
 
 type ProofTransferBatch = ProofTransferTx[];
-
-interface ProofAirdropTxReceiver {
-    account: StateAccountSolStruct;
-    witness: string[];
-    safe: boolean;
-}
-interface ProofAirdropTxSender {
-    account: StateAccountSolStruct;
-    preWitness: string[];
-    postWitness: string[];
-    safe: boolean;
-}
-interface ProofAirdropBatch {
-    receiverProofs: ProofAirdropTxReceiver[];
-    senderProof: ProofAirdropTxSender;
-    safe: boolean;
-}
-
-interface ProofBurnConsentTx {
-    account: StateAccountSolStruct;
-    witness: string[];
-    safe: boolean;
-}
-type ProofBurnConsentBatch = ProofBurnConsentTx[];
-
-interface ProofBurnExecutionTx {
-    account: StateAccountSolStruct;
-    witness: string[];
-    safe: boolean;
-}
-type ProofBurnExecutionBatch = ProofBurnExecutionTx[];
-
-interface ProofCreateAccountTx {
-    witness: string[];
-    safe: boolean;
-}
-type ProofCreateAccountBatch = ProofCreateAccountTx[];
 
 interface ProofOfMassMigrationTx {
     account: StateAccountSolStruct;

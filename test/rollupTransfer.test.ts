@@ -12,11 +12,11 @@ import { Account } from "../ts/stateAccount";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
+import { ErrorCode } from "../ts/interfaces";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
 const BAD_DOMAIN = Uint8Array.from(Buffer.from(randHex(32).slice(2), "hex"));
-const BAD_SIGNATURE_ERR_CODE = 10;
 let ACCOUNT_SIZE = 32;
 let COMMIT_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
@@ -119,7 +119,10 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        let res = await rollup.callStatic._checkSignature(
+        const {
+            0: gasCost,
+            1: noError
+        } = await rollup.callStatic._checkSignature(
             signature,
             proof,
             postStateRoot,
@@ -127,9 +130,9 @@ describe("Rollup Transfer Commitment", () => {
             DOMAIN,
             serialized
         );
-        assert.equal(res[1], 0);
-        console.log("operation gas cost:", res[0].toString());
-        res = await rollup.callStatic._checkSignature(
+        assert.equal(noError, ErrorCode.NoError);
+        console.log("operation gas cost:", gasCost.toString());
+        const { 1: badSig } = await rollup.callStatic._checkSignature(
             signature,
             proof,
             postStateRoot,
@@ -137,7 +140,7 @@ describe("Rollup Transfer Commitment", () => {
             BAD_DOMAIN,
             serialized
         );
-        assert.equal(res[1], BAD_SIGNATURE_ERR_CODE);
+        assert.equal(badSig, ErrorCode.BadSignature);
         const tx = await rollup._checkSignature(
             signature,
             proof,

@@ -8,10 +8,6 @@ export interface DeploymentParameters {
 export enum Usage {
     Genesis,
     Transfer,
-    CreateAccount,
-    Airdrop,
-    BurnConsent,
-    BurnExecution,
     MassMigration
 }
 
@@ -23,8 +19,6 @@ export enum ErrorCode {
     BadFromTokenType,
     BadToTokenType,
     BadFromIndex,
-    BurnAlreadyExecuted,
     NotOnDesignatedStateLeaf,
-    NotCreatingOnZeroAccount,
     BadSignature
 }
