@@ -118,9 +118,7 @@ library Types {
         BadFromTokenType,
         BadToTokenType,
         BadFromIndex,
-        BurnAlreadyExecuted,
         NotOnDesignatedStateLeaf,
-        NotCreatingOnZeroAccount,
         BadSignature
     }
 }

@@ -4,9 +4,7 @@ import { paddedHex, randomNum } from "./utils";
 
 const amountLen = 4;
 const feeLen = 4;
-const accountIDLen = 4;
 const stateIDLen = 4;
-const tokenLen = 2;
 const nonceLen = 4;
 const spokeLen = 4;
 
@@ -93,119 +91,6 @@ export class TxTransfer implements SignableTx {
             toIndex.slice(2) +
             amount.slice(2) +
             fee.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-        return encoded;
-    }
-}
-
-export class TxCreate implements Tx {
-    public static rand(): TxCreate {
-        const accountID = randomNum(accountIDLen);
-        const stateID = randomNum(stateIDLen);
-        const tokenType = randomNum(tokenLen);
-        return new TxCreate(accountID, stateID, tokenType);
-    }
-    constructor(
-        public readonly accountID: number,
-        public readonly stateID: number,
-        public readonly tokenType: number
-    ) {}
-
-    public hash(): string {
-        return ethers.utils.solidityKeccak256(
-            ["uint32", "uint32", "uint16"],
-            [this.accountID, this.stateID, this.tokenType]
-        );
-    }
-
-    public extended() {
-        return {
-            accountID: this.accountID,
-            stateID: this.stateID,
-            tokenType: this.tokenType,
-            txType: 0
-        };
-    }
-
-    public encode(prefix: boolean = false): string {
-        let accountID = paddedHex(this.accountID, accountIDLen);
-        let stateID = paddedHex(this.stateID, stateIDLen);
-        let tokenType = paddedHex(this.tokenType, tokenLen);
-        let encoded =
-            accountID.slice(2) + stateID.slice(2) + tokenType.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-        return encoded;
-    }
-}
-
-export class TxBurnConsent implements SignableTx {
-    public static rand(): TxBurnConsent {
-        const fromIndex = randomNum(stateIDLen);
-        const amount = randomNum(amountLen);
-        const nonce = randomNum(nonceLen);
-        return new TxBurnConsent(fromIndex, amount, nonce);
-    }
-    constructor(
-        public readonly fromIndex: number,
-        public readonly amount: number,
-        public readonly nonce: number
-    ) {}
-
-    public hash(): string {
-        return ethers.utils.solidityKeccak256(
-            ["uint32", "uint32"],
-            [this.fromIndex, this.amount]
-        );
-    }
-
-    public extended() {
-        return {
-            txType: 0,
-            fromIndex: this.fromIndex,
-            amount: this.amount,
-            nonce: this.nonce
-        };
-    }
-
-    public encode(prefix: boolean = false): string {
-        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
-        let amount = paddedHex(this.amount, amountLen);
-        let encoded = fromIndex.slice(2) + amount.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-        return encoded;
-    }
-    public message(): string {
-        throw new Error("not Implemented");
-    }
-}
-
-export class TxBurnExecution implements Tx {
-    public static rand(): TxBurnExecution {
-        const fromIndex = randomNum(stateIDLen);
-        return new TxBurnExecution(fromIndex);
-    }
-    constructor(public readonly fromIndex: number) {}
-
-    public hash(): string {
-        return ethers.utils.solidityKeccak256(["uint32"], [this.fromIndex]);
-    }
-
-    public extended() {
-        return {
-            txType: 0,
-            fromIndex: this.fromIndex
-        };
-    }
-
-    public encode(prefix: boolean = false): string {
-        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
-        let encoded = fromIndex.slice(2);
         if (prefix) {
             encoded = "0x" + encoded;
         }
