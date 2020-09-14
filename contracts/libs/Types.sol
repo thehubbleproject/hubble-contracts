@@ -16,10 +16,6 @@ library Types {
     enum Usage {
         Genesis, // The Genesis type is only applicable to batch but not tx
         Transfer,
-        CreateAccount,
-        Airdrop,
-        BurnConsent,
-        BurnExecution,
         MassMigration,
         // Only applicable to batch and not tx
         Deposit
@@ -90,35 +86,6 @@ library Types {
         uint256 nonce;
         uint256 amount;
         uint256 fee;
-    }
-
-    struct CreateAccount {
-        uint256 txType;
-        uint256 accountID;
-        uint256 stateID;
-        uint256 tokenType;
-    }
-
-    struct DropTx {
-        uint256 txType;
-        uint256 fromIndex;
-        uint256 toIndex;
-        uint256 tokenType;
-        uint256 nonce;
-        uint256 amount;
-        bytes signature;
-    }
-
-    struct BurnConsent {
-        uint256 txType;
-        uint256 fromIndex;
-        uint256 amount;
-        uint256 nonce;
-    }
-
-    struct BurnExecution {
-        uint256 txType;
-        uint256 fromIndex;
     }
 
     // UserAccount contains the actual data stored in the leaf of balance tree
