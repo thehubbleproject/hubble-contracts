@@ -187,7 +187,7 @@ describe("Rollup Transfer Commitment", () => {
             assert.equal(result[0], postRoot, "mismatch processed stateroot");
         }
     });
-    it("transfer commitment: processTransferBatch", async function() {
+    it("transfer commitment: processTransferCommit", async function() {
         const txs: TxTransfer[] = [];
         const amount = 20;
         const fee = 1;
@@ -244,7 +244,7 @@ describe("Rollup Transfer Commitment", () => {
         const {
             0: postRoot,
             1: gasCost
-        } = await rollup.callStatic.testProcessTransferBatch(
+        } = await rollup.callStatic.testProcessTransferCommit(
             s0,
             serialized,
             stateMerkleProof,

@@ -12,10 +12,10 @@ contract MassMigration is FraudProofHelpers {
     uint256 constant BURN_STATE_INDEX = 0;
 
     /**
-     * @notice processBatch processes a whole batch
-     * @return returns updatedRoot, txRoot and if the batch is valid or not
+     * @notice processes the state transition of a commitment
+     * @return updatedRoot, txRoot and if the batch is valid or not
      * */
-    function processMassMigsBatch(
+    function processMassMigrationCommit(
         Types.MMCommitment memory commitment,
         Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {

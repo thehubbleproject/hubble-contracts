@@ -150,7 +150,7 @@ interface IReddit {
         Types.AccountMerkleProof[] calldata accountProofs
     ) external view returns (bytes32, bool);
 
-    function processTransferBatch(
+    function processTransferCommit(
         bytes32 initialStateRoot,
         bytes calldata txs,
         Types.AccountMerkleProof[] calldata accountProofs,

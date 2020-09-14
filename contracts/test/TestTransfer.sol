@@ -53,7 +53,7 @@ contract TestTransfer is Transfer {
             );
     }
 
-    function testProcessTransferBatch(
+    function testProcessTransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
@@ -62,7 +62,7 @@ contract TestTransfer is Transfer {
     ) public returns (bytes32, uint256) {
         bytes32 newRoot;
         uint256 operationCost = gasleft();
-        (newRoot, ) = processTransferBatch(
+        (newRoot, ) = processTransferCommit(
             stateRoot,
             txs,
             accountProofs,

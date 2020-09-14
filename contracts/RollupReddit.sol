@@ -275,7 +275,7 @@ contract RollupReddit {
             );
     }
 
-    function processBatch(
+    function processCommit(
         bytes32 initialStateRoot,
         bytes memory txs,
         Types.AccountMerkleProof[] memory accountProofs,
@@ -299,7 +299,7 @@ contract RollupReddit {
                 );
         } else if (batchType == Types.Usage.Transfer) {
             return
-                transfer.processTransferBatch(
+                transfer.processTransferCommit(
                     initialStateRoot,
                     txs,
                     accountProofs,
@@ -325,11 +325,11 @@ contract RollupReddit {
         }
     }
 
-    function processMMBatch(
+    function processMassMigrationCommit(
         Types.MMCommitment memory commitment,
         Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
         // call mass mig contract
-        return massMigs.processMassMigsBatch(commitment, accountProofs);
+        return massMigs.processMassMigrationCommit(commitment, accountProofs);
     }
 }

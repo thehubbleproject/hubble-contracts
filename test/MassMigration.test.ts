@@ -80,13 +80,16 @@ describe("Mass Migrations", async function() {
             signature: aggregatedSignature0,
             batchType: Usage.MassMigration
         };
-        const result = await contracts.rollupReddit.processMMBatch(commitment, [
-            {
-                pathToAccount: Alice.stateID,
-                account: proof.account,
-                siblings: proof.witness
-            }
-        ]);
+        const result = await contracts.rollupReddit.processMassMigrationCommit(
+            commitment,
+            [
+                {
+                    pathToAccount: Alice.stateID,
+                    account: proof.account,
+                    siblings: proof.witness
+                }
+            ]
+        );
 
         await rollup.submitBatchWithMM(
             [txs],
