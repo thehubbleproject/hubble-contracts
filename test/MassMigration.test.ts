@@ -80,7 +80,7 @@ describe("Mass Migrations", async function() {
             signature: aggregatedSignature0,
             batchType: Usage.MassMigration
         };
-        const result = await contracts.rollupReddit.processMassMigrationCommit(
+        const result = await contracts.massMigration.processMassMigrationCommit(
             commitment,
             [
                 {

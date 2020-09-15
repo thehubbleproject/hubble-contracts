@@ -10,8 +10,8 @@ import { TransferProduction } from "../types/ethers-contracts/TransferProduction
 import { TestToken } from "../types/ethers-contracts/TestToken";
 import { DepositManager } from "../types/ethers-contracts/DepositManager";
 import { Rollup } from "../types/ethers-contracts/Rollup";
-import { RollupReddit } from "../types/ethers-contracts/RollupReddit";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
+import { MassMigration } from "../types/ethers-contracts/MassMigration";
 
 export interface allContracts {
     paramManager: ParamManager;
@@ -23,9 +23,9 @@ export interface allContracts {
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
     transfer: TransferProduction;
+    massMigration: MassMigration;
     pob: Pob;
     testToken: TestToken;
     depositManager: DepositManager;
-    rollupReddit: RollupReddit;
     rollup: Rollup;
 }
