@@ -21,6 +21,9 @@ import { MassMigration } from "./MassMigrations.sol";
 contract RollupSetup {
     using SafeMath for uint256;
     using Tx for bytes;
+    using Types for Types.Commitment;
+    using Types for Types.TransferCommitment;
+    using Types for Types.MassMigrationCommitment;
 
     /*********************
      * Variable Declarations *
@@ -79,6 +82,44 @@ contract RollupSetup {
             _batch_id < invalidBatchMarker || invalidBatchMarker == 0,
             "Already successfully disputed. Roll back in process"
         );
+        _;
+    }
+
+    function checkInclusion(
+        bytes32 root,
+        Types.CommitmentInclusionProof memory proof
+    ) internal pure returns (bool) {
+        return
+            MerkleTreeUtilsLib.verifyLeaf(
+                root,
+                proof.commitment.toHash(),
+                proof.pathToCommitment,
+                proof.witness
+            );
+    }
+
+    modifier checkPreviousCommitment(
+        uint256 _batch_id,
+        Types.CommitmentInclusionProof memory previous,
+        uint256 targetPathToCommitment
+    ) {
+        if (targetPathToCommitment == 0) {
+            // target is the first commit in the batch, so the previous commit is in the previous batch
+            require(
+                checkInclusion(batches[_batch_id - 1].commitmentRoot, previous),
+                "previous commitment is absent in the previous batch"
+            );
+        } else {
+            // target and previous commits are both in the current batch
+            require(
+                previous.pathToCommitment == targetPathToCommitment - 1,
+                "previous commitment has wrong path"
+            );
+            require(
+                checkInclusion(batches[_batch_id].commitmentRoot, previous),
+                "previous commitment is absent in the current batch"
+            );
+        }
         _;
     }
 }
@@ -172,20 +213,12 @@ contract RollupHelpers is RollupSetup {
 
     function checkInclusion(
         bytes32 root,
-        Types.CommitmentInclusionProof memory proof
+        Types.TransferCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
             MerkleTreeUtilsLib.verifyLeaf(
                 root,
-                RollupUtils.CommitmentToHash(
-                    proof.commitment.stateRoot,
-                    proof.commitment.accountRoot,
-                    proof.commitment.signature,
-                    proof.commitment.txs,
-                    proof.commitment.tokenType,
-                    proof.commitment.feeReceiver,
-                    uint8(proof.commitment.batchType)
-                ),
+                proof.commitment.toHash(),
                 proof.pathToCommitment,
                 proof.witness
             );
@@ -198,16 +231,7 @@ contract RollupHelpers is RollupSetup {
         return
             MerkleTreeUtilsLib.verifyLeaf(
                 root,
-                RollupUtils.MMCommitmentToHash(
-                    proof.commitment.stateRoot,
-                    proof.commitment.accountRoot,
-                    proof.commitment.txs,
-                    proof.commitment.massMigrationMetaInfo.tokenID,
-                    proof.commitment.massMigrationMetaInfo.amount,
-                    proof.commitment.massMigrationMetaInfo.withdrawRoot,
-                    proof.commitment.massMigrationMetaInfo.targetSpokeID,
-                    proof.commitment.signature
-                ),
+                proof.commitment.toHash(),
                 proof.pathToCommitment,
                 proof.siblings
             );
@@ -254,17 +278,14 @@ contract Rollup is RollupHelpers {
         );
 
         STAKE_AMOUNT = governance.STAKE_AMOUNT();
-        bytes32 genesisCommitment = RollupUtils.CommitmentToHash(
-            genesisStateRoot,
-            accountRegistry.root(),
-            ZERO_AGG_SIG,
-            "",
-            0, // Zero tokenType
-            0, // Zero fee receiver
-            uint8(Types.Usage.Genesis)
+        bytes32[] memory genesisCommitments = new bytes32[](1);
+        genesisCommitments[0] = keccak256(
+            abi.encodePacked(genesisStateRoot, ZERO_BYTES32)
         );
         Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: genesisCommitment,
+            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(
+                genesisCommitments
+            ),
             committer: msg.sender,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             depositRoot: ZERO_BYTES32,
@@ -280,25 +301,9 @@ contract Rollup is RollupHelpers {
         APP_ID = keccak256(abi.encodePacked(address(this)));
     }
 
-    function submitBatch(
-        Types.Submission[] calldata submissions,
-        Types.Usage batchType
-    ) external payable onlyCoordinator {
-        bytes32[] memory commitments = new bytes32[](submissions.length);
-        bytes32 pubkeyTreeRoot = accountRegistry.root();
-        for (uint256 i = 0; i < submissions.length; i++) {
-            commitments[i] = (
-                RollupUtils.CommitmentToHash(
-                    submissions[i].updatedRoot,
-                    pubkeyTreeRoot,
-                    submissions[i].signature,
-                    submissions[i].txs,
-                    submissions[i].tokenType,
-                    submissions[i].feeReceiver,
-                    uint8(batchType)
-                )
-            );
-        }
+    function submitBatch(bytes32[] memory commitments, Types.Usage batchType)
+        internal
+    {
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
             committer: msg.sender,
@@ -307,52 +312,36 @@ contract Rollup is RollupHelpers {
             withdrawn: false
         });
         batches.push(newBatch);
-        logger.logNewBatch(
-            newBatch.committer,
-            submissions[submissions.length - 1].updatedRoot,
-            batches.length - 1,
-            batchType
-        );
     }
 
-    function submitBatchWithMM(
-        bytes[] calldata txs,
-        bytes32[] calldata updatedRoots,
-        uint256[2][] calldata aggregatedSignatures,
-        Types.MassMigrationMetaInfo[] calldata MMInfo
-    ) external payable onlyCoordinator {
-        bytes32[] memory commitments = new bytes32[](updatedRoots.length);
-        bytes32 pubkeyTreeRoot = accountRegistry.root();
-        for (uint256 i = 0; i < updatedRoots.length; i++) {
-            // FIX: This is essentially RollupUtils.MMCommitmentToHash but could not use because of STDeep
-            commitments[i] = keccak256(
-                abi.encode(
-                    updatedRoots[i],
-                    pubkeyTreeRoot,
-                    txs[i],
-                    MMInfo[i].tokenID,
-                    MMInfo[i].amount,
-                    MMInfo[i].withdrawRoot,
-                    MMInfo[i].targetSpokeID,
-                    aggregatedSignatures[i],
-                    Types.Usage.MassMigration
-                )
-            );
+    /// @dev We don't define it as `external` function because of https://github.com/ethereum/solidity/issues/3199
+    function submitTransferBatch(Types.TransferCommitment[] memory commitments)
+        public
+        payable
+        onlyCoordinator
+    {
+        bytes32[] memory leaves = new bytes32[](commitments.length);
+        Types.TransferCommitment[] memory commitmentsCopy = commitments;
+        bytes32 accountRoot = accountRegistry.root();
+        for (uint256 i = 0; i < commitments.length; i++) {
+            commitmentsCopy[i].body.accountRoot = accountRoot;
+            leaves[i] = commitmentsCopy[i].toHash();
         }
-        Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
-            committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            depositRoot: ZERO_BYTES32,
-            withdrawn: false
-        });
-        batches.push(newBatch);
-        logger.logNewBatch(
-            newBatch.committer,
-            updatedRoots[updatedRoots.length - 1],
-            batches.length - 1,
-            Types.Usage.MassMigration
-        );
+        submitBatch(leaves, Types.Usage.Transfer);
+    }
+
+    /// @dev We don't define it as `external` function because of https://github.com/ethereum/solidity/issues/3199
+    function submitMassMigrationBatch(
+        Types.MassMigrationCommitment[] memory commitments
+    ) public payable onlyCoordinator {
+        bytes32[] memory leaves = new bytes32[](commitments.length);
+        Types.MassMigrationCommitment[] memory commitmentsCopy = commitments;
+        bytes32 accountRoot = accountRegistry.root();
+        for (uint256 i = 0; i < commitments.length; i++) {
+            commitmentsCopy[i].body.accountRoot = accountRoot;
+            leaves[i] = commitmentsCopy[i].toHash();
+        }
+        submitBatch(leaves, Types.Usage.MassMigration);
     }
 
     /**
@@ -373,18 +362,16 @@ contract Rollup is RollupHelpers {
             _zero_account_mp.pathToAccount,
             _zero_account_mp.siblings
         );
-        bytes32 depositCommitment = RollupUtils.CommitmentToHash(
-            newRoot,
-            accountRegistry.root(),
-            ZERO_AGG_SIG,
-            "",
-            0, // Zero tokenType
-            0, // Zero fee receiver
-            uint8(Types.Usage.Deposit)
+
+        bytes32[] memory depositCommitments = new bytes32[](1);
+        depositCommitments[0] = keccak256(
+            abi.encodePacked(newRoot, ZERO_BYTES32)
         );
 
         Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: depositCommitment,
+            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(
+                depositCommitments
+            ),
             committer: msg.sender,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
             depositRoot: depositSubTreeRoot,
@@ -409,42 +396,34 @@ contract Rollup is RollupHelpers {
      */
     function disputeBatch(
         uint256 _batch_id,
-        Types.CommitmentInclusionProof memory commitmentMP,
+        Types.CommitmentInclusionProof memory previous,
+        Types.TransferCommitmentInclusionProof memory target,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public isDisputable(_batch_id) {
-        // verify is the commitment exits in the batch
+    )
+        public
+        isDisputable(_batch_id)
+        checkPreviousCommitment(_batch_id, previous, target.pathToCommitment)
+    {
         require(
-            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
-            "Commitment not present in batch"
+            checkInclusion(batches[_batch_id].commitmentRoot, target),
+            "Target commitment is absent in the batch"
         );
 
-        require(
-            commitmentMP.commitment.txs.length != 0,
-            "Cannot dispute blocks with no transaction"
-        );
-
-        bytes32 updatedBalanceRoot;
-        bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = transfer.processTransferCommit(
-            commitmentMP.commitment.stateRoot,
-            commitmentMP.commitment.txs,
+        (bytes32 processedStateRoot, bool isDisputeValid) = transfer
+            .processTransferCommit(
+            previous.commitment.stateRoot,
+            target.commitment.body.txs,
             accountProofs,
-            commitmentMP.commitment.tokenType,
-            commitmentMP.commitment.feeReceiver
+            target.commitment.body.tokenType,
+            target.commitment.body.feeReceiver
         );
 
-        // dispute is valid, we need to slash and rollback :(
-        if (isDisputeValid) {
+        if (
+            isDisputeValid ||
+            (processedStateRoot != target.commitment.stateRoot)
+        ) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
-            return;
-        }
-
-        // if new root doesnt match what was submitted by coordinator
-        // slash and rollback
-        if (updatedBalanceRoot != commitmentMP.commitment.stateRoot) {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;
@@ -453,37 +432,28 @@ contract Rollup is RollupHelpers {
 
     function disputeMMBatch(
         uint256 _batch_id,
-        Types.MMCommitmentInclusionProof memory commitmentMP,
+        Types.CommitmentInclusionProof memory previous,
+        Types.MMCommitmentInclusionProof memory target,
         Types.AccountMerkleProof[] memory accountProofs
-    ) public isDisputable(_batch_id) {
+    )
+        public
+        isDisputable(_batch_id)
+        checkPreviousCommitment(_batch_id, previous, target.pathToCommitment)
+    {
         require(
-            commitmentMP.commitment.txs.length != 0,
-            "Cannot dispute blocks with no transaction"
-        );
-        // verify is the commitment exits in the batch
-
-        require(
-            checkInclusion(batches[_batch_id].commitmentRoot, commitmentMP),
-            "Commitment not present in batch"
+            checkInclusion(batches[_batch_id].commitmentRoot, target),
+            "Target commitment is absent in the batch"
         );
 
-        bytes32 updatedBalanceRoot;
-        bool isDisputeValid;
-        (updatedBalanceRoot, isDisputeValid) = massMigration
-            .processMassMigrationCommit(commitmentMP.commitment, accountProofs);
+        (bytes32 processedStateRoot, bool isDisputeValid) = massMigration
+            .processMassMigrationCommit(target.commitment, accountProofs);
 
-        // dispute is valid, we need to slash and rollback :(
-        if (isDisputeValid) {
+        if (
+            isDisputeValid ||
+            (processedStateRoot != target.commitment.stateRoot)
+        ) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
-            return;
-        }
-
-        // if new root doesnt match what was submitted by coordinator
-        // slash and rollback
-        if (updatedBalanceRoot != commitmentMP.commitment.stateRoot) {
             invalidBatchMarker = _batch_id;
             SlashAndRollback();
             return;
@@ -492,22 +462,21 @@ contract Rollup is RollupHelpers {
 
     function disputeSignature(
         uint256 batchID,
-        Types.CommitmentInclusionProof memory commitmentProof,
+        Types.TransferCommitmentInclusionProof memory target,
         Types.SignatureProof memory signatureProof
     ) public isDisputable(batchID) {
-        // verify is the commitment exits in the batch
         require(
-            checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
+            checkInclusion(batches[batchID].commitmentRoot, target),
             "Rollup: Commitment not present in batch"
         );
 
         Types.ErrorCode errCode = transfer.checkSignature(
-            commitmentProof.commitment.signature,
+            target.commitment.body.signature,
             signatureProof,
-            commitmentProof.commitment.stateRoot,
-            commitmentProof.commitment.accountRoot,
+            target.commitment.stateRoot,
+            target.commitment.body.accountRoot,
             APP_ID,
-            commitmentProof.commitment.txs
+            target.commitment.body.txs
         );
 
         if (errCode != Types.ErrorCode.NoError) {
@@ -518,22 +487,21 @@ contract Rollup is RollupHelpers {
 
     function disputeSignatureinMM(
         uint256 batchID,
-        Types.MMCommitmentInclusionProof memory commitmentProof,
+        Types.MMCommitmentInclusionProof memory target,
         Types.SignatureProof memory signatureProof
     ) public isDisputable(batchID) {
-        // verify is the commitment exits in the batch
         require(
-            checkInclusion(batches[batchID].commitmentRoot, commitmentProof),
+            checkInclusion(batches[batchID].commitmentRoot, target),
             "Commitment not present in batch"
         );
 
         Types.ErrorCode errCode = transfer.checkSignature(
-            commitmentProof.commitment.signature,
+            target.commitment.body.signature,
             signatureProof,
-            commitmentProof.commitment.stateRoot,
-            commitmentProof.commitment.accountRoot,
+            target.commitment.stateRoot,
+            target.commitment.body.accountRoot,
             APP_ID,
-            commitmentProof.commitment.txs
+            target.commitment.body.txs
         );
 
         if (errCode != Types.ErrorCode.NoError) {

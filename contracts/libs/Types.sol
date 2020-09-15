@@ -29,39 +29,102 @@ library Types {
         bytes32 depositRoot;
         bool withdrawn;
     }
-
-    struct Submission {
-        bytes32 updatedRoot;
-        uint256[2] signature;
-        uint256 tokenType;
-        uint256 feeReceiver;
-        bytes txs;
-    }
-
     struct Commitment {
         bytes32 stateRoot;
+        bytes32 bodyRoot;
+    }
+
+    function toHash(Commitment memory commitment)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(commitment.stateRoot, commitment.bodyRoot)
+            );
+    }
+
+    struct TransferBody {
         bytes32 accountRoot;
         uint256[2] signature;
-        bytes txs;
         uint256 tokenType;
         uint256 feeReceiver;
-        Usage batchType;
-    }
-
-    struct MMCommitment {
-        bytes32 stateRoot;
-        bytes32 accountRoot;
         bytes txs;
-        MassMigrationMetaInfo massMigrationMetaInfo;
-        uint256[2] signature;
-        Usage batchType;
     }
 
-    struct MassMigrationMetaInfo {
+    function toHash(TransferBody memory body) internal pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    body.accountRoot,
+                    body.signature,
+                    body.tokenType,
+                    body.feeReceiver,
+                    body.txs
+                )
+            );
+    }
+
+    struct TransferCommitment {
+        bytes32 stateRoot;
+        TransferBody body;
+    }
+
+    function toHash(TransferCommitment memory commitment)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(commitment.stateRoot, toHash(commitment.body))
+            );
+    }
+
+    struct MassMigrationBody {
+        bytes32 accountRoot;
+        uint256[2] signature;
         uint256 targetSpokeID;
         bytes32 withdrawRoot;
         uint256 tokenID;
         uint256 amount;
+        bytes txs;
+    }
+
+    function toHash(MassMigrationBody memory body)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(
+                    body.accountRoot,
+                    body.signature,
+                    body.targetSpokeID,
+                    body.withdrawRoot,
+                    body.tokenID,
+                    body.amount,
+                    body.txs
+                )
+            );
+    }
+
+    struct MassMigrationCommitment {
+        bytes32 stateRoot;
+        MassMigrationBody body;
+    }
+
+    function toHash(MassMigrationCommitment memory commitment)
+        internal
+        pure
+        returns (bytes32)
+    {
+        return
+            keccak256(
+                abi.encodePacked(commitment.stateRoot, toHash(commitment.body))
+            );
     }
 
     struct CommitmentInclusionProof {
@@ -70,8 +133,14 @@ library Types {
         bytes32[] witness;
     }
 
+    struct TransferCommitmentInclusionProof {
+        TransferCommitment commitment;
+        uint256 pathToCommitment;
+        bytes32[] witness;
+    }
+
     struct MMCommitmentInclusionProof {
-        MMCommitment commitment;
+        MassMigrationCommitment commitment;
         uint256 pathToCommitment;
         bytes32[] siblings;
     }

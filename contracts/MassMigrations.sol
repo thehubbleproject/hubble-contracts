@@ -16,10 +16,10 @@ contract MassMigration is FraudProofHelpers {
      * @return updatedRoot, txRoot and if the batch is valid or not
      * */
     function processMassMigrationCommit(
-        Types.MMCommitment memory commitment,
+        Types.MassMigrationCommitment memory commitment,
         Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
-        uint256 length = commitment.txs.massMigration_size();
+        uint256 length = commitment.body.txs.massMigration_size();
 
         bool isTxValid;
         // contains a bunch of variables to bypass STD
@@ -28,7 +28,7 @@ contract MassMigration is FraudProofHelpers {
         Tx.MassMigration memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            _tx = commitment.txs.massMigration_decode(i);
+            _tx = commitment.body.txs.massMigration_decode(i);
 
             // ensure the transaction is to burn account
             if (_tx.toIndex != BURN_STATE_INDEX) {
@@ -77,7 +77,7 @@ contract MassMigration is FraudProofHelpers {
         }
 
         // if amount aggregation is incorrect, slash!
-        if (metaInfoCounters[2] != commitment.massMigrationMetaInfo.amount) {
+        if (metaInfoCounters[2] != commitment.body.amount) {
             return (commitment.stateRoot, false);
         }
 
