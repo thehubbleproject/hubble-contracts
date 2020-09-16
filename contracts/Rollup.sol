@@ -315,17 +315,27 @@ contract Rollup is RollupHelpers {
     }
 
     /// @dev We don't define it as `external` function because of https://github.com/ethereum/solidity/issues/3199
-    function submitTransferBatch(Types.TransferCommitment[] memory commitments)
-        public
-        payable
-        onlyCoordinator
-    {
-        bytes32[] memory leaves = new bytes32[](commitments.length);
-        Types.TransferCommitment[] memory commitmentsCopy = commitments;
+    function submitTransferBatch(
+        bytes32[] calldata stateRoots,
+        uint256[2][] calldata signatures,
+        uint256[] calldata tokenTypes,
+        uint256[] calldata feeReceivers,
+        bytes[] calldata txss
+    ) external payable onlyCoordinator {
+        bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
-        for (uint256 i = 0; i < commitments.length; i++) {
-            commitmentsCopy[i].body.accountRoot = accountRoot;
-            leaves[i] = commitmentsCopy[i].toHash();
+        bytes32 bodyRoot;
+        for (uint256 i = 0; i < stateRoots.length; i++) {
+            bodyRoot = keccak256(
+                abi.encodePacked(
+                    accountRoot,
+                    signatures[i],
+                    tokenTypes[i],
+                    feeReceivers[i],
+                    txss[i]
+                )
+            );
+            leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(leaves, Types.Usage.Transfer);
     }
