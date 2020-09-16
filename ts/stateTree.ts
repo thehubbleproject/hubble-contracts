@@ -61,7 +61,7 @@ export class StateTree {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
     }
-    public stateTree: Tree;
+    private stateTree: Tree;
     private accounts: { [key: number]: Account } = {};
     constructor(stateDepth: number) {
         this.stateTree = Tree.new(stateDepth);

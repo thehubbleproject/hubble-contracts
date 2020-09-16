@@ -1,4 +1,3 @@
-import { ethers } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 
 export const TESTING_PARAMS: DeploymentParameters = {
