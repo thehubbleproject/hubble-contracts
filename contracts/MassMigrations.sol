@@ -13,13 +13,15 @@ contract MassMigration is FraudProofHelpers {
 
     /**
      * @notice processes the state transition of a commitment
+     * @param stateRoot represents the state before the state transition
      * @return updatedRoot, txRoot and if the batch is valid or not
      * */
     function processMassMigrationCommit(
-        Types.MassMigrationCommitment memory commitment,
+        bytes32 stateRoot,
+        Types.MassMigrationBody memory commitmentBody,
         Types.AccountMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
-        uint256 length = commitment.body.txs.massMigration_size();
+        uint256 length = commitmentBody.txs.massMigration_size();
 
         bool isTxValid;
         // contains a bunch of variables to bypass STD
@@ -28,7 +30,7 @@ contract MassMigration is FraudProofHelpers {
         Tx.MassMigration memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            _tx = commitment.body.txs.massMigration_decode(i);
+            _tx = commitmentBody.txs.massMigration_decode(i);
 
             // ensure the transaction is to burn account
             if (_tx.toIndex != BURN_STATE_INDEX) {
@@ -48,17 +50,13 @@ contract MassMigration is FraudProofHelpers {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
             (
-                commitment.stateRoot,
+                stateRoot,
                 ,
                 ,
                 metaInfoCounters[1],
                 ,
                 isTxValid
-            ) = processMassMigrationTx(
-                commitment.stateRoot,
-                _tx,
-                accountProofs[i * 2]
-            );
+            ) = processMassMigrationTx(stateRoot, _tx, accountProofs[i]);
 
             // cache token of first tx to evaluate others
             if (i == 0) {
@@ -77,11 +75,11 @@ contract MassMigration is FraudProofHelpers {
         }
 
         // if amount aggregation is incorrect, slash!
-        if (metaInfoCounters[2] != commitment.body.amount) {
-            return (commitment.stateRoot, false);
+        if (metaInfoCounters[2] != commitmentBody.amount) {
+            return (stateRoot, false);
         }
 
-        return (commitment.stateRoot, !isTxValid);
+        return (stateRoot, !isTxValid);
     }
 
     function processMassMigrationTx(
@@ -107,7 +105,7 @@ contract MassMigration is FraudProofHelpers {
                 _tx.fromIndex,
                 fromAccountProof.siblings
             ),
-            "Transfer: sender does not exist"
+            "MassMigration: sender does not exist"
         );
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,

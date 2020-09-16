@@ -55,7 +55,7 @@ contract Vault {
                     rollup.getBatch(batch_id).commitmentRoot,
                     commitmentMP.commitment.toHash(),
                     commitmentMP.pathToCommitment,
-                    commitmentMP.siblings
+                    commitmentMP.witness
                 ),
                 "Commitment not present in batch"
             );

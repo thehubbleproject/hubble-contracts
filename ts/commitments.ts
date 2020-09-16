@@ -96,6 +96,79 @@ export class TransferCommitment extends Commitment {
     }
 }
 
+export class MassMigrationCommitment extends Commitment {
+    public static new(
+        stateRoot: BytesLike,
+        accountRoot: BytesLike = ethers.constants.HashZero,
+        signature: BigNumberish[] = [0, 0],
+        targetSpokeID: BigNumberish = 0,
+        withdrawRoot: BytesLike = ethers.constants.HashZero,
+        tokenID: BigNumberish = 0,
+        amount: BigNumberish = 0,
+        txs: BytesLike = "0x"
+    ) {
+        return new MassMigrationCommitment(
+            stateRoot,
+            accountRoot,
+            signature,
+            targetSpokeID,
+            withdrawRoot,
+            tokenID,
+            amount,
+            txs
+        );
+    }
+    constructor(
+        public stateRoot: BytesLike,
+        public accountRoot: BytesLike,
+        public signature: BigNumberish[],
+        public targetSpokeID: BigNumberish,
+        public withdrawRoot: BytesLike,
+        public tokenID: BigNumberish,
+        public amount: BigNumberish,
+        public txs: BytesLike
+    ) {
+        super(stateRoot);
+    }
+
+    public get bodyRoot() {
+        return ethers.utils.solidityKeccak256(
+            [
+                "bytes32",
+                "uint256[2]",
+                "uint256",
+                "bytes32",
+                "uint256",
+                "uint256",
+                "bytes"
+            ],
+            [
+                this.accountRoot,
+                this.signature,
+                this.targetSpokeID,
+                this.withdrawRoot,
+                this.tokenID,
+                this.amount,
+                this.txs
+            ]
+        );
+    }
+    public toSolStruct(): SolStruct {
+        return {
+            stateRoot: this.stateRoot,
+            body: {
+                accountRoot: this.accountRoot,
+                signature: this.signature,
+                targetSpokeID: this.targetSpokeID,
+                withdrawRoot: this.withdrawRoot,
+                tokenID: this.tokenID,
+                amount: this.amount,
+                txs: this.txs
+            }
+        };
+    }
+}
+
 export class CommitmentTree {
     private tree: Tree;
     constructor(public readonly commitments: Commitment[]) {

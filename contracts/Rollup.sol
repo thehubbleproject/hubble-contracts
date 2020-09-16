@@ -233,7 +233,7 @@ contract RollupHelpers is RollupSetup {
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
-                proof.siblings
+                proof.witness
             );
     }
 }
@@ -446,7 +446,11 @@ contract Rollup is RollupHelpers {
         );
 
         (bytes32 processedStateRoot, bool isDisputeValid) = massMigration
-            .processMassMigrationCommit(target.commitment, accountProofs);
+            .processMassMigrationCommit(
+            previous.commitment.stateRoot,
+            target.commitment.body,
+            accountProofs
+        );
 
         if (
             isDisputeValid ||

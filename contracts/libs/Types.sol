@@ -142,7 +142,7 @@ library Types {
     struct MMCommitmentInclusionProof {
         MassMigrationCommitment commitment;
         uint256 pathToCommitment;
-        bytes32[] siblings;
+        bytes32[] witness;
     }
 
     // Transaction represents how each transaction looks like for
