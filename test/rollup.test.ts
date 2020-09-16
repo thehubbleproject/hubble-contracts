@@ -1,14 +1,14 @@
 import { deployAll } from "../ts/deploy";
-import { TESTING_PARAMS, ZERO_BYTES32 } from "../ts/constants";
+import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { Account } from "../ts/stateAccount";
 import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
+import { CommitmentTree, TransferCommitment } from "../ts/commitments";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -20,7 +20,7 @@ describe("Rollup", async function() {
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    let emptyBodyRoot: string;
+    let initialCommitmentTree: CommitmentTree;
     before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
@@ -48,32 +48,18 @@ describe("Rollup", async function() {
 
         const accountRoot = await registry.root();
 
-        const emptyBody = {
-            accountRoot,
-            signature: [0, 0],
-            tokenType: 0,
-            feeReceiver: 0,
-            txs: "0x"
-        };
-
-        const commitment = {
-            stateRoot: stateTree.root,
-            body: emptyBody
-        };
-        emptyBodyRoot = ethers.utils.solidityKeccak256(
-            ["bytes32", "uint256[2]", "uint256", "uint256", "bytes"],
-            [
-                emptyBody.accountRoot,
-                emptyBody.signature,
-                emptyBody.tokenType,
-                emptyBody.feeReceiver,
-                emptyBody.txs
-            ]
+        const initialCommitment = TransferCommitment.new(
+            stateTree.root,
+            accountRoot
         );
         // We submit a batch that has a stateRoot containing Alice and Bob
-        await contracts.rollup.submitTransferBatch([commitment], {
-            value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-        });
+        await contracts.rollup.submitTransferBatch(
+            [initialCommitment.toSolStruct()],
+            {
+                value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
+            }
+        );
+        initialCommitmentTree = new CommitmentTree([initialCommitment]);
     });
 
     it("submit a batch and dispute", async function() {
@@ -90,7 +76,6 @@ describe("Rollup", async function() {
         const signature = Alice.sign(tx);
 
         const rollup = contracts.rollup;
-        const preStateRoot = stateTree.root;
         const { proof, feeProof, safe } = stateTree.applyTransferBatch(
             [tx],
             feeReceiver
@@ -99,19 +84,20 @@ describe("Rollup", async function() {
         const postStateRoot = stateTree.root;
         const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
-        const commitment = {
-            stateRoot: postStateRoot,
-            body: {
-                accountRoot: ethers.constants.HashZero,
-                signature: aggregatedSignature0,
-                tokenType: tokenID,
-                feeReceiver,
-                txs: serialized
+        const commitment = TransferCommitment.new(
+            postStateRoot,
+            ethers.constants.HashZero,
+            aggregatedSignature0,
+            tokenID,
+            feeReceiver,
+            serialized
+        );
+        const _txSubmit = await rollup.submitTransferBatch(
+            [commitment.toSolStruct()],
+            {
+                value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
             }
-        };
-        const _txSubmit = await rollup.submitTransferBatch([commitment], {
-            value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-        });
+        );
         console.log(
             "submitBatch execution cost",
             await (await _txSubmit.wait()).gasUsed.toNumber()
@@ -121,53 +107,18 @@ describe("Rollup", async function() {
         const root = await registry.root();
         const rootOnchain = await registry.registry.root();
         assert.equal(root, rootOnchain, "mismatch pubkey tree root");
-        commitment.body.accountRoot = root;
+        commitment.accountRoot = root;
+        const commitmentTree = new CommitmentTree([commitment]);
+
         const batch = await rollup.getBatch(batchId);
 
-        const depth = 1; // Math.log2(commitmentLength + 1)
-        const tree = Tree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
-        const bodyRoot = ethers.utils.solidityKeccak256(
-            ["bytes32", "uint256[2]", "uint256", "uint256", "bytes"],
-            [
-                commitment.body.accountRoot,
-                commitment.body.signature,
-                commitment.body.tokenType,
-                commitment.body.feeReceiver,
-                commitment.body.txs
-            ]
-        );
-        const hash = ethers.utils.solidityKeccak256(
-            ["bytes32", "bytes32"],
-            [commitment.stateRoot, bodyRoot]
-        );
-        tree.updateSingle(0, hash);
         assert.equal(
             batch.commitmentRoot,
-            tree.root,
+            commitmentTree.root,
             "mismatch commitment tree root"
         );
-        const treeGenesis = Tree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
-        treeGenesis.updateSingle(
-            0,
-            ethers.utils.solidityKeccak256(
-                ["bytes32", "bytes32"],
-                [preStateRoot, emptyBodyRoot]
-            )
-        );
-        const previousMP = {
-            commitment: {
-                stateRoot: preStateRoot,
-                bodyRoot: emptyBodyRoot
-            },
-            pathToCommitment: 0,
-            witness: treeGenesis.witness(0).nodes
-        };
-
-        const commitmentMP = {
-            commitment,
-            pathToCommitment: 0,
-            witness: tree.witness(0).nodes
-        };
+        const previousMP = initialCommitmentTree.proofCompressed(0);
+        const commitmentMP = commitmentTree.proof(0);
 
         const pathToAccount = 0; // Dummy value
 
