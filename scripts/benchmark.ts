@@ -1,5 +1,5 @@
 import { ethers } from "@nomiclabs/buidler";
-import { TransferCommitment } from "../ts/commitments";
+import { TransferBatch, TransferCommitment } from "../ts/commitments";
 import { TESTING_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import { serialize, TxTransfer } from "../ts/tx";
@@ -12,11 +12,6 @@ async function main() {
 
     const constracts = await deployAll(signer, TESTING_PARAMS);
     let commitments = [];
-    let stateRoots = [];
-    let signatures = [];
-    let tokenTypes = [];
-    let feeReceivers = [];
-    let txss = [];
     for (let i = 0; i < commitmentsPerBatch; i++) {
         let commitment = TransferCommitment.new(ethers.constants.HashZero);
         let transactions = [];
@@ -25,21 +20,13 @@ async function main() {
         }
         const { serialized } = serialize(transactions);
         commitment.txs = serialized;
-        stateRoots.push(commitment.stateRoot);
-        signatures.push(commitment.signature);
-        tokenTypes.push(commitment.tokenType);
-        feeReceivers.push(commitment.feeReceiver);
-        txss.push(commitment.txs);
+        commitments.push(commitment);
     }
-    const tx = await constracts.rollup.submitTransferBatch(
-        stateRoots,
-        signatures,
-        tokenTypes,
-        feeReceivers,
-        txss,
-        {
-            value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-        }
+    const batch = new TransferBatch(commitments);
+
+    const tx = await batch.submit(
+        constracts.rollup,
+        TESTING_PARAMS.STAKE_AMOUNT
     );
     const receipt = await tx.wait();
     console.log(
