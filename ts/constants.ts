@@ -4,8 +4,7 @@ import { DeploymentParameters } from "./interfaces";
 export const TESTING_PARAMS: DeploymentParameters = {
     MAX_DEPTH: 4,
     MAX_DEPOSIT_SUBTREE_DEPTH: 1,
-    STAKE_AMOUNT: "0.1",
-    GENESIS_STATE_ROOT: ethers.constants.HashZero
+    STAKE_AMOUNT: "0.1"
 };
 
 // ethers.utils.keccak256(ethers.constants.HashZero)

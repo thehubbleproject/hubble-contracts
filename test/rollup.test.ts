@@ -20,6 +20,7 @@ describe("Rollup", async function() {
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
+    let emptyBodyRoot: string;
     before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
@@ -45,9 +46,34 @@ describe("Rollup", async function() {
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);
 
-        stateTree.root
-        stateTree.stateTree.witness(0, 3)
-        // await contracts.rollup.finaliseDepositsAndSubmitBatch(1, )
+        const accountRoot = await registry.root();
+
+        const emptyBody = {
+            accountRoot,
+            signature: [0, 0],
+            tokenType: 0,
+            feeReceiver: 0,
+            txs: "0x"
+        };
+
+        const commitment = {
+            stateRoot: stateTree.root,
+            body: emptyBody
+        };
+        emptyBodyRoot = ethers.utils.solidityKeccak256(
+            ["bytes32", "uint256[2]", "uint256", "uint256", "bytes"],
+            [
+                emptyBody.accountRoot,
+                emptyBody.signature,
+                emptyBody.tokenType,
+                emptyBody.feeReceiver,
+                emptyBody.txs
+            ]
+        );
+        // We submit a batch that has a stateRoot containing Alice and Bob
+        await contracts.rollup.submitTransferBatch([commitment], {
+            value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
+        });
     });
 
     it("submit a batch and dispute", async function() {
@@ -64,16 +90,17 @@ describe("Rollup", async function() {
         const signature = Alice.sign(tx);
 
         const rollup = contracts.rollup;
-        const stateRoot = stateTree.root;
+        const preStateRoot = stateTree.root;
         const { proof, feeProof, safe } = stateTree.applyTransferBatch(
             [tx],
             feeReceiver
         );
         assert.isTrue(safe);
+        const postStateRoot = stateTree.root;
         const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const commitment = {
-            stateRoot,
+            stateRoot: postStateRoot,
             body: {
                 accountRoot: ethers.constants.HashZero,
                 signature: aggregatedSignature0,
@@ -124,13 +151,13 @@ describe("Rollup", async function() {
             0,
             ethers.utils.solidityKeccak256(
                 ["bytes32", "bytes32"],
-                [TESTING_PARAMS.GENESIS_STATE_ROOT, ZERO_BYTES32]
+                [preStateRoot, emptyBodyRoot]
             )
         );
         const previousMP = {
             commitment: {
-                stateRoot: TESTING_PARAMS.GENESIS_STATE_ROOT as string,
-                bodyRoot: ZERO_BYTES32
+                stateRoot: preStateRoot,
+                bodyRoot: emptyBodyRoot
             },
             pathToCommitment: 0,
             witness: treeGenesis.witness(0).nodes
@@ -168,5 +195,10 @@ describe("Rollup", async function() {
         );
         const receipt = await _tx.wait();
         console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());
+        assert.equal(
+            (await rollup.invalidBatchMarker()).toNumber(),
+            0,
+            "Good state transition should not rollback"
+        );
     });
 });
