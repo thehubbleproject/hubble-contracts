@@ -39,7 +39,7 @@ export class DecimalCodec {
         }
         if (mantissa.gt(this.mantissaMask)) {
             throw new EncodingError(
-                `Invalid: Can not encode input ${input}, mantissa ${mantissa} should not larger than ${this.mantissaMask}`
+                `Can not encode input ${input}, mantissa ${mantissa} should not be larger than ${this.mantissaMask}`
             );
         }
         return BigNumber.from(exponent)
