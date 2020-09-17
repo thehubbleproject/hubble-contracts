@@ -1,5 +1,6 @@
 import { BigNumber, BigNumberish, BytesLike, ethers } from "ethers";
 import { EncodingError } from "./exceptions";
+import { randomHex } from "./utils";
 
 export class DecimalCodec {
     private mantissaMask: BigNumber;
@@ -17,18 +18,31 @@ export class DecimalCodec {
         this.exponentMask = BigNumber.from(this.exponentMax << mantissaBits);
         this.bytesLength = (mantissaBits + exponentBits) / 8;
     }
+    public rand(): string {
+        return randomHex(this.bytesLength);
+    }
+
+    public randNum(): number {
+        return this.decode(this.rand());
+    }
+
     public encode(input: number) {
         const integer = Math.floor(input * 10 ** this.place);
         return this.encodeInt(integer);
     }
     public decode(input: BytesLike): number {
         const integer = this.decodeInt(input);
-        return integer.toNumber() / 10 ** this.place;
+        const tens = BigNumber.from(10).pow(this.place);
+        if (integer.gte(Number.MAX_SAFE_INTEGER.toString())) {
+            return integer.div(tens).toNumber();
+        } else {
+            return integer.toNumber() / tens.toNumber();
+        }
     }
 
     public encodeInt(input: BigNumberish): string {
         let exponent = 0;
-        let mantissa = BigNumber.from(input);
+        let mantissa = BigNumber.from(input.toString());
         for (let i = 0; i < this.exponentMax; i++) {
             if (!mantissa.isZero() && mantissa.mod(10).isZero()) {
                 mantissa = mantissa.div(10);
