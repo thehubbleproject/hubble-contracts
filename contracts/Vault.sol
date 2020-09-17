@@ -7,13 +7,14 @@ import { Rollup } from "./Rollup.sol";
 import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { SpokeRegistry } from "./SpokeRegistry.sol";
 
 contract Vault {
+    using Types for Types.MassMigrationCommitment;
+
     Rollup public rollup;
     Registry public nameRegistry;
-    MTUtils public merkleUtils;
     SpokeRegistry public spokes;
     ITokenRegistry public tokenRegistry;
 
@@ -25,9 +26,6 @@ contract Vault {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
-        );
         spokes = SpokeRegistry(
             nameRegistry.getContractDetails(ParamManager.SPOKE_REGISTRY())
         );
@@ -35,18 +33,15 @@ contract Vault {
 
     function requestApproval(
         uint256 batch_id,
-        Types.MMCommitmentInclusionProof calldata commitmentMP,
-        bytes calldata txs
-    ) external {
+        Types.MMCommitmentInclusionProof memory commitmentMP
+    ) public {
         // ensure msg.sender is the the target spoke
         require(
             msg.sender ==
                 spokes.getSpokeAddress(
-                    commitmentMP.commitment.massMigrationMetaInfo.targetSpokeID
+                    commitmentMP.commitment.body.targetSpokeID
                 )
         );
-        // commitment is a mass migration commitment
-        require(commitmentMP.commitment.batchType == Types.Usage.MassMigration);
         {
             // ensure batch is finalised
             require(
@@ -56,41 +51,24 @@ contract Vault {
 
             // check if commitment was submitted in the batch
             require(
-                merkleUtils.verifyLeaf(
+                MerkleTreeUtilsLib.verifyLeaf(
                     rollup.getBatch(batch_id).commitmentRoot,
-                    RollupUtils.MMCommitmentToHash(
-                        commitmentMP.commitment.stateRoot,
-                        commitmentMP.commitment.accountRoot,
-                        txs,
-                        commitmentMP.commitment.massMigrationMetaInfo.tokenID,
-                        commitmentMP.commitment.massMigrationMetaInfo.amount,
-                        commitmentMP
-                            .commitment
-                            .massMigrationMetaInfo
-                            .withdrawRoot,
-                        commitmentMP
-                            .commitment
-                            .massMigrationMetaInfo
-                            .targetSpokeID,
-                        commitmentMP.commitment.signature
-                    ),
+                    commitmentMP.commitment.toHash(),
                     commitmentMP.pathToCommitment,
-                    commitmentMP.siblings
+                    commitmentMP.witness
                 ),
                 "Commitment not present in batch"
             );
         }
 
         IERC20 tokenContract = IERC20(
-            tokenRegistry.registeredTokens(
-                commitmentMP.commitment.massMigrationMetaInfo.tokenID
-            )
+            tokenRegistry.registeredTokens(commitmentMP.commitment.body.tokenID)
         );
 
         require(
             tokenContract.approve(
                 msg.sender,
-                commitmentMP.commitment.massMigrationMetaInfo.amount
+                commitmentMP.commitment.body.amount
             ),
             "Token approval failed"
         );

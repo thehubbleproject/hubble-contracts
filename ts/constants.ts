@@ -5,3 +5,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
     MAX_DEPOSIT_SUBTREE_DEPTH: 1,
     STAKE_AMOUNT: "0.1"
 };
+
+// ethers.utils.keccak256(ethers.constants.HashZero)
+export const ZERO_BYTES32 =
+    "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
