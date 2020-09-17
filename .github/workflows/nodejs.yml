@@ -31,13 +31,14 @@ jobs:
     - run: npm run test
 
     - name: Download previous benchmark data
+      id: benchmark-cache
       uses: actions/cache@v2
       with:
         path: baseline.txt
         key: ${{ runner.os }}-benchmark
 
     - name: "Show previous run"
-      if:  steps.cache-primes.outputs.cache-hit == 'true'
+      if:  steps.benchmark-cache.outputs.cache-hit == 'true'
       run: cat baseline.txt
 
     - name: "[only PR] Run PR benchmark"
