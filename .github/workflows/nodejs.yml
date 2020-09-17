@@ -28,17 +28,22 @@ jobs:
     - run: npm run lint
     - run: npm run generate
     - run: npm run test
-    - name: benchmark
+
+    - name: "[only master] Run master benchmark"
       if: github.ref == 'refs/heads/master'
       run: npm run bench > baseline.txt
-    - uses: actions/upload-artifact@v2
+    - name: "[only master] Upload master benchmark"
+      uses: actions/upload-artifact@v2
       if: github.ref == 'refs/heads/master'
       with:
         name: baseline
         path: baseline.txt
-    - name: Download baseline
+
+    - name: "[only PR] Download master benchmark"
       if: github.ref != 'refs/heads/master'
       uses: actions/download-artifact@v2
       with:
         name: baseline
-    - run: cat baseline.txt && npm run bench
+    - name: "[only PR] Run PR benchmark"
+      if: github.ref != 'refs/heads/master'
+      run: cat baseline.txt && npm run bench
