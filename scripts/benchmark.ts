@@ -3,6 +3,7 @@ import { TransferBatch, TransferCommitment } from "../ts/commitments";
 import { TESTING_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import { serialize, TxTransfer } from "../ts/tx";
+import { execSync } from "child_process";
 
 const txPerCommitment = 32;
 const commitmentsPerBatch = 32;
@@ -29,6 +30,12 @@ async function main() {
         TESTING_PARAMS.STAKE_AMOUNT
     );
     const receipt = await tx.wait();
+
+    const revision = execSync("git rev-parse HEAD")
+        .toString()
+        .trim();
+    console.log("=============================");
+    console.log("Revision", revision);
     console.log(
         `submitTransferBatch: Gas cost execution cost for ${txPerCommitment} x ${commitmentsPerBatch} txs`,
         receipt.gasUsed.toNumber()

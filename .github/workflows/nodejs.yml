@@ -29,21 +29,20 @@ jobs:
     - run: npm run generate
     - run: npm run test
 
-    - name: "[only master] Run master benchmark"
-      if: github.ref == 'refs/heads/master'
-      run: npm run bench > baseline.txt
-    - name: "[only master] Upload master benchmark"
-      uses: actions/upload-artifact@v2
-      if: github.ref == 'refs/heads/master'
+    - name: Download previous benchmark data
+      uses: actions/cache@v2
       with:
-        name: baseline
         path: baseline.txt
+        key: ${{ runner.os }}-benchmark
 
-    - name: "[only PR] Download master benchmark"
-      if: github.ref != 'refs/heads/master'
-      uses: actions/download-artifact@v2
-      with:
-        name: baseline
+    - name: "Show previous run"
+      if:  steps.cache-primes.outputs.cache-hit == 'true'
+      run: cat baseline.txt
+
     - name: "[only PR] Run PR benchmark"
       if: github.ref != 'refs/heads/master'
-      run: cat baseline.txt && npm run bench
+      run: npm run bench
+
+    - name: "[only master] Run master benchmark"
+      if: github.ref == 'refs/heads/master'
+      run: npm run bench | tee baseline.txt
