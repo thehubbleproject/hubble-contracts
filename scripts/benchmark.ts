@@ -1,5 +1,5 @@
 import { ethers } from "@nomiclabs/buidler";
-import { TransferCommitment } from "../ts/commitments";
+import { TransferBatch, TransferCommitment } from "../ts/commitments";
 import { TESTING_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import { serialize, TxTransfer } from "../ts/tx";
@@ -20,11 +20,14 @@ async function main() {
         }
         const { serialized } = serialize(transactions);
         commitment.txs = serialized;
-        commitments.push(commitment.toSolStruct());
+        commitments.push(commitment);
     }
-    const tx = await constracts.rollup.submitTransferBatch(commitments, {
-        value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-    });
+    const batch = new TransferBatch(commitments);
+
+    const tx = await batch.submit(
+        constracts.rollup,
+        TESTING_PARAMS.STAKE_AMOUNT
+    );
     const receipt = await tx.wait();
     console.log(
         `submitTransferBatch: Gas cost execution cost for ${txPerCommitment} x ${commitmentsPerBatch} txs`,

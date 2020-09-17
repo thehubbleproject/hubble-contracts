@@ -1,4 +1,5 @@
 import { BigNumberish, BytesLike, ethers } from "ethers";
+import { Rollup } from "../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "./constants";
 import { Hasher, Tree } from "./tree";
 
@@ -34,6 +35,7 @@ abstract class Commitment {
         );
     }
     abstract toSolStruct(): SolStruct;
+    abstract toBatch(): Batch;
     public toCompressedStruct(): CompressedStruct {
         return {
             stateRoot: this.stateRoot,
@@ -93,6 +95,9 @@ export class TransferCommitment extends Commitment {
                 txs: this.txs
             }
         };
+    }
+    public toBatch() {
+        return new TransferBatch([this]);
     }
 }
 
@@ -167,9 +172,12 @@ export class MassMigrationCommitment extends Commitment {
             }
         };
     }
+    public toBatch() {
+        return new MassMigrationBatch([this]);
+    }
 }
 
-export class CommitmentTree {
+export class Batch {
     private tree: Tree;
     constructor(public readonly commitments: Commitment[]) {
         const depth = Math.ceil(Math.log2(commitments.length + 1));
@@ -179,7 +187,7 @@ export class CommitmentTree {
         }
     }
 
-    get root(): string {
+    get commitmentRoot(): string {
         return this.tree.root;
     }
 
@@ -200,5 +208,38 @@ export class CommitmentTree {
             pathToCommitment: leafInfex,
             witness: this.witness(leafInfex)
         };
+    }
+}
+
+export class TransferBatch extends Batch {
+    constructor(public readonly commitments: TransferCommitment[]) {
+        super(commitments);
+    }
+
+    async submit(rollup: Rollup, stakingAmount: string) {
+        return await rollup.submitTransferBatch(
+            this.commitments.map(c => c.stateRoot),
+            this.commitments.map(c => c.signature),
+            this.commitments.map(c => c.tokenType),
+            this.commitments.map(c => c.feeReceiver),
+            this.commitments.map(c => c.txs),
+            { value: ethers.utils.parseEther(stakingAmount) }
+        );
+    }
+}
+
+export class MassMigrationBatch extends Batch {
+    constructor(public readonly commitments: MassMigrationCommitment[]) {
+        super(commitments);
+    }
+    async submit(rollup: Rollup, stakingAmount: string) {
+        return await rollup.submitMassMigrationBatch(
+            this.commitments.map(c => c.stateRoot),
+            this.commitments.map(c => c.signature),
+            this.commitments.map(c => [c.targetSpokeID, c.tokenID, c.amount]),
+            this.commitments.map(c => c.withdrawRoot),
+            this.commitments.map(c => c.txs),
+            { value: ethers.utils.parseEther(stakingAmount) }
+        );
     }
 }

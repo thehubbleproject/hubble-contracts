@@ -8,7 +8,7 @@ import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
-import { CommitmentTree, TransferCommitment } from "../ts/commitments";
+import { TransferBatch, TransferCommitment } from "../ts/commitments";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -20,7 +20,7 @@ describe("Rollup", async function() {
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    let initialCommitmentTree: CommitmentTree;
+    let initialBatch: TransferBatch;
     before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
@@ -52,14 +52,11 @@ describe("Rollup", async function() {
             stateTree.root,
             accountRoot
         );
-        // We submit a batch that has a stateRoot containing Alice and Bob
-        await contracts.rollup.submitTransferBatch(
-            [initialCommitment.toSolStruct()],
-            {
-                value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-            }
+        initialBatch = initialCommitment.toBatch();
+        await initialBatch.submit(
+            contracts.rollup,
+            TESTING_PARAMS.STAKE_AMOUNT
         );
-        initialCommitmentTree = new CommitmentTree([initialCommitment]);
     });
 
     it("submit a batch and dispute", async function() {
@@ -84,19 +81,24 @@ describe("Rollup", async function() {
         const postStateRoot = stateTree.root;
         const { serialized } = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
+
+        const root = await registry.root();
+        const rootOnchain = await registry.registry.root();
+        assert.equal(root, rootOnchain, "mismatch pubkey tree root");
+
         const commitment = TransferCommitment.new(
             postStateRoot,
-            ethers.constants.HashZero,
+            root,
             aggregatedSignature0,
             tokenID,
             feeReceiver,
             serialized
         );
-        const _txSubmit = await rollup.submitTransferBatch(
-            [commitment.toSolStruct()],
-            {
-                value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-            }
+
+        const targetBatch = commitment.toBatch();
+        const _txSubmit = await targetBatch.submit(
+            rollup,
+            TESTING_PARAMS.STAKE_AMOUNT
         );
         console.log(
             "submitBatch execution cost",
@@ -104,21 +106,15 @@ describe("Rollup", async function() {
         );
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
-        const root = await registry.root();
-        const rootOnchain = await registry.registry.root();
-        assert.equal(root, rootOnchain, "mismatch pubkey tree root");
-        commitment.accountRoot = root;
-        const commitmentTree = new CommitmentTree([commitment]);
-
         const batch = await rollup.getBatch(batchId);
 
         assert.equal(
             batch.commitmentRoot,
-            commitmentTree.root,
+            targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = initialCommitmentTree.proofCompressed(0);
-        const commitmentMP = commitmentTree.proof(0);
+        const previousMP = initialBatch.proofCompressed(0);
+        const commitmentMP = targetBatch.proof(0);
 
         const pathToAccount = 0; // Dummy value
 

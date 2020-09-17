@@ -314,32 +314,63 @@ contract Rollup is RollupHelpers {
         batches.push(newBatch);
     }
 
-    /// @dev We don't define it as `external` function because of https://github.com/ethereum/solidity/issues/3199
-    function submitTransferBatch(Types.TransferCommitment[] memory commitments)
-        public
-        payable
-        onlyCoordinator
-    {
-        bytes32[] memory leaves = new bytes32[](commitments.length);
-        Types.TransferCommitment[] memory commitmentsCopy = commitments;
+    /**
+     * @dev This function should be highly optimized so that it can include as many commitments as possible
+     */
+    function submitTransferBatch(
+        bytes32[] calldata stateRoots,
+        uint256[2][] calldata signatures,
+        uint256[] calldata tokenTypes,
+        uint256[] calldata feeReceivers,
+        bytes[] calldata txss
+    ) external payable onlyCoordinator {
+        bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
-        for (uint256 i = 0; i < commitments.length; i++) {
-            commitmentsCopy[i].body.accountRoot = accountRoot;
-            leaves[i] = commitmentsCopy[i].toHash();
+        bytes32 bodyRoot;
+        for (uint256 i = 0; i < stateRoots.length; i++) {
+            // This is TransferBody toHash() but we don't want the overhead of struct
+            bodyRoot = keccak256(
+                abi.encodePacked(
+                    accountRoot,
+                    signatures[i],
+                    tokenTypes[i],
+                    feeReceivers[i],
+                    txss[i]
+                )
+            );
+            leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(leaves, Types.Usage.Transfer);
     }
 
-    /// @dev We don't define it as `external` function because of https://github.com/ethereum/solidity/issues/3199
+    /**
+     * @param meta is targetSpokeID, tokenID, and amount combined
+     * @dev This function should be highly optimized so that it can include as many commitments as possible
+     */
     function submitMassMigrationBatch(
-        Types.MassMigrationCommitment[] memory commitments
-    ) public payable onlyCoordinator {
-        bytes32[] memory leaves = new bytes32[](commitments.length);
-        Types.MassMigrationCommitment[] memory commitmentsCopy = commitments;
+        bytes32[] calldata stateRoots,
+        uint256[2][] calldata signatures,
+        uint256[3][] calldata meta,
+        bytes32[] calldata withdrawRoots,
+        bytes[] calldata txss
+    ) external payable onlyCoordinator {
+        bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
-        for (uint256 i = 0; i < commitments.length; i++) {
-            commitmentsCopy[i].body.accountRoot = accountRoot;
-            leaves[i] = commitmentsCopy[i].toHash();
+        bytes32 bodyRoot;
+        for (uint256 i = 0; i < stateRoots.length; i++) {
+            // This is MassMigrationBody toHash() but we don't want the overhead of struct
+            bodyRoot = keccak256(
+                abi.encodePacked(
+                    accountRoot,
+                    signatures[i],
+                    meta[i][0],
+                    withdrawRoots[i],
+                    meta[i][1],
+                    meta[i][2],
+                    txss[i]
+                )
+            );
+            leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(leaves, Types.Usage.MassMigration);
     }

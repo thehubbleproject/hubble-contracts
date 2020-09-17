@@ -8,7 +8,7 @@ import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
-import { CommitmentTree, MassMigrationCommitment } from "../ts/commitments";
+import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -20,7 +20,7 @@ describe("Mass Migrations", async function() {
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    let initialCommitmentTree: CommitmentTree;
+    let initialBatch: MassMigrationBatch;
     before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
@@ -49,14 +49,12 @@ describe("Mass Migrations", async function() {
             stateTree.root,
             accountRoot
         );
+        initialBatch = initialCommitment.toBatch();
         // We submit a batch that has a stateRoot containing Alice and Bob
-        await contracts.rollup.submitMassMigrationBatch(
-            [initialCommitment.toSolStruct()],
-            {
-                value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-            }
+        await initialBatch.submit(
+            contracts.rollup,
+            TESTING_PARAMS.STAKE_AMOUNT
         );
-        initialCommitmentTree = new CommitmentTree([initialCommitment]);
     });
 
     it("submit a batch and dispute", async function() {
@@ -108,23 +106,22 @@ describe("Mass Migrations", async function() {
         assert.equal(error, false, "Should be a safe state transition");
         commitment.stateRoot = postStateRoot;
 
-        await rollup.submitMassMigrationBatch([commitment.toSolStruct()], {
-            value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT)
-        });
+        const targetBatch = commitment.toBatch();
+
+        await targetBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
         const rootOnchain = await registry.registry.root();
         assert.equal(root, rootOnchain, "mismatch pubkey tree root");
         const batch = await rollup.getBatch(batchId);
-        const commitmentTree = new CommitmentTree([commitment]);
 
         assert.equal(
             batch.commitmentRoot,
-            commitmentTree.root,
+            targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = initialCommitmentTree.proofCompressed(0);
-        const commitmentMP = commitmentTree.proof(0);
+        const previousMP = initialBatch.proofCompressed(0);
+        const commitmentMP = targetBatch.proof(0);
 
         await rollup.disputeMMBatch(batchId, previousMP, commitmentMP, [
             {
