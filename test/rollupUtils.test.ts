@@ -4,6 +4,7 @@ import { EMPTY_ACCOUNT } from "../ts/stateAccount";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
+import { MassMigrationCommitment, TransferCommitment } from "../ts/commitments";
 
 describe("RollupUtils", async function() {
     let RollupUtilsInstance: RollupUtils;
@@ -53,5 +54,21 @@ describe("RollupUtils", async function() {
             ["0x00", "0x00"]
         );
         await RollupUtilsInstance.DecompressManyTransfer(txs);
+    });
+    it("test transfer commitment", async function() {
+        const commitment = TransferCommitment.new(ethers.constants.HashZero);
+        const hash = await RollupUtilsInstance.TransferCommitmentToHash(
+            commitment.toSolStruct()
+        );
+        assert.equal(hash, commitment.hash());
+    });
+    it("test mass migration commitment", async function() {
+        const commitment = MassMigrationCommitment.new(
+            ethers.constants.HashZero
+        );
+        const hash = await RollupUtilsInstance.MMCommitmentToHash(
+            commitment.toSolStruct()
+        );
+        assert.equal(hash, commitment.hash());
     });
 });

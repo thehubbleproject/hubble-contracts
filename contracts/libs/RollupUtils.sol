@@ -34,55 +34,18 @@ library RollupUtilsLib {
 contract RollupUtils {
     using Tx for bytes;
 
-    function CommitmentToHash(
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        uint256[2] memory signature,
-        bytes memory txs,
-        uint256 tokenType,
-        uint256 feeReceiver,
-        // Typechain can't parse enum for library.
-        // See https://github.com/ethereum-ts/TypeChain/issues/216
-        uint8 batchType
+    function TransferCommitmentToHash(
+        Types.TransferCommitment memory commitment
     ) public pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    stateRoot,
-                    accountRoot,
-                    signature,
-                    txs,
-                    tokenType,
-                    feeReceiver,
-                    batchType
-                )
-            );
+        return Types.toHash(commitment);
     }
 
-    function MMCommitmentToHash(
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes memory txs,
-        uint256 tokenID,
-        uint256 amount,
-        bytes32 withdrawRoot,
-        uint256 targetSpokeID,
-        uint256[2] memory aggregatedSignature
-    ) public pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    stateRoot,
-                    accountRoot,
-                    txs,
-                    tokenID,
-                    amount,
-                    withdrawRoot,
-                    targetSpokeID,
-                    aggregatedSignature,
-                    Types.Usage.MassMigration
-                )
-            );
+    function MMCommitmentToHash(Types.MassMigrationCommitment memory commitment)
+        public
+        pure
+        returns (bytes32)
+    {
+        return Types.toHash(commitment);
     }
 
     // ---------- Account Related Utils -------------------
