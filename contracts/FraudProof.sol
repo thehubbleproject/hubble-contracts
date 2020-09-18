@@ -6,7 +6,7 @@ import { Tx } from "./libs/Tx.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 
 import { Types } from "./libs/Types.sol";
-import { RollupUtils } from "./libs/RollupUtils.sol";
+import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
@@ -94,7 +94,7 @@ contract FraudProofHelpers is FraudProofSetup {
         Types.AccountMerkleProof memory _merkle_proof
     ) public pure returns (bytes32) {
         bytes32 newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(RollupUtils.BytesFromAccount(new_account)),
+            keccak256(RollupUtilsLib.BytesFromAccount(new_account)),
             _merkle_proof.pathToAccount,
             _merkle_proof.siblings
         );
