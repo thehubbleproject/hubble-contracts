@@ -19,16 +19,13 @@ describe("RollupUtils", async function() {
         const accountBytes = await RollupUtilsInstance.BytesFromAccount(
             account
         );
-        const regeneratedAccount = await RollupUtilsInstance.AccountFromBytes(
+        const decoded = await RollupUtilsInstance.AccountFromBytes(
             accountBytes
         );
-        assert.equal(regeneratedAccount.ID.toNumber(), account.ID);
-        assert.equal(regeneratedAccount.balance.toNumber(), account.balance);
-        assert.equal(regeneratedAccount.nonce.toNumber(), account.nonce);
-        assert.equal(
-            regeneratedAccount.tokenType.toNumber(),
-            account.tokenType
-        );
+        assert.equal(decoded.ID.toNumber(), account.ID);
+        assert.equal(decoded.balance.toNumber(), account.balance);
+        assert.equal(decoded.nonce.toNumber(), account.nonce);
+        assert.equal(decoded.tokenType.toNumber(), account.tokenType);
     });
     it("test transfer utils", async function() {
         const tx = TxTransfer.rand().extended();
