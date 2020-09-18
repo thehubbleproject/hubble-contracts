@@ -13,7 +13,7 @@ import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-describe("Mass Migrations", async function () {
+describe("Mass Migrations", async function() {
     const tokenID = 1;
     let Alice: Account;
     let Bob: Account;
@@ -21,12 +21,12 @@ describe("Mass Migrations", async function () {
     let stateTree: StateTree;
     let registry: AccountRegistry;
     let initialBatch: MassMigrationBatch;
-    before(async function () {
+    before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
     });
 
-    beforeEach(async function () {
+    beforeEach(async function() {
         const accounts = await ethers.getSigners();
         contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
@@ -57,7 +57,7 @@ describe("Mass Migrations", async function () {
         );
     });
 
-    it("submit a batch and dispute", async function () {
+    it("submit a batch and dispute", async function() {
         const tx = new TxMassMigration(
             Alice.stateID,
             0,
@@ -87,7 +87,7 @@ describe("Mass Migrations", async function () {
         );
         const {
             0: postStateRoot,
-            1: error,
+            1: error
         } = await contracts.massMigration.processMassMigrationCommit(
             stateRoot,
             commitment.toSolStruct().body,
@@ -95,8 +95,8 @@ describe("Mass Migrations", async function () {
                 {
                     pathToAccount: Alice.stateID,
                     account: proof.account,
-                    siblings: proof.witness,
-                },
+                    siblings: proof.witness
+                }
             ]
         );
         assert.equal(
@@ -128,8 +128,8 @@ describe("Mass Migrations", async function () {
             {
                 pathToAccount: Alice.stateID,
                 account: proof.account,
-                siblings: proof.witness,
-            },
+                siblings: proof.witness
+            }
         ]);
 
         assert.equal(

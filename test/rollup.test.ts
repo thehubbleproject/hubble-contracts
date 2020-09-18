@@ -14,19 +14,19 @@ import { assert } from "chai";
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-describe("Rollup", async function () {
+describe("Rollup", async function() {
     const tokenID = 1;
     let Alice: Account;
     let Bob: Account;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    before(async function () {
+    before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
     });
 
-    beforeEach(async function () {
+    beforeEach(async function() {
         const accounts = await ethers.getSigners();
         contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
@@ -47,7 +47,7 @@ describe("Rollup", async function () {
         stateTree.createAccount(Bob);
     });
 
-    it("submit a batch and dispute", async function () {
+    it("submit a batch and dispute", async function() {
         const feeReceiver = Alice.stateID;
         const fee = 1;
         const tx = new TxTransfer(
@@ -75,7 +75,7 @@ describe("Rollup", async function () {
             signature: aggregatedSignature0,
             tokenType: tokenID,
             feeReceiver,
-            txs: serialized,
+            txs: serialized
         };
         const _txSubmit = await rollup.submitBatch(
             [submission],
@@ -100,7 +100,7 @@ describe("Rollup", async function () {
             txs: serialized,
             tokenType: tokenID,
             feeReceiver,
-            batchType: Usage.Transfer,
+            batchType: Usage.Transfer
         };
         const depth = 1; // Math.log2(commitmentLength + 1)
         const tree = Tree.new(
@@ -131,7 +131,7 @@ describe("Rollup", async function () {
                     "bytes",
                     "uint256",
                     "uint256",
-                    "uint8",
+                    "uint8"
                 ],
                 [
                     commitment.stateRoot,
@@ -140,7 +140,7 @@ describe("Rollup", async function () {
                     commitment.txs,
                     commitment.tokenType,
                     commitment.feeReceiver,
-                    commitment.batchType,
+                    commitment.batchType
                 ]
             )
         );
@@ -155,7 +155,7 @@ describe("Rollup", async function () {
         const commitmentMP = {
             commitment,
             pathToCommitment: 0,
-            witness: tree.witness(0).nodes,
+            witness: tree.witness(0).nodes
         };
 
         const pathToAccount = 0; // Dummy value
@@ -164,18 +164,18 @@ describe("Rollup", async function () {
             {
                 pathToAccount,
                 account: proof[0].senderAccount,
-                siblings: proof[0].senderWitness,
+                siblings: proof[0].senderWitness
             },
             {
                 pathToAccount,
                 account: proof[0].receiverAccount,
-                siblings: proof[0].receiverWitness,
+                siblings: proof[0].receiverWitness
             },
             {
                 pathToAccount,
                 account: feeProof.feeReceiverAccount,
-                siblings: feeProof.feeReceiverWitness,
-            },
+                siblings: feeProof.feeReceiverWitness
+            }
         ]);
         const receipt = await _tx.wait();
         console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());

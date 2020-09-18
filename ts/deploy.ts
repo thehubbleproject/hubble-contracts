@@ -81,7 +81,7 @@ export async function deployAll(
     );
 
     const allLinkRefs = {
-        __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address,
+        __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address
     };
 
     // deploy MTUtils
@@ -218,7 +218,7 @@ export async function deployAll(
         testToken,
         depositManager,
         rollup,
-        clientUtils,
+        clientUtils
     };
 }
 

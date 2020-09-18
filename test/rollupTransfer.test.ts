@@ -29,7 +29,7 @@ describe("Rollup Transfer Commitment", () => {
     const initialBalance = 1000;
     const initialNonce = 9;
 
-    before(async function () {
+    before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
@@ -55,7 +55,7 @@ describe("Rollup Transfer Commitment", () => {
         }
     });
 
-    beforeEach(async function () {
+    beforeEach(async function() {
         const [signer, ...rest] = await ethers.getSigners();
         rollup = await new TestTransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
@@ -64,7 +64,7 @@ describe("Rollup Transfer Commitment", () => {
         }
     });
 
-    it("transfer commitment: signature check", async function () {
+    it("transfer commitment: signature check", async function() {
         const txs: TxTransfer[] = [];
         const amount = 20;
         const fee = 1;
@@ -110,11 +110,11 @@ describe("Rollup Transfer Commitment", () => {
             stateAccounts,
             stateWitnesses,
             pubkeys,
-            pubkeyWitnesses,
+            pubkeyWitnesses
         };
         const {
             0: gasCost,
-            1: noError,
+            1: noError
         } = await rollup.callStatic._checkSignature(
             signature,
             proof,
@@ -146,7 +146,7 @@ describe("Rollup Transfer Commitment", () => {
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
 
-    it("transfer commitment: processTx", async function () {
+    it("transfer commitment: processTx", async function() {
         const amount = 20;
         const fee = 1;
         for (let i = 0; i < COMMIT_SIZE; i++) {
@@ -172,18 +172,18 @@ describe("Rollup Transfer Commitment", () => {
                 {
                     pathToAccount: sender.stateID,
                     account: proof.senderAccount,
-                    siblings: proof.senderWitness,
+                    siblings: proof.senderWitness
                 },
                 {
                     pathToAccount: receiver.stateID,
                     account: proof.receiverAccount,
-                    siblings: proof.receiverWitness,
+                    siblings: proof.receiverWitness
                 }
             );
             assert.equal(result[0], postRoot, "mismatch processed stateroot");
         }
     });
-    it("transfer commitment: processTransferCommit", async function () {
+    it("transfer commitment: processTransferCommit", async function() {
         const txs: TxTransfer[] = [];
         const amount = 20;
         const fee = 1;
@@ -222,24 +222,24 @@ describe("Rollup Transfer Commitment", () => {
             stateMerkleProof.push({
                 account: proof[i].senderAccount,
                 pathToAccount,
-                siblings: proof[i].senderWitness,
+                siblings: proof[i].senderWitness
             });
             stateMerkleProof.push({
                 account: proof[i].receiverAccount,
                 pathToAccount,
-                siblings: proof[i].receiverWitness,
+                siblings: proof[i].receiverWitness
             });
         }
         stateMerkleProof.push({
             account: feeProof.feeReceiverAccount,
             pathToAccount,
-            siblings: feeProof.feeReceiverWitness,
+            siblings: feeProof.feeReceiverWitness
         });
         const postStateRoot = stateTree.root;
 
         const {
             0: postRoot,
-            1: gasCost,
+            1: gasCost
         } = await rollup.callStatic.testProcessTransferCommit(
             s0,
             serialized,
