@@ -80,8 +80,7 @@ export async function deployAll(
     );
 
     const allLinkRefs = {
-        __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address,
-        __$a6b8846b3184b62d6aec39d1f36e30dab3$__: rollupUtils.address
+        __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address
     };
 
     // deploy MTUtils
@@ -121,7 +120,6 @@ export async function deployAll(
     );
 
     const massMigration = await new MassMigrationProductionFactory(
-        allLinkRefs,
         signer
     ).deploy();
     await waitAndRegister(
@@ -132,10 +130,7 @@ export async function deployAll(
         await paramManager.MASS_MIGS()
     );
 
-    const transfer = await new TransferProductionFactory(
-        allLinkRefs,
-        signer
-    ).deploy();
+    const transfer = await new TransferProductionFactory(signer).deploy();
     await waitAndRegister(
         transfer,
         "transfer",

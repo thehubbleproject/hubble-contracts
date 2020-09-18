@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { RollupUtils } from "./libs/RollupUtils.sol";
+import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
 import { BLS } from "./libs/BLS.sol";
@@ -45,7 +45,7 @@ contract Transfer is FraudProofHelpers {
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     stateRoot,
-                    RollupUtils.HashFromAccount(proof.stateAccounts[i]),
+                    RollupUtilsLib.HashFromAccount(proof.stateAccounts[i]),
                     signerStateID,
                     proof.stateWitnesses[i]
                 ),
@@ -161,7 +161,7 @@ contract Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtils.HashFromAccount(fromAccountProof.account),
+                RollupUtilsLib.HashFromAccount(fromAccountProof.account),
                 _tx.fromIndex,
                 fromAccountProof.siblings
             ),
@@ -207,7 +207,7 @@ contract Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 newRoot,
-                RollupUtils.HashFromAccount(toAccountProof.account),
+                RollupUtilsLib.HashFromAccount(toAccountProof.account),
                 _tx.toIndex,
                 toAccountProof.siblings
             ),
@@ -235,7 +235,7 @@ contract Transfer is FraudProofHelpers {
         Types.UserAccount memory account = _merkle_proof.account;
         account.balance = account.balance.sub(_tx.amount).sub(_tx.fee);
         account.nonce++;
-        bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
+        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.fromIndex,
@@ -250,7 +250,7 @@ contract Transfer is FraudProofHelpers {
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserAccount memory account = _merkle_proof.account;
         account.balance = account.balance.add(_tx.amount);
-        bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
+        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.toIndex,
@@ -281,7 +281,7 @@ contract Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtils.HashFromAccount(account),
+                RollupUtilsLib.HashFromAccount(account),
                 feeReceiver,
                 stateLeafProof.siblings
             ),

@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { RollupUtils } from "./libs/RollupUtils.sol";
+import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
@@ -101,7 +101,7 @@ contract MassMigration is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtils.HashFromAccount(fromAccountProof.account),
+                RollupUtilsLib.HashFromAccount(fromAccountProof.account),
                 _tx.fromIndex,
                 fromAccountProof.siblings
             ),
@@ -140,7 +140,7 @@ contract MassMigration is FraudProofHelpers {
         Types.UserAccount memory account = _merkle_proof.account;
         account = RemoveTokensFromAccount(account, _tx.amount);
         account.nonce++;
-        bytes memory accountInBytes = RollupUtils.BytesFromAccount(account);
+        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.fromIndex,

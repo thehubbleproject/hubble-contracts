@@ -1,5 +1,4 @@
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
-import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFactory";
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
@@ -58,13 +57,7 @@ describe("Rollup Transfer Commitment", () => {
 
     beforeEach(async function() {
         const [signer, ...rest] = await ethers.getSigners();
-        let rollupUtilsLib = await new RollupUtilsFactory(signer).deploy();
-        rollup = await new TestTransferFactory(
-            {
-                __$a6b8846b3184b62d6aec39d1f36e30dab3$__: rollupUtilsLib.address
-            },
-            signer
-        ).deploy();
+        rollup = await new TestTransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             stateTree.createAccount(accounts[i]);

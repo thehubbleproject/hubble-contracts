@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { Logger } from "./Logger.sol";
-import { RollupUtils } from "./libs/RollupUtils.sol";
+import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
@@ -109,7 +109,7 @@ contract DepositManager {
             0
         );
         // get new account hash
-        bytes memory accountBytes = RollupUtils.BytesFromAccount(newAccount);
+        bytes memory accountBytes = RollupUtilsLib.BytesFromAccount(newAccount);
         // queue the deposit
         pendingDeposits.push(keccak256(accountBytes));
         // emit the event

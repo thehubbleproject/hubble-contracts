@@ -15,13 +15,8 @@ describe("RollupUtils", async function() {
     it("test account encoding and decoding", async function() {
         const account = EMPTY_ACCOUNT;
 
-        const accountBytes = await RollupUtilsInstance.BytesFromAccountDeconstructed(
-            account.ID,
-            account.balance,
-            account.nonce,
-            account.tokenType,
-            account.burn,
-            account.lastBurn
+        const accountBytes = await RollupUtilsInstance.BytesFromAccount(
+            account
         );
         const regeneratedAccount = await RollupUtilsInstance.AccountFromBytes(
             accountBytes
@@ -32,26 +27,6 @@ describe("RollupUtils", async function() {
         assert.equal(regeneratedAccount["3"].toNumber(), account.tokenType);
         assert.equal(regeneratedAccount["4"].toNumber(), account.burn);
         assert.equal(regeneratedAccount["5"].toNumber(), account.lastBurn);
-
-        const tx = TxTransfer.rand().extended();
-
-        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.tokenType,
-            tx.nonce,
-            tx.amount,
-            tx.fee
-        );
-
-        const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
-        assert.equal(txData.fromIndex.toString(), tx.fromIndex.toString());
-        assert.equal(txData.toIndex.toString(), tx.toIndex.toString());
-        assert.equal(txData.tokenType.toString(), tx.tokenType.toString());
-        assert.equal(txData.nonce.toString(), tx.nonce.toString());
-        assert.equal(txData.txType.toString(), tx.txType.toString());
-        assert.equal(txData.amount.toString(), tx.amount.toString());
     });
     it("test transfer utils", async function() {
         const tx = TxTransfer.rand().extended();
@@ -63,15 +38,15 @@ describe("RollupUtils", async function() {
             tx.amount,
             tx.fee
         );
-        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.tokenType,
-            tx.nonce,
-            tx.amount,
-            tx.fee
-        );
+        const txBytes = await RollupUtilsInstance.BytesFromTx(tx);
+
+        const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
+        assert.equal(txData.fromIndex.toNumber(), tx.fromIndex);
+        assert.equal(txData.toIndex.toNumber(), tx.toIndex);
+        assert.equal(txData.tokenType.toNumber(), tx.tokenType);
+        assert.equal(txData.nonce.toNumber(), tx.nonce);
+        assert.equal(txData.txType.toNumber(), tx.txType);
+        assert.equal(txData.amount.toNumber(), tx.amount);
         await RollupUtilsInstance.CompressTransferFromEncoded(txBytes, "0x00");
         const txs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes, txBytes],
