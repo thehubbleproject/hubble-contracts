@@ -2,7 +2,6 @@ const mcl = require("mcl-wasm");
 import { ethers } from "ethers";
 import { toBig, FIELD_ORDER, randHex } from "./utils";
 import { hashToField } from "./hashToField";
-import { hexlify } from "ethers/lib/utils";
 
 export type mclG2 = any;
 export type mclG1 = any;
@@ -20,9 +19,6 @@ export async function init() {
 
 export function setDomain(domain: string) {
     DOMAIN = Uint8Array.from(Buffer.from(domain, "utf8"));
-    if (DOMAIN.length != 32) {
-        throw new Error("bad domain length");
-    }
 }
 
 export function setDomainHex(domain: string) {
