@@ -177,26 +177,6 @@ library Tx {
         return serialized;
     }
 
-    function transfer_decodedToLeafs(Transfer[] memory txs)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
-        uint256 batchSize = txs.length;
-        bytes32[] memory buf = new bytes32[](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = keccak256(
-                abi.encodePacked(
-                    uint32(txs[i].fromIndex),
-                    uint32(txs[i].toIndex),
-                    uint32(txs[i].amount),
-                    uint32(txs[i].fee)
-                )
-            );
-        }
-        return buf;
-    }
-
     function transfer_decode(bytes memory txs, uint256 index)
         internal
         pure
@@ -218,79 +198,6 @@ library Tx {
             fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
         }
         return Transfer(sender, receiver, amount, fee);
-    }
-
-    function transfer_fromIndexOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 receiver)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            receiver := and(mload(add(p_tx, POSITION_SENDER_0)), MASK_STATE_ID)
-        }
-    }
-
-    function transfer_toIndexOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 sender)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            sender := and(mload(add(p_tx, POSITION_RECEIVER_0)), MASK_STATE_ID)
-        }
-    }
-
-    function transfer_amountOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 amount)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_0)), MASK_AMOUNT)
-        }
-    }
-
-    function transfer_feeOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (uint256 fee)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_0))
-            fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
-        }
-    }
-
-    function transfer_hashOf(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (bytes32 result)
-    {
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, add(mul(index, TX_LEN_0), 32))
-            result := keccak256(p_tx, TX_LEN_0)
-        }
-    }
-
-    function transfer_toLeafs(bytes memory txs)
-        internal
-        pure
-        returns (bytes32[] memory)
-    {
-        uint256 batchSize = transfer_size(txs);
-        bytes32[] memory buf = new bytes32[](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            buf[i] = transfer_hashOf(txs, i);
-        }
-        return buf;
     }
 
     function transfer_messageOf(
