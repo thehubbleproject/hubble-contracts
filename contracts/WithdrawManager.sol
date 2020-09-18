@@ -28,23 +28,24 @@ contract WithdrawManager {
 
     function ProcessWithdrawCommitment(
         uint256 _batch_id,
-        Types.MMCommitmentInclusionProof calldata commitmentMP,
-        bytes calldata txs
-    ) external {
-        vault.requestApproval(_batch_id, commitmentMP, txs);
+        Types.MMCommitmentInclusionProof memory commitmentMP
+    ) public {
+        vault.requestApproval(_batch_id, commitmentMP);
         // txs are present in commitment
         Tx.MassMigration memory _tx;
         // read all transactions and make the transfers
-        for (uint256 i = 0; i < txs.massMigration_size(); i++) {
-            _tx = txs.massMigration_decode(i);
-            balances[_tx.fromIndex][commitmentMP
-                .commitment
-                .massMigrationMetaInfo
-                .tokenID] = _tx.amount;
+        for (
+            uint256 i = 0;
+            i < commitmentMP.commitment.body.txs.massMigration_size();
+            i++
+        ) {
+            _tx = commitmentMP.commitment.body.txs.massMigration_decode(i);
+            balances[_tx.fromIndex][commitmentMP.commitment.body.tokenID] = _tx
+                .amount;
         }
         // check token type exists
         address tokenContractAddress = tokenRegistry.registeredTokens(
-            commitmentMP.commitment.massMigrationMetaInfo.tokenID
+            commitmentMP.commitment.body.tokenID
         );
         IERC20 tokenContract = IERC20(tokenContractAddress);
         // transfer tokens from vault
@@ -52,7 +53,7 @@ contract WithdrawManager {
             tokenContract.transferFrom(
                 address(vault),
                 address(this),
-                commitmentMP.commitment.massMigrationMetaInfo.amount
+                commitmentMP.commitment.body.amount
             ),
             "token transfer failed"
         );

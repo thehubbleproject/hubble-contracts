@@ -1,4 +1,3 @@
-import { Usage } from "../ts/interfaces";
 import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
@@ -7,19 +6,21 @@ import { AccountRegistry } from "../ts/accountTree";
 import { Account } from "../ts/stateAccount";
 import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { Tree, Hasher } from "../ts/tree";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
+import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
 describe("Mass Migrations", async function () {
+    const tokenID = 1;
     let Alice: Account;
     let Bob: Account;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
+    let initialBatch: MassMigrationBatch;
     before(async function () {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
@@ -31,8 +32,6 @@ describe("Mass Migrations", async function () {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
-        const tokenID = 1;
-
         Alice = Account.new(-1, tokenID, 10, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
@@ -45,6 +44,17 @@ describe("Mass Migrations", async function () {
 
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);
+        const accountRoot = await registry.root();
+        const initialCommitment = MassMigrationCommitment.new(
+            stateTree.root,
+            accountRoot
+        );
+        initialBatch = initialCommitment.toBatch();
+        // We submit a batch that has a stateRoot containing Alice and Bob
+        await initialBatch.submit(
+            contracts.rollup,
+            TESTING_PARAMS.STAKE_AMOUNT
+        );
     });
 
     it("submit a batch and dispute", async function () {
@@ -64,24 +74,23 @@ describe("Mass Migrations", async function () {
         const txs = ethers.utils.arrayify(tx.encode(true));
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
-        const MMInfo = {
-            targetSpokeID: tx.spokeID,
-            withdrawRoot:
-                "0x0000000000000000000000000000000000000000000000000000000000000000",
-            tokenID: 1,
-            amount: tx.amount,
-        };
 
-        const commitment = {
+        const commitment = MassMigrationCommitment.new(
             stateRoot,
-            accountRoot: root,
-            txs,
-            massMigrationMetaInfo: MMInfo,
-            signature: aggregatedSignature0,
-            batchType: Usage.MassMigration,
-        };
-        const result = await contracts.massMigration.processMassMigrationCommit(
-            commitment,
+            root,
+            aggregatedSignature0,
+            tx.spokeID,
+            ethers.constants.HashZero,
+            tokenID,
+            tx.amount,
+            txs
+        );
+        const {
+            0: postStateRoot,
+            1: error,
+        } = await contracts.massMigration.processMassMigrationCommit(
+            stateRoot,
+            commitment.toSolStruct().body,
             [
                 {
                     pathToAccount: Alice.stateID,
@@ -90,88 +99,43 @@ describe("Mass Migrations", async function () {
                 },
             ]
         );
-
-        await rollup.submitBatchWithMM(
-            [txs],
-            [stateRoot],
-            [aggregatedSignature0],
-            [MMInfo],
-            { value: ethers.utils.parseEther(TESTING_PARAMS.STAKE_AMOUNT) }
+        assert.equal(
+            postStateRoot,
+            stateTree.root,
+            "should have same state root"
         );
+        assert.equal(error, false, "Should be a safe state transition");
+        commitment.stateRoot = postStateRoot;
+
+        const targetBatch = commitment.toBatch();
+
+        await targetBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
         const rootOnchain = await registry.registry.root();
         assert.equal(root, rootOnchain, "mismatch pubkey tree root");
         const batch = await rollup.getBatch(batchId);
-        const depth = 1; // Math.log2(commitmentLength + 1)
-        const tree = Tree.new(
-            depth,
-            Hasher.new(
-                "bytes",
-                ethers.utils.keccak256(
-                    "0x0000000000000000000000000000000000000000000000000000000000000000"
-                )
-            )
-        );
 
-        const leaf = await rollupUtils.MMCommitmentToHash(
-            commitment.stateRoot,
-            commitment.accountRoot,
-            txs,
-            commitment.massMigrationMetaInfo.tokenID,
-            commitment.massMigrationMetaInfo.amount,
-            commitment.massMigrationMetaInfo.withdrawRoot,
-            commitment.massMigrationMetaInfo.targetSpokeID,
-            commitment.signature
-        );
-
-        const abiCoder = ethers.utils.defaultAbiCoder;
-        const hash = ethers.utils.keccak256(
-            abiCoder.encode(
-                [
-                    "bytes32",
-                    "bytes32",
-                    "bytes",
-                    "uint256",
-                    "uint256",
-                    "bytes32",
-                    "uint256",
-                    "uint256[2]",
-                    "uint8",
-                ],
-                [
-                    commitment.stateRoot,
-                    commitment.accountRoot,
-                    txs,
-                    commitment.massMigrationMetaInfo.tokenID,
-                    commitment.massMigrationMetaInfo.amount,
-                    commitment.massMigrationMetaInfo.withdrawRoot,
-                    commitment.massMigrationMetaInfo.targetSpokeID,
-                    commitment.signature,
-                    commitment.batchType,
-                ]
-            )
-        );
-        assert.equal(hash, leaf, "mismatch commitment hash");
-        tree.updateSingle(0, leaf);
         assert.equal(
             batch.commitmentRoot,
-            tree.root,
+            targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
+        const previousMP = initialBatch.proofCompressed(0);
+        const commitmentMP = targetBatch.proof(0);
 
-        const commitmentMP = {
-            commitment,
-            pathToCommitment: 0,
-            siblings: tree.witness(0).nodes,
-        };
-
-        await rollup.disputeMMBatch(batchId, commitmentMP, [
+        await rollup.disputeMMBatch(batchId, previousMP, commitmentMP, [
             {
                 pathToAccount: Alice.stateID,
                 account: proof.account,
                 siblings: proof.witness,
             },
         ]);
+
+        assert.equal(
+            (await rollup.invalidBatchMarker()).toNumber(),
+            0,
+            "Good state transition should not rollback"
+        );
     });
 });
