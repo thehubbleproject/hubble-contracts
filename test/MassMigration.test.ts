@@ -14,18 +14,18 @@ import { assert } from "chai";
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-describe("Mass Migrations", async function() {
+describe("Mass Migrations", async function () {
     let Alice: Account;
     let Bob: Account;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    before(async function() {
+    before(async function () {
         await mcl.init();
         mcl.setDomainHex(DOMAIN);
     });
 
-    beforeEach(async function() {
+    beforeEach(async function () {
         const accounts = await ethers.getSigners();
         contracts = await deployAll(accounts[0], TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
@@ -47,7 +47,7 @@ describe("Mass Migrations", async function() {
         stateTree.createAccount(Bob);
     });
 
-    it("submit a batch and dispute", async function() {
+    it("submit a batch and dispute", async function () {
         const tx = new TxMassMigration(
             Alice.stateID,
             0,
@@ -58,7 +58,7 @@ describe("Mass Migrations", async function() {
         );
         const signature = Alice.sign(tx);
         const rollup = contracts.rollup;
-        const rollupUtils = contracts.rollupUtils;
+        const rollupUtils = contracts.clientUtils;
         const stateRoot = stateTree.root;
         const proof = stateTree.applyMassMigration(tx);
         const txs = ethers.utils.arrayify(tx.encode(true));
@@ -69,7 +69,7 @@ describe("Mass Migrations", async function() {
             withdrawRoot:
                 "0x0000000000000000000000000000000000000000000000000000000000000000",
             tokenID: 1,
-            amount: tx.amount
+            amount: tx.amount,
         };
 
         const commitment = {
@@ -78,7 +78,7 @@ describe("Mass Migrations", async function() {
             txs,
             massMigrationMetaInfo: MMInfo,
             signature: aggregatedSignature0,
-            batchType: Usage.MassMigration
+            batchType: Usage.MassMigration,
         };
         const result = await contracts.massMigration.processMassMigrationCommit(
             commitment,
@@ -86,8 +86,8 @@ describe("Mass Migrations", async function() {
                 {
                     pathToAccount: Alice.stateID,
                     account: proof.account,
-                    siblings: proof.witness
-                }
+                    siblings: proof.witness,
+                },
             ]
         );
 
@@ -137,7 +137,7 @@ describe("Mass Migrations", async function() {
                     "bytes32",
                     "uint256",
                     "uint256[2]",
-                    "uint8"
+                    "uint8",
                 ],
                 [
                     commitment.stateRoot,
@@ -148,7 +148,7 @@ describe("Mass Migrations", async function() {
                     commitment.massMigrationMetaInfo.withdrawRoot,
                     commitment.massMigrationMetaInfo.targetSpokeID,
                     commitment.signature,
-                    commitment.batchType
+                    commitment.batchType,
                 ]
             )
         );
@@ -163,15 +163,15 @@ describe("Mass Migrations", async function() {
         const commitmentMP = {
             commitment,
             pathToCommitment: 0,
-            siblings: tree.witness(0).nodes
+            siblings: tree.witness(0).nodes,
         };
 
         await rollup.disputeMMBatch(batchId, commitmentMP, [
             {
                 pathToAccount: Alice.stateID,
                 account: proof.account,
-                siblings: proof.witness
-            }
+                siblings: proof.witness,
+            },
         ]);
     });
 });

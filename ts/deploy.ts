@@ -1,6 +1,5 @@
 import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFactory";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
-import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ClientUtilsFactory } from "../types/ethers-contracts/ClientUtilsFactory";
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
@@ -20,6 +19,7 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
+import { ClientUtils } from "../types/ethers-contracts/ClientUtils";
 
 async function waitAndRegister(
     contract: Contract,
@@ -82,7 +82,6 @@ export async function deployAll(
 
     const allLinkRefs = {
         __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address,
-        __$a6b8846b3184b62d6aec39d1f36e30dab3$__: rollupUtils.address
     };
 
     // deploy MTUtils
@@ -122,7 +121,6 @@ export async function deployAll(
     );
 
     const massMigration = await new MassMigrationProductionFactory(
-        allLinkRefs,
         signer
     ).deploy();
     await waitAndRegister(
@@ -133,10 +131,7 @@ export async function deployAll(
         await paramManager.MASS_MIGS()
     );
 
-    const transfer = await new TransferProductionFactory(
-        allLinkRefs,
-        signer
-    ).deploy();
+    const transfer = await new TransferProductionFactory(signer).deploy();
     await waitAndRegister(
         transfer,
         "transfer",
@@ -178,10 +173,7 @@ export async function deployAll(
         await paramManager.DEPOSIT_MANAGER()
     );
 
-    const clientUtils = await new ClientUtilsFactory(
-        allLinkRefs,
-        signer
-    ).deploy();
+    const clientUtils = await new ClientUtilsFactory(signer).deploy();
     await waitAndRegister(
         clientUtils,
         "clientUtils",
@@ -193,7 +185,7 @@ export async function deployAll(
     const root =
         parameters.GENESIS_STATE_ROOT ||
         (await getMerkleRootWithCoordinatorAccount(
-            rollupUtils,
+            clientUtils,
             merkleTreeUtils,
             parameters
         ));
@@ -226,12 +218,12 @@ export async function deployAll(
         testToken,
         depositManager,
         rollup,
-        clientUtils
+        clientUtils,
     };
 }
 
 async function getMerkleRootWithCoordinatorAccount(
-    rollupUtils: RollupUtils,
+    rollupUtils: ClientUtils,
     merkleTreeUtils: MerkleTreeUtils,
     parameters: DeploymentParameters
 ) {
