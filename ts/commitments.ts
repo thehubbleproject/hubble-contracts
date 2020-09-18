@@ -46,7 +46,7 @@ abstract class Commitment {
 
 export class TransferCommitment extends Commitment {
     public static new(
-        stateRoot: BytesLike,
+        stateRoot: BytesLike = ethers.constants.HashZero,
         accountRoot: BytesLike = ethers.constants.HashZero,
         signature: BigNumberish[] = [0, 0],
         tokenType: BigNumberish = 0,
@@ -103,7 +103,7 @@ export class TransferCommitment extends Commitment {
 
 export class MassMigrationCommitment extends Commitment {
     public static new(
-        stateRoot: BytesLike,
+        stateRoot: BytesLike = ethers.constants.HashZero,
         accountRoot: BytesLike = ethers.constants.HashZero,
         signature: BigNumberish[] = [0, 0],
         targetSpokeID: BigNumberish = 0,

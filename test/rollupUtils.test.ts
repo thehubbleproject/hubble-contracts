@@ -54,16 +54,14 @@ describe("RollupUtils", async function() {
         await RollupUtilsInstance.DecompressManyTransfer(txs);
     });
     it("test transfer commitment", async function() {
-        const commitment = TransferCommitment.new(ethers.constants.HashZero);
+        const commitment = TransferCommitment.new();
         const hash = await RollupUtilsInstance.TransferCommitmentToHash(
             commitment.toSolStruct()
         );
         assert.equal(hash, commitment.hash());
     });
     it("test mass migration commitment", async function() {
-        const commitment = MassMigrationCommitment.new(
-            ethers.constants.HashZero
-        );
+        const commitment = MassMigrationCommitment.new();
         const hash = await RollupUtilsInstance.MMCommitmentToHash(
             commitment.toSolStruct()
         );
