@@ -61,6 +61,10 @@ library ParamManager {
         return keccak256("vault");
     }
 
+    function CLIENT_UTILS() public pure returns (bytes32) {
+        return keccak256("client_utils");
+    }
+
     bytes32 public constant _CHAIN_ID = keccak256("hubble-123");
 
     function CHAIN_ID() public pure returns (bytes32) {

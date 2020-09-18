@@ -88,6 +88,17 @@ library Types {
         uint256 fee;
     }
 
+    struct MassMigration {
+        uint256 txType;
+        uint256 fromIndex;
+        uint256 toIndex;
+        uint256 spokeID;
+        uint256 tokenType;
+        uint256 nonce;
+        uint256 amount;
+        uint256 fee;
+    }
+
     // UserAccount contains the actual data stored in the leaf of balance tree
     struct UserAccount {
         // ID is the path to the pubkey in the PDA tree

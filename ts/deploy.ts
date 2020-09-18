@@ -1,6 +1,7 @@
 import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFactory";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
+import { ClientUtilsFactory } from "../types/ethers-contracts/ClientUtilsFactory";
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { GovernanceFactory } from "../types/ethers-contracts/GovernanceFactory";
@@ -177,6 +178,18 @@ export async function deployAll(
         await paramManager.DEPOSIT_MANAGER()
     );
 
+    const clientUtils = await new ClientUtilsFactory(
+        allLinkRefs,
+        signer
+    ).deploy();
+    await waitAndRegister(
+        clientUtils,
+        "clientUtils",
+        verbose,
+        nameRegistry,
+        await paramManager.CLIENT_UTILS()
+    );
+
     const root =
         parameters.GENESIS_STATE_ROOT ||
         (await getMerkleRootWithCoordinatorAccount(
@@ -212,7 +225,8 @@ export async function deployAll(
         pob,
         testToken,
         depositManager,
-        rollup
+        rollup,
+        clientUtils
     };
 }
 

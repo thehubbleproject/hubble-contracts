@@ -1,29 +1,33 @@
+import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
+import { ClientUtilsFactory } from "../types/ethers-contracts/ClientUtilsFactory";
 import { assert } from "chai";
 import { TxTransfer } from "../ts/tx";
 import { EMPTY_ACCOUNT } from "../ts/stateAccount";
-import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
-import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
+import { ClientUtils } from "../types/ethers-contracts/ClientUtils";
 import { ethers } from "@nomiclabs/buidler";
 
 describe("RollupUtils", async function() {
-    let RollupUtilsInstance: RollupUtils;
+    let ClientUtilsInstance: ClientUtils;
     before(async function() {
         const [signer, ...rest] = await ethers.getSigners();
-        RollupUtilsInstance = await new RollupUtilsFactory(signer).deploy();
+        ClientUtilsInstance = await new ClientUtilsFactory(signer).deploy();
     });
 
     it("test account encoding and decoding", async function() {
-        const account = EMPTY_ACCOUNT;
+        const account = {
+            ID: 1,
+            tokenType: 2,
+            balance: 3,
+            nonce: 4,
+            burn: 5,
+            lastBurn: 6
+        };
 
-        const accountBytes = await RollupUtilsInstance.BytesFromAccountDeconstructed(
-            account.ID,
-            account.balance,
-            account.nonce,
-            account.tokenType,
-            account.burn,
-            account.lastBurn
+        const accountBytes = await ClientUtilsInstance.BytesFromAccount(
+            account
         );
-        const regeneratedAccount = await RollupUtilsInstance.AccountFromBytes(
+
+        const regeneratedAccount = await ClientUtilsInstance.AccountFromBytes(
             accountBytes
         );
         assert.equal(regeneratedAccount["0"].toNumber(), account.ID);
@@ -35,17 +39,10 @@ describe("RollupUtils", async function() {
 
         const tx = TxTransfer.rand().extended();
 
-        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.tokenType,
-            tx.nonce,
-            tx.amount,
-            tx.fee
-        );
+        const txBytes = await ClientUtilsInstance.TransferToBytes(tx);
+        // console.log("tx bytes: " + txBytes);
 
-        const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
+        const txData = await ClientUtilsInstance.FromBytesToTransfer(txBytes);
         assert.equal(txData.fromIndex.toString(), tx.fromIndex.toString());
         assert.equal(txData.toIndex.toString(), tx.toIndex.toString());
         assert.equal(txData.tokenType.toString(), tx.tokenType.toString());
@@ -55,28 +52,13 @@ describe("RollupUtils", async function() {
     });
     it("test transfer utils", async function() {
         const tx = TxTransfer.rand().extended();
-        const signBytes = await RollupUtilsInstance.getTxSignBytes(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.nonce,
-            tx.amount,
-            tx.fee
-        );
-        const txBytes = await RollupUtilsInstance.BytesFromTxDeconstructed(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.tokenType,
-            tx.nonce,
-            tx.amount,
-            tx.fee
-        );
-        await RollupUtilsInstance.CompressTransferFromEncoded(txBytes, "0x00");
-        const txs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
+        const signBytes = await ClientUtilsInstance.getTransferSignBytes(tx);
+        const txBytes = await ClientUtilsInstance.TransferToBytes(tx);
+        await ClientUtilsInstance.CompressTransferFromEncoded(txBytes, "0x00");
+        const txs = await ClientUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes, txBytes],
             ["0x00", "0x00"]
         );
-        await RollupUtilsInstance.DecompressManyTransfer(txs);
+        await ClientUtilsInstance.DecompressManyTransfer(txs);
     });
 });

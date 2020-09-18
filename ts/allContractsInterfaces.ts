@@ -12,6 +12,7 @@ import { DepositManager } from "../types/ethers-contracts/DepositManager";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { MassMigration } from "../types/ethers-contracts/MassMigration";
+import { ClientUtils } from "../types/ethers-contracts/ClientUtils";
 
 export interface allContracts {
     paramManager: ParamManager;
@@ -28,4 +29,5 @@ export interface allContracts {
     testToken: TestToken;
     depositManager: DepositManager;
     rollup: Rollup;
+    clientUtils: ClientUtils;
 }
