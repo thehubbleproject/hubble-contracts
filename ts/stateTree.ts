@@ -30,9 +30,7 @@ const PLACEHOLDER_PROOF_ACC = {
     ID: 0,
     tokenType: 0,
     balance: 0,
-    nonce: 0,
-    burn: 0,
-    lastBurn: 0
+    nonce: 0
 };
 const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(ZERO);
 const PLACEHOLDER_TRANSFER_PROOF = {

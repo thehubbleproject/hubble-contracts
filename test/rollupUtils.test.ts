@@ -22,12 +22,13 @@ describe("RollupUtils", async function() {
         const regeneratedAccount = await RollupUtilsInstance.AccountFromBytes(
             accountBytes
         );
-        assert.equal(regeneratedAccount["0"].toNumber(), account.ID);
-        assert.equal(regeneratedAccount["1"].toNumber(), account.balance);
-        assert.equal(regeneratedAccount["2"].toNumber(), account.nonce);
-        assert.equal(regeneratedAccount["3"].toNumber(), account.tokenType);
-        assert.equal(regeneratedAccount["4"].toNumber(), account.burn);
-        assert.equal(regeneratedAccount["5"].toNumber(), account.lastBurn);
+        assert.equal(regeneratedAccount.ID.toNumber(), account.ID);
+        assert.equal(regeneratedAccount.balance.toNumber(), account.balance);
+        assert.equal(regeneratedAccount.nonce.toNumber(), account.nonce);
+        assert.equal(
+            regeneratedAccount.tokenType.toNumber(),
+            account.tokenType
+        );
     });
     it("test transfer utils", async function() {
         const tx = TxTransfer.rand().extended();

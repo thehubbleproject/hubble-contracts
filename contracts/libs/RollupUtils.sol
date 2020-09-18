@@ -14,9 +14,7 @@ library RollupUtilsLib {
             account.ID,
             account.balance,
             account.nonce,
-            account.tokenType,
-            account.burn,
-            account.lastBurn
+            account.tokenType
         );
 
         return data;
@@ -58,16 +56,10 @@ contract RollupUtils {
             uint256 ID,
             uint256 balance,
             uint256 nonce,
-            uint256 tokenType,
-            uint256 burn,
-            uint256 lastBurn
+            uint256 tokenType
         )
     {
-        return
-            abi.decode(
-                accountBytes,
-                (uint256, uint256, uint256, uint256, uint256, uint256)
-            );
+        return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
     }
 
     function BytesFromAccount(Types.UserAccount memory account)
@@ -104,22 +96,10 @@ contract RollupUtils {
     }
 
     function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
-        Types.UserAccount memory account1 = Types.UserAccount({
-            ID: 0,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
-        Types.UserAccount memory account2 = Types.UserAccount({
-            ID: 1,
-            tokenType: 0,
-            balance: 0,
-            nonce: 0,
-            burn: 0,
-            lastBurn: 0
-        });
+        Types.UserAccount memory account1;
+        account1.ID = 0;
+        Types.UserAccount memory account2;
+        account2.ID = 1;
         leaves[0] = HashFromAccount(account1);
         leaves[1] = HashFromAccount(account2);
     }
