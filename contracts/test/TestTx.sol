@@ -60,38 +60,6 @@ contract TestTx {
         return Tx.transfer_decode(txs, index);
     }
 
-    function transfer_amountOf(bytes memory txs, uint256 index)
-        public
-        pure
-        returns (uint256)
-    {
-        return txs.transfer_amountOf(index);
-    }
-
-    function transfer_fromIndexOf(bytes memory txs, uint256 index)
-        public
-        pure
-        returns (uint256)
-    {
-        return txs.transfer_fromIndexOf(index);
-    }
-
-    function transfer_toIndexOf(bytes memory txs, uint256 index)
-        public
-        pure
-        returns (uint256)
-    {
-        return txs.transfer_toIndexOf(index);
-    }
-
-    function transfer_feeOf(bytes memory txs, uint256 index)
-        public
-        pure
-        returns (uint256)
-    {
-        return txs.transfer_feeOf(index);
-    }
-
     function transfer_messageOf(
         bytes memory txs,
         uint256 index,
