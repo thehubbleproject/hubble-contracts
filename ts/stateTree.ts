@@ -40,20 +40,6 @@ const PLACEHOLDER_TRANSFER_PROOF = {
     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
     safe: false
 };
-const PLACEHOLDER_AIRDROP_PROOF = {
-    account: PLACEHOLDER_PROOF_ACC,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_BURN_CONSENT_PROOF = {
-    account: PLACEHOLDER_PROOF_ACC,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_CRATE_ACCOUNT_PROOF = {
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
 
 export class StateTree {
     public static new(stateDepth: number) {

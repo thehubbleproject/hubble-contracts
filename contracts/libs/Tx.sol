@@ -7,10 +7,6 @@ import { Types } from "./Types.sol";
 library Tx {
     // Tx types in uint256
     uint256 constant TRANSFER = 1;
-    uint256 constant CREATE_ACCOUNT = 2;
-    uint256 constant AIRDROP = 3;
-    uint256 constant BURN_CONCENT = 4;
-    uint256 constant BURN_EXECUTION = 5;
 
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
