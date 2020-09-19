@@ -7,8 +7,6 @@ export interface StateAccountSolStruct {
     tokenType: number;
     balance: number;
     nonce: number;
-    burn: number;
-    lastBurn: number;
 }
 
 // TODO: this is not an empty accoutn contrarily this is a legit account!
@@ -16,12 +14,8 @@ export const EMPTY_ACCOUNT: StateAccountSolStruct = {
     ID: 0,
     tokenType: 0,
     balance: 0,
-    nonce: 0,
-    burn: 0,
-    lastBurn: 0
+    nonce: 0
 };
-
-const nonceLen = 4;
 
 export class Account {
     publicKey: mcl.PublicKey;
@@ -30,18 +24,9 @@ export class Account {
         accountID: number,
         tokenType: number,
         balance: number,
-        nonce: number,
-        burn: number = 0,
-        lastBurn: number = 0
+        nonce: number
     ): Account {
-        return new Account(
-            accountID,
-            tokenType,
-            balance,
-            nonce,
-            burn,
-            lastBurn
-        );
+        return new Account(accountID, tokenType, balance, nonce);
     }
 
     public stateID = -1;
@@ -49,9 +34,7 @@ export class Account {
         public accountID: number,
         public tokenType: number,
         public balance: number,
-        public nonce: number,
-        public burn: number,
-        public lastBurn: number
+        public nonce: number
     ) {}
 
     public newKeyPair(): Account {
@@ -78,15 +61,8 @@ export class Account {
 
     public toStateLeaf(): string {
         return ethers.utils.solidityKeccak256(
-            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
-            [
-                this.accountID,
-                this.balance,
-                this.nonce,
-                this.tokenType,
-                this.burn,
-                this.lastBurn
-            ]
+            ["uint256", "uint256", "uint256", "uint256"],
+            [this.accountID, this.balance, this.nonce, this.tokenType]
         );
     }
 
@@ -95,9 +71,7 @@ export class Account {
             ID: this.accountID,
             tokenType: this.tokenType,
             balance: this.balance,
-            nonce: this.nonce,
-            burn: this.burn,
-            lastBurn: this.lastBurn
+            nonce: this.nonce
         };
     }
 

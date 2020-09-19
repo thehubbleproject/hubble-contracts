@@ -104,8 +104,6 @@ contract DepositManager {
             accountID,
             _tokenType,
             _amount,
-            0,
-            0,
             0
         );
         // get new account hash

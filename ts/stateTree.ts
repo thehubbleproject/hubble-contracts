@@ -30,9 +30,7 @@ const PLACEHOLDER_PROOF_ACC = {
     ID: 0,
     tokenType: 0,
     balance: 0,
-    nonce: 0,
-    burn: 0,
-    lastBurn: 0
+    nonce: 0
 };
 const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(ZERO);
 const PLACEHOLDER_TRANSFER_PROOF = {
@@ -40,20 +38,6 @@ const PLACEHOLDER_TRANSFER_PROOF = {
     receiverAccount: PLACEHOLDER_PROOF_ACC,
     senderWitness: PLACEHOLDER_PROOF_WITNESS,
     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_AIRDROP_PROOF = {
-    account: PLACEHOLDER_PROOF_ACC,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_BURN_CONSENT_PROOF = {
-    account: PLACEHOLDER_PROOF_ACC,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
-const PLACEHOLDER_CRATE_ACCOUNT_PROOF = {
-    witness: PLACEHOLDER_PROOF_WITNESS,
     safe: false
 };
 
