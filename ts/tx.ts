@@ -180,12 +180,12 @@ export class TxMassMigration implements SignableTx {
     }
 
     public encode(prefix: boolean = false): string {
-        const concated = concatBigNumbers([
-            this.fromIndex,
-            this.toIndex,
-            this.amount,
-            this.spokeID,
-            this.fee
+        const concated = concat([
+            hexZeroPad(this.fromIndex.toHexString(), stateIDLen),
+            hexZeroPad(this.toIndex.toHexString(), stateIDLen),
+            this.decimal.encodeInt(this.amount),
+            hexZeroPad(this.spokeID.toHexString(), spokeLen),
+            this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
     }

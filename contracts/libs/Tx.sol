@@ -30,14 +30,14 @@ library Tx {
     uint256 public constant POSITION_FEE_0 = 12;
 
     // transaction_type: Mass Migrations
-    // [sender_state_id<4>|receiver_state_id<4>|amount<4>|spokeID<4>|fee<4>]
-    uint256 public constant TX_LEN_5 = 20;
+    // [sender_state_id<4>|receiver_state_id<4>|amount<2>|spokeID<4>|fee<2>]
+    uint256 public constant TX_LEN_5 = 16;
     // positions in bytes
     uint256 public constant POSITION_SENDER_5 = 4;
     uint256 public constant POSITION_RECEIVER_5 = 8;
-    uint256 public constant POSITION_AMOUNT_5 = 12;
-    uint256 public constant POSITION_SPOKE_5 = 16;
-    uint256 public constant POSITION_FEE_6 = 20;
+    uint256 public constant POSITION_AMOUNT_5 = 10;
+    uint256 public constant POSITION_SPOKE_5 = 14;
+    uint256 public constant POSITION_FEE_5 = 16;
 
     struct Transfer {
         uint256 fromIndex;
@@ -258,9 +258,18 @@ library Tx {
                 mload(add(p_tx, POSITION_RECEIVER_5)),
                 MASK_STATE_ID
             )
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_5)), MASK_AMOUNT)
+            let amountBytes := mload(add(p_tx, POSITION_AMOUNT_5))
+            let amountExponent := shr(
+                MANTISSA_BITS,
+                and(amountBytes, MASK_EXPONENT)
+            )
+            let amountMantissa := and(amountBytes, MASK_MANTISSA)
+            amount := mul(amountMantissa, exp(10, amountExponent))
             spokeID := and(mload(add(p_tx, POSITION_SPOKE_5)), MASK_SPOKE)
-            fee := and(mload(add(p_tx, POSITION_FEE_0)), MASK_FEE)
+            let feeBytes := mload(add(p_tx, POSITION_FEE_5))
+            let feeExponent := shr(MANTISSA_BITS, and(feeBytes, MASK_EXPONENT))
+            let feeMantissa := and(feeBytes, MASK_MANTISSA)
+            fee := mul(feeMantissa, exp(10, feeExponent))
         }
         return MassMigration(sender, receiver, amount, spokeID, fee);
     }

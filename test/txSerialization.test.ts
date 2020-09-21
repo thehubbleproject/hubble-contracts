@@ -1,6 +1,6 @@
 import { TestTxFactory } from "../types/ethers-contracts/TestTxFactory";
 import { TestTx } from "../types/ethers-contracts/TestTx";
-import { TxTransfer, serialize } from "../ts/tx";
+import { TxTransfer, serialize, TxMassMigration } from "../ts/tx";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 
@@ -56,5 +56,31 @@ describe("Tx Serialization", async () => {
         const { serialized } = serialize(txs);
         const _serialized = await c.transfer_serializeFromEncoded(txsInBytes);
         assert.equal(serialized, _serialized);
+    });
+
+    it("massMigration", async function() {
+        const txSize = 16;
+        const txs: TxMassMigration[] = [];
+        for (let i = 0; i < txSize; i++) {
+            const tx = TxMassMigration.rand();
+            txs.push(tx);
+        }
+        const { serialized } = serialize(txs);
+        const size = await c.massMigration_size(serialized);
+        assert.equal(size.toNumber(), txSize);
+        for (let i = 0; i < txSize; i++) {
+            const {
+                fromIndex,
+                toIndex,
+                amount,
+                spokeID,
+                fee
+            } = await c.massMigration_decode(serialized, i);
+            assert.equal(fromIndex.toString(), txs[i].fromIndex.toString());
+            assert.equal(toIndex.toString(), txs[i].toIndex.toString());
+            assert.equal(amount.toString(), txs[i].amount.toString());
+            assert.equal(spokeID.toString(), txs[i].spokeID.toString());
+            assert.equal(fee.toString(), txs[i].fee.toString());
+        }
     });
 });
