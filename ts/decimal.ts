@@ -22,10 +22,17 @@ export class DecimalCodec {
         return randomHex(this.bytesLength);
     }
 
+    public randInt(): BigNumber {
+        return this.decodeInt(this.rand());
+    }
+
     public randNum(): number {
         return this.decode(this.rand());
     }
 
+    /**
+     * Given an arbitrary js number returns a js number that can be encoded.
+     */
     public cast(input: number): number {
         if (input == 0) {
             return input;
@@ -37,6 +44,14 @@ export class DecimalCodec {
         const mantissa = Math.floor(input * 10 ** exponent);
 
         return mantissa / 10 ** exponent;
+    }
+
+    /**
+     * Given an arbitrary js number returns
+     */
+    public castInt(input: number): BigNumber {
+        const validNum = this.cast(input);
+        return BigNumber.from(Math.round(validNum * 10 ** this.place));
     }
 
     public encode(input: number) {
@@ -72,11 +87,11 @@ export class DecimalCodec {
                 `Can not encode input ${input}, mantissa ${mantissa} should not be larger than ${this.mantissaMax}`
             );
         }
-        return BigNumber.from(exponent)
+        const hex = BigNumber.from(exponent)
             .shl(this.mantissaBits)
             .add(mantissa)
-            .toHexString()
-            .padStart(this.bytesLength);
+            .toHexString();
+        return ethers.utils.hexZeroPad(hex, this.bytesLength);
     }
     public decodeInt(input: BytesLike): BigNumber {
         const mantissa = this.mantissaMax.and(input);
@@ -85,3 +100,5 @@ export class DecimalCodec {
         return mantissa.mul(BigNumber.from(10).pow(exponent));
     }
 }
+
+export const USDT = new DecimalCodec(4, 12, 6);

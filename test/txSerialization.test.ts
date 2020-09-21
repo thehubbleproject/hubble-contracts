@@ -18,7 +18,7 @@ describe("Tx Serialization", async () => {
             txs.push(TxTransfer.rand());
         }
         const { serialized } = serialize(txs);
-        assert.equal(txSize, (await c.transfer_size(serialized)).toNumber());
+        assert.equal((await c.transfer_size(serialized)).toNumber(), txSize);
         assert.isFalse(await c.transfer_hasExcessData(serialized));
         for (let i = 0; i < txSize; i++) {
             const decoded = await c.transfer_decode(serialized, i);
@@ -28,6 +28,7 @@ describe("Tx Serialization", async () => {
             );
             assert.equal(decoded.toIndex.toString(), txs[i].toIndex.toString());
             assert.equal(decoded.amount.toString(), txs[i].amount.toString());
+            assert.equal(decoded.fee.toString(), txs[i].fee.toString());
         }
     });
     it("serialize transfer transaction", async function() {

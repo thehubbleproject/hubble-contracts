@@ -1,9 +1,8 @@
 import { assert } from "chai";
-import { DecimalCodec } from "../ts/decimal";
+import { USDT } from "../ts/decimal";
 import { EncodingError } from "../ts/exceptions";
 
 describe("Decimal", () => {
-    const USDT = new DecimalCodec(4, 12, 6);
     const goodCases: number[] = [0, 1, 10000, 12.13, 0.1234, 18690000000];
 
     it("Get's some property right", () => {

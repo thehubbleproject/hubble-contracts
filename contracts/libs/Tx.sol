@@ -13,6 +13,7 @@ library Tx {
     uint256 public constant MASK_AMOUNT = 0xffffffff;
     uint256 public constant MASK_FEE = 0xffffffff;
     uint256 public constant MASK_EXPONENT = 0xf000;
+    uint256 public constant MANTISSA_BITS = 12;
     uint256 public constant MASK_MANTISSA = 0x0fff;
     uint256 public constant MASK_NONCE = 0xffffffff;
     uint256 public constant MASK_SPOKE = 0xffffffff;
@@ -112,8 +113,8 @@ library Tx {
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount),
-                uint32(fee)
+                uint16(encodeDecimal(amount)),
+                uint16(encodeDecimal(fee))
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -173,13 +174,13 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 toIndex = txs[i].toIndex;
-            uint256 amount = txs[i].amount;
-            uint256 fee = txs[i].fee;
+            uint256 amount = encodeDecimal(txs[i].amount);
+            uint256 fee = encodeDecimal(txs[i].fee);
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(amount),
-                uint32(fee)
+                uint16(amount),
+                uint16(fee)
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
@@ -207,11 +208,14 @@ library Tx {
                 MASK_STATE_ID
             )
             let amountBytes := mload(add(p_tx, POSITION_AMOUNT_0))
-            let amountExponent := and(amountBytes, MASK_EXPONENT)
+            let amountExponent := shr(
+                MANTISSA_BITS,
+                and(amountBytes, MASK_EXPONENT)
+            )
             let amountMantissa := and(amountBytes, MASK_MANTISSA)
             amount := mul(amountMantissa, exp(10, amountExponent))
             let feeBytes := mload(add(p_tx, POSITION_FEE_0))
-            let feeExponent := and(feeBytes, MASK_EXPONENT)
+            let feeExponent := shr(MANTISSA_BITS, and(feeBytes, MASK_EXPONENT))
             let feeMantissa := and(feeBytes, MASK_MANTISSA)
             fee := mul(feeMantissa, exp(10, feeExponent))
         }

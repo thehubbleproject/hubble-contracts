@@ -1,9 +1,17 @@
 import { Tree } from "./tree";
-import { ethers } from "ethers";
-import { paddedHex, randomNum } from "./utils";
+import { BigNumber } from "ethers";
+import { concatBigNumbers, randomNum } from "./utils";
+import { DecimalCodec, USDT } from "./decimal";
+import { MismatchByteLength } from "./exceptions";
+import {
+    hexZeroPad,
+    concat,
+    hexlify,
+    solidityKeccak256
+} from "ethers/lib/utils";
 
-const amountLen = 4;
-const feeLen = 4;
+const amountLen = 2;
+const feeLen = 2;
 const stateIDLen = 4;
 const nonceLen = 4;
 const spokeLen = 4;
@@ -32,38 +40,57 @@ export function calculateRoot(txs: Tx[]) {
 }
 
 export function serialize(txs: Tx[]) {
-    const serialized = "0x" + txs.map(tx => tx.encode()).join("");
-    const commit = ethers.utils.solidityKeccak256(["bytes"], [serialized]);
+    const serialized = hexlify(concat(txs.map(tx => tx.encode())));
+    const commit = solidityKeccak256(["bytes"], [serialized]);
     return { serialized, commit };
 }
 
+function checkByteLength(
+    decimal: DecimalCodec,
+    fieldName: string,
+    expected: number
+) {
+    if (decimal.bytesLength != expected) {
+        throw new MismatchByteLength(
+            `Deciaml: ${decimal.bytesLength} bytes, ${fieldName}: ${expected} bytes`
+        );
+    }
+}
+
 export class TxTransfer implements SignableTx {
-    private readonly TX_TYPE = "01";
+    private readonly TX_TYPE = "0x01";
     public static rand(): TxTransfer {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
-        const amount = randomNum(amountLen);
-        const fee = randomNum(feeLen);
+        const amount = USDT.randInt();
+        const fee = USDT.randInt();
         const nonce = randomNum(nonceLen);
-        return new TxTransfer(sender, receiver, amount, fee, nonce);
+        return new TxTransfer(sender, receiver, amount, fee, nonce, USDT);
     }
     constructor(
-        public readonly fromIndex: number,
-        public readonly toIndex: number,
-        public readonly amount: number,
-        public readonly fee: number,
-        public nonce: number
-    ) {}
+        public readonly fromIndex: BigNumber,
+        public readonly toIndex: BigNumber,
+        public readonly amount: BigNumber,
+        public readonly fee: BigNumber,
+        public nonce: BigNumber,
+        public readonly decimal: DecimalCodec
+    ) {
+        checkByteLength(decimal, "amount", amountLen);
+        checkByteLength(decimal, "fee", feeLen);
+    }
 
     public message(): string {
-        let nonce = paddedHex(this.nonce, nonceLen);
-
-        return "0x" + this.TX_TYPE + nonce.slice(2) + this.encode(false);
+        const concated = concat([
+            this.TX_TYPE,
+            this.nonce.toHexString(),
+            this.encode()
+        ]);
+        return hexlify(concated);
     }
 
     public hash(): string {
-        return ethers.utils.solidityKeccak256(
-            ["uint32", "uint32", "uint32", "uint32"],
+        return solidityKeccak256(
+            ["uint32", "uint32", "uint16", "uint16"],
             [this.fromIndex, this.toIndex, this.amount, this.fee]
         );
     }
@@ -80,31 +107,24 @@ export class TxTransfer implements SignableTx {
         };
     }
 
-    public encode(prefix: boolean = false): string {
-        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
-        let toIndex = paddedHex(this.toIndex, stateIDLen);
-        let amount = paddedHex(this.amount, amountLen);
-        let fee = paddedHex(this.fee, feeLen);
-
-        let encoded =
-            fromIndex.slice(2) +
-            toIndex.slice(2) +
-            amount.slice(2) +
-            fee.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-        return encoded;
+    public encode(): string {
+        const concated = concat([
+            hexZeroPad(this.fromIndex.toHexString(), stateIDLen),
+            hexZeroPad(this.toIndex.toHexString(), stateIDLen),
+            this.decimal.encodeInt(this.amount),
+            this.decimal.encodeInt(this.fee)
+        ]);
+        return hexlify(concated);
     }
 }
 
 export class TxMassMigration implements SignableTx {
-    private readonly TX_TYPE = "06";
+    private readonly TX_TYPE = "0x06";
     public static rand(): TxMassMigration {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
-        const amount = randomNum(amountLen);
-        const fee = randomNum(feeLen);
+        const amount = USDT.randInt();
+        const fee = USDT.randInt();
         const nonce = randomNum(nonceLen);
         const spokeID = randomNum(spokeLen);
         return new TxMassMigration(
@@ -113,27 +133,35 @@ export class TxMassMigration implements SignableTx {
             amount,
             spokeID,
             fee,
-            nonce
+            nonce,
+            USDT
         );
     }
     constructor(
-        public readonly fromIndex: number,
-        public readonly toIndex: number,
-        public readonly amount: number,
-        public readonly spokeID: number,
-        public readonly fee: number,
-        public nonce: number
-    ) {}
+        public readonly fromIndex: BigNumber,
+        public readonly toIndex: BigNumber,
+        public readonly amount: BigNumber,
+        public readonly spokeID: BigNumber,
+        public readonly fee: BigNumber,
+        public nonce: BigNumber,
+        public readonly decimal: DecimalCodec
+    ) {
+        checkByteLength(decimal, "amount", amountLen);
+        checkByteLength(decimal, "fee", feeLen);
+    }
 
     public message(): string {
-        let nonce = paddedHex(this.nonce, nonceLen);
-
-        return "0x" + this.TX_TYPE + nonce.slice(2) + this.encode(false);
+        const concated = concat([
+            this.TX_TYPE,
+            this.nonce.toHexString(),
+            this.encode()
+        ]);
+        return hexlify(concated);
     }
 
     public hash(): string {
-        return ethers.utils.solidityKeccak256(
-            ["uint32", "uint32", "uint32", "uint32", "uint32"],
+        return solidityKeccak256(
+            ["uint32", "uint32", "uint16", "uint32", "uint16"],
             [this.fromIndex, this.toIndex, this.amount, this.spokeID, this.fee]
         );
     }
@@ -152,22 +180,13 @@ export class TxMassMigration implements SignableTx {
     }
 
     public encode(prefix: boolean = false): string {
-        let fromIndex = paddedHex(this.fromIndex, stateIDLen);
-        let toIndex = paddedHex(this.toIndex, stateIDLen);
-        let amount = paddedHex(this.amount, amountLen);
-        let spokeID = paddedHex(this.spokeID, spokeLen);
-        let fee = paddedHex(this.fee, feeLen);
-
-        let encoded =
-            fromIndex.slice(2) +
-            toIndex.slice(2) +
-            amount.slice(2) +
-            spokeID.slice(2) +
-            fee.slice(2);
-        if (prefix) {
-            encoded = "0x" + encoded;
-        }
-
-        return encoded;
+        const concated = concatBigNumbers([
+            this.fromIndex,
+            this.toIndex,
+            this.amount,
+            this.spokeID,
+            this.fee
+        ]);
+        return hexlify(concated);
     }
 }
