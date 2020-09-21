@@ -42,13 +42,9 @@ export function randomHex(numBytes: number) {
     ).toHexString();
 }
 
-export function randomNum(numBytes: number): BigNumber {
+export function randomNum(numBytes: number): number {
     const bytes = ethers.utils.randomBytes(numBytes);
-    return ethers.BigNumber.from(bytes);
-}
-
-export function concatBigNumbers(nums: BigNumber[]): Uint8Array {
-    return ethers.utils.concat(nums.map(x => x.toHexString()));
+    return ethers.BigNumber.from(bytes).toNumber();
 }
 
 // with zeros prepended to length bytes.

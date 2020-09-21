@@ -47,7 +47,7 @@ export class DecimalCodec {
     }
 
     /**
-     * Given an arbitrary js number returns
+     * Given an arbitrary js number returns a integer that can be encoded
      */
     public castInt(input: number): BigNumber {
         const validNum = this.cast(input);

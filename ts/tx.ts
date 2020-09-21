@@ -1,6 +1,6 @@
 import { Tree } from "./tree";
 import { BigNumber } from "ethers";
-import { concatBigNumbers, randomNum } from "./utils";
+import { randomNum } from "./utils";
 import { DecimalCodec, USDT } from "./decimal";
 import { MismatchByteLength } from "./exceptions";
 import {
@@ -68,11 +68,11 @@ export class TxTransfer implements SignableTx {
         return new TxTransfer(sender, receiver, amount, fee, nonce, USDT);
     }
     constructor(
-        public readonly fromIndex: BigNumber,
-        public readonly toIndex: BigNumber,
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
-        public nonce: BigNumber,
+        public nonce: number,
         public readonly decimal: DecimalCodec
     ) {
         checkByteLength(decimal, "amount", amountLen);
@@ -82,7 +82,7 @@ export class TxTransfer implements SignableTx {
     public message(): string {
         const concated = concat([
             this.TX_TYPE,
-            this.nonce.toHexString(),
+            hexZeroPad(hexlify(this.nonce), nonceLen),
             this.encode()
         ]);
         return hexlify(concated);
@@ -91,26 +91,31 @@ export class TxTransfer implements SignableTx {
     public hash(): string {
         return solidityKeccak256(
             ["uint32", "uint32", "uint16", "uint16"],
-            [this.fromIndex, this.toIndex, this.amount, this.fee]
+            [
+                this.fromIndex,
+                this.toIndex,
+                this.decimal.encodeInt(this.amount),
+                this.decimal.encodeInt(this.fee)
+            ]
         );
     }
 
-    public extended() {
+    public extended(tokenType: number = 0) {
         return {
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce,
-            tokenType: 0,
+            tokenType,
             txType: 0
         };
     }
 
     public encode(): string {
         const concated = concat([
-            hexZeroPad(this.fromIndex.toHexString(), stateIDLen),
-            hexZeroPad(this.toIndex.toHexString(), stateIDLen),
+            hexZeroPad(hexlify(this.fromIndex), stateIDLen),
+            hexZeroPad(hexlify(this.toIndex), stateIDLen),
             this.decimal.encodeInt(this.amount),
             this.decimal.encodeInt(this.fee)
         ]);
@@ -138,12 +143,12 @@ export class TxMassMigration implements SignableTx {
         );
     }
     constructor(
-        public readonly fromIndex: BigNumber,
-        public readonly toIndex: BigNumber,
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
         public readonly amount: BigNumber,
-        public readonly spokeID: BigNumber,
+        public readonly spokeID: number,
         public readonly fee: BigNumber,
-        public nonce: BigNumber,
+        public nonce: number,
         public readonly decimal: DecimalCodec
     ) {
         checkByteLength(decimal, "amount", amountLen);
@@ -153,7 +158,7 @@ export class TxMassMigration implements SignableTx {
     public message(): string {
         const concated = concat([
             this.TX_TYPE,
-            this.nonce.toHexString(),
+            hexZeroPad(hexlify(this.nonce), nonceLen),
             this.encode()
         ]);
         return hexlify(concated);
@@ -179,12 +184,12 @@ export class TxMassMigration implements SignableTx {
         };
     }
 
-    public encode(prefix: boolean = false): string {
+    public encode(): string {
         const concated = concat([
-            hexZeroPad(this.fromIndex.toHexString(), stateIDLen),
-            hexZeroPad(this.toIndex.toHexString(), stateIDLen),
+            hexZeroPad(hexlify(this.fromIndex), stateIDLen),
+            hexZeroPad(hexlify(this.toIndex), stateIDLen),
             this.decimal.encodeInt(this.amount),
-            hexZeroPad(this.spokeID.toHexString(), spokeLen),
+            hexZeroPad(hexlify(this.spokeID), spokeLen),
             this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
