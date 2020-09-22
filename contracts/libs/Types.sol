@@ -167,6 +167,16 @@ library Types {
         uint256 nonce;
     }
 
+    function encode(UserState memory state) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(
+                state.pubkeyIndex,
+                state.tokenType,
+                state.balance,
+                state.nonce
+            );
+    }
+
     struct StateMerkleProof {
         UserState state;
         bytes32[] witness;

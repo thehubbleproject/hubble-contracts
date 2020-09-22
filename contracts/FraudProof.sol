@@ -6,7 +6,6 @@ import { Tx } from "./libs/Tx.sol";
 import { IERC20 } from "./interfaces/IERC20.sol";
 
 import { Types } from "./libs/Types.sol";
-import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
