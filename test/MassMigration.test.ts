@@ -44,8 +44,8 @@ describe("Mass Migrations", async function() {
         Bob.newKeyPair();
         Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
-        stateTree.createAccount(Alice);
-        stateTree.createAccount(Bob);
+        stateTree.createState(Alice);
+        stateTree.createState(Bob);
         const accountRoot = await registry.root();
         const initialCommitment = MassMigrationCommitment.new(
             stateTree.root,
@@ -97,7 +97,7 @@ describe("Mass Migrations", async function() {
             [
                 {
                     pathToAccount: Alice.stateID,
-                    account: proof.account,
+                    account: proof.state,
                     siblings: proof.witness
                 }
             ]
@@ -130,7 +130,7 @@ describe("Mass Migrations", async function() {
         await rollup.disputeMMBatch(batchId, previousMP, commitmentMP, [
             {
                 pathToAccount: Alice.stateID,
-                account: proof.account,
+                account: proof.state,
                 siblings: proof.witness
             }
         ]);

@@ -45,8 +45,8 @@ describe("Rollup", async function() {
         Bob.newKeyPair();
         Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
-        stateTree.createAccount(Alice);
-        stateTree.createAccount(Bob);
+        stateTree.createState(Alice);
+        stateTree.createState(Bob);
 
         const accountRoot = await registry.root();
 
@@ -127,17 +127,17 @@ describe("Rollup", async function() {
             [
                 {
                     pathToAccount,
-                    account: proof[0].senderAccount,
+                    account: proof[0].sender,
                     siblings: proof[0].senderWitness
                 },
                 {
                     pathToAccount,
-                    account: proof[0].receiverAccount,
+                    account: proof[0].receiver,
                     siblings: proof[0].receiverWitness
                 },
                 {
                     pathToAccount,
-                    account: feeProof.feeReceiverAccount,
+                    account: feeProof.feeReceiver,
                     siblings: feeProof.feeReceiverWitness
                 }
             ]

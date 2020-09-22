@@ -61,7 +61,7 @@ describe("Rollup Transfer Commitment", () => {
         rollup = await new TestTransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
-            stateTree.createAccount(accounts[i]);
+            stateTree.createState(accounts[i]);
         }
     });
 
@@ -90,7 +90,7 @@ describe("Rollup Transfer Commitment", () => {
             txs.push(tx);
             signers.push(sender);
             pubkeys.push(sender.encodePubkey());
-            pubkeyWitnesses.push(registry.witness(sender.accountID));
+            pubkeyWitnesses.push(registry.witness(sender.pubkeyIndex));
             const signature = sender.sign(tx);
             aggSignature = mcl.aggreagate(aggSignature, signature);
         }
@@ -102,7 +102,7 @@ describe("Rollup Transfer Commitment", () => {
         const stateAccounts = [];
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateWitnesses.push(
-                stateTree.getAccountWitness(signers[i].stateID)
+                stateTree.getStateWitness(signers[i].stateID)
             );
             stateAccounts.push(signers[i].toSolStruct());
         }
@@ -174,12 +174,12 @@ describe("Rollup Transfer Commitment", () => {
                 tokenID,
                 {
                     pathToAccount: sender.stateID,
-                    account: proof.senderAccount,
+                    account: proof.sender,
                     siblings: proof.senderWitness
                 },
                 {
                     pathToAccount: receiver.stateID,
-                    account: proof.receiverAccount,
+                    account: proof.receiver,
                     siblings: proof.receiverWitness
                 }
             );
@@ -229,18 +229,18 @@ describe("Rollup Transfer Commitment", () => {
         const pathToAccount = 0;
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateMerkleProof.push({
-                account: proof[i].senderAccount,
+                account: proof[i].sender,
                 pathToAccount,
                 siblings: proof[i].senderWitness
             });
             stateMerkleProof.push({
-                account: proof[i].receiverAccount,
+                account: proof[i].receiver,
                 pathToAccount,
                 siblings: proof[i].receiverWitness
             });
         }
         stateMerkleProof.push({
-            account: feeProof.feeReceiverAccount,
+            account: feeProof.feeReceiver,
             pathToAccount,
             siblings: feeProof.feeReceiverWitness
         });
