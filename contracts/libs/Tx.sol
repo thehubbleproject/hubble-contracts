@@ -26,11 +26,11 @@ library Tx {
     uint256 public constant POSITION_AMOUNT_0 = 12;
     uint256 public constant POSITION_FEE_0 = 16;
 
-    // transaction_type: create2Transfer 
+    // transaction_type: create2Transfer
     // [sender_state_id<4>|receiver_state_id<4>|receiver_acc_id<4>|amount<4>|fee<4>]
     uint256 public constant TX_LEN_1 = 20;
     // positions in bytes
-    uint256 public constant POSITION_SENDER_1= 4;
+    uint256 public constant POSITION_SENDER_1 = 4;
     uint256 public constant POSITION_RECEIVER_1 = 8;
     uint256 public constant POSITION_RECEIVER_ACCID_1 = 12;
     uint256 public constant POSITION_AMOUNT_1 = 16;
@@ -266,8 +266,7 @@ library Tx {
         return txs.length / TX_LEN_5;
     }
 
-
-     function create2Transfer_hasExcessData(bytes memory txs)
+    function create2Transfer_hasExcessData(bytes memory txs)
         internal
         pure
         returns (bool)
@@ -275,7 +274,11 @@ library Tx {
         return txs.length % TX_LEN_1 != 0;
     }
 
-    function create2Transfer_size(bytes memory txs) internal pure returns (uint256) {
+    function create2Transfer_size(bytes memory txs)
+        internal
+        pure
+        returns (uint256)
+    {
         return txs.length / TX_LEN_1;
     }
 
@@ -296,7 +299,16 @@ library Tx {
             _tx.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256,uint256 , uint256, uint256, uint256, uint256)
+            (
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint256
+            )
         );
         Tx.Create2Transfer memory _txCompressed = Tx.Create2Transfer(
             _tx.fromIndex,
@@ -321,9 +333,18 @@ library Tx {
             uint256 toAccID;
             uint256 amount;
             uint256 fee;
-            (, fromIndex, toIndex, toAccID,, , amount, fee) = abi.decode(
+            (, fromIndex, toIndex, toAccID, , , amount, fee) = abi.decode(
                 txs[i],
-                (uint256, uint256,uint256, uint256, uint256, uint256, uint256, uint256)
+                (
+                    uint256,
+                    uint256,
+                    uint256,
+                    uint256,
+                    uint256,
+                    uint256,
+                    uint256,
+                    uint256
+                )
             );
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
@@ -368,11 +389,9 @@ library Tx {
         return serialized;
     }
 
-    function create2Transfer_serializeFromEncoded(Types.Create2Transfer[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function create2Transfer_serializeFromEncoded(
+        Types.Create2Transfer[] memory txs
+    ) internal pure returns (bytes memory) {
         uint256 batchSize = txs.length;
         bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
         for (uint256 i = 0; i < batchSize; i++) {

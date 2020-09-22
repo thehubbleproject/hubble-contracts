@@ -343,8 +343,7 @@ contract Rollup is RollupHelpers {
         submitBatch(leaves, Types.Usage.Transfer);
     }
 
-
-     /**
+    /**
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
     function submitCreate2TransferBatch(

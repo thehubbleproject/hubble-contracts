@@ -208,7 +208,7 @@ contract Create2Transfer is FraudProofHelpers {
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
                 RollupUtilsLib.HashFromAccount(toAccountProof.account),
-                  _tx.toIndex,
+                _tx.toIndex,
                 toAccountProof.siblings
             ),
             "Transfer: receiver proof invalid"
@@ -216,7 +216,7 @@ contract Create2Transfer is FraudProofHelpers {
 
         (new_to_account, newRoot) = ApplyTransferTxReceiver(
             toAccountProof,
-            _tx, 
+            _tx,
             fromAccountProof.account.tokenType
         );
 
@@ -251,10 +251,12 @@ contract Create2Transfer is FraudProofHelpers {
         uint256 token
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         // Initialize account
-        _merkle_proof.account.ID =  _tx.toAccID;
+        _merkle_proof.account.ID = _tx.toAccID;
         _merkle_proof.account.balance = _tx.amount;
-        _merkle_proof.account.tokenType = token;  
-        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(_merkle_proof.account);
+        _merkle_proof.account.tokenType = token;
+        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(
+            _merkle_proof.account
+        );
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.toIndex,
