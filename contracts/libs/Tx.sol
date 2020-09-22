@@ -226,18 +226,13 @@ library Tx {
         bytes memory txs,
         uint256 index,
         uint256 nonce
-    ) internal pure returns (bytes32) {
-        Transfer memory _tx = transfer_decode(txs, index);
-        return
-            keccak256(
-                abi.encodePacked(
-                    TRANSFER,
-                    _tx.fromIndex,
-                    _tx.toIndex,
-                    nonce,
-                    _tx.amount
-                )
-            );
+    ) internal pure returns (bytes memory) {
+        bytes memory serialized = new bytes(TX_LEN_0);
+        uint256 off = index * TX_LEN_0;
+        for (uint256 j = 0; j < TX_LEN_0; j++) {
+            serialized[j] = txs[off + j];
+        }
+        return abi.encodePacked(uint8(TRANSFER), uint32(nonce), serialized);
     }
 
     function massMigration_decode(bytes memory txs, uint256 index)
