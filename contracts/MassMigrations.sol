@@ -137,7 +137,7 @@ contract MassMigration is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.MassMigration memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.account;
+        Types.UserState memory account = _merkle_proof.account;
         account = RemoveTokensFromAccount(account, _tx.amount);
         account.nonce++;
         bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);

@@ -5,7 +5,7 @@ import { Tx } from "./Tx.sol";
 import { Types } from "./Types.sol";
 
 library RollupUtilsLib {
-    function BytesFromAccount(Types.UserAccount memory account)
+    function BytesFromAccount(Types.UserState memory account)
         internal
         pure
         returns (bytes memory)
@@ -20,7 +20,7 @@ library RollupUtilsLib {
         return data;
     }
 
-    function HashFromAccount(Types.UserAccount memory account)
+    function HashFromAccount(Types.UserState memory account)
         internal
         pure
         returns (bytes32)
@@ -62,7 +62,7 @@ contract RollupUtils {
         return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
     }
 
-    function BytesFromAccount(Types.UserAccount memory account)
+    function BytesFromAccount(Types.UserState memory account)
         public
         pure
         returns (bytes memory)
@@ -70,7 +70,7 @@ contract RollupUtils {
         return RollupUtilsLib.BytesFromAccount(account);
     }
 
-    function HashFromAccount(Types.UserAccount memory account)
+    function HashFromAccount(Types.UserState memory account)
         public
         pure
         returns (bytes32)
@@ -96,9 +96,9 @@ contract RollupUtils {
     }
 
     function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
-        Types.UserAccount memory account1;
+        Types.UserState memory account1;
         account1.ID = 0;
-        Types.UserAccount memory account2;
+        Types.UserState memory account2;
         account2.ID = 1;
         leaves[0] = HashFromAccount(account1);
         leaves[1] = HashFromAccount(account2);

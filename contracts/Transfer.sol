@@ -205,7 +205,7 @@ contract Transfer is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.account;
+        Types.UserState memory account = _merkle_proof.account;
         account.balance = account.balance.sub(_tx.amount).sub(_tx.fee);
         account.nonce++;
         bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
@@ -221,7 +221,7 @@ contract Transfer is FraudProofHelpers {
         Types.AccountMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.account;
+        Types.UserState memory account = _merkle_proof.account;
         account.balance = account.balance.add(_tx.amount);
         bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
@@ -247,7 +247,7 @@ contract Transfer is FraudProofHelpers {
             bool isValid
         )
     {
-        Types.UserAccount memory account = stateLeafProof.account;
+        Types.UserState memory account = stateLeafProof.account;
         if (account.tokenType != tokenType) {
             return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
         }

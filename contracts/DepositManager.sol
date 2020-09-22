@@ -100,7 +100,7 @@ contract DepositManager {
             "token transfer not approved"
         );
         // create a new account
-        Types.UserAccount memory newAccount = Types.UserAccount(
+        Types.UserState memory newAccount = Types.UserState(
             accountID,
             _tokenType,
             _amount,

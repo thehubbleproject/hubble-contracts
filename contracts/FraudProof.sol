@@ -25,7 +25,7 @@ contract FraudProofHelpers is FraudProofSetup {
     function validateTxBasic(
         uint256 amount,
         uint256 fee,
-        Types.UserAccount memory _from_account
+        Types.UserState memory _from_account
     ) public pure returns (Types.ErrorCode) {
         if (amount == 0) {
             // invalid state transition
@@ -46,9 +46,9 @@ contract FraudProofHelpers is FraudProofSetup {
     }
 
     function RemoveTokensFromAccount(
-        Types.UserAccount memory account,
+        Types.UserState memory account,
         uint256 numOfTokens
-    ) public pure returns (Types.UserAccount memory updatedAccount) {
+    ) public pure returns (Types.UserState memory updatedAccount) {
         return (
             UpdateBalanceInAccount(
                 account,
@@ -59,17 +59,17 @@ contract FraudProofHelpers is FraudProofSetup {
 
     // returns a new User Account with updated balance
     function UpdateBalanceInAccount(
-        Types.UserAccount memory original_account,
+        Types.UserState memory original_account,
         uint256 new_balance
-    ) public pure returns (Types.UserAccount memory updated_account) {
+    ) public pure returns (Types.UserState memory updated_account) {
         original_account.balance = new_balance;
         return original_account;
     }
 
     function AddTokensToAccount(
-        Types.UserAccount memory account,
+        Types.UserState memory account,
         uint256 numOfTokens
-    ) public pure returns (Types.UserAccount memory updatedAccount) {
+    ) public pure returns (Types.UserState memory updatedAccount) {
         return (
             UpdateBalanceInAccount(
                 account,
@@ -78,7 +78,7 @@ contract FraudProofHelpers is FraudProofSetup {
         );
     }
 
-    function BalanceFromAccount(Types.UserAccount memory account)
+    function BalanceFromAccount(Types.UserState memory account)
         public
         pure
         returns (uint256)
@@ -90,7 +90,7 @@ contract FraudProofHelpers is FraudProofSetup {
      * @notice Returns the updated root and balance
      */
     function UpdateAccountWithSiblings(
-        Types.UserAccount memory new_account,
+        Types.UserState memory new_account,
         Types.AccountMerkleProof memory _merkle_proof
     ) public pure returns (bytes32) {
         bytes32 newRoot = MerkleTreeUtilsLib.rootFromWitnesses(

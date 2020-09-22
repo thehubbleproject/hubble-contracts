@@ -5,7 +5,7 @@ pragma solidity ^0.5.15;
  */
 library Types {
     struct SignatureProof {
-        Types.UserAccount[] stateAccounts;
+        Types.UserState[] stateAccounts;
         bytes32[][] stateWitnesses;
         uint256[4][] pubkeys;
         bytes32[][] pubkeyWitnesses;
@@ -157,8 +157,8 @@ library Types {
         uint256 fee;
     }
 
-    // UserAccount contains the actual data stored in the leaf of balance tree
-    struct UserAccount {
+    // UserState contains the actual data stored in the leaf of balance tree
+    struct UserState {
         // ID is the path to the pubkey in the PDA tree
         uint256 ID;
         uint256 tokenType;
@@ -167,7 +167,7 @@ library Types {
     }
 
     struct AccountMerkleProof {
-        UserAccount account;
+        UserState account;
         uint256 pathToAccount; // This field is kept for backward competibility, don't use it.
         bytes32[] siblings;
     }
