@@ -19,7 +19,7 @@ contract MassMigration is FraudProofHelpers {
     function processMassMigrationCommit(
         bytes32 stateRoot,
         Types.MassMigrationBody memory commitmentBody,
-        Types.StateMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory proofs
     ) public view returns (bytes32, bool) {
         uint256 length = commitmentBody.txs.massMigration_size();
 
@@ -32,7 +32,7 @@ contract MassMigration is FraudProofHelpers {
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
 
-            // ensure the transaction is to burn account
+            // ensure the transaction is to burn state
             if (_tx.toIndex != BURN_STATE_INDEX) {
                 break;
             }
@@ -56,7 +56,7 @@ contract MassMigration is FraudProofHelpers {
                 metaInfoCounters[1],
                 ,
                 isTxValid
-            ) = processMassMigrationTx(stateRoot, _tx, accountProofs[i]);
+            ) = processMassMigrationTx(stateRoot, _tx, proofs[i]);
 
             // cache token of first tx to evaluate others
             if (i == 0) {
@@ -116,17 +116,16 @@ contract MassMigration is FraudProofHelpers {
             return (ZERO_BYTES32, "", "", 0, err_code, false);
 
         bytes32 newRoot;
-        bytes memory new_from_account;
-        bytes memory new_to_account;
-        (new_from_account, newRoot) = ApplyMassMigrationTxSender(
+        bytes memory newFromState;
+        (newFromState, newRoot) = ApplyMassMigrationTxSender(
             from,
             _tx
         );
 
         return (
             newRoot,
-            new_from_account,
-            new_to_account,
+            newFromState,
+            "",
             from.state.tokenType,
             Types.ErrorCode.NoError,
             true
@@ -136,16 +135,16 @@ contract MassMigration is FraudProofHelpers {
     function ApplyMassMigrationTxSender(
         Types.StateMerkleProof memory _merkle_proof,
         Tx.MassMigration memory _tx
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserState memory account = _merkle_proof.state;
-        account = RemoveTokensFromAccount(account, _tx.amount);
-        account.nonce++;
-        bytes memory accountInBytes = Types.encode(account);
+    ) public pure returns (bytes memory newState, bytes32 newRoot) {
+        Types.UserState memory state = _merkle_proof.state;
+        state = RemoveTokensFromAccount(state, _tx.amount);
+        state.nonce++;
+        bytes memory encodedState = state.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(accountInBytes),
+            keccak256(encodedState),
             _tx.fromIndex,
             _merkle_proof.witness
         );
-        return (accountInBytes, newRoot);
+        return (encodedState, newRoot);
     }
 }
