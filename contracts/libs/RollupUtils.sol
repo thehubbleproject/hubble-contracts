@@ -21,11 +21,7 @@ contract RollupUtils {
     {
         return Types.toHash(commitment);
     }
-
-    // ---------- Account Related Utils -------------------
-
-    // AccountFromBytes decodes the bytes to account
-    function AccountFromBytes(bytes memory accountBytes)
+    function StateFromBytes(bytes memory stateBytes)
         public
         pure
         returns (
@@ -35,7 +31,7 @@ contract RollupUtils {
             uint256 tokenType
         )
     {
-        return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
+        return abi.decode(stateBytes, (uint256, uint256, uint256, uint256));
     }
 
     function BytesFromState(Types.UserState memory state)

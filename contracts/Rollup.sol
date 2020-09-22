@@ -429,7 +429,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.TransferCommitmentInclusionProof memory target,
-        Types.StateMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory proofs
     )
         public
         isDisputable(_batch_id)
@@ -444,7 +444,7 @@ contract Rollup is RollupHelpers {
             .processTransferCommit(
             previous.commitment.stateRoot,
             target.commitment.body.txs,
-            accountProofs,
+            proofs,
             target.commitment.body.tokenType,
             target.commitment.body.feeReceiver
         );
@@ -465,7 +465,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.MMCommitmentInclusionProof memory target,
-        Types.StateMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory proofs
     )
         public
         isDisputable(_batch_id)
@@ -480,7 +480,7 @@ contract Rollup is RollupHelpers {
             .processMassMigrationCommit(
             previous.commitment.stateRoot,
             target.commitment.body,
-            accountProofs
+            proofs
         );
 
         if (
