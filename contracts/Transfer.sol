@@ -68,7 +68,7 @@ contract Transfer is FraudProofHelpers {
     function processTransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.StateMerkleProof[] memory accountProofs,
+        Types.StateMerkleProof[] memory proofs,
         uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, bool) {
@@ -87,8 +87,8 @@ contract Transfer is FraudProofHelpers {
                 stateRoot,
                 _tx,
                 tokenType,
-                accountProofs[i * 2],
-                accountProofs[i * 2 + 1]
+                proofs[i * 2],
+                proofs[i * 2 + 1]
             );
             if (!isTxValid) {
                 break;
@@ -100,7 +100,7 @@ contract Transfer is FraudProofHelpers {
                 fees,
                 tokenType,
                 feeReceiver,
-                accountProofs[length * 2]
+                proofs[length * 2]
             );
         }
 
@@ -169,10 +169,10 @@ contract Transfer is FraudProofHelpers {
             );
 
         bytes32 newRoot;
-        bytes memory new_from_account;
-        bytes memory new_to_account;
+        bytes memory newFromState;
+        bytes memory newToState;
 
-        (new_from_account, newRoot) = ApplyTransferTxSender(
+        (newFromState, newRoot) = ApplyTransferTxSender(
             from,
             _tx
         );
@@ -187,15 +187,15 @@ contract Transfer is FraudProofHelpers {
             "Transfer: receiver does not exist"
         );
 
-        (new_to_account, newRoot) = ApplyTransferTxReceiver(
+        (newToState, newRoot) = ApplyTransferTxReceiver(
             to,
             _tx
         );
 
         return (
             newRoot,
-            new_from_account,
-            new_to_account,
+            newFromState,
+            newToState,
             Types.ErrorCode.NoError,
             true
         );
@@ -204,7 +204,7 @@ contract Transfer is FraudProofHelpers {
     function ApplyTransferTxSender(
         Types.StateMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public pure returns (bytes memory newState, bytes32 newRoot) {
         Types.UserState memory state = _merkle_proof.state;
         state.balance = state.balance.sub(_tx.amount).sub(_tx.fee);
         state.nonce++;
@@ -220,7 +220,7 @@ contract Transfer is FraudProofHelpers {
     function ApplyTransferTxReceiver(
         Types.StateMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
+    ) public pure returns (bytes memory newState, bytes32 newRoot) {
         Types.UserState memory state = _merkle_proof.state;
         state.balance = state.balance.add(_tx.amount);
         bytes memory encodedState = state.encode();
