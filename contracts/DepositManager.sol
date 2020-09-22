@@ -12,6 +12,7 @@ import { Governance } from "./Governance.sol";
 import { Rollup } from "./Rollup.sol";
 
 contract DepositManager {
+    using Types for Types.UserState;
     MTUtils public merkleUtils;
     Registry public nameRegistry;
     bytes32[] public pendingDeposits;
@@ -98,19 +99,19 @@ contract DepositManager {
             tokenContract.transferFrom(msg.sender, vault, _amount),
             "token transfer not approved"
         );
-        // create a new account
-        Types.UserState memory newAccount = Types.UserState(
+        // create a new state
+        Types.UserState memory newState = Types.UserState(
             accountID,
             _tokenType,
             _amount,
             0
         );
-        // get new account hash
-        bytes memory accountBytes = Types.encode(newAccount);
+        // get new state hash
+        bytes memory encodedState = newState.encode();
         // queue the deposit
-        pendingDeposits.push(keccak256(accountBytes));
+        pendingDeposits.push(keccak256(encodedState));
         // emit the event
-        logger.logDepositQueued(accountID, accountBytes);
+        logger.logDepositQueued(accountID, encodedState);
         queueNumber++;
         uint256 tmpDepositSubtreeHeight = 0;
         uint256 tmp = queueNumber;
