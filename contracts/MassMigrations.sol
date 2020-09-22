@@ -137,7 +137,7 @@ contract MassMigration is FraudProofHelpers {
         Tx.MassMigration memory _tx
     ) public pure returns (bytes memory newState, bytes32 newRoot) {
         Types.UserState memory state = _merkle_proof.state;
-        state = RemoveTokensFromAccount(state, _tx.amount);
+        state.balance = state.balance.sub(_tx.amount);
         state.nonce++;
         bytes memory encodedState = state.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
