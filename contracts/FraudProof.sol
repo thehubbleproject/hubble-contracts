@@ -85,19 +85,4 @@ contract FraudProofHelpers is FraudProofSetup {
     {
         return account.balance;
     }
-
-    /**
-     * @notice Returns the updated root and balance
-     */
-    function UpdateAccountWithSiblings(
-        Types.UserState memory new_account,
-        Types.StateMerkleProof memory _merkle_proof
-    ) public pure returns (bytes32) {
-        bytes32 newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(RollupUtilsLib.BytesFromAccount(new_account)),
-            _merkle_proof.pathToAccount,
-            _merkle_proof.siblings
-        );
-        return newRoot;
-    }
 }

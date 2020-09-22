@@ -166,12 +166,12 @@ contract DepositManager {
      * @notice Merges the deposit tree with the balance tree by
      *        superimposing the deposit subtree on the balance tree
      * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
-     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
+     * @param zero Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
      * @return Updates in-state merkle tree root
      */
     function finaliseDeposits(
         uint256 _subTreeDepth,
-        Types.StateMerkleProof memory _zero_account_mp,
+        Types.StateMerkleProofWithPath memory zero,
         bytes32 latestBalanceTree
     ) public onlyRollup returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
@@ -181,8 +181,8 @@ contract DepositManager {
         bool isValid = merkleUtils.verifyLeaf(
             latestBalanceTree,
             emptySubtreeRoot,
-            _zero_account_mp.pathToAccount,
-            _zero_account_mp.siblings
+            zero.path,
+            zero.witness
         );
 
         require(isValid, "proof invalid");
@@ -193,7 +193,7 @@ contract DepositManager {
         // emit the event
         logger.logDepositFinalised(
             depositsSubTreeRoot,
-            _zero_account_mp.pathToAccount
+            zero.path
         );
 
         // return the updated merkle tree root

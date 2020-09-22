@@ -380,18 +380,18 @@ contract Rollup is RollupHelpers {
      */
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
-        Types.StateMerkleProof calldata _zero_account_mp
+        Types.StateMerkleProofWithPath calldata zero
     ) external payable onlyCoordinator isNotRollingBack {
         bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
-            _zero_account_mp,
+            zero,
             getLatestBalanceTreeRoot()
         );
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
-            _zero_account_mp.pathToAccount,
-            _zero_account_mp.siblings
+            zero.path,
+            zero.witness
         );
 
         bytes32[] memory depositCommitments = new bytes32[](1);

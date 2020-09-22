@@ -168,9 +168,14 @@ library Types {
     }
 
     struct StateMerkleProof {
-        UserState account;
-        uint256 pathToAccount; // This field is kept for backward competibility, don't use it.
-        bytes32[] siblings;
+        UserState state;
+        bytes32[] witness;
+    }
+
+    struct StateMerkleProofWithPath {
+        UserState state;
+        uint256 path;
+        bytes32[] witness;
     }
 
     struct TransactionMerkleProof {

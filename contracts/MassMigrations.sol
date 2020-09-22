@@ -85,7 +85,7 @@ contract MassMigration is FraudProofHelpers {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMigration memory _tx,
-        Types.StateMerkleProof memory fromAccountProof
+        Types.StateMerkleProof memory from
     )
         public
         pure
@@ -101,16 +101,16 @@ contract MassMigration is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtilsLib.HashFromAccount(fromAccountProof.account),
+                RollupUtilsLib.HashFromAccount(from.state),
                 _tx.fromIndex,
-                fromAccountProof.siblings
+                from.witness
             ),
             "MassMigration: sender does not exist"
         );
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
             _tx.fee,
-            fromAccountProof.account
+            from.state
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", 0, err_code, false);
@@ -119,7 +119,7 @@ contract MassMigration is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
         (new_from_account, newRoot) = ApplyMassMigrationTxSender(
-            fromAccountProof,
+            from,
             _tx
         );
 
@@ -127,7 +127,7 @@ contract MassMigration is FraudProofHelpers {
             newRoot,
             new_from_account,
             new_to_account,
-            fromAccountProof.account.tokenType,
+            from.state.tokenType,
             Types.ErrorCode.NoError,
             true
         );
@@ -137,14 +137,14 @@ contract MassMigration is FraudProofHelpers {
         Types.StateMerkleProof memory _merkle_proof,
         Tx.MassMigration memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserState memory account = _merkle_proof.account;
+        Types.UserState memory account = _merkle_proof.state;
         account = RemoveTokensFromAccount(account, _tx.amount);
         account.nonce++;
         bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.fromIndex,
-            _merkle_proof.siblings
+            _merkle_proof.witness
         );
         return (accountInBytes, newRoot);
     }
