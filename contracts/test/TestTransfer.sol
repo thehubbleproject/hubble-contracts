@@ -30,8 +30,8 @@ contract TestTransfer is Transfer {
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
         uint256 tokenType,
-        Types.AccountMerkleProof memory fromAccountProof,
-        Types.AccountMerkleProof memory toAccountProof
+        Types.StateMerkleProof memory fromAccountProof,
+        Types.StateMerkleProof memory toAccountProof
     )
         public
         pure
@@ -56,7 +56,7 @@ contract TestTransfer is Transfer {
     function testProcessTransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
+        Types.StateMerkleProof[] memory accountProofs,
         uint256 tokenType,
         uint256 feeReceiver
     ) public returns (bytes32, uint256) {

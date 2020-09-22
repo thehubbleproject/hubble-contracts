@@ -167,7 +167,7 @@ library Types {
         uint256 nonce;
     }
 
-    struct AccountMerkleProof {
+    struct StateMerkleProof {
         UserState account;
         uint256 pathToAccount; // This field is kept for backward competibility, don't use it.
         bytes32[] siblings;

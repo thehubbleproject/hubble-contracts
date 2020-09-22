@@ -68,7 +68,7 @@ contract Transfer is FraudProofHelpers {
     function processTransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
+        Types.StateMerkleProof[] memory accountProofs,
         uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, bool) {
@@ -118,8 +118,8 @@ contract Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         Tx.Transfer memory _tx,
         uint256 tokenType,
-        Types.AccountMerkleProof memory fromAccountProof,
-        Types.AccountMerkleProof memory toAccountProof
+        Types.StateMerkleProof memory fromAccountProof,
+        Types.StateMerkleProof memory toAccountProof
     )
         public
         pure
@@ -202,7 +202,7 @@ contract Transfer is FraudProofHelpers {
     }
 
     function ApplyTransferTxSender(
-        Types.AccountMerkleProof memory _merkle_proof,
+        Types.StateMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserState memory account = _merkle_proof.account;
@@ -218,7 +218,7 @@ contract Transfer is FraudProofHelpers {
     }
 
     function ApplyTransferTxReceiver(
-        Types.AccountMerkleProof memory _merkle_proof,
+        Types.StateMerkleProof memory _merkle_proof,
         Tx.Transfer memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserState memory account = _merkle_proof.account;
@@ -237,7 +237,7 @@ contract Transfer is FraudProofHelpers {
         uint256 fees,
         uint256 tokenType,
         uint256 feeReceiver,
-        Types.AccountMerkleProof memory stateLeafProof
+        Types.StateMerkleProof memory stateLeafProof
     )
         public
         pure

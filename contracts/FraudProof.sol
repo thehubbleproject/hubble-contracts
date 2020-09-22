@@ -91,7 +91,7 @@ contract FraudProofHelpers is FraudProofSetup {
      */
     function UpdateAccountWithSiblings(
         Types.UserState memory new_account,
-        Types.AccountMerkleProof memory _merkle_proof
+        Types.StateMerkleProof memory _merkle_proof
     ) public pure returns (bytes32) {
         bytes32 newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(RollupUtilsLib.BytesFromAccount(new_account)),

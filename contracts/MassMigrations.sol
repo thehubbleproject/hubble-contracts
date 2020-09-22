@@ -19,7 +19,7 @@ contract MassMigration is FraudProofHelpers {
     function processMassMigrationCommit(
         bytes32 stateRoot,
         Types.MassMigrationBody memory commitmentBody,
-        Types.AccountMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory accountProofs
     ) public view returns (bytes32, bool) {
         uint256 length = commitmentBody.txs.massMigration_size();
 
@@ -85,7 +85,7 @@ contract MassMigration is FraudProofHelpers {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMigration memory _tx,
-        Types.AccountMerkleProof memory fromAccountProof
+        Types.StateMerkleProof memory fromAccountProof
     )
         public
         pure
@@ -134,7 +134,7 @@ contract MassMigration is FraudProofHelpers {
     }
 
     function ApplyMassMigrationTxSender(
-        Types.AccountMerkleProof memory _merkle_proof,
+        Types.StateMerkleProof memory _merkle_proof,
         Tx.MassMigration memory _tx
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         Types.UserState memory account = _merkle_proof.account;

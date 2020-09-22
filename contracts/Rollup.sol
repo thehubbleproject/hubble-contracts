@@ -380,7 +380,7 @@ contract Rollup is RollupHelpers {
      */
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
-        Types.AccountMerkleProof calldata _zero_account_mp
+        Types.StateMerkleProof calldata _zero_account_mp
     ) external payable onlyCoordinator isNotRollingBack {
         bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
@@ -429,7 +429,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.TransferCommitmentInclusionProof memory target,
-        Types.AccountMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory accountProofs
     )
         public
         isDisputable(_batch_id)
@@ -465,7 +465,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.MMCommitmentInclusionProof memory target,
-        Types.AccountMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory accountProofs
     )
         public
         isDisputable(_batch_id)

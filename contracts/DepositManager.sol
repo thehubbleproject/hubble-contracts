@@ -171,7 +171,7 @@ contract DepositManager {
      */
     function finaliseDeposits(
         uint256 _subTreeDepth,
-        Types.AccountMerkleProof memory _zero_account_mp,
+        Types.StateMerkleProof memory _zero_account_mp,
         bytes32 latestBalanceTree
     ) public onlyRollup returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
