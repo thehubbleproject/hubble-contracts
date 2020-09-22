@@ -25,14 +25,10 @@ contract RollupUtils {
     function StateFromBytes(bytes memory stateBytes)
         public
         pure
-        returns (
-            uint256 ID,
-            uint256 balance,
-            uint256 nonce,
-            uint256 tokenType
-        )
+        returns (Types.UserState memory state)
     {
-        return abi.decode(stateBytes, (uint256, uint256, uint256, uint256));
+        (state.pubkeyIndex, state.tokenType, state.balance, state.nonce) = abi
+            .decode(stateBytes, (uint256, uint256, uint256, uint256));
     }
 
     function BytesFromState(Types.UserState memory state)

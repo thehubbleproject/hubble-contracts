@@ -13,19 +13,19 @@ describe("RollupUtils", async function() {
         RollupUtilsInstance = await new RollupUtilsFactory(signer).deploy();
     });
 
-    it("test account encoding and decoding", async function() {
-        const account = EMPTY_STATE;
+    it("test state encoding and decoding", async function() {
+        const state = EMPTY_STATE;
 
-        const accountBytes = await RollupUtilsInstance.BytesFromAccount(
-            account
+        const encodedState = await RollupUtilsInstance.BytesFromState(
+            state
         );
-        const decoded = await RollupUtilsInstance.AccountFromBytes(
-            accountBytes
+        const decoded = await RollupUtilsInstance.StateFromBytes(
+            encodedState
         );
-        assert.equal(decoded.ID.toNumber(), account.ID);
-        assert.equal(decoded.balance.toNumber(), account.balance);
-        assert.equal(decoded.nonce.toNumber(), account.nonce);
-        assert.equal(decoded.tokenType.toNumber(), account.tokenType);
+        assert.equal(decoded.pubkeyIndex.toNumber(), state.pubkeyIndex);
+        assert.equal(decoded.balance.toNumber(), state.balance);
+        assert.equal(decoded.nonce.toNumber(), state.nonce);
+        assert.equal(decoded.tokenType.toNumber(), state.tokenType);
     });
     it("test transfer utils", async function() {
         const txRaw = TxTransfer.rand();
