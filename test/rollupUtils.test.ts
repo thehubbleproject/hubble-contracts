@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { TxTransfer } from "../ts/tx";
-import { EMPTY_ACCOUNT } from "../ts/stateAccount";
+import { EMPTY_STATE } from "../ts/state";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
@@ -14,7 +14,7 @@ describe("RollupUtils", async function() {
     });
 
     it("test account encoding and decoding", async function() {
-        const account = EMPTY_ACCOUNT;
+        const account = EMPTY_STATE;
 
         const accountBytes = await RollupUtilsInstance.BytesFromAccount(
             account

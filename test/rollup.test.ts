@@ -3,7 +3,7 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { Account } from "../ts/stateAccount";
+import { State } from "../ts/state";
 import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
@@ -16,8 +16,8 @@ const DOMAIN =
 
 describe("Rollup", async function() {
     const tokenID = 1;
-    let Alice: Account;
-    let Bob: Account;
+    let Alice: State;
+    let Bob: State;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
@@ -35,15 +35,15 @@ describe("Rollup", async function() {
         registry = await AccountRegistry.new(registryContract);
         const initialBalance = USDT.castInt(55.6);
 
-        Alice = Account.new(-1, tokenID, initialBalance, 0);
+        Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(0);
         Alice.newKeyPair();
-        Alice.accountID = await registry.register(Alice.encodePubkey());
+        Alice.pubkeyIndex = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(-1, tokenID, initialBalance, 0);
+        Bob = State.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
         Bob.newKeyPair();
-        Bob.accountID = await registry.register(Bob.encodePubkey());
+        Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);

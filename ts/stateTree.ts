@@ -1,17 +1,17 @@
 import { Tree } from "./tree";
-import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
+import { State, EMPTY_STATE, StateSolStruct } from "./state";
 import { TxTransfer, TxMassMigration } from "./tx";
 import { BigNumber } from "ethers";
 
 interface ProofTransferTx {
-    senderAccount: StateAccountSolStruct;
-    receiverAccount: StateAccountSolStruct;
+    senderAccount: StateSolStruct
+    receiverAccount: StateSolStruct;
     senderWitness: string[];
     receiverWitness: string[];
     safe: boolean;
 }
 interface ProofTransferFee {
-    feeReceiverAccount: StateAccountSolStruct;
+    feeReceiverAccount: StateSolStruct;
     feeReceiverWitness: string[];
     safe: boolean;
 }
@@ -19,7 +19,7 @@ interface ProofTransferFee {
 type ProofTransferBatch = ProofTransferTx[];
 
 interface ProofOfMassMigrationTx {
-    account: StateAccountSolStruct;
+    account: StateSolStruct;
     witness: string[];
     safe: boolean;
 }
@@ -47,7 +47,7 @@ export class StateTree {
         return new StateTree(stateDepth);
     }
     private stateTree: Tree;
-    private accounts: { [key: number]: Account } = {};
+    private accounts: { [key: number]: State } = {};
     constructor(stateDepth: number) {
         this.stateTree = Tree.new(stateDepth);
     }
@@ -56,7 +56,7 @@ export class StateTree {
         return this.stateTree.witness(stateID).nodes;
     }
 
-    public createAccount(account: Account) {
+    public createAccount(account: State) {
         const stateID = account.stateID;
         if (this.accounts[stateID]) {
             throw new Error("state id is in use");
@@ -170,7 +170,7 @@ export class StateTree {
         } else {
             if (!senderAccount) {
                 return {
-                    senderAccount: EMPTY_ACCOUNT,
+                    senderAccount: EMPTY_STATE,
                     receiverAccount: PLACEHOLDER_PROOF_ACC,
                     senderWitness,
                     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
@@ -182,7 +182,7 @@ export class StateTree {
             return {
                 senderAccount: senderAccStruct,
                 senderWitness,
-                receiverAccount: EMPTY_ACCOUNT,
+                receiverAccount: EMPTY_STATE,
                 receiverWitness: receiverWitness,
                 safe: false
             };

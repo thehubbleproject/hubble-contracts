@@ -7,7 +7,7 @@ import { TxTransfer, serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { Account } from "../ts/stateAccount";
+import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
@@ -25,7 +25,7 @@ describe("Rollup Transfer Commitment", () => {
     let rollup: TestTransfer;
     let registry: AccountRegistry;
     let stateTree: StateTree;
-    const accounts: Account[] = [];
+    const accounts: State[] = [];
     const tokenID = 1;
     const initialBalance = USDT.castInt(1000.0);
     const initialNonce = 9;
@@ -43,7 +43,7 @@ describe("Rollup Transfer Commitment", () => {
         for (let i = 0; i < ACCOUNT_SIZE; i++) {
             const accountID = i;
             const stateID = i;
-            const account = Account.new(
+            const account = State.new(
                 accountID,
                 tokenID,
                 initialBalance,

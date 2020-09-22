@@ -3,7 +3,7 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { Account } from "../ts/stateAccount";
+import { State } from "../ts/state";
 import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
@@ -16,8 +16,8 @@ const DOMAIN =
 
 describe("Mass Migrations", async function() {
     const tokenID = 1;
-    let Alice: Account;
-    let Bob: Account;
+    let Alice: State;
+    let Bob: State;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
@@ -28,21 +28,21 @@ describe("Mass Migrations", async function() {
     });
 
     beforeEach(async function() {
-        const accounts = await ethers.getSigners();
-        contracts = await deployAll(accounts[0], TESTING_PARAMS);
+        const [signer, ...rest] = await ethers.getSigners();
+        contracts = await deployAll(signer, TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
         const initialBalance = USDT.castInt(1000.0);
-        Alice = Account.new(-1, tokenID, initialBalance, 0);
+        Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
-        Alice.accountID = await registry.register(Alice.encodePubkey());
+        Alice.pubkeyIndex = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(-1, tokenID, initialBalance, 0);
+        Bob = State.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(3);
         Bob.newKeyPair();
-        Bob.accountID = await registry.register(Bob.encodePubkey());
+        Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
         stateTree.createAccount(Alice);
         stateTree.createAccount(Bob);
