@@ -17,7 +17,7 @@ import { USDT } from "../ts/decimal";
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
 const BAD_DOMAIN = Uint8Array.from(Buffer.from(randHex(32).slice(2), "hex"));
-let ACCOUNT_SIZE = 32;
+let STATE_SIZE = 32;
 let COMMIT_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
 
@@ -25,7 +25,7 @@ describe("Rollup Transfer Commitment", () => {
     let rollup: TestTransfer;
     let registry: AccountRegistry;
     let stateTree: StateTree;
-    const accounts: State[] = [];
+    const states: State[] = [];
     const tokenID = 1;
     const initialBalance = USDT.castInt(1000.0);
     const initialNonce = 9;
@@ -40,19 +40,19 @@ describe("Rollup Transfer Commitment", () => {
         ).deploy(logger.address);
 
         registry = await AccountRegistry.new(registryContract);
-        for (let i = 0; i < ACCOUNT_SIZE; i++) {
+        for (let i = 0; i < STATE_SIZE; i++) {
             const accountID = i;
             const stateID = i;
-            const account = State.new(
+            const state = State.new(
                 accountID,
                 tokenID,
                 initialBalance,
                 initialNonce + i
             );
-            account.setStateID(stateID);
-            account.newKeyPair();
-            accounts.push(account);
-            await registry.register(account.encodePubkey());
+            state.setStateID(stateID);
+            state.newKeyPair();
+            states.push(state);
+            await registry.register(state.encodePubkey());
         }
     });
 
@@ -60,8 +60,8 @@ describe("Rollup Transfer Commitment", () => {
         const [signer, ...rest] = await ethers.getSigners();
         rollup = await new TestTransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
-        for (let i = 0; i < ACCOUNT_SIZE; i++) {
-            stateTree.createState(accounts[i]);
+        for (let i = 0; i < STATE_SIZE; i++) {
+            stateTree.createState(states[i]);
         }
     });
 
@@ -76,9 +76,9 @@ describe("Rollup Transfer Commitment", () => {
         const pubkeyWitnesses = [];
         for (let i = 0; i < COMMIT_SIZE; i++) {
             const senderIndex = i;
-            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
-            const sender = accounts[senderIndex];
-            const receiver = accounts[reciverIndex];
+            const reciverIndex = (i + 5) % STATE_SIZE;
+            const sender = states[senderIndex];
+            const receiver = states[reciverIndex];
             const tx = new TxTransfer(
                 sender.stateID,
                 receiver.stateID,
@@ -99,17 +99,17 @@ describe("Rollup Transfer Commitment", () => {
         assert.isTrue(stateTransitionProof.safe);
         const { serialized, commit } = serialize(txs);
         const stateWitnesses = [];
-        const stateAccounts = [];
+        const states = [];
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateWitnesses.push(
                 stateTree.getStateWitness(signers[i].stateID)
             );
-            stateAccounts.push(signers[i].toSolStruct());
+            states.push(signers[i].toSolStruct());
         }
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
         const proof = {
-            stateAccounts,
+            states,
             stateWitnesses,
             pubkeys,
             pubkeyWitnesses
@@ -153,9 +153,9 @@ describe("Rollup Transfer Commitment", () => {
         const fee = USDT.castInt(1.001);
         for (let i = 0; i < COMMIT_SIZE; i++) {
             const senderIndex = i;
-            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
-            const sender = accounts[senderIndex];
-            const receiver = accounts[reciverIndex];
+            const reciverIndex = (i + 5) % STATE_SIZE;
+            const sender = states[senderIndex];
+            const receiver = states[reciverIndex];
             const tx = new TxTransfer(
                 sender.stateID,
                 receiver.stateID,
@@ -202,9 +202,9 @@ describe("Rollup Transfer Commitment", () => {
 
         for (let i = 0; i < COMMIT_SIZE; i++) {
             const senderIndex = i;
-            const reciverIndex = (i + 5) % ACCOUNT_SIZE;
-            const sender = accounts[senderIndex];
-            const receiver = accounts[reciverIndex];
+            const reciverIndex = (i + 5) % STATE_SIZE;
+            const sender = states[senderIndex];
+            const receiver = states[reciverIndex];
             const tx = new TxTransfer(
                 sender.stateID,
                 receiver.stateID,
@@ -240,7 +240,7 @@ describe("Rollup Transfer Commitment", () => {
             });
         }
         stateMerkleProof.push({
-            account: feeProof.feeReceiver,
+            state: feeProof.feeReceiver,
             pathToAccount,
             siblings: feeProof.feeReceiverWitness
         });

@@ -3,7 +3,7 @@ import { Tx, SignableTx } from "./tx";
 import { BigNumber, BigNumberish, ethers } from "ethers";
 
 export interface StateSolStruct {
-    ID: number;
+    pubkeyIndex: number;
     tokenType: number;
     balance: number;
     nonce: number;
@@ -13,7 +13,7 @@ export interface StateSolStruct {
  * @dev this is not an zero state leaf contrarily this is a legit state!
 */
 export const EMPTY_STATE: StateSolStruct = {
-    ID: 0,
+    pubkeyIndex: 0,
     tokenType: 0,
     balance: 0,
     nonce: 0
@@ -23,13 +23,13 @@ export class State {
     publicKey: mcl.PublicKey;
     secretKey: mcl.SecretKey;
     public static new(
-        accountID: number,
+        pubkeyIndex: number,
         tokenType: number,
         balance: BigNumberish,
         nonce: number
     ): State {
         return new State(
-            accountID,
+            pubkeyIndex,
             tokenType,
             BigNumber.from(balance),
             nonce
@@ -75,7 +75,7 @@ export class State {
 
     public toSolStruct(): StateSolStruct {
         return {
-            ID: this.pubkeyIndex,
+            pubkeyIndex: this.pubkeyIndex,
             tokenType: this.tokenType,
             balance: this.balance.toNumber(),
             nonce: this.nonce
