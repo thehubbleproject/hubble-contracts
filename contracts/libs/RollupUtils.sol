@@ -11,7 +11,7 @@ library RollupUtilsLib {
         returns (bytes memory)
     {
         bytes memory data = abi.encodePacked(
-            account.ID,
+            account.pubkeyIndex,
             account.balance,
             account.nonce,
             account.tokenType
@@ -97,9 +97,9 @@ contract RollupUtils {
 
     function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
         Types.UserState memory account1;
-        account1.ID = 0;
+        account1.pubkeyIndex = 0;
         Types.UserState memory account2;
-        account2.ID = 1;
+        account2.pubkeyIndex = 1;
         leaves[0] = HashFromAccount(account1);
         leaves[1] = HashFromAccount(account2);
     }

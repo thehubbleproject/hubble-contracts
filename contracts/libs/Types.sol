@@ -157,10 +157,11 @@ library Types {
         uint256 fee;
     }
 
-    // UserState contains the actual data stored in the leaf of balance tree
+    /**
+    @param pubkeyIndex path to the pubkey in the PDA tree
+     */
     struct UserState {
-        // ID is the path to the pubkey in the PDA tree
-        uint256 ID;
+        uint256 pubkeyIndex;
         uint256 tokenType;
         uint256 balance;
         uint256 nonce;
