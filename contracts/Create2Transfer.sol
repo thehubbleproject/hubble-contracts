@@ -207,7 +207,7 @@ contract Create2Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtilsLib.HashFromAccount(toAccountProof.account),
+                keccak256(abi.encode(0)),
                 _tx.toIndex,
                 toAccountProof.siblings
             ),
