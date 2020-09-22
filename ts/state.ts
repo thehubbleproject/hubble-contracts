@@ -69,7 +69,7 @@ export class State {
     public toStateLeaf(): string {
         return ethers.utils.solidityKeccak256(
             ["uint256", "uint256", "uint256", "uint256"],
-            [this.pubkeyIndex, this.balance, this.nonce, this.tokenType]
+            [this.pubkeyIndex, this.tokenType, this.balance, this.nonce]
         );
     }
 
