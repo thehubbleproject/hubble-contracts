@@ -28,7 +28,7 @@ contract Transfer is FraudProofHelpers {
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     stateRoot,
-                    keccak256(proof.stateAccounts[i].encode()),
+                    keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
@@ -47,10 +47,10 @@ contract Transfer is FraudProofHelpers {
             );
 
             // construct the message
-            require(proof.stateAccounts[i].nonce > 0, "Rollup: zero nonce");
+            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
             bytes memory txMsg = txs.transfer_messageOf(
                 i,
-                proof.stateAccounts[i].nonce - 1
+                proof.states[i].nonce - 1
             );
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);

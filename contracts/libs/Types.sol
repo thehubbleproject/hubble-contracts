@@ -5,7 +5,7 @@ pragma solidity ^0.5.15;
  */
 library Types {
     struct SignatureProof {
-        Types.UserState[] stateAccounts;
+        Types.UserState[] states;
         bytes32[][] stateWitnesses;
         uint256[4][] pubkeys;
         bytes32[][] pubkeyWitnesses;
