@@ -343,6 +343,36 @@ contract Rollup is RollupHelpers {
         submitBatch(leaves, Types.Usage.Transfer);
     }
 
+
+     /**
+     * @dev This function should be highly optimized so that it can include as many commitments as possible
+     */
+    function submitCreate2TransferBatch(
+        bytes32[] calldata stateRoots,
+        uint256[2][] calldata signatures,
+        uint256[] calldata tokenTypes,
+        uint256[] calldata feeReceivers,
+        bytes[] calldata txss
+    ) external payable onlyCoordinator {
+        bytes32[] memory leaves = new bytes32[](stateRoots.length);
+        bytes32 accountRoot = accountRegistry.root();
+        bytes32 bodyRoot;
+        for (uint256 i = 0; i < stateRoots.length; i++) {
+            // This is TransferBody toHash() but we don't want the overhead of struct
+            bodyRoot = keccak256(
+                abi.encodePacked(
+                    accountRoot,
+                    signatures[i],
+                    tokenTypes[i],
+                    feeReceivers[i],
+                    txss[i]
+                )
+            );
+            leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
+        }
+        submitBatch(leaves, Types.Usage.Create2Transfer);
+    }
+
     /**
      * @param meta is targetSpokeID, tokenID, and amount combined
      * @dev This function should be highly optimized so that it can include as many commitments as possible

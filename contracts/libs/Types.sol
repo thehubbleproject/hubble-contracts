@@ -17,6 +17,7 @@ library Types {
         Genesis, // The Genesis type is only applicable to batch but not tx
         Transfer,
         MassMigration,
+        Create2Transfer,
         // Only applicable to batch and not tx
         Deposit
     }
@@ -145,12 +146,21 @@ library Types {
         bytes32[] witness;
     }
 
-    // Transaction represents how each transaction looks like for
-    // this rollup chain
     struct Transfer {
         uint256 txType;
         uint256 fromIndex;
         uint256 toIndex;
+        uint256 tokenType;
+        uint256 nonce;
+        uint256 amount;
+        uint256 fee;
+    }
+
+    struct Create2Transfer {
+        uint256 txType;
+        uint256 fromIndex;
+        uint256 toIndex;
+        uint256 toAccID;
         uint256 tokenType;
         uint256 nonce;
         uint256 amount;

@@ -26,6 +26,16 @@ library Tx {
     uint256 public constant POSITION_AMOUNT_0 = 12;
     uint256 public constant POSITION_FEE_0 = 16;
 
+    // transaction_type: create2Transfer 
+    // [sender_state_id<4>|receiver_state_id<4>|receiver_acc_id<4>|amount<4>|fee<4>]
+    uint256 public constant TX_LEN_1 = 20;
+    // positions in bytes
+    uint256 public constant POSITION_SENDER_1= 4;
+    uint256 public constant POSITION_RECEIVER_1 = 8;
+    uint256 public constant POSITION_RECEIVER_ACCID_1 = 12;
+    uint256 public constant POSITION_AMOUNT_1 = 16;
+    uint256 public constant POSITION_FEE_1 = 20;
+
     // transaction_type: Mass Migrations
     // [sender_state_id<4>|receiver_state_id<4>|amount<4>|spokeID<4>|fee<4>]
     uint256 public constant TX_LEN_5 = 20;
@@ -42,6 +52,15 @@ library Tx {
         uint256 amount;
         uint256 fee;
     }
+
+    struct Create2Transfer {
+        uint256 fromIndex;
+        uint256 toIndex;
+        uint256 toAccID;
+        uint256 amount;
+        uint256 fee;
+    }
+
     struct MassMigration {
         uint256 fromIndex;
         uint256 toIndex;
@@ -245,5 +264,182 @@ library Tx {
         returns (uint256)
     {
         return txs.length / TX_LEN_5;
+    }
+
+
+     function create2Transfer_hasExcessData(bytes memory txs)
+        internal
+        pure
+        returns (bool)
+    {
+        return txs.length % TX_LEN_1 != 0;
+    }
+
+    function create2Transfer_size(bytes memory txs) internal pure returns (uint256) {
+        return txs.length / TX_LEN_1;
+    }
+
+    function create2Transfer_fromEncoded(bytes memory txBytes)
+        internal
+        pure
+        returns (Tx.Create2Transfer memory, uint256 tokenType)
+    {
+        Types.Create2Transfer memory _tx;
+        (
+            _tx.txType,
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.toAccID,
+            _tx.tokenType,
+            _tx.nonce,
+            _tx.amount,
+            _tx.fee
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256,uint256 , uint256, uint256, uint256, uint256)
+        );
+        Tx.Create2Transfer memory _txCompressed = Tx.Create2Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.toAccID,
+            _tx.amount,
+            _tx.fee
+        );
+        return (_txCompressed, _tx.tokenType);
+    }
+
+    function serializeCreate2Transfer(bytes[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_1 * batchSize);
+        for (uint256 i = 0; i < txs.length; i++) {
+            uint256 fromIndex;
+            uint256 toIndex;
+            uint256 toAccID;
+            uint256 amount;
+            uint256 fee;
+            (, fromIndex, toIndex, toAccID,, , amount, fee) = abi.decode(
+                txs[i],
+                (uint256, uint256,uint256, uint256, uint256, uint256, uint256, uint256)
+            );
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint32(toAccID),
+                uint32(amount),
+                uint32(fee)
+            );
+            uint256 off = i * TX_LEN_1;
+            for (uint256 j = 0; j < TX_LEN_1; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
+    function serialize(Create2Transfer[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_1 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 toIndex = txs[i].toIndex;
+            uint256 toAccID = txs[i].toAccID;
+            uint256 amount = txs[i].amount;
+            uint256 fee = txs[i].fee;
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint32(toAccID),
+                uint32(amount),
+                uint32(fee)
+            );
+            uint256 off = i * TX_LEN_1;
+            for (uint256 j = 0; j < TX_LEN_1; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
+    function create2Transfer_serializeFromEncoded(Types.Create2Transfer[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 toIndex = txs[i].toIndex;
+            uint256 toAccID = txs[i].toAccID;
+            uint256 amount = txs[i].amount;
+            uint256 fee = txs[i].fee;
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint32(toAccID),
+                uint32(amount),
+                uint32(fee)
+            );
+            uint256 off = i * TX_LEN_1;
+            for (uint256 j = 0; j < TX_LEN_1; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
+    function create2Transfer_decode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (Create2Transfer memory _tx)
+    {
+        uint256 sender;
+        uint256 receiver;
+        uint256 receiverAccID;
+        uint256 amount;
+        uint256 fee;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_1))
+            sender := and(mload(add(p_tx, POSITION_SENDER_1)), MASK_STATE_ID)
+            receiver := and(
+                mload(add(p_tx, POSITION_RECEIVER_0)),
+                MASK_STATE_ID
+            )
+            receiverAccID := and(
+                mload(add(p_tx, POSITION_RECEIVER_ACCID_1)),
+                MASK_ACCOUNT_ID
+            )
+            amount := and(mload(add(p_tx, POSITION_AMOUNT_1)), MASK_AMOUNT)
+            fee := and(mload(add(p_tx, POSITION_FEE_1)), MASK_FEE)
+        }
+        return Create2Transfer(sender, receiver, receiverAccID, amount, fee);
+    }
+
+    function create2Transfer_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce
+    ) internal pure returns (bytes32) {
+        Create2Transfer memory _tx = create2Transfer_decode(txs, index);
+        return
+            keccak256(
+                abi.encodePacked(
+                    TRANSFER,
+                    _tx.fromIndex,
+                    _tx.toIndex,
+                    _tx.toAccID,
+                    nonce,
+                    _tx.amount
+                )
+            );
     }
 }
