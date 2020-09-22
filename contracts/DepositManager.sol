@@ -190,10 +190,7 @@ contract DepositManager {
         bytes32 depositsSubTreeRoot = dequeue();
 
         // emit the event
-        logger.logDepositFinalised(
-            depositsSubTreeRoot,
-            zero.path
-        );
+        logger.logDepositFinalised(depositsSubTreeRoot, zero.path);
 
         // return the updated merkle tree root
         return (depositsSubTreeRoot);

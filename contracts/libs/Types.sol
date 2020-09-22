@@ -167,7 +167,11 @@ library Types {
         uint256 nonce;
     }
 
-    function encode(UserState memory state) internal pure returns (bytes memory) {
+    function encode(UserState memory state)
+        internal
+        pure
+        returns (bytes memory)
+    {
         return
             abi.encodePacked(
                 state.pubkeyIndex,

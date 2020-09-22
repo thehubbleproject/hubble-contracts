@@ -21,6 +21,7 @@ contract RollupUtils {
     {
         return Types.toHash(commitment);
     }
+
     function StateFromBytes(bytes memory stateBytes)
         public
         pure

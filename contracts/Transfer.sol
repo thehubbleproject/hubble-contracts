@@ -172,10 +172,7 @@ contract Transfer is FraudProofHelpers {
         bytes memory newFromState;
         bytes memory newToState;
 
-        (newFromState, newRoot) = ApplyTransferTxSender(
-            from,
-            _tx
-        );
+        (newFromState, newRoot) = ApplyTransferTxSender(from, _tx);
 
         require(
             MerkleTreeUtilsLib.verifyLeaf(
@@ -187,10 +184,7 @@ contract Transfer is FraudProofHelpers {
             "Transfer: receiver does not exist"
         );
 
-        (newToState, newRoot) = ApplyTransferTxReceiver(
-            to,
-            _tx
-        );
+        (newToState, newRoot) = ApplyTransferTxReceiver(to, _tx);
 
         return (
             newRoot,

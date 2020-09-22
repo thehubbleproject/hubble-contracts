@@ -117,10 +117,7 @@ contract MassMigration is FraudProofHelpers {
 
         bytes32 newRoot;
         bytes memory newFromState;
-        (newFromState, newRoot) = ApplyMassMigrationTxSender(
-            from,
-            _tx
-        );
+        (newFromState, newRoot) = ApplyMassMigrationTxSender(from, _tx);
 
         return (
             newRoot,
