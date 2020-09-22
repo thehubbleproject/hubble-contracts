@@ -45,7 +45,7 @@ describe("RollupUtils", async function() {
         assert.equal(txData.tokenType.toNumber(), tx.tokenType);
         assert.equal(txData.nonce.toNumber(), tx.nonce);
         assert.equal(txData.txType.toNumber(), tx.txType);
-        assert.equal(txData.amount.toNumber(), tx.amount);
+        assert.equal(txData.amount.toString(), tx.amount.toString());
         await RollupUtilsInstance.CompressTransferFromEncoded(txBytes, "0x00");
         const txs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes, txBytes],

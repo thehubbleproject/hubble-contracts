@@ -9,6 +9,7 @@ import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { TransferBatch, TransferCommitment } from "../ts/commitments";
+import { USDT } from "../ts/decimal";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -32,13 +33,14 @@ describe("Rollup", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
+        const initialBalance = USDT.castInt(55.6);
 
-        Alice = Account.new(-1, tokenID, 10, 0);
+        Alice = Account.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(0);
         Alice.newKeyPair();
         Alice.accountID = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(-1, tokenID, 10, 0);
+        Bob = Account.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
         Bob.newKeyPair();
         Bob.accountID = await registry.register(Bob.encodePubkey());
@@ -61,13 +63,13 @@ describe("Rollup", async function() {
 
     it("submit a batch and dispute", async function() {
         const feeReceiver = Alice.stateID;
-        const fee = 1;
         const tx = new TxTransfer(
             Alice.stateID,
             Bob.stateID,
-            5,
-            fee,
-            Alice.nonce + 1
+            USDT.castInt(5.5),
+            USDT.castInt(0.56),
+            Alice.nonce + 1,
+            USDT
         );
 
         const signature = Alice.sign(tx);

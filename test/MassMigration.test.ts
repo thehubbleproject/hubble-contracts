@@ -9,6 +9,7 @@ import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
+import { USDT } from "../ts/decimal";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -32,12 +33,13 @@ describe("Mass Migrations", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
-        Alice = Account.new(-1, tokenID, 10, 0);
+        const initialBalance = USDT.castInt(1000.0);
+        Alice = Account.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
         Alice.accountID = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(-1, tokenID, 10, 0);
+        Bob = Account.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(3);
         Bob.newKeyPair();
         Bob.accountID = await registry.register(Bob.encodePubkey());
@@ -61,16 +63,18 @@ describe("Mass Migrations", async function() {
         const tx = new TxMassMigration(
             Alice.stateID,
             0,
-            5,
+            USDT.castInt(39.99),
             1,
-            1,
-            Alice.nonce + 1
+            USDT.castInt(0.01),
+            Alice.nonce + 1,
+            USDT
         );
         const signature = Alice.sign(tx);
         const rollup = contracts.rollup;
         const stateRoot = stateTree.root;
         const proof = stateTree.applyMassMigration(tx);
-        const txs = ethers.utils.arrayify(tx.encode(true));
+        assert.isTrue(proof.safe);
+        const txs = tx.encode();
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
 

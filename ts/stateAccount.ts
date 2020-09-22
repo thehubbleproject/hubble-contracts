@@ -1,6 +1,6 @@
 import * as mcl from "./mcl";
 import { Tx, SignableTx } from "./tx";
-import { ethers } from "ethers";
+import { BigNumber, BigNumberish, ethers } from "ethers";
 
 export interface StateAccountSolStruct {
     ID: number;
@@ -23,17 +23,22 @@ export class Account {
     public static new(
         accountID: number,
         tokenType: number,
-        balance: number,
+        balance: BigNumberish,
         nonce: number
     ): Account {
-        return new Account(accountID, tokenType, balance, nonce);
+        return new Account(
+            accountID,
+            tokenType,
+            BigNumber.from(balance),
+            nonce
+        );
     }
 
     public stateID = -1;
     constructor(
         public accountID: number,
         public tokenType: number,
-        public balance: number,
+        public balance: BigNumber,
         public nonce: number
     ) {}
 
@@ -70,7 +75,7 @@ export class Account {
         return {
             ID: this.accountID,
             tokenType: this.tokenType,
-            balance: this.balance,
+            balance: this.balance.toNumber(),
             nonce: this.nonce
         };
     }
