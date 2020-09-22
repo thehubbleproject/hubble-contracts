@@ -11,7 +11,7 @@ export interface StateSolStruct {
 
 /**
  * @dev this is not an zero state leaf contrarily this is a legit state!
-*/
+ */
 export const EMPTY_STATE: StateSolStruct = {
     pubkeyIndex: 0,
     tokenType: 0,

@@ -96,9 +96,8 @@ describe("Mass Migrations", async function() {
             commitment.toSolStruct().body,
             [
                 {
-                    pathToAccount: Alice.stateID,
-                    account: proof.state,
-                    siblings: proof.witness
+                    state: proof.state,
+                    witness: proof.witness
                 }
             ]
         );
@@ -129,9 +128,8 @@ describe("Mass Migrations", async function() {
 
         await rollup.disputeMMBatch(batchId, previousMP, commitmentMP, [
             {
-                pathToAccount: Alice.stateID,
-                account: proof.state,
-                siblings: proof.witness
+                state: proof.state,
+                witness: proof.witness
             }
         ]);
 

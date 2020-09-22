@@ -40,7 +40,7 @@ contract Transfer is FraudProofHelpers {
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
-                    proof.stateAccounts[i].ID,
+                    proof.states[i].pubkeyIndex,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Rollup: account does not exists"

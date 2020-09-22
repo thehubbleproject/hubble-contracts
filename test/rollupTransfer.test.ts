@@ -99,17 +99,15 @@ describe("Rollup Transfer Commitment", () => {
         assert.isTrue(stateTransitionProof.safe);
         const { serialized, commit } = serialize(txs);
         const stateWitnesses = [];
-        const states = [];
+        const statesReordered = [];
         for (let i = 0; i < COMMIT_SIZE; i++) {
-            stateWitnesses.push(
-                stateTree.getStateWitness(signers[i].stateID)
-            );
-            states.push(signers[i].toSolStruct());
+            stateWitnesses.push(stateTree.getStateWitness(signers[i].stateID));
+            statesReordered.push(signers[i].toSolStruct());
         }
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
         const proof = {
-            states,
+            states: statesReordered,
             stateWitnesses,
             pubkeys,
             pubkeyWitnesses
@@ -173,14 +171,12 @@ describe("Rollup Transfer Commitment", () => {
                 tx.extended(tokenID),
                 tokenID,
                 {
-                    pathToAccount: sender.stateID,
-                    account: proof.sender,
-                    siblings: proof.senderWitness
+                    state: proof.sender,
+                    witness: proof.senderWitness
                 },
                 {
-                    pathToAccount: receiver.stateID,
-                    account: proof.receiver,
-                    siblings: proof.receiverWitness
+                    state: proof.receiver,
+                    witness: proof.receiverWitness
                 }
             );
             assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
@@ -225,24 +221,19 @@ describe("Rollup Transfer Commitment", () => {
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const { serialized } = serialize(txs);
         const stateMerkleProof = [];
-        // pathToAccount is just a placeholder, no effect
-        const pathToAccount = 0;
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateMerkleProof.push({
-                account: proof[i].sender,
-                pathToAccount,
-                siblings: proof[i].senderWitness
+                state: proof[i].sender,
+                witness: proof[i].senderWitness
             });
             stateMerkleProof.push({
-                account: proof[i].receiver,
-                pathToAccount,
-                siblings: proof[i].receiverWitness
+                state: proof[i].receiver,
+                witness: proof[i].receiverWitness
             });
         }
         stateMerkleProof.push({
             state: feeProof.feeReceiver,
-            pathToAccount,
-            siblings: feeProof.feeReceiverWitness
+            witness: feeProof.feeReceiverWitness
         });
         const postStateRoot = stateTree.root;
 

@@ -118,27 +118,22 @@ describe("Rollup", async function() {
         const previousMP = initialBatch.proofCompressed(0);
         const commitmentMP = targetBatch.proof(0);
 
-        const pathToAccount = 0; // Dummy value
-
         const _tx = await rollup.disputeBatch(
             batchId,
             previousMP,
             commitmentMP,
             [
                 {
-                    pathToAccount,
-                    account: proof[0].sender,
-                    siblings: proof[0].senderWitness
+                    state: proof[0].sender,
+                    witness: proof[0].senderWitness
                 },
                 {
-                    pathToAccount,
-                    account: proof[0].receiver,
-                    siblings: proof[0].receiverWitness
+                    state: proof[0].receiver,
+                    witness: proof[0].receiverWitness
                 },
                 {
-                    pathToAccount,
-                    account: feeProof.feeReceiver,
-                    siblings: feeProof.feeReceiverWitness
+                    state: feeProof.feeReceiver,
+                    witness: feeProof.feeReceiverWitness
                 }
             ]
         );

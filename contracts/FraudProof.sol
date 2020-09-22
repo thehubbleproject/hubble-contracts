@@ -36,7 +36,7 @@ contract FraudProofHelpers is FraudProofSetup {
         // check from leaf has enough balance
         if (fromState.balance < amount.add(fee)) {
             // invalid state transition
-            // needs to be slashed because the account doesnt have enough balance
+            // needs to be slashed because the state doesnt have enough balance
             // for the transfer
             return Types.ErrorCode.NotEnoughTokenBalance;
         }

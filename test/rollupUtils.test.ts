@@ -16,12 +16,8 @@ describe("RollupUtils", async function() {
     it("test state encoding and decoding", async function() {
         const state = EMPTY_STATE;
 
-        const encodedState = await RollupUtilsInstance.BytesFromState(
-            state
-        );
-        const decoded = await RollupUtilsInstance.StateFromBytes(
-            encodedState
-        );
+        const encodedState = await RollupUtilsInstance.BytesFromState(state);
+        const decoded = await RollupUtilsInstance.StateFromBytes(encodedState);
         assert.equal(decoded.pubkeyIndex.toNumber(), state.pubkeyIndex);
         assert.equal(decoded.balance.toNumber(), state.balance);
         assert.equal(decoded.nonce.toNumber(), state.nonce);
