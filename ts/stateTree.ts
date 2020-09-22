@@ -4,7 +4,7 @@ import { TxTransfer, TxMassMigration } from "./tx";
 import { BigNumber } from "ethers";
 
 interface ProofTransferTx {
-    sender: StateSolStruct
+    sender: StateSolStruct;
     receiver: StateSolStruct;
     senderWitness: string[];
     receiverWitness: string[];
@@ -97,12 +97,13 @@ export class StateTree {
         const state = this.states[feeReceiverID];
 
         if (state) {
+            const stateStruct = state.toSolStruct();
             const witness = this.stateTree.witness(feeReceiverID).nodes;
             state.balance = state.balance.add(sumOfFee);
             this.states[feeReceiverID] = state;
             this.stateTree.updateSingle(feeReceiverID, state.toStateLeaf());
             return {
-                feeReceiver: state.toSolStruct(),
+                feeReceiver: stateStruct,
                 feeReceiverWitness: witness,
                 safe: true
             };
@@ -146,6 +147,7 @@ export class StateTree {
             this.stateTree.updateSingle(senderID, senderState.toStateLeaf());
 
             const receiverWitness = this.stateTree.witness(receiverID).nodes;
+            const receiverStateStruct = receiverState.toSolStruct();
             receiverState.balance = receiverState.balance.add(tx.amount);
             this.states[receiverID] = receiverState;
             this.stateTree.updateSingle(
@@ -156,7 +158,7 @@ export class StateTree {
             return {
                 sender: senderStateStruct,
                 senderWitness,
-                receiver: receiverState.toSolStruct(),
+                receiver: receiverStateStruct,
                 receiverWitness,
                 safe: true
             };
@@ -170,9 +172,10 @@ export class StateTree {
                     safe: false
                 };
             }
+            const senderStateStruct = senderState.toSolStruct();
             const receiverWitness = this.stateTree.witness(receiverID).nodes;
             return {
-                sender: senderState.toSolStruct(),
+                sender: senderStateStruct,
                 senderWitness,
                 receiver: EMPTY_STATE,
                 receiverWitness: receiverWitness,
@@ -192,6 +195,7 @@ export class StateTree {
         }
         const senderState = this.states[senderID];
         const senderWitness = this.stateTree.witness(senderID).nodes;
+        const senderStateStruct = senderState.toSolStruct();
         if (senderState.balance.lt(tx.amount)) {
             return {
                 state: EMPTY_STATE,
@@ -204,7 +208,7 @@ export class StateTree {
         this.states[senderID] = senderState;
         this.stateTree.updateSingle(senderID, senderState.toStateLeaf());
         return {
-            state: senderState.toSolStruct(),
+            state: senderStateStruct,
             witness: senderWitness,
             safe: true
         };
