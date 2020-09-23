@@ -149,18 +149,15 @@ contract RollupUtils {
         return transaction;
     }
 
-    function getTxSignBytes(
-        uint256 txType,
-        uint256 fromIndex,
-        uint256 toIndex,
-        uint256 nonce,
-        uint256 amount,
-        uint256 fee
-    ) public pure returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(txType, fromIndex, toIndex, nonce, amount, fee)
-            );
+    function getTxSignBytes(Types.Transfer memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        Types.Transfer[] memory _txx = new Types.Transfer[](1);
+        _txx[0] = _tx;
+        bytes memory txs = Tx.transfer_serializeFromEncoded(_txx);
+        return Tx.transfer_messageOf(txs, 0, _tx.nonce);
     }
 
     function DecompressTransfers(bytes memory txs)
