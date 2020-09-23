@@ -29,6 +29,12 @@ describe("Tx Serialization", async () => {
             assert.equal(decoded.toIndex.toString(), txs[i].toIndex.toString());
             assert.equal(decoded.amount.toString(), txs[i].amount.toString());
             assert.equal(decoded.fee.toString(), txs[i].fee.toString());
+            const message = await c.transfer_messageOf(
+                serialized,
+                i,
+                txs[i].nonce
+            );
+            assert.equal(message, txs[i].message());
         }
     });
     it("serialize transfer transaction", async function() {
