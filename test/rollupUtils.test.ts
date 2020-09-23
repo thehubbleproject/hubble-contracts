@@ -1,6 +1,6 @@
 import { assert } from "chai";
 import { TxTransfer } from "../ts/tx";
-import { EMPTY_ACCOUNT } from "../ts/stateAccount";
+import { EMPTY_STATE } from "../ts/state";
 import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
@@ -13,19 +13,15 @@ describe("RollupUtils", async function() {
         RollupUtilsInstance = await new RollupUtilsFactory(signer).deploy();
     });
 
-    it("test account encoding and decoding", async function() {
-        const account = EMPTY_ACCOUNT;
+    it("test state encoding and decoding", async function() {
+        const state = EMPTY_STATE;
 
-        const accountBytes = await RollupUtilsInstance.BytesFromAccount(
-            account
-        );
-        const decoded = await RollupUtilsInstance.AccountFromBytes(
-            accountBytes
-        );
-        assert.equal(decoded.ID.toNumber(), account.ID);
-        assert.equal(decoded.balance.toNumber(), account.balance);
-        assert.equal(decoded.nonce.toNumber(), account.nonce);
-        assert.equal(decoded.tokenType.toNumber(), account.tokenType);
+        const encodedState = await RollupUtilsInstance.BytesFromState(state);
+        const decoded = await RollupUtilsInstance.StateFromBytes(encodedState);
+        assert.equal(decoded.pubkeyIndex.toNumber(), state.pubkeyIndex);
+        assert.equal(decoded.balance.toNumber(), state.balance);
+        assert.equal(decoded.nonce.toNumber(), state.nonce);
+        assert.equal(decoded.tokenType.toNumber(), state.tokenType);
     });
     it("test transfer utils", async function() {
         const txRaw = TxTransfer.rand();

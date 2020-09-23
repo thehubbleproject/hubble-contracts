@@ -3,12 +3,12 @@ pragma experimental ABIEncoderV2;
 
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
 contract MassMigration is FraudProofHelpers {
     using Tx for bytes;
+    using Types for Types.UserState;
     uint256 constant BURN_STATE_INDEX = 0;
 
     /**
@@ -19,7 +19,7 @@ contract MassMigration is FraudProofHelpers {
     function processMassMigrationCommit(
         bytes32 stateRoot,
         Types.MassMigrationBody memory commitmentBody,
-        Types.AccountMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory proofs
     ) public view returns (bytes32, bool) {
         uint256 length = commitmentBody.txs.massMigration_size();
 
@@ -32,7 +32,7 @@ contract MassMigration is FraudProofHelpers {
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
 
-            // ensure the transaction is to burn account
+            // ensure the transaction is to burn state
             if (_tx.toIndex != BURN_STATE_INDEX) {
                 break;
             }
@@ -56,7 +56,7 @@ contract MassMigration is FraudProofHelpers {
                 metaInfoCounters[1],
                 ,
                 isTxValid
-            ) = processMassMigrationTx(stateRoot, _tx, accountProofs[i]);
+            ) = processMassMigrationTx(stateRoot, _tx, proofs[i]);
 
             // cache token of first tx to evaluate others
             if (i == 0) {
@@ -85,7 +85,7 @@ contract MassMigration is FraudProofHelpers {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMigration memory _tx,
-        Types.AccountMerkleProof memory fromAccountProof
+        Types.StateMerkleProof memory from
     )
         public
         pure
@@ -101,51 +101,47 @@ contract MassMigration is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtilsLib.HashFromAccount(fromAccountProof.account),
+                keccak256(from.state.encode()),
                 _tx.fromIndex,
-                fromAccountProof.siblings
+                from.witness
             ),
             "MassMigration: sender does not exist"
         );
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
             _tx.fee,
-            fromAccountProof.account
+            from.state
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", 0, err_code, false);
 
         bytes32 newRoot;
-        bytes memory new_from_account;
-        bytes memory new_to_account;
-        (new_from_account, newRoot) = ApplyMassMigrationTxSender(
-            fromAccountProof,
-            _tx
-        );
+        bytes memory newFromState;
+        (newFromState, newRoot) = ApplyMassMigrationTxSender(from, _tx);
 
         return (
             newRoot,
-            new_from_account,
-            new_to_account,
-            fromAccountProof.account.tokenType,
+            newFromState,
+            "",
+            from.state.tokenType,
             Types.ErrorCode.NoError,
             true
         );
     }
 
     function ApplyMassMigrationTxSender(
-        Types.AccountMerkleProof memory _merkle_proof,
+        Types.StateMerkleProof memory _merkle_proof,
         Tx.MassMigration memory _tx
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.account;
-        account = RemoveTokensFromAccount(account, _tx.amount);
-        account.nonce++;
-        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
+    ) public pure returns (bytes memory newState, bytes32 newRoot) {
+        Types.UserState memory state = _merkle_proof.state;
+        state.balance = state.balance.sub(_tx.amount);
+        state.nonce++;
+        bytes memory encodedState = state.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(accountInBytes),
+            keccak256(encodedState),
             _tx.fromIndex,
-            _merkle_proof.siblings
+            _merkle_proof.witness
         );
-        return (accountInBytes, newRoot);
+        return (encodedState, newRoot);
     }
 }

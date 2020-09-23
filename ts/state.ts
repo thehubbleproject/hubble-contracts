@@ -2,32 +2,34 @@ import * as mcl from "./mcl";
 import { Tx, SignableTx } from "./tx";
 import { BigNumber, BigNumberish, ethers } from "ethers";
 
-export interface StateAccountSolStruct {
-    ID: number;
+export interface StateSolStruct {
+    pubkeyIndex: number;
     tokenType: number;
     balance: number;
     nonce: number;
 }
 
-// TODO: this is not an empty accoutn contrarily this is a legit account!
-export const EMPTY_ACCOUNT: StateAccountSolStruct = {
-    ID: 0,
+/**
+ * @dev this is not an zero state leaf contrarily this is a legit state!
+ */
+export const EMPTY_STATE: StateSolStruct = {
+    pubkeyIndex: 0,
     tokenType: 0,
     balance: 0,
     nonce: 0
 };
 
-export class Account {
+export class State {
     publicKey: mcl.PublicKey;
     secretKey: mcl.SecretKey;
     public static new(
-        accountID: number,
+        pubkeyIndex: number,
         tokenType: number,
         balance: BigNumberish,
         nonce: number
-    ): Account {
-        return new Account(
-            accountID,
+    ): State {
+        return new State(
+            pubkeyIndex,
             tokenType,
             BigNumber.from(balance),
             nonce
@@ -36,13 +38,13 @@ export class Account {
 
     public stateID = -1;
     constructor(
-        public accountID: number,
+        public pubkeyIndex: number,
         public tokenType: number,
         public balance: BigNumber,
         public nonce: number
     ) {}
 
-    public newKeyPair(): Account {
+    public newKeyPair(): State {
         const keyPair = mcl.newKeyPair();
         this.publicKey = keyPair.pubkey;
         this.secretKey = keyPair.secret;
@@ -55,7 +57,7 @@ export class Account {
         return signature;
     }
 
-    public setStateID(stateID: number): Account {
+    public setStateID(stateID: number): State {
         this.stateID = stateID;
         return this;
     }
@@ -67,13 +69,13 @@ export class Account {
     public toStateLeaf(): string {
         return ethers.utils.solidityKeccak256(
             ["uint256", "uint256", "uint256", "uint256"],
-            [this.accountID, this.balance, this.nonce, this.tokenType]
+            [this.pubkeyIndex, this.tokenType, this.balance, this.nonce]
         );
     }
 
-    public toSolStruct(): StateAccountSolStruct {
+    public toSolStruct(): StateSolStruct {
         return {
-            ID: this.accountID,
+            pubkeyIndex: this.pubkeyIndex,
             tokenType: this.tokenType,
             balance: this.balance.toNumber(),
             nonce: this.nonce

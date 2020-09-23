@@ -4,33 +4,9 @@ pragma experimental ABIEncoderV2;
 import { Tx } from "./Tx.sol";
 import { Types } from "./Types.sol";
 
-library RollupUtilsLib {
-    function BytesFromAccount(Types.UserAccount memory account)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        bytes memory data = abi.encodePacked(
-            account.ID,
-            account.balance,
-            account.nonce,
-            account.tokenType
-        );
-
-        return data;
-    }
-
-    function HashFromAccount(Types.UserAccount memory account)
-        internal
-        pure
-        returns (bytes32)
-    {
-        return keccak256(BytesFromAccount(account));
-    }
-}
-
 contract RollupUtils {
     using Tx for bytes;
+    using Types for Types.UserState;
 
     function TransferCommitmentToHash(
         Types.TransferCommitment memory commitment
@@ -46,36 +22,29 @@ contract RollupUtils {
         return Types.toHash(commitment);
     }
 
-    // ---------- Account Related Utils -------------------
-
-    // AccountFromBytes decodes the bytes to account
-    function AccountFromBytes(bytes memory accountBytes)
+    function StateFromBytes(bytes memory stateBytes)
         public
         pure
-        returns (
-            uint256 ID,
-            uint256 balance,
-            uint256 nonce,
-            uint256 tokenType
-        )
+        returns (Types.UserState memory state)
     {
-        return abi.decode(accountBytes, (uint256, uint256, uint256, uint256));
+        (state.pubkeyIndex, state.tokenType, state.balance, state.nonce) = abi
+            .decode(stateBytes, (uint256, uint256, uint256, uint256));
     }
 
-    function BytesFromAccount(Types.UserAccount memory account)
+    function BytesFromState(Types.UserState memory state)
         public
         pure
         returns (bytes memory)
     {
-        return RollupUtilsLib.BytesFromAccount(account);
+        return state.encode();
     }
 
-    function HashFromAccount(Types.UserAccount memory account)
+    function HashFromState(Types.UserState memory state)
         public
         pure
         returns (bytes32)
     {
-        return RollupUtilsLib.HashFromAccount(account);
+        return keccak256(state.encode());
     }
 
     /**
@@ -96,12 +65,12 @@ contract RollupUtils {
     }
 
     function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
-        Types.UserAccount memory account1;
-        account1.ID = 0;
-        Types.UserAccount memory account2;
-        account2.ID = 1;
-        leaves[0] = HashFromAccount(account1);
-        leaves[1] = HashFromAccount(account2);
+        Types.UserState memory state1;
+        state1.pubkeyIndex = 0;
+        Types.UserState memory state2;
+        state2.pubkeyIndex = 1;
+        leaves[0] = keccak256(state1.encode());
+        leaves[1] = keccak256(state2.encode());
     }
 
     // ---------- Tx Related Utils -------------------
