@@ -9,6 +9,7 @@ import {
     hexlify,
     solidityKeccak256
 } from "ethers/lib/utils";
+import { COMMIT_SIZE } from "./constants";
 
 const amountLen = 2;
 const feeLen = 2;
@@ -67,6 +68,14 @@ export class TxTransfer implements SignableTx {
         const nonce = randomNum(nonceLen);
         return new TxTransfer(sender, receiver, amount, fee, nonce, USDT);
     }
+    public static buildList(n: number = COMMIT_SIZE): TxTransfer[] {
+        const txs = [];
+        for (let i = 0; i < n; i++) {
+            txs.push(TxTransfer.rand());
+        }
+        return txs;
+    }
+
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
@@ -141,6 +150,13 @@ export class TxMassMigration implements SignableTx {
             nonce,
             USDT
         );
+    }
+    public static buildList(n: number = COMMIT_SIZE): TxMassMigration[] {
+        const txs = [];
+        for (let i = 0; i < n; i++) {
+            txs.push(TxMassMigration.rand());
+        }
+        return txs;
     }
     constructor(
         public readonly fromIndex: number,
