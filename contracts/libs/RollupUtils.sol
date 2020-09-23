@@ -163,6 +163,20 @@ contract RollupUtils {
             );
     }
 
+    function getTxSignBytes(
+        uint256 txType,
+        bytes from,
+        bytes to,
+        uint256 nonce,
+        uint256 amount,
+        uint256 fee
+    ) public pure returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(txType, from, to, nonce, amount, fee)
+            );
+    }
+
     function DecompressTransfers(bytes memory txs)
         public
         pure
