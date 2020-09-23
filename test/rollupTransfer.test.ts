@@ -12,6 +12,7 @@ import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
 import { ErrorCode } from "../ts/interfaces";
+import { USDT } from "../ts/decimal";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
@@ -26,7 +27,7 @@ describe("Rollup Transfer Commitment", () => {
     let stateTree: StateTree;
     const accounts: Account[] = [];
     const tokenID = 1;
-    const initialBalance = 1000;
+    const initialBalance = USDT.castInt(1000.0);
     const initialNonce = 9;
 
     before(async function() {
@@ -66,8 +67,8 @@ describe("Rollup Transfer Commitment", () => {
 
     it("transfer commitment: signature check", async function() {
         const txs: TxTransfer[] = [];
-        const amount = 20;
-        const fee = 1;
+        const amount = USDT.castInt(20.01);
+        const fee = USDT.castInt(1.001);
         let aggSignature = mcl.newG1();
         let s0 = stateTree.root;
         let signers = [];
@@ -83,7 +84,8 @@ describe("Rollup Transfer Commitment", () => {
                 receiver.stateID,
                 amount,
                 fee,
-                sender.nonce
+                sender.nonce,
+                USDT
             );
             txs.push(tx);
             signers.push(sender);
@@ -114,7 +116,7 @@ describe("Rollup Transfer Commitment", () => {
         };
         const {
             0: gasCost,
-            1: noError
+            1: error
         } = await rollup.callStatic._checkSignature(
             signature,
             proof,
@@ -123,7 +125,7 @@ describe("Rollup Transfer Commitment", () => {
             DOMAIN,
             serialized
         );
-        assert.equal(noError, ErrorCode.NoError);
+        assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
         console.log("operation gas cost:", gasCost.toString());
         const { 1: badSig } = await rollup.callStatic._checkSignature(
             signature,
@@ -147,8 +149,8 @@ describe("Rollup Transfer Commitment", () => {
     }).timeout(400000);
 
     it("transfer commitment: processTx", async function() {
-        const amount = 20;
-        const fee = 1;
+        const amount = USDT.castInt(20.01);
+        const fee = USDT.castInt(1.001);
         for (let i = 0; i < COMMIT_SIZE; i++) {
             const senderIndex = i;
             const reciverIndex = (i + 5) % ACCOUNT_SIZE;
@@ -159,15 +161,16 @@ describe("Rollup Transfer Commitment", () => {
                 receiver.stateID,
                 amount,
                 fee,
-                sender.nonce
+                sender.nonce,
+                USDT
             );
             const preRoot = stateTree.root;
             const proof = stateTree.applyTxTransfer(tx);
+            assert.isTrue(proof.safe);
             const postRoot = stateTree.root;
-
-            const result = await rollup.testProcessTx(
+            const { 0: processedRoot, 3: error } = await rollup.testProcessTx(
                 preRoot,
-                tx.extended(),
+                tx.extended(tokenID),
                 tokenID,
                 {
                     pathToAccount: sender.stateID,
@@ -180,13 +183,18 @@ describe("Rollup Transfer Commitment", () => {
                     siblings: proof.receiverWitness
                 }
             );
-            assert.equal(result[0], postRoot, "mismatch processed stateroot");
+            assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
+            assert.equal(
+                processedRoot,
+                postRoot,
+                "mismatch processed stateroot"
+            );
         }
     });
     it("transfer commitment: processTransferCommit", async function() {
         const txs: TxTransfer[] = [];
-        const amount = 20;
-        const fee = 1;
+        const amount = USDT.castInt(20.01);
+        const fee = USDT.castInt(1.001);
         let s0 = stateTree.root;
         let senders = [];
         let receivers = [];
@@ -202,7 +210,8 @@ describe("Rollup Transfer Commitment", () => {
                 receiver.stateID,
                 amount,
                 fee,
-                sender.nonce
+                sender.nonce,
+                USDT
             );
             txs.push(tx);
             senders.push(sender);

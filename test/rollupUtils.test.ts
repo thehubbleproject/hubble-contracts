@@ -28,15 +28,10 @@ describe("RollupUtils", async function() {
         assert.equal(decoded.tokenType.toNumber(), account.tokenType);
     });
     it("test transfer utils", async function() {
-        const tx = TxTransfer.rand().extended();
-        const signBytes = await RollupUtilsInstance.getTxSignBytes(
-            tx.txType,
-            tx.fromIndex,
-            tx.toIndex,
-            tx.nonce,
-            tx.amount,
-            tx.fee
-        );
+        const txRaw = TxTransfer.rand();
+        const tx = txRaw.extended();
+        const signBytes = await RollupUtilsInstance.getTxSignBytes(tx);
+        assert.equal(signBytes, txRaw.message());
         const txBytes = await RollupUtilsInstance.BytesFromTx(tx);
 
         const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
@@ -45,7 +40,7 @@ describe("RollupUtils", async function() {
         assert.equal(txData.tokenType.toNumber(), tx.tokenType);
         assert.equal(txData.nonce.toNumber(), tx.nonce);
         assert.equal(txData.txType.toNumber(), tx.txType);
-        assert.equal(txData.amount.toNumber(), tx.amount);
+        assert.equal(txData.amount.toString(), tx.amount.toString());
         await RollupUtilsInstance.CompressTransferFromEncoded(txBytes, "0x00");
         const txs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
             [txBytes, txBytes],

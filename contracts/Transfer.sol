@@ -12,15 +12,6 @@ import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 contract Transfer is FraudProofHelpers {
     using Tx for bytes;
 
-    uint256 constant MASK_4BYTES = 0xffffffff;
-    uint256 constant MASK_1BYTES = 0xff;
-    uint256 constant OFF_TX_TYPE = 32;
-    uint256 constant OFF_NONCE = 33;
-    uint256 constant OFF_TX_DATA = 37;
-    // [TX_TYPE<1>|nonce<4>|tx<16>]
-    uint256 constant MSG_LEN_0 = 21;
-    uint256 constant TX_LEN_0 = 16;
-
     function checkSignature(
         uint256[2] memory signature,
         Types.SignatureProof memory proof,
@@ -32,53 +23,35 @@ contract Transfer is FraudProofHelpers {
         uint256 batchSize = txs.transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            uint256 signerStateID;
-            // solium-disable-next-line security/no-inline-assembly
-            assembly {
-                signerStateID := and(
-                    mload(add(add(txs, mul(i, TX_LEN_0)), 4)),
-                    MASK_4BYTES
-                )
-            }
-
+            Tx.Transfer memory _tx = txs.transfer_decode(i);
             // check state inclustion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     stateRoot,
                     RollupUtilsLib.HashFromAccount(proof.stateAccounts[i]),
-                    signerStateID,
+                    _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
                 "Rollup: state inclusion signer"
             );
 
             // check pubkey inclusion
-            uint256 signerAccountID = proof.stateAccounts[i].ID;
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
-                    signerAccountID,
+                    proof.stateAccounts[i].ID,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Rollup: account does not exists"
             );
 
             // construct the message
-            signerAccountID = signerAccountID <<= 224;
             require(proof.stateAccounts[i].nonce > 0, "Rollup: zero nonce");
-            uint256 nonce = proof.stateAccounts[i].nonce <<= 224;
-            bytes memory txMsg = new bytes(MSG_LEN_0);
-
-            // solium-disable-next-line security/no-inline-assembly
-            assembly {
-                mstore8(add(txMsg, OFF_TX_TYPE), 1)
-                mstore(add(txMsg, OFF_NONCE), sub(nonce, 1))
-                mstore(
-                    add(txMsg, OFF_TX_DATA),
-                    mload(add(add(txs, 32), mul(TX_LEN_0, i)))
-                )
-            }
+            bytes memory txMsg = txs.transfer_messageOf(
+                i,
+                proof.stateAccounts[i].nonce - 1
+            );
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }

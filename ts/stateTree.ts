@@ -1,6 +1,7 @@
 import { Tree } from "./tree";
 import { Account, EMPTY_ACCOUNT, StateAccountSolStruct } from "./stateAccount";
 import { TxTransfer, TxMassMigration } from "./tx";
+import { BigNumber } from "ethers";
 
 interface ProofTransferTx {
     senderAccount: StateAccountSolStruct;
@@ -88,19 +89,22 @@ export class StateTree {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
             }
         }
-        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a + b);
+        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
         const feeProof = this.applyFee(sumOfFee, feeReceiverID);
         safe = feeProof.safe;
         return { proof: proofs, feeProof, safe };
     }
 
-    public applyFee(sumOfFee: number, feeReceiverID: number): ProofTransferFee {
+    public applyFee(
+        sumOfFee: BigNumber,
+        feeReceiverID: number
+    ): ProofTransferFee {
         const account = this.accounts[feeReceiverID];
 
         if (account) {
             const accountStruct = account.toSolStruct();
             const witness = this.stateTree.witness(feeReceiverID).nodes;
-            account.balance += sumOfFee;
+            account.balance = account.balance.add(sumOfFee);
             this.accounts[feeReceiverID] = account;
             this.stateTree.updateSingle(feeReceiverID, account.toStateLeaf());
             return {
@@ -127,9 +131,8 @@ export class StateTree {
         const senderWitness = this.stateTree.witness(senderID).nodes;
         if (senderAccount && receiverAccount) {
             const senderAccStruct = senderAccount.toSolStruct();
-            // FIX: handle burning account
             if (
-                senderAccount.balance < tx.amount + tx.fee ||
+                senderAccount.balance.lt(tx.amount.add(tx.fee)) ||
                 senderAccount.tokenType != receiverAccount.tokenType
             ) {
                 return {
@@ -141,14 +144,16 @@ export class StateTree {
                 };
             }
 
-            senderAccount.balance -= tx.amount + tx.fee;
+            senderAccount.balance = senderAccount.balance.sub(
+                tx.amount.add(tx.fee)
+            );
             senderAccount.nonce += 1;
             this.accounts[senderID] = senderAccount;
             this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
 
             const receiverWitness = this.stateTree.witness(receiverID).nodes;
             const receiverAccStruct = receiverAccount.toSolStruct();
-            receiverAccount.balance += tx.amount;
+            receiverAccount.balance = receiverAccount.balance.add(tx.amount);
             this.accounts[receiverID] = receiverAccount;
             this.stateTree.updateSingle(
                 receiverID,
@@ -196,14 +201,14 @@ export class StateTree {
         const senderAccount = this.accounts[senderID];
         const senderWitness = this.stateTree.witness(senderID).nodes;
         const senderAccStruct = senderAccount.toSolStruct();
-        if (senderAccount.balance < tx.amount) {
+        if (senderAccount.balance.lt(tx.amount)) {
             return {
                 account: PLACEHOLDER_PROOF_ACC,
                 witness: PLACEHOLDER_PROOF_WITNESS,
                 safe: false
             };
         }
-        senderAccount.balance -= tx.amount;
+        senderAccount.balance = senderAccount.balance.sub(tx.amount);
         senderAccount.nonce += 1;
         this.accounts[senderID] = senderAccount;
         this.stateTree.updateSingle(senderID, senderAccount.toStateLeaf());
