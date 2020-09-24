@@ -40,13 +40,13 @@ describe("Rollup", async function() {
         Alice.newKeyPair();
         Alice.pubkeyIndex = await registry.register(Alice.encodePubkey());
 
-        Bob = State.new(-1, tokenID, initialBalance, 0);
-        Bob.setStateID(1);
-        Bob.newKeyPair();
-        Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
+        // Bob = State.new(-1, tokenID, initialBalance, 0);
+        // Bob.setStateID(1);
+        // Bob.newKeyPair();
+        // Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
         stateTree.createState(Alice);
-        stateTree.createState(Bob);
+        // stateTree.createState(Bob);
 
         const accountRoot = await registry.root();
 
@@ -61,5 +61,5 @@ describe("Rollup", async function() {
         );
     });
 
-    it("submit a batch and dispute", async function() {});
+    it("tranfer to pubkey", async function() {});
 });
