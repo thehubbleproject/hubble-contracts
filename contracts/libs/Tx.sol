@@ -243,16 +243,20 @@ library Tx {
     }
 
     function transfer_messageOf(
-        bytes memory txs,
-        uint256 index,
+        Transfer memory _tx,
+        uint256 token,
         uint256 nonce
     ) internal pure returns (bytes memory) {
-        bytes memory serialized = new bytes(TX_LEN_0);
-        uint256 off = index * TX_LEN_0;
-        for (uint256 j = 0; j < TX_LEN_0; j++) {
-            serialized[j] = txs[off + j];
-        }
-        return abi.encodePacked(uint8(TRANSFER), uint32(nonce), serialized);
+        return
+            abi.encode(
+                uint8(TRANSFER),
+                _tx.fromIndex,
+                _tx.toIndex,
+                token,
+                nonce,
+                _tx.amount,
+                _tx.fee
+            );
     }
 
     function massMigration_decode(bytes memory txs, uint256 index)

@@ -48,8 +48,9 @@ contract Transfer is FraudProofHelpers {
 
             // construct the message
             require(proof.states[i].nonce > 0, "Rollup: zero nonce");
-            bytes memory txMsg = txs.transfer_messageOf(
-                i,
+            bytes memory txMsg = Tx.transfer_messageOf(
+                _tx,
+                proof.states[i].tokenType,
                 proof.states[i].nonce - 1
             );
             // make the message

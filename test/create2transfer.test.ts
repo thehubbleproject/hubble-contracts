@@ -4,13 +4,12 @@ import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
-import { serialize, TxTransfer } from "../ts/tx";
+import { serialize, TxCreate2Transfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { TransferBatch, TransferCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
-
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
@@ -40,13 +39,7 @@ describe("Rollup", async function() {
         Alice.newKeyPair();
         Alice.pubkeyIndex = await registry.register(Alice.encodePubkey());
 
-        // Bob = State.new(-1, tokenID, initialBalance, 0);
-        // Bob.setStateID(1);
-        // Bob.newKeyPair();
-        // Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
-
         stateTree.createState(Alice);
-        // stateTree.createState(Bob);
 
         const accountRoot = await registry.root();
 
@@ -61,5 +54,32 @@ describe("Rollup", async function() {
         );
     });
 
-    it("tranfer to pubkey", async function() {});
+    it("tranfer to pubkey", async function() {
+        const initialBalance = USDT.castInt(55.6);
+        const RollupUtilsInstance = contracts.rollupUtils;
+        Bob = State.new(-1, tokenID, initialBalance, 0);
+        const amount = USDT.castInt(20.01);
+        const fee = USDT.castInt(1.001);
+
+        const tx = new TxCreate2Transfer(0, 0, 0, amount, fee, 1, USDT);
+        console.log("functions", RollupUtilsInstance.functions);
+        let encodedTx = await RollupUtilsInstance[
+            "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256,uint256)"
+        ](
+            1,
+            Alice.encodePubkey(),
+            Bob.encodePubkey(),
+            tx.toPubkeyIndex,
+            tokenID,
+            tx.nonce,
+            tx.amount,
+            tx.fee
+        );
+        Bob.setStateID(1);
+        Bob.newKeyPair();
+        Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
+
+        encodedTx = await RollupUtilsInstance["BytesFromTx(tuple)"];
+        stateTree.createState(Bob);
+    });
 });

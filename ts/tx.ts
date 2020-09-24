@@ -195,3 +195,82 @@ export class TxMassMigration implements SignableTx {
         return hexlify(concated);
     }
 }
+
+export class TxCreate2Transfer implements SignableTx {
+    private readonly TX_TYPE = "0x03";
+    public static rand(): TxCreate2Transfer {
+        const sender = randomNum(stateIDLen);
+        const receiver = randomNum(stateIDLen);
+        const receiverPubkeyIndex = randomNum(stateIDLen);
+        const amount = USDT.randInt();
+        const fee = USDT.randInt();
+        const nonce = randomNum(nonceLen);
+        return new TxCreate2Transfer(
+            sender,
+            receiver,
+            receiverPubkeyIndex,
+            amount,
+            fee,
+            nonce,
+            USDT
+        );
+    }
+    constructor(
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
+        public readonly toPubkeyIndex: number,
+        public readonly amount: BigNumber,
+        public readonly fee: BigNumber,
+        public nonce: number,
+        public readonly decimal: DecimalCodec
+    ) {
+        checkByteLength(decimal, "amount", amountLen);
+        checkByteLength(decimal, "fee", feeLen);
+    }
+
+    public message(): string {
+        const concated = concat([
+            this.TX_TYPE,
+            hexZeroPad(hexlify(this.nonce), nonceLen),
+            this.encode()
+        ]);
+        return hexlify(concated);
+    }
+
+    public hash(): string {
+        return solidityKeccak256(
+            ["uint32", "uint32", "uint32", "uint16", "uint16"],
+            [
+                this.fromIndex,
+                this.toIndex,
+                this.toPubkeyIndex,
+                this.amount,
+                this.fee
+            ]
+        );
+    }
+
+    public extended() {
+        return {
+            fromIndex: this.fromIndex,
+            toIndex: this.toIndex,
+            toPubkeyIndex: this.toPubkeyIndex,
+            amount: this.amount,
+            fee: this.fee,
+            nonce: this.nonce,
+            tokenType: 0,
+            txType: 0
+        };
+    }
+
+    public encode(): string {
+        const concated = concat([
+            hexZeroPad(hexlify(this.fromIndex), stateIDLen),
+            hexZeroPad(hexlify(this.toIndex), stateIDLen),
+            hexZeroPad(hexlify(this.toPubkeyIndex), stateIDLen),
+            this.decimal.encodeInt(this.amount),
+            this.decimal.encodeInt(this.fee)
+        ]);
+        return hexlify(concated);
+    }
+}

@@ -123,10 +123,7 @@ contract RollupUtils {
         pure
         returns (bytes memory)
     {
-        Types.Transfer[] memory _txx = new Types.Transfer[](1);
-        _txx[0] = _tx;
-        bytes memory txs = Tx.transfer_serializeFromEncoded(_txx);
-        return Tx.transfer_messageOf(txs, 0, _tx.nonce);
+        return BytesFromTx(_tx);
     }
 
     function DecompressTransfers(bytes memory txs)
