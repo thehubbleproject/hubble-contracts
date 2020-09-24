@@ -3,7 +3,6 @@ import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
 import { State } from "./state";
 import { TxTransfer } from "./tx";
-import * as Factory from "factory.ts";
 import { randomNum } from "./utils";
 
 export class UserStateFactory {
