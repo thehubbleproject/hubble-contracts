@@ -30,8 +30,8 @@ contract TestTransfer is Transfer {
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
         uint256 tokenType,
-        Types.AccountMerkleProof memory fromAccountProof,
-        Types.AccountMerkleProof memory toAccountProof
+        Types.StateMerkleProof memory from,
+        Types.StateMerkleProof memory to
     )
         public
         pure
@@ -43,20 +43,13 @@ contract TestTransfer is Transfer {
             bool
         )
     {
-        return
-            processTx(
-                _balanceRoot,
-                _tx,
-                tokenType,
-                fromAccountProof,
-                toAccountProof
-            );
+        return processTx(_balanceRoot, _tx, tokenType, from, to);
     }
 
     function testProcessTransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
+        Types.StateMerkleProof[] memory proofs,
         uint256 tokenType,
         uint256 feeReceiver
     ) public returns (bytes32, uint256) {
@@ -65,7 +58,7 @@ contract TestTransfer is Transfer {
         (newRoot, ) = processTransferCommit(
             stateRoot,
             txs,
-            accountProofs,
+            proofs,
             tokenType,
             feeReceiver
         );

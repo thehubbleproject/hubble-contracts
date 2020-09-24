@@ -3,7 +3,7 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { Account } from "../ts/stateAccount";
+import { State } from "../ts/state";
 import { serialize, TxTransfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
@@ -16,8 +16,8 @@ const DOMAIN =
 
 describe("Rollup", async function() {
     const tokenID = 1;
-    let Alice: Account;
-    let Bob: Account;
+    let Alice: State;
+    let Bob: State;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
@@ -35,18 +35,18 @@ describe("Rollup", async function() {
         registry = await AccountRegistry.new(registryContract);
         const initialBalance = USDT.castInt(55.6);
 
-        Alice = Account.new(-1, tokenID, initialBalance, 0);
+        Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(0);
         Alice.newKeyPair();
-        Alice.accountID = await registry.register(Alice.encodePubkey());
+        Alice.pubkeyIndex = await registry.register(Alice.encodePubkey());
 
-        Bob = Account.new(-1, tokenID, initialBalance, 0);
+        Bob = State.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
         Bob.newKeyPair();
-        Bob.accountID = await registry.register(Bob.encodePubkey());
+        Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
-        stateTree.createAccount(Alice);
-        stateTree.createAccount(Bob);
+        stateTree.createState(Alice);
+        stateTree.createState(Bob);
 
         const accountRoot = await registry.root();
 
@@ -118,27 +118,22 @@ describe("Rollup", async function() {
         const previousMP = initialBatch.proofCompressed(0);
         const commitmentMP = targetBatch.proof(0);
 
-        const pathToAccount = 0; // Dummy value
-
         const _tx = await rollup.disputeBatch(
             batchId,
             previousMP,
             commitmentMP,
             [
                 {
-                    pathToAccount,
-                    account: proof[0].senderAccount,
-                    siblings: proof[0].senderWitness
+                    state: proof[0].sender,
+                    witness: proof[0].senderWitness
                 },
                 {
-                    pathToAccount,
-                    account: proof[0].receiverAccount,
-                    siblings: proof[0].receiverWitness
+                    state: proof[0].receiver,
+                    witness: proof[0].receiverWitness
                 },
                 {
-                    pathToAccount,
-                    account: feeProof.feeReceiverAccount,
-                    siblings: feeProof.feeReceiverWitness
+                    state: feeProof.feeReceiver,
+                    witness: feeProof.feeReceiverWitness
                 }
             ]
         );

@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { Logger } from "./Logger.sol";
-import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
@@ -13,6 +12,7 @@ import { Governance } from "./Governance.sol";
 import { Rollup } from "./Rollup.sol";
 
 contract DepositManager {
+    using Types for Types.UserState;
     MTUtils public merkleUtils;
     Registry public nameRegistry;
     bytes32[] public pendingDeposits;
@@ -99,19 +99,19 @@ contract DepositManager {
             tokenContract.transferFrom(msg.sender, vault, _amount),
             "token transfer not approved"
         );
-        // create a new account
-        Types.UserAccount memory newAccount = Types.UserAccount(
+        // create a new state
+        Types.UserState memory newState = Types.UserState(
             accountID,
             _tokenType,
             _amount,
             0
         );
-        // get new account hash
-        bytes memory accountBytes = RollupUtilsLib.BytesFromAccount(newAccount);
+        // get new state hash
+        bytes memory encodedState = newState.encode();
         // queue the deposit
-        pendingDeposits.push(keccak256(accountBytes));
+        pendingDeposits.push(keccak256(encodedState));
         // emit the event
-        logger.logDepositQueued(accountID, accountBytes);
+        logger.logDepositQueued(accountID, encodedState);
         queueNumber++;
         uint256 tmpDepositSubtreeHeight = 0;
         uint256 tmp = queueNumber;
@@ -166,12 +166,12 @@ contract DepositManager {
      * @notice Merges the deposit tree with the balance tree by
      *        superimposing the deposit subtree on the balance tree
      * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
-     * @param _zero_account_mp Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
+     * @param zero Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
      * @return Updates in-state merkle tree root
      */
     function finaliseDeposits(
         uint256 _subTreeDepth,
-        Types.AccountMerkleProof memory _zero_account_mp,
+        Types.StateMerkleProofWithPath memory zero,
         bytes32 latestBalanceTree
     ) public onlyRollup returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
@@ -181,8 +181,8 @@ contract DepositManager {
         bool isValid = merkleUtils.verifyLeaf(
             latestBalanceTree,
             emptySubtreeRoot,
-            _zero_account_mp.pathToAccount,
-            _zero_account_mp.siblings
+            zero.path,
+            zero.witness
         );
 
         require(isValid, "proof invalid");
@@ -191,10 +191,7 @@ contract DepositManager {
         bytes32 depositsSubTreeRoot = dequeue();
 
         // emit the event
-        logger.logDepositFinalised(
-            depositsSubTreeRoot,
-            _zero_account_mp.pathToAccount
-        );
+        logger.logDepositFinalised(depositsSubTreeRoot, zero.path);
 
         // return the updated merkle tree root
         return (depositsSubTreeRoot);

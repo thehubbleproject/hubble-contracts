@@ -409,18 +409,18 @@ contract Rollup is RollupHelpers {
      */
     function finaliseDepositsAndSubmitBatch(
         uint256 _subTreeDepth,
-        Types.AccountMerkleProof calldata _zero_account_mp
+        Types.StateMerkleProofWithPath calldata zero
     ) external payable onlyCoordinator isNotRollingBack {
         bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
             _subTreeDepth,
-            _zero_account_mp,
+            zero,
             getLatestBalanceTreeRoot()
         );
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
-            _zero_account_mp.pathToAccount,
-            _zero_account_mp.siblings
+            zero.path,
+            zero.witness
         );
 
         bytes32[] memory depositCommitments = new bytes32[](1);
@@ -458,7 +458,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.TransferCommitmentInclusionProof memory target,
-        Types.AccountMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory proofs
     )
         public
         isDisputable(_batch_id)
@@ -473,7 +473,7 @@ contract Rollup is RollupHelpers {
             .processTransferCommit(
             previous.commitment.stateRoot,
             target.commitment.body.txs,
-            accountProofs,
+            proofs,
             target.commitment.body.tokenType,
             target.commitment.body.feeReceiver
         );
@@ -494,7 +494,7 @@ contract Rollup is RollupHelpers {
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.MMCommitmentInclusionProof memory target,
-        Types.AccountMerkleProof[] memory accountProofs
+        Types.StateMerkleProof[] memory proofs
     )
         public
         isDisputable(_batch_id)
@@ -509,7 +509,7 @@ contract Rollup is RollupHelpers {
             .processMassMigrationCommit(
             previous.commitment.stateRoot,
             target.commitment.body,
-            accountProofs
+            proofs
         );
 
         if (
