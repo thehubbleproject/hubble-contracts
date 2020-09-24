@@ -199,12 +199,13 @@ contract RollupUtils {
         uint256 txType,
         uint256[4] memory from,
         uint256[4] memory to,
+        uint256 toAccID,
         uint256 tokenType,
         uint256 nonce,
         uint256 amount,
         uint256 fee
     ) public pure returns (bytes memory) {
-        return abi.encode(txType, from, to, tokenType, nonce, amount, fee);
+        return abi.encode(txType, from, to,toAccID, tokenType, nonce, amount, fee);
     }
 
     function BytesFromTx(Types.Create2Transfer memory _tx)

@@ -5,6 +5,7 @@ import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory
 import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
 import { MassMigrationCommitment, TransferCommitment } from "../ts/commitments";
+import * as mcl from "../ts/mcl";
 
 describe("RollupUtils", async function() {
     let RollupUtilsInstance: RollupUtils;
@@ -60,5 +61,40 @@ describe("RollupUtils", async function() {
             commitment.toSolStruct()
         );
         assert.equal(hash, commitment.hash());
+    });
+
+    it("bytes from Tx", async function() {
+        await mcl.init();
+        const keyPair = mcl.newKeyPair();
+        // receive signed encoded tx from user
+        const pubkey = mcl.g2ToHex(keyPair.pubkey);
+
+        let encodedTx = await RollupUtilsInstance[
+            "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256,uint256)"
+        ](1, pubkey, pubkey, 1, 1, 1, 1, 1);
+
+        // re-encode to Create2Transfer
+        encodedTx = await RollupUtilsInstance.Create2PubkeyToIndex(
+            encodedTx,
+            3,
+            4
+        );
+
+        const decodedTx = await RollupUtilsInstance[
+            "Create2TransferFromBytes(bytes)"
+        ](encodedTx);
+
+        assert.equal(
+            decodedTx.fromIndex.toString(),
+            "3",
+            "from index not correct"
+        );
+        assert.equal(decodedTx.toIndex.toString(), "4", "to index not correct");
+        assert.equal(
+            decodedTx.tokenType.toString(),
+            "1",
+            "token index not correct"
+        );
+        assert.equal(decodedTx.amount.toString(), "1", "amount not correct");
     });
 });
