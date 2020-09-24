@@ -26,10 +26,13 @@ describe("RollupUtils", async function() {
     it("test transfer utils", async function() {
         const txRaw = TxTransfer.rand();
         const tx = txRaw.extended();
-        const signBytes = await RollupUtilsInstance.getTxSignBytes(tx);
+        const signBytes = await RollupUtilsInstance[
+            "getTxSignBytes((uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+        ](tx);
         assert.equal(signBytes, txRaw.message());
-        const txBytes = await RollupUtilsInstance.BytesFromTx(tx);
-
+        const txBytes = await RollupUtilsInstance[
+            "BytesFromTx((uint256,uint256,uint256,uint256,uint256,uint256,uint256))"
+        ](tx);
         const txData = await RollupUtilsInstance.TxFromBytes(txBytes);
         assert.equal(txData.fromIndex.toNumber(), tx.fromIndex);
         assert.equal(txData.toIndex.toNumber(), tx.toIndex);
