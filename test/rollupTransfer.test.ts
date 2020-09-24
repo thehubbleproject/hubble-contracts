@@ -3,7 +3,7 @@ import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFacto
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { TxTransfer, serialize } from "../ts/tx";
+import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
@@ -12,7 +12,6 @@ import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
 import { ErrorCode } from "../ts/interfaces";
-import { USDT } from "../ts/decimal";
 import { txTransferFactory, UserStateFactory } from "../ts/factory";
 
 const DOMAIN_HEX = randHex(32);
@@ -27,7 +26,6 @@ describe("Rollup Transfer Commitment", () => {
     let registry: AccountRegistry;
     let stateTree: StateTree;
     let states: State[] = [];
-    const tokenID = 1;
 
     before(async function() {
         await mcl.init();
@@ -120,21 +118,9 @@ describe("Rollup Transfer Commitment", () => {
     }).timeout(400000);
 
     it("transfer commitment: processTx", async function() {
-        const amount = USDT.castInt(20.01);
-        const fee = USDT.castInt(1.001);
-        for (let i = 0; i < COMMIT_SIZE; i++) {
-            const senderIndex = i;
-            const reciverIndex = (i + 5) % STATE_SIZE;
-            const sender = states[senderIndex];
-            const receiver = states[reciverIndex];
-            const tx = new TxTransfer(
-                sender.stateID,
-                receiver.stateID,
-                amount,
-                fee,
-                sender.nonce,
-                USDT
-            );
+        const txs = txTransferFactory(states, COMMIT_SIZE);
+        const tokenID = states[0].tokenType;
+        for (const tx of txs) {
             const preRoot = stateTree.root;
             const proof = stateTree.applyTxTransfer(tx);
             assert.isTrue(proof.safe);
@@ -161,38 +147,15 @@ describe("Rollup Transfer Commitment", () => {
         }
     });
     it("transfer commitment: processTransferCommit", async function() {
-        const txs: TxTransfer[] = [];
-        const amount = USDT.castInt(20.01);
-        const fee = USDT.castInt(1.001);
-        let s0 = stateTree.root;
-        let senders = [];
-        let receivers = [];
+        const txs = txTransferFactory(states, COMMIT_SIZE);
         const feeReceiver = 0;
 
-        for (let i = 0; i < COMMIT_SIZE; i++) {
-            const senderIndex = i;
-            const reciverIndex = (i + 5) % STATE_SIZE;
-            const sender = states[senderIndex];
-            const receiver = states[reciverIndex];
-            const tx = new TxTransfer(
-                sender.stateID,
-                receiver.stateID,
-                amount,
-                fee,
-                sender.nonce,
-                USDT
-            );
-            txs.push(tx);
-            senders.push(sender);
-            receivers.push(receiver);
-        }
-
+        const preStateRoot = stateTree.root;
         const { proof, feeProof, safe } = stateTree.applyTransferBatch(
             txs,
             feeReceiver
         );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
-        const serialized = serialize(txs);
         const stateMerkleProof = [];
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateMerkleProof.push({
@@ -214,10 +177,10 @@ describe("Rollup Transfer Commitment", () => {
             0: postRoot,
             1: gasCost
         } = await rollup.callStatic.testProcessTransferCommit(
-            s0,
-            serialized,
+            preStateRoot,
+            serialize(txs),
             stateMerkleProof,
-            tokenID,
+            states[0].tokenType,
             feeReceiver
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());
