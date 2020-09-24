@@ -40,10 +40,8 @@ export function calculateRoot(txs: Tx[]) {
     return tree.root;
 }
 
-export function serialize(txs: Tx[]) {
-    const serialized = hexlify(concat(txs.map(tx => tx.encode())));
-    const commit = solidityKeccak256(["bytes"], [serialized]);
-    return { serialized, commit };
+export function serialize(txs: Tx[]): string {
+    return hexlify(concat(txs.map(tx => tx.encode())));
 }
 
 function checkByteLength(

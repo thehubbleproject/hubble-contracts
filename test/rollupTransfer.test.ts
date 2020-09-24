@@ -68,7 +68,7 @@ describe("Rollup Transfer Commitment", () => {
         const signature = mcl.g1ToHex(aggSignature);
         const stateTransitionProof = stateTree.applyTransferBatch(txs, 0);
         assert.isTrue(stateTransitionProof.safe);
-        const { serialized, commit } = serialize(txs);
+        const serialized = serialize(txs);
 
         // Need post stateWitnesses
         const postStates = txs.map(tx => stateTree.getState(tx.fromIndex));
@@ -192,7 +192,7 @@ describe("Rollup Transfer Commitment", () => {
             feeReceiver
         );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
-        const { serialized } = serialize(txs);
+        const serialized = serialize(txs);
         const stateMerkleProof = [];
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateMerkleProof.push({

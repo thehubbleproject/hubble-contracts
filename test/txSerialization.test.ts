@@ -14,7 +14,7 @@ describe("Tx Serialization", async () => {
 
     it("parse transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
-        const { serialized } = serialize(txs);
+        const serialized = serialize(txs);
         assert.equal(
             (await c.transfer_size(serialized)).toNumber(),
             txs.length
@@ -39,9 +39,7 @@ describe("Tx Serialization", async () => {
     });
     it("serialize transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
-        const { serialized } = serialize(txs);
-        const _serialized = await c.transfer_serialize(txs);
-        assert.equal(serialized, _serialized);
+        assert.equal(await c.transfer_serialize(txs), serialize(txs));
     });
     it("transfer trasaction casting", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
@@ -51,14 +49,13 @@ describe("Tx Serialization", async () => {
             const bytes = await c.transfer_bytesFromEncoded(extended);
             txsInBytes.push(bytes);
         }
-        const { serialized } = serialize(txs);
-        const _serialized = await c.transfer_serializeFromEncoded(txsInBytes);
-        assert.equal(serialized, _serialized);
+        const serialized = await c.transfer_serializeFromEncoded(txsInBytes);
+        assert.equal(serialized, serialize(txs));
     });
 
     it("massMigration", async function() {
         const txs = TxMassMigration.buildList(COMMIT_SIZE);
-        const { serialized } = serialize(txs);
+        const serialized = serialize(txs);
         const size = await c.massMigration_size(serialized);
         assert.equal(size.toNumber(), txs.length);
         for (let i in txs) {
