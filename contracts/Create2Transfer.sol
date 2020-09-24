@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { FraudProofHelpers } from "./FraudProof.sol";
 import { Types } from "./libs/Types.sol";
-import { RollupUtilsLib } from "./libs/RollupUtils.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
@@ -10,6 +9,7 @@ import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
 contract Create2Transfer is FraudProofHelpers {
     using Tx for bytes;
+    using Types for Types.UserState;
 
     function checkSignature(
         uint256[2] memory signature,
@@ -27,11 +27,21 @@ contract Create2Transfer is FraudProofHelpers {
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     stateRoot,
-                    RollupUtilsLib.HashFromAccount(proof.stateAccounts[i]),
+                    keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
                 "Rollup: state inclusion signer"
+            );
+            // check pubkey inclusion
+            require(
+                MerkleTreeUtilsLib.verifyLeaf(
+                    accountRoot,
+                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    proof.states[i].pubkeyIndex,
+                    proof.pubkeyWitnesses[i]
+                ),
+                "Rollup: account does not exists"
             );
 
             // check pubkey inclusion
@@ -39,28 +49,18 @@ contract Create2Transfer is FraudProofHelpers {
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
-                    proof.stateAccounts[i].ID,
+                    _tx.toAccID,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Rollup: account does not exists"
             );
 
-            require(
-                MerkleTreeUtilsLib.verifyLeaf(
-                    accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[i + 1])),
-                    _tx.toAccID,
-                    proof.pubkeyWitnesses[i + 1]
-                ),
-                "Rollup: account does not exists"
-            );
-
             // construct the message
-            require(proof.stateAccounts[i].nonce > 0, "Rollup: zero nonce");
+            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
 
             bytes memory txMsg = txs.create2Transfer_messageOf(
                 i,
-                proof.stateAccounts[i].nonce - 1,
+                proof.states[i].nonce - 1,
                 proof.pubkeys[i],
                 proof.pubkeys[i + 1]
             );
@@ -81,7 +81,7 @@ contract Create2Transfer is FraudProofHelpers {
     function processCreate2TransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.AccountMerkleProof[] memory accountProofs,
+        Types.StateMerkleProof[] memory accountProofs,
         uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, bool) {
@@ -131,8 +131,8 @@ contract Create2Transfer is FraudProofHelpers {
         bytes32 stateRoot,
         Tx.Create2Transfer memory _tx,
         uint256 tokenType,
-        Types.AccountMerkleProof memory fromAccountProof,
-        Types.AccountMerkleProof memory toAccountProof
+        Types.StateMerkleProof memory from,
+        Types.StateMerkleProof memory to
     )
         public
         pure
@@ -147,9 +147,9 @@ contract Create2Transfer is FraudProofHelpers {
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtilsLib.HashFromAccount(fromAccountProof.account),
+                keccak256(from.state.encode()),
                 _tx.fromIndex,
-                fromAccountProof.siblings
+                from.witness
             ),
             "Transfer: sender does not exist"
         );
@@ -157,12 +157,12 @@ contract Create2Transfer is FraudProofHelpers {
         Types.ErrorCode err_code = validateTxBasic(
             _tx.amount,
             _tx.fee,
-            fromAccountProof.account
+            from.state
         );
         if (err_code != Types.ErrorCode.NoError)
             return (ZERO_BYTES32, "", "", err_code, false);
 
-        if (fromAccountProof.account.tokenType != tokenType) {
+        if (from.state.tokenType != tokenType) {
             return (
                 ZERO_BYTES32,
                 "",
@@ -172,7 +172,7 @@ contract Create2Transfer is FraudProofHelpers {
             );
         }
 
-        if (toAccountProof.account.tokenType != tokenType)
+        if (to.state.tokenType != tokenType)
             return (
                 ZERO_BYTES32,
                 "",
@@ -185,10 +185,7 @@ contract Create2Transfer is FraudProofHelpers {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyTransferTxSender(
-            fromAccountProof,
-            _tx
-        );
+        (new_from_account, newRoot) = ApplyTransferTxSender(from, _tx);
 
         // Validate we are creating on a zero account
         require(
@@ -196,15 +193,15 @@ contract Create2Transfer is FraudProofHelpers {
                 stateRoot,
                 keccak256(abi.encode(0)),
                 _tx.toIndex,
-                toAccountProof.siblings
+                to.witness
             ),
             "Transfer: receiver proof invalid"
         );
 
         (new_to_account, newRoot) = ApplyTransferTxReceiver(
-            toAccountProof,
+            to,
             _tx,
-            fromAccountProof.account.tokenType
+            from.state.tokenType
         );
 
         return (
@@ -217,38 +214,38 @@ contract Create2Transfer is FraudProofHelpers {
     }
 
     function ApplyTransferTxSender(
-        Types.AccountMerkleProof memory _merkle_proof,
+        Types.StateMerkleProof memory _merkle_proof,
         Tx.Create2Transfer memory _tx
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        Types.UserAccount memory account = _merkle_proof.account;
-        account.balance = account.balance.sub(_tx.amount).sub(_tx.fee);
-        account.nonce++;
-        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(account);
+    ) public pure returns (bytes memory newState, bytes32 newRoot) {
+        Types.UserState memory state = _merkle_proof.state;
+        state.balance = state.balance.sub(_tx.amount).sub(_tx.fee);
+        state.nonce++;
+        bytes memory encodedState = state.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(accountInBytes),
+            keccak256(encodedState),
             _tx.fromIndex,
-            _merkle_proof.siblings
+            _merkle_proof.witness
         );
-        return (accountInBytes, newRoot);
+        return (encodedState, newRoot);
     }
 
     function ApplyTransferTxReceiver(
-        Types.AccountMerkleProof memory _merkle_proof,
+        Types.StateMerkleProof memory _merkle_proof,
         Tx.Create2Transfer memory _tx,
         uint256 token
     ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         // Initialize account
-        // TODO create new account from scratch
-        _merkle_proof.account.ID = _tx.toAccID;
-        _merkle_proof.account.balance = _tx.amount;
-        _merkle_proof.account.tokenType = token;
-        bytes memory accountInBytes = RollupUtilsLib.BytesFromAccount(
-            _merkle_proof.account
+        Types.UserState memory newState = Types.UserState(
+            _tx.toAccID,
+            token,
+            _tx.amount,
+            0
         );
+        bytes memory accountInBytes = _merkle_proof.state.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.toIndex,
-            _merkle_proof.siblings
+            _merkle_proof.witness
         );
         return (accountInBytes, newRoot);
     }
@@ -258,7 +255,7 @@ contract Create2Transfer is FraudProofHelpers {
         uint256 fees,
         uint256 tokenType,
         uint256 feeReceiver,
-        Types.AccountMerkleProof memory stateLeafProof
+        Types.StateMerkleProof memory stateLeafProof
     )
         public
         pure
@@ -268,21 +265,25 @@ contract Create2Transfer is FraudProofHelpers {
             bool isValid
         )
     {
-        Types.UserAccount memory account = stateLeafProof.account;
-        if (account.tokenType != tokenType) {
+        Types.UserState memory state = stateLeafProof.state;
+        if (state.tokenType != tokenType) {
             return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
         }
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                RollupUtilsLib.HashFromAccount(account),
+                keccak256(state.encode()),
                 feeReceiver,
-                stateLeafProof.siblings
+                stateLeafProof.witness
             ),
             "Transfer: fee receiver does not exist"
         );
-        account.balance = account.balance.add(fees);
-        newRoot = UpdateAccountWithSiblings(account, stateLeafProof);
+        state.balance = state.balance.add(fees);
+        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
+            keccak256(state.encode()),
+            feeReceiver,
+            stateLeafProof.witness
+        );
         return (newRoot, Types.ErrorCode.NoError, true);
     }
 }
