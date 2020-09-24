@@ -60,9 +60,17 @@ export class StateTree {
         this.stateTree.updateSingle(stateID, leaf);
         this.states[stateID] = state;
     }
+    public createStateBulk(states: State[]) {
+        for (const state of states) {
+            this.createState(state);
+        }
+    }
 
     public get root() {
         return this.stateTree.root;
+    }
+    public getState(stateID: number) {
+        return this.states[stateID];
     }
 
     public applyTransferBatch(
