@@ -7,6 +7,7 @@ import { Types } from "./Types.sol";
 library Tx {
     // Tx types in uint256
     uint256 constant TRANSFER = 1;
+    uint256 constant CREATE2TRANSFER = 3;
 
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
@@ -476,19 +477,16 @@ library Tx {
     function create2Transfer_messageOf(
         bytes memory txs,
         uint256 index,
-        uint256 nonce
-    ) internal pure returns (bytes32) {
-        Create2Transfer memory _tx = create2Transfer_decode(txs, index);
+        uint256 nonce,
+        uint256[4] memory from,
+        uint256[4] memory to
+    ) internal pure returns (bytes memory) {
+        bytes memory serialized = new bytes(TX_LEN_1);
+        uint256 off = index * TX_LEN_1;
+        for (uint256 j = 0; j < TX_LEN_1; j++) {
+            serialized[j] = txs[off + j];
+        }
         return
-            keccak256(
-                abi.encodePacked(
-                    TRANSFER,
-                    _tx.fromIndex,
-                    _tx.toIndex,
-                    _tx.toAccID,
-                    nonce,
-                    _tx.amount
-                )
-            );
+            abi.encodePacked(uint8(CREATE2TRANSFER), uint32(nonce), serialized);
     }
 }

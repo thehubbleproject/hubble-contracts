@@ -30,6 +30,7 @@ library Types {
         bytes32 depositRoot;
         bool withdrawn;
     }
+
     struct Commitment {
         bytes32 stateRoot;
         bytes32 bodyRoot;
