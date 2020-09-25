@@ -74,29 +74,11 @@ export function g2() {
     return g2;
 }
 
-export function g1ToBig(p: mclG1) {
-    p.normalize();
-    const x = toBig(mclToHex(p.getX()));
-    const y = toBig(mclToHex(p.getY()));
-    return [x, y];
-}
-
 export function g1ToHex(p: mclG1) {
     p.normalize();
     const x = mclToHex(p.getX());
     const y = mclToHex(p.getY());
     return [x, y];
-}
-
-export function g2ToBig(p: mclG2) {
-    const x = mclToHex(p.getX(), false);
-    const y = mclToHex(p.getY(), false);
-    return [
-        toBig("0x" + x.slice(64)),
-        toBig("0x" + x.slice(0, 64)),
-        toBig("0x" + y.slice(64)),
-        toBig("0x" + y.slice(0, 64))
-    ];
 }
 
 export function g2ToHex(p: mclG2) {
