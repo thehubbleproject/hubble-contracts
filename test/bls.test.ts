@@ -59,35 +59,30 @@ describe("BLS", async () => {
         const n = 10;
         const messages = [];
         const pubkeys = [];
-        let aggSignature = mcl.newG1();
+        const signatures = [];
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
             const { signature, M } = mcl.sign(message, secret);
-            aggSignature = mcl.aggreagate(aggSignature, signature);
             messages.push(M);
             pubkeys.push(pubkey);
+            signatures.push(signature);
         }
-        let messages_ser = messages.map(p => mcl.g1ToHex(p));
-        let pubkeys_ser = pubkeys.map(p => mcl.g2ToHex(p));
-        let sig_ser = mcl.g1ToHex(aggSignature);
-        let res = await bls.verifyMultiple(sig_ser, pubkeys_ser, messages_ser);
+        const aggSignature = mcl.aggreagate(signatures);
+        let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isTrue(res);
     });
     it("verify single signature", async function() {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
-        let message_ser = mcl.g1ToHex(M);
-        let pubkey_ser = mcl.g2ToHex(pubkey);
-        let sig_ser = mcl.g1ToHex(signature);
-        let res = await bls.verifySingle(sig_ser, pubkey_ser, message_ser);
+        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
         assert.isTrue(res);
     });
     it("is on curve g1", async function() {
         for (let i = 0; i < 20; i++) {
             const point = mcl.randG1();
-            let isOnCurve = await bls.isOnCurveG1(mcl.g1ToHex(point));
+            let isOnCurve = await bls.isOnCurveG1(point);
             assert.isTrue(isOnCurve);
         }
         for (let i = 0; i < 20; i++) {
@@ -99,7 +94,7 @@ describe("BLS", async () => {
     it("is on curve g2", async function() {
         for (let i = 0; i < 20; i++) {
             const point = mcl.randG2();
-            let isOnCurve = await bls.isOnCurveG2(mcl.g2ToHex(point));
+            let isOnCurve = await bls.isOnCurveG2(point);
             assert.isTrue(isOnCurve);
         }
         for (let i = 0; i < 20; i++) {
@@ -117,22 +112,20 @@ describe("BLS", async () => {
         const n = 100;
         const messages = [];
         const pubkeys = [];
-        let aggSignature = mcl.newG1();
+        const signatures = [];
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
             const { signature, M } = mcl.sign(message, secret);
-            aggSignature = mcl.aggreagate(aggSignature, signature);
             messages.push(M);
             pubkeys.push(pubkey);
+            signatures.push(signature);
         }
-        let messages_ser = messages.map(p => mcl.g1ToHex(p));
-        let pubkeys_ser = pubkeys.map(p => mcl.g2ToHex(p));
-        let sig_ser = mcl.g1ToHex(aggSignature);
+        const aggSignature = mcl.aggreagate(signatures);
         let cost = await bls.estimateGas.verifyMultipleGasCost(
-            sig_ser,
-            pubkeys_ser,
-            messages_ser
+            aggSignature,
+            pubkeys,
+            messages
         );
         console.log(`verify signature for ${n} message: ${cost.toNumber()}`);
     });
@@ -140,13 +133,10 @@ describe("BLS", async () => {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
-        let message_ser = mcl.g1ToHex(M);
-        let pubkey_ser = mcl.g2ToHex(pubkey);
-        let sig_ser = mcl.g1ToHex(signature);
         let cost = await bls.estimateGas.verifySingleGasCost(
-            sig_ser,
-            pubkey_ser,
-            message_ser
+            signature,
+            pubkey,
+            M
         );
         console.log(`verify single signature:: ${cost.toNumber()}`);
     });

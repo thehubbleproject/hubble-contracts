@@ -8,10 +8,10 @@ export type mclG2 = any;
 export type mclG1 = any;
 export type mclFP = any;
 export type mclFR = any;
-export type PublicKey = mclG2;
+export type PublicKey = solG2;
 export type SecretKey = mclFR;
 export type Signature = mclG1;
-export type Message = mclG1;
+export type Message = solG1;
 
 export type solG1 = [string, string];
 export type solG2 = [string, string, string, string];
@@ -99,8 +99,9 @@ export function g2ToHex(p: mclG2): solG2 {
 
 export function newKeyPair(): keyPair {
     const secret = randFr();
-    const pubkey = mcl.mul(g2(), secret);
-    pubkey.normalize();
+    const mclPubkey = mcl.mul(g2(), secret);
+    mclPubkey.normalize();
+    const pubkey = g2ToHex(mclPubkey);
     return { pubkey, secret };
 }
 
@@ -111,24 +112,30 @@ export function sign(
     signature: Signature;
     M: Message;
 } {
-    const M = hashToPoint(message);
-    const signature = mcl.mul(M, secret);
+    const messagePoint = hashToPoint(message);
+    const signature = mcl.mul(messagePoint, secret);
     signature.normalize();
+    const M = g1ToHex(messagePoint);
     return { signature, M };
 }
 
-export function aggreagate<T extends mclG1 | mclG2>(acc: T, other: T): T {
-    const _acc = mcl.add(acc, other);
-    _acc.normalize();
-    return _acc;
+export function aggreagate(signatures: Signature[]): solG1 {
+    let aggregated = new mcl.G1();
+    for (const sig of signatures) {
+        aggregated = mcl.add(aggregated, sig);
+    }
+    aggregated.normalize();
+    return g1ToHex(aggregated);
 }
 
-export function newG1(): mclG1 {
-    return new mcl.G1();
+export function newG1(): solG1 {
+    const g1 = new mcl.G1();
+    return g1ToHex(g1);
 }
 
-export function newG2(): mclG2 {
-    return new mcl.G2();
+export function newG2(): solG2 {
+    const g2 = new mcl.G2();
+    return g2ToHex(g2);
 }
 
 export function randFr(): mclFR {
@@ -138,14 +145,14 @@ export function randFr(): mclFR {
     return fr;
 }
 
-export function randG1(): mclG1 {
+export function randG1(): solG1 {
     const p = mcl.mul(g1(), randFr());
     p.normalize();
-    return p;
+    return g1ToHex(p);
 }
 
-export function randG2(): mclG2 {
+export function randG2(): solG2 {
     const p = mcl.mul(g2(), randFr());
     p.normalize();
-    return p;
+    return g2ToHex(p);
 }
