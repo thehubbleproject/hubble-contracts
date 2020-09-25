@@ -3,7 +3,6 @@ import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
 import { State } from "./state";
 import { TxTransfer } from "./tx";
-import { randomNum } from "./utils";
 
 export class UserStateFactory {
     public static buildList(
@@ -35,12 +34,12 @@ export function txTransferFactory(
     n: number = COMMIT_SIZE
 ): TxTransfer[] {
     const txs: TxTransfer[] = [];
-    const amount = states[0].balance.div(10);
-    const fee = amount.div(10);
     for (let i = 0; i < n; i++) {
         const senderIndex = i;
         const reciverIndex = (i + 5) % n;
         const sender = states[senderIndex];
+        const amount = sender.balance.div(10);
+        const fee = amount.div(10);
         const tx = new TxTransfer(
             senderIndex,
             reciverIndex,
