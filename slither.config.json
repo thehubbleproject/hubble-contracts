@@ -1,0 +1,4 @@
+{
+    "compile_force_framework": "buidler",
+    "filter_paths": "./contracts/test/"
+}
