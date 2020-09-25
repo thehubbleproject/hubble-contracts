@@ -1,6 +1,6 @@
 import { BigNumber, BigNumberish, BytesLike, ethers } from "ethers";
 import { EncodingError } from "./exceptions";
-import { randomHex } from "./utils";
+import { randHex } from "./utils";
 
 export class DecimalCodec {
     private mantissaMax: BigNumber;
@@ -19,7 +19,7 @@ export class DecimalCodec {
         this.bytesLength = (mantissaBits + exponentBits) / 8;
     }
     public rand(): string {
-        return randomHex(this.bytesLength);
+        return randHex(this.bytesLength);
     }
 
     public randInt(): BigNumber {
