@@ -20,10 +20,6 @@ library BLS {
     uint256 constant T24 = 0x1000000000000000000000000000000000000000000000000;
     uint256 constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
 
-    uint256 constant FIELD_MASK = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
-    uint256 constant SIGN_MASK = 0x8000000000000000000000000000000000000000000000000000000000000000;
-    uint256 constant ODD_NUM = 0x8000000000000000000000000000000000000000000000000000000000000000;
-
     function verifySingle(
         uint256[2] memory signature,
         uint256[4] memory pubkey,
