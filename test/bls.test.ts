@@ -30,35 +30,29 @@ describe("BLS", async () => {
         }
     });
     it("expand message to 96", async function() {
-        for (let j = 0; j < 2; j++) {
-            for (let i = 0; i < 100; i++) {
-                const msg = randomBytes(i);
-                const expected = expandMsg(DOMAIN, msg, 96);
-                const result = await bls.expandMsg(DOMAIN, msg);
-                assert.equal(result, hexlify(expected));
-            }
+        for (let i = 0; i < 100; i++) {
+            const msg = randomBytes(i);
+            const expected = expandMsg(DOMAIN, msg, 96);
+            const result = await bls.expandMsg(DOMAIN, msg);
+            assert.equal(result, hexlify(expected));
         }
     });
     it("hash to field", async function() {
-        for (let j = 0; j < 2; j++) {
-            for (let i = 0; i < 100; i++) {
-                const msg = randomBytes(i);
-                const [expectX, expectY] = hashToField(DOMAIN, msg, 2);
-                const [actualX, actualY] = await bls.hashToField(DOMAIN, msg);
-                assert.equal(actualX.toHexString(), expectX.toHexString());
-                assert.equal(actualY.toHexString(), expectY.toHexString());
-            }
+        for (let i = 0; i < 100; i++) {
+            const msg = randomBytes(i);
+            const [expectX, expectY] = hashToField(DOMAIN, msg, 2);
+            const [actualX, actualY] = await bls.hashToField(DOMAIN, msg);
+            assert.equal(actualX.toHexString(), expectX.toHexString());
+            assert.equal(actualY.toHexString(), expectY.toHexString());
         }
     });
     it("hash to point", async function() {
-        for (let j = 0; j < 2; j++) {
-            for (let i = 0; i < 100; i++) {
-                const msg = randHex(i);
-                const [expectX, expectY] = mcl.g1ToHex(mcl.hashToPoint(msg));
-                const [actualX, actualY] = await bls.hashToPoint(DOMAIN, msg);
-                assert.equal(to32Hex(actualX), expectX);
-                assert.equal(to32Hex(actualY), expectY);
-            }
+        for (let i = 0; i < 100; i++) {
+            const msg = randHex(i);
+            const [expectX, expectY] = mcl.g1ToHex(mcl.hashToPoint(msg));
+            const [actualX, actualY] = await bls.hashToPoint(DOMAIN, msg);
+            assert.equal(to32Hex(actualX), expectX);
+            assert.equal(to32Hex(actualY), expectY);
         }
     });
     it("verify aggregated signature", async function() {
