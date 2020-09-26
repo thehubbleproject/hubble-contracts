@@ -7,6 +7,8 @@ import { execSync } from "child_process";
 
 const txPerCommitment = 32;
 const commitmentsPerBatch = 32;
+const blockTime = 13;
+const blockGasLimit = 12500000;
 
 async function main() {
     const [signer, ...rest] = await ethers.getSigners();
@@ -19,8 +21,7 @@ async function main() {
         for (let j = 0; j < txPerCommitment; j++) {
             transactions.push(TxTransfer.rand());
         }
-        const { serialized } = serialize(transactions);
-        commitment.txs = serialized;
+        commitment.txs = serialize(transactions);
         commitments.push(commitment);
     }
     const batch = new TransferBatch(commitments);
@@ -34,11 +35,22 @@ async function main() {
     const revision = execSync("git rev-parse HEAD")
         .toString()
         .trim();
+
+    const totalTxs = txPerCommitment * commitmentsPerBatch;
+    const submitBatchGas = receipt.gasUsed.toNumber();
+    const gasPerTx = submitBatchGas / totalTxs;
+    const tps = blockGasLimit / gasPerTx / blockTime;
+
     console.log("=============================");
     console.log("Revision", revision);
     console.log(
         `submitTransferBatch: Gas cost execution cost for ${txPerCommitment} x ${commitmentsPerBatch} txs`,
-        receipt.gasUsed.toNumber()
+        submitBatchGas
+    );
+    console.log("Transaction per second", tps.toFixed(2));
+    console.log("Gas per transaction", gasPerTx.toFixed(2));
+    console.log(
+        `(Assuming ${blockGasLimit} block gas limit and ${blockTime} seconds block time for ${totalTxs} txs)`
     );
 }
 

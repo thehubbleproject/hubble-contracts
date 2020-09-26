@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Tx } from "./libs/Tx.sol";
-import { IERC20 } from "./interfaces/IERC20.sol";
 
 import { Types } from "./libs/Types.sol";
 import { ParamManager } from "./libs/ParamManager.sol";

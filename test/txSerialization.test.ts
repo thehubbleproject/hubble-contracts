@@ -3,6 +3,7 @@ import { TestTx } from "../types/ethers-contracts/TestTx";
 import { TxTransfer, serialize, TxMassMigration } from "../ts/tx";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
+import { COMMIT_SIZE } from "../ts/constants";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -12,23 +13,22 @@ describe("Tx Serialization", async () => {
     });
 
     it("parse transfer transaction", async function() {
-        const txSize = 16;
-        const txs: TxTransfer[] = [];
-        for (let i = 0; i < txSize; i++) {
-            txs.push(TxTransfer.rand());
-        }
-        const { serialized } = serialize(txs);
-        assert.equal((await c.transfer_size(serialized)).toNumber(), txSize);
+        const txs = TxTransfer.buildList(COMMIT_SIZE);
+        const serialized = serialize(txs);
+        assert.equal(
+            (await c.transfer_size(serialized)).toNumber(),
+            txs.length
+        );
         assert.isFalse(await c.transfer_hasExcessData(serialized));
-        for (let i = 0; i < txSize; i++) {
-            const decoded = await c.transfer_decode(serialized, i);
-            assert.equal(
-                decoded.fromIndex.toString(),
-                txs[i].fromIndex.toString()
+        for (let i in txs) {
+            const { fromIndex, toIndex, amount, fee } = await c.transfer_decode(
+                serialized,
+                i
             );
-            assert.equal(decoded.toIndex.toString(), txs[i].toIndex.toString());
-            assert.equal(decoded.amount.toString(), txs[i].amount.toString());
-            assert.equal(decoded.fee.toString(), txs[i].fee.toString());
+            assert.equal(fromIndex.toString(), txs[i].fromIndex.toString());
+            assert.equal(toIndex.toString(), txs[i].toIndex.toString());
+            assert.equal(amount.toString(), txs[i].amount.toString());
+            assert.equal(fee.toString(), txs[i].fee.toString());
             const message = await c.transfer_messageOf(
                 serialized,
                 i,
@@ -38,43 +38,27 @@ describe("Tx Serialization", async () => {
         }
     });
     it("serialize transfer transaction", async function() {
-        const txSize = 16;
-        const txs: TxTransfer[] = [];
-        for (let i = 0; i < txSize; i++) {
-            const tx = TxTransfer.rand();
-            txs.push(tx);
-        }
-        const { serialized } = serialize(txs);
-        const _serialized = await c.transfer_serialize(txs);
-        assert.equal(serialized, _serialized);
+        const txs = TxTransfer.buildList(COMMIT_SIZE);
+        assert.equal(await c.transfer_serialize(txs), serialize(txs));
     });
     it("transfer trasaction casting", async function() {
-        const txSize = 16;
-        const txs = [];
+        const txs = TxTransfer.buildList(COMMIT_SIZE);
         const txsInBytes = [];
-        for (let i = 0; i < txSize; i++) {
-            const tx = TxTransfer.rand();
+        for (const tx of txs) {
             const extended = tx.extended();
             const bytes = await c.transfer_bytesFromEncoded(extended);
-            txs.push(tx);
             txsInBytes.push(bytes);
         }
-        const { serialized } = serialize(txs);
-        const _serialized = await c.transfer_serializeFromEncoded(txsInBytes);
-        assert.equal(serialized, _serialized);
+        const serialized = await c.transfer_serializeFromEncoded(txsInBytes);
+        assert.equal(serialized, serialize(txs));
     });
 
     it("massMigration", async function() {
-        const txSize = 16;
-        const txs: TxMassMigration[] = [];
-        for (let i = 0; i < txSize; i++) {
-            const tx = TxMassMigration.rand();
-            txs.push(tx);
-        }
-        const { serialized } = serialize(txs);
+        const txs = TxMassMigration.buildList(COMMIT_SIZE);
+        const serialized = serialize(txs);
         const size = await c.massMigration_size(serialized);
-        assert.equal(size.toNumber(), txSize);
-        for (let i = 0; i < txSize; i++) {
+        assert.equal(size.toNumber(), txs.length);
+        for (let i in txs) {
             const {
                 fromIndex,
                 toIndex,

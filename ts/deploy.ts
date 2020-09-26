@@ -9,8 +9,8 @@ import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { PobFactory } from "../types/ethers-contracts/PobFactory";
-import { TransferProductionFactory } from "../types/ethers-contracts/TransferProductionFactory";
-import { MassMigrationProductionFactory } from "../types/ethers-contracts/MassMigrationProductionFactory";
+import { TransferFactory } from "../types/ethers-contracts/TransferFactory";
+import { MassMigrationFactory } from "../types/ethers-contracts/MassMigrationFactory";
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
 import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
@@ -119,9 +119,7 @@ export async function deployAll(
         await paramManager.TOKEN_REGISTRY()
     );
 
-    const massMigration = await new MassMigrationProductionFactory(
-        signer
-    ).deploy();
+    const massMigration = await new MassMigrationFactory(signer).deploy();
     await waitAndRegister(
         massMigration,
         "mass_migs",
@@ -130,7 +128,7 @@ export async function deployAll(
         await paramManager.MASS_MIGS()
     );
 
-    const transfer = await new TransferProductionFactory(signer).deploy();
+    const transfer = await new TransferFactory(signer).deploy();
     await waitAndRegister(
         transfer,
         "transfer",
