@@ -38,12 +38,12 @@ describe("Rollup", async function() {
         Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(0);
         Alice.newKeyPair();
-        Alice.pubkeyIndex = await registry.register(Alice.encodePubkey());
+        Alice.pubkeyIndex = await registry.register(Alice.getPubkey());
 
         Bob = State.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
         Bob.newKeyPair();
-        Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
+        Bob.pubkeyIndex = await registry.register(Bob.getPubkey());
 
         stateTree.createState(Alice);
         stateTree.createState(Bob);
