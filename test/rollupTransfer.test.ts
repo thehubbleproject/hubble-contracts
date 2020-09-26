@@ -62,7 +62,7 @@ describe("Rollup Transfer Commitment", () => {
             pubkeyWitnesses.push(registry.witness(sender.pubkeyIndex));
             signatures.push(sender.sign(tx));
         }
-        const signature = mcl.aggreagate(signatures)
+        const signature = mcl.aggreagate(signatures);
         const stateTransitionProof = stateTree.applyTransferBatch(txs, 0);
         assert.isTrue(stateTransitionProof.safe);
         const serialized = serialize(txs);

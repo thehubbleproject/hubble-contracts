@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 import { BigNumber } from "ethers";
-import { randomBytes, hexlify, hexZeroPad, BytesLike } from "ethers/lib/utils";
+import { randomBytes, hexlify, hexZeroPad } from "ethers/lib/utils";
 
 export const FIELD_ORDER = BigNumber.from(
     "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
