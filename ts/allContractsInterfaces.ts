@@ -6,7 +6,7 @@ import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 import { Logger } from "../types/ethers-contracts/Logger";
 import { TokenRegistry } from "../types/ethers-contracts/TokenRegistry";
 import { Pob } from "../types/ethers-contracts/Pob";
-import { TransferProduction } from "../types/ethers-contracts/TransferProduction";
+import { Transfer } from "../types/ethers-contracts/Transfer";
 import { TestToken } from "../types/ethers-contracts/TestToken";
 import { DepositManager } from "../types/ethers-contracts/DepositManager";
 import { Rollup } from "../types/ethers-contracts/Rollup";
@@ -22,7 +22,7 @@ export interface allContracts {
     merkleTreeUtils: MerkleTreeUtils;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
-    transfer: TransferProduction;
+    transfer: Transfer;
     massMigration: MassMigration;
     pob: Pob;
     testToken: TestToken;
