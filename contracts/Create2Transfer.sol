@@ -21,7 +21,8 @@ contract Create2Transfer is FraudProofHelpers {
     ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.create2Transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
-        for (uint256 i = 0; i < batchSize; i += 2) {
+        uint256 j = 0;
+        for (uint256 i = 0; i < batchSize; i++) {
             Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
             // check state inclustion
             require(
@@ -33,40 +34,43 @@ contract Create2Transfer is FraudProofHelpers {
                 ),
                 "Rollup: state inclusion signer"
             );
+
             // check pubkey inclusion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    keccak256(abi.encodePacked(proof.pubkeys[j])),
                     proof.states[i].pubkeyIndex,
-                    proof.pubkeyWitnesses[i]
+                    proof.pubkeyWitnesses[j]
                 ),
-                "Rollup: account does not exists"
+                "Rollup: from account does not exists"
             );
 
             // check pubkey inclusion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    keccak256(abi.encodePacked(proof.pubkeys[j+1])),
                     _tx.toAccID,
-                    proof.pubkeyWitnesses[i]
+                    proof.pubkeyWitnesses[j+1]
                 ),
-                "Rollup: account does not exists"
+                "Rollup: to account does not exists"
             );
 
             // construct the message
             require(proof.states[i].nonce > 0, "Rollup: zero nonce");
 
-            bytes memory txMsg = txs.create2Transfer_messageOf(
-                i,
+            bytes memory txMsg = Tx.create2Transfer_messageOf(
+                _tx,
                 proof.states[i].nonce - 1,
-                proof.pubkeys[i],
-                proof.pubkeys[i + 1]
+                proof.pubkeys[j],
+                proof.pubkeys[j + 1]
             );
 
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
+
+            j+=2;
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
             return Types.ErrorCode.BadSignature;

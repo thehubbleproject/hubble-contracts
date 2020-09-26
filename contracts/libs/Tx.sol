@@ -412,32 +412,6 @@ library Tx {
         return serialized;
     }
 
-    function create2Transfer_serializeFromEncoded(
-        Types.Create2Transfer[] memory txs
-    ) internal pure returns (bytes memory) {
-        uint256 batchSize = txs.length;
-        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            uint256 fromIndex = txs[i].fromIndex;
-            uint256 toIndex = txs[i].toIndex;
-            uint256 toAccID = txs[i].toAccID;
-            uint256 amount = txs[i].amount;
-            uint256 fee = txs[i].fee;
-            bytes memory _tx = abi.encodePacked(
-                uint32(fromIndex),
-                uint32(toIndex),
-                uint32(toAccID),
-                uint32(amount),
-                uint32(fee)
-            );
-            uint256 off = i * TX_LEN_1;
-            for (uint256 j = 0; j < TX_LEN_1; j++) {
-                serialized[j + off] = _tx[j];
-            }
-        }
-        return serialized;
-    }
-
     function create2Transfer_decode(bytes memory txs, uint256 index)
         internal
         pure
@@ -467,18 +441,20 @@ library Tx {
     }
 
     function create2Transfer_messageOf(
-        bytes memory txs,
-        uint256 index,
+        Create2Transfer memory _tx,
         uint256 nonce,
         uint256[4] memory from,
         uint256[4] memory to
     ) internal pure returns (bytes memory) {
-        bytes memory serialized = new bytes(TX_LEN_1);
-        uint256 off = index * TX_LEN_1;
-        for (uint256 j = 0; j < TX_LEN_1; j++) {
-            serialized[j] = txs[off + j];
-        }
-        return
-            abi.encodePacked(uint8(CREATE2TRANSFER), uint32(nonce), serialized);
+       return
+            abi.encode(
+                uint8(CREATE2TRANSFER),
+                from,
+                to,
+                nonce,
+                _tx.amount,
+                _tx.fee
+            );
+
     }
 }
