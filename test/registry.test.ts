@@ -12,10 +12,7 @@ let DEPTH: number;
 let BATCH_DEPTH: number;
 let hasher: Hasher;
 
-type Pubkey = mcl.mclG2;
-
-function pubkeyToLeaf(p: Pubkey) {
-    const uncompressed = mcl.g2ToHex(p);
+function pubkeyToLeaf(uncompressed: mcl.PublicKey) {
     const leaf = ethers.utils.solidityKeccak256(
         ["uint256", "uint256", "uint256", "uint256"],
         uncompressed
@@ -83,14 +80,8 @@ describe("Registry", async () => {
             await registry.register(uncompressed);
         }
         for (let i = 0; i < 16; i++) {
-            const leafIndex = i;
-            const uncompressed = mcl.g2ToHex(pubkeys[i]);
-            const witness = treeLeft.witness(leafIndex).nodes;
-            const exist = await registry.exists(
-                leafIndex,
-                uncompressed,
-                witness
-            );
+            const witness = treeLeft.witness(i).nodes;
+            const exist = await registry.exists(i, pubkeys[i], witness);
             assert.isTrue(exist);
         }
     });
