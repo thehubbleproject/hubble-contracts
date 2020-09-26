@@ -122,7 +122,7 @@ describe("BLS", async () => {
             signatures.push(signature);
         }
         const aggSignature = mcl.aggreagate(signatures);
-        let cost = await bls.estimateGas.verifyMultipleGasCost(
+        const cost = await bls.callStatic.verifyMultipleGasCost(
             aggSignature,
             pubkeys,
             messages
@@ -133,8 +133,8 @@ describe("BLS", async () => {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
-        let cost = await bls.estimateGas.verifySingleGasCost(
-            signature,
+        const cost = await bls.callStatic.verifySingleGasCost(
+            mcl.g1ToHex(signature),
             pubkey,
             M
         );
