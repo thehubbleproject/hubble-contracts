@@ -58,11 +58,20 @@ export class StateTree {
         }
         const leaf = state.toStateLeaf();
         this.stateTree.updateSingle(stateID, leaf);
-        this.states[stateID] = state;
+        // Need to clone the object so that whatever we do on this.states later won't affect the input state.
+        this.states[stateID] = state.clone();
+    }
+    public createStateBulk(states: State[]) {
+        for (const state of states) {
+            this.createState(state);
+        }
     }
 
     public get root() {
         return this.stateTree.root;
+    }
+    public getState(stateID: number) {
+        return this.states[stateID];
     }
 
     public applyTransferBatch(

@@ -35,6 +35,14 @@ export class State {
             nonce
         );
     }
+    public clone() {
+        return new State(
+            this.pubkeyIndex,
+            this.tokenType,
+            this.balance,
+            this.nonce
+        );
+    }
 
     public stateID = -1;
     constructor(

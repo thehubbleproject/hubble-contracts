@@ -81,7 +81,7 @@ describe("Rollup", async function() {
         );
         assert.isTrue(safe);
         const postStateRoot = stateTree.root;
-        const { serialized } = serialize([tx]);
+        const serialized = serialize([tx]);
         const aggregatedSignature0 = mcl.g1ToHex(signature);
 
         const root = await registry.root();

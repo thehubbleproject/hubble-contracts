@@ -21,8 +21,7 @@ async function main() {
         for (let j = 0; j < txPerCommitment; j++) {
             transactions.push(TxTransfer.rand());
         }
-        const { serialized } = serialize(transactions);
-        commitment.txs = serialized;
+        commitment.txs = serialize(transactions);
         commitments.push(commitment);
     }
     const batch = new TransferBatch(commitments);
