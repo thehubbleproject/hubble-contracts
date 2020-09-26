@@ -199,16 +199,7 @@ contract RollupUtils {
         uint256 amount,
         uint256 fee
     ) public pure returns (bytes memory) {
-        return
-            abi.encode(
-                txType,
-                from,
-                to,
-                toAccID,
-                nonce,
-                amount,
-                fee
-            );
+        return abi.encode(txType, from, to, toAccID, nonce, amount, fee);
     }
 
     function BytesFromTx(Types.Create2Transfer memory _tx)
@@ -245,15 +236,7 @@ contract RollupUtils {
             transaction.fee
         ) = abi.decode(
             txBytes,
-            (
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256
-            )
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
         return transaction;
     }
@@ -289,15 +272,7 @@ contract RollupUtils {
             transaction.fee
         ) = abi.decode(
             txBytes,
-            (
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256
-            )
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
 
         transaction.fromIndex = from;

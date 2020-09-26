@@ -241,10 +241,11 @@ library Tx {
         return Transfer(sender, receiver, amount, fee);
     }
 
-    function transfer_messageOf(
-        Transfer memory _tx,
-        uint256 nonce
-    ) internal pure returns (bytes memory) {
+    function transfer_messageOf(Transfer memory _tx, uint256 nonce)
+        internal
+        pure
+        returns (bytes memory)
+    {
         return
             abi.encode(
                 uint8(TRANSFER),
@@ -330,15 +331,7 @@ library Tx {
             _tx.fee
         ) = abi.decode(
             txBytes,
-            (
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256
-            )
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
         Tx.Create2Transfer memory _txCompressed = Tx.Create2Transfer(
             _tx.fromIndex,

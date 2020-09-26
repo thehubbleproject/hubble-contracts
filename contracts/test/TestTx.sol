@@ -64,8 +64,7 @@ contract TestTx {
         uint256 index,
         uint256 nonce
     ) public pure returns (bytes memory) {
-        return
-            Tx.transfer_messageOf(Tx.transfer_decode(txs, index), nonce);
+        return Tx.transfer_messageOf(Tx.transfer_decode(txs, index), nonce);
     }
 
     function massMigration_decode(bytes memory txs, uint256 index)
