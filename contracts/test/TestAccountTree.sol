@@ -3,13 +3,10 @@ pragma solidity ^0.5.15;
 import { AccountTree } from "../AccountTree.sol";
 
 contract TestAccountTree is AccountTree {
-    event Return(uint256);
-    event Return2(uint256, bool);
-
     function updateSingle(bytes32 leaf) external returns (uint256) {
         uint256 operationGasCost = gasleft();
         _updateSingle(leaf);
-        emit Return(operationGasCost - gasleft());
+        return operationGasCost - gasleft();
     }
 
     function updateBatch(bytes32[BATCH_SIZE] calldata leafs)
@@ -18,7 +15,7 @@ contract TestAccountTree is AccountTree {
     {
         uint256 operationGasCost = gasleft();
         _updateBatch(leafs);
-        emit Return(operationGasCost - gasleft());
+        return operationGasCost - gasleft();
     }
 
     function checkInclusion(
@@ -28,6 +25,6 @@ contract TestAccountTree is AccountTree {
     ) external returns (uint256, bool) {
         uint256 operationGasCost = gasleft();
         bool s = _checkInclusion(leaf, leafIndex, witness);
-        emit Return2(operationGasCost - gasleft(), s);
+        return (operationGasCost - gasleft(), s);
     }
 }
