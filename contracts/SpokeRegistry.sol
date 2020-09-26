@@ -1,4 +1,4 @@
-pragma solidity >=0.4.21;
+pragma solidity ^0.5.15;
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 
