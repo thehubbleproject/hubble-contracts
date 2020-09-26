@@ -33,7 +33,6 @@ contract TestTx {
                 Types.Usage.Transfer,
                 _tx.fromIndex,
                 _tx.toIndex,
-                _tx.tokenType,
                 _tx.nonce,
                 _tx.amount,
                 _tx.fee
@@ -66,7 +65,7 @@ contract TestTx {
         uint256 nonce
     ) public pure returns (bytes memory) {
         return
-            Tx.transfer_messageOf(Tx.transfer_decode(txs, index), index, nonce);
+            Tx.transfer_messageOf(Tx.transfer_decode(txs, index), nonce);
     }
 
     function massMigration_decode(bytes memory txs, uint256 index)

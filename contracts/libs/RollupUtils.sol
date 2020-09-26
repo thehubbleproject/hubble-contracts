@@ -89,7 +89,6 @@ contract RollupUtils {
                 _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
-                _tx.tokenType,
                 _tx.nonce,
                 _tx.amount,
                 _tx.fee
@@ -107,13 +106,12 @@ contract RollupUtils {
             transaction.txType,
             transaction.fromIndex,
             transaction.toIndex,
-            transaction.tokenType,
             transaction.nonce,
             transaction.amount,
             transaction.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256, uint256, uint256)
         );
         return transaction;
     }
@@ -197,7 +195,6 @@ contract RollupUtils {
         uint256[4] memory from,
         uint256[4] memory to,
         uint256 toAccID,
-        uint256 tokenType,
         uint256 nonce,
         uint256 amount,
         uint256 fee
@@ -208,7 +205,6 @@ contract RollupUtils {
                 from,
                 to,
                 toAccID,
-                tokenType,
                 nonce,
                 amount,
                 fee
@@ -226,7 +222,6 @@ contract RollupUtils {
                 _tx.fromIndex,
                 _tx.toIndex,
                 _tx.toAccID,
-                _tx.tokenType,
                 _tx.nonce,
                 _tx.amount,
                 _tx.fee
@@ -245,14 +240,12 @@ contract RollupUtils {
             transaction.fromIndex,
             transaction.toIndex,
             transaction.toAccID,
-            transaction.tokenType,
             transaction.nonce,
             transaction.amount,
             transaction.fee
         ) = abi.decode(
             txBytes,
             (
-                uint256,
                 uint256,
                 uint256,
                 uint256,
@@ -282,15 +275,15 @@ contract RollupUtils {
     function Create2PubkeyToIndex(
         bytes memory txBytes,
         uint256 from,
-        uint256 to
+        uint256 to,
+        uint256 toAccID
     ) public pure returns (bytes memory) {
         Types.Create2Transfer memory transaction;
         (
             transaction.txType,
             ,
             ,
-            transaction.toAccID,
-            transaction.tokenType,
+            toAccID,
             transaction.nonce,
             transaction.amount,
             transaction.fee
@@ -298,8 +291,7 @@ contract RollupUtils {
             txBytes,
             (
                 uint256,
-                uint256[4],
-                uint256[4],
+                uint256,
                 uint256,
                 uint256,
                 uint256,
@@ -310,6 +302,7 @@ contract RollupUtils {
 
         transaction.fromIndex = from;
         transaction.toIndex = to;
+        transaction.toAccID = toAccID;
         return BytesFromTx(transaction);
     }
 
@@ -327,7 +320,6 @@ contract RollupUtils {
                 from,
                 to,
                 transaction.toAccID,
-                transaction.tokenType,
                 transaction.nonce,
                 transaction.amount,
                 transaction.fee

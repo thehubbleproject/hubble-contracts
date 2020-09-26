@@ -10,6 +10,7 @@ import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { TransferBatch, TransferCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
+import { Rollup } from "../types/ethers-contracts/Rollup";
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
@@ -58,28 +59,33 @@ describe("Rollup", async function() {
         const initialBalance = USDT.castInt(55.6);
         const RollupUtilsInstance = contracts.rollupUtils;
         Bob = State.new(-1, tokenID, initialBalance, 0);
+        Bob.newKeyPair();
         const amount = USDT.castInt(20.01);
         const fee = USDT.castInt(1.001);
 
         const tx = new TxCreate2Transfer(0, 0, 0, amount, fee, 1, USDT);
-        console.log("functions", RollupUtilsInstance.functions);
         let encodedTx = await RollupUtilsInstance[
-            "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256,uint256)"
+            "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256)"
         ](
             1,
             Alice.encodePubkey(),
             Bob.encodePubkey(),
             tx.toPubkeyIndex,
-            tokenID,
             tx.nonce,
             tx.amount,
             tx.fee
         );
+
         Bob.setStateID(1);
-        Bob.newKeyPair();
         Bob.pubkeyIndex = await registry.register(Bob.encodePubkey());
 
-        encodedTx = await RollupUtilsInstance["BytesFromTx(tuple)"];
+        encodedTx = await RollupUtilsInstance.Create2PubkeyToIndex(
+            encodedTx,
+            Alice.stateID,
+            Bob.stateID,
+            Bob.pubkeyIndex
+        );
+
         stateTree.createState(Bob);
     });
 });

@@ -151,7 +151,6 @@ library Types {
         uint256 txType;
         uint256 fromIndex;
         uint256 toIndex;
-        uint256 tokenType;
         uint256 nonce;
         uint256 amount;
         uint256 fee;
@@ -162,7 +161,6 @@ library Types {
         uint256 fromIndex;
         uint256 toIndex;
         uint256 toAccID;
-        uint256 tokenType;
         uint256 nonce;
         uint256 amount;
         uint256 fee;

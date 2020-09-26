@@ -168,7 +168,7 @@ describe("Rollup Transfer Commitment", () => {
             const postRoot = stateTree.root;
             const { 0: processedRoot, 3: error } = await rollup.testProcessTx(
                 preRoot,
-                tx.extended(tokenID),
+                tx.extended(),
                 tokenID,
                 {
                     state: proof.sender,

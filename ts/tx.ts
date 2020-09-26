@@ -7,7 +7,8 @@ import {
     hexZeroPad,
     concat,
     hexlify,
-    solidityKeccak256
+    solidityKeccak256,
+    defaultAbiCoder
 } from "ethers/lib/utils";
 
 const amountLen = 2;
@@ -80,12 +81,17 @@ export class TxTransfer implements SignableTx {
     }
 
     public message(): string {
-        const concated = concat([
-            this.TX_TYPE,
-            hexZeroPad(hexlify(this.nonce), nonceLen),
-            this.encode()
-        ]);
-        return hexlify(concated);
+        return defaultAbiCoder.encode(
+            ["uint8", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            [
+                this.TX_TYPE,
+                this.fromIndex,
+                this.toIndex,
+                this.nonce,
+                this.amount.toString(),
+                this.fee
+            ]
+        );
     }
 
     public hash(): string {
@@ -100,14 +106,13 @@ export class TxTransfer implements SignableTx {
         );
     }
 
-    public extended(tokenType: number = 0) {
+    public extended() {
         return {
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce,
-            tokenType,
             txType: 0
         };
     }
@@ -179,7 +184,6 @@ export class TxMassMigration implements SignableTx {
             spokeID: this.spokeID,
             fee: this.fee,
             nonce: this.nonce,
-            tokenType: 0,
             txType: 0
         };
     }
@@ -258,7 +262,6 @@ export class TxCreate2Transfer implements SignableTx {
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce,
-            tokenType: 0,
             txType: 0
         };
     }

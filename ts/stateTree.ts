@@ -1,6 +1,6 @@
 import { Tree } from "./tree";
 import { State, EMPTY_STATE, StateSolStruct } from "./state";
-import { TxTransfer, TxMassMigration } from "./tx";
+import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber } from "ethers";
 
 interface ProofTransferTx {
@@ -212,5 +212,73 @@ export class StateTree {
             witness: senderWitness,
             safe: true
         };
+    }
+
+    public applyTxCreate2Transfer(tx: TxCreate2Transfer): ProofTransferTx {
+        const senderID = tx.fromIndex;
+        const receiverID = tx.toIndex;
+
+        const senderState = this.states[senderID];
+        const receiverState = this.states[receiverID];
+
+        const senderWitness = this.stateTree.witness(senderID).nodes;
+        if (senderState && receiverState) {
+            const senderStateStruct = senderState.toSolStruct();
+            if (
+                senderState.balance.lt(tx.amount.add(tx.fee)) ||
+                senderState.tokenType != receiverState.tokenType
+            ) {
+                return {
+                    sender: senderStateStruct,
+                    receiver: EMPTY_STATE,
+                    senderWitness,
+                    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
+                    safe: false
+                };
+            }
+
+            senderState.balance = senderState.balance.sub(
+                tx.amount.add(tx.fee)
+            );
+            senderState.nonce += 1;
+            this.states[senderID] = senderState;
+            this.stateTree.updateSingle(senderID, senderState.toStateLeaf());
+
+            const receiverWitness = this.stateTree.witness(receiverID).nodes;
+            const receiverStateStruct = receiverState.toSolStruct();
+            receiverState.balance = receiverState.balance.add(tx.amount);
+            this.states[receiverID] = receiverState;
+            this.stateTree.updateSingle(
+                receiverID,
+                receiverState.toStateLeaf()
+            );
+
+            return {
+                sender: senderStateStruct,
+                senderWitness,
+                receiver: receiverStateStruct,
+                receiverWitness,
+                safe: true
+            };
+        } else {
+            if (!senderState) {
+                return {
+                    sender: EMPTY_STATE,
+                    receiver: EMPTY_STATE,
+                    senderWitness,
+                    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
+                    safe: false
+                };
+            }
+            const senderStateStruct = senderState.toSolStruct();
+            const receiverWitness = this.stateTree.witness(receiverID).nodes;
+            return {
+                sender: senderStateStruct,
+                senderWitness,
+                receiver: EMPTY_STATE,
+                receiverWitness: receiverWitness,
+                safe: false
+            };
+        }
     }
 }

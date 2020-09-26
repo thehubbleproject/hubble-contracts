@@ -90,20 +90,19 @@ library Tx {
     function transfer_fromEncoded(bytes memory txBytes)
         internal
         pure
-        returns (Tx.Transfer memory, uint256 tokenType)
+        returns (Tx.Transfer memory)
     {
         Types.Transfer memory _tx;
         (
             _tx.txType,
             _tx.fromIndex,
             _tx.toIndex,
-            _tx.tokenType,
             _tx.nonce,
             _tx.amount,
             _tx.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256, uint256, uint256)
         );
         Tx.Transfer memory _txCompressed = Tx.Transfer(
             _tx.fromIndex,
@@ -111,7 +110,7 @@ library Tx {
             _tx.amount,
             _tx.fee
         );
-        return (_txCompressed, _tx.tokenType);
+        return (_txCompressed);
     }
 
     function serialize(bytes[] memory txs)
@@ -126,9 +125,9 @@ library Tx {
             uint256 toIndex;
             uint256 amount;
             uint256 fee;
-            (, fromIndex, toIndex, , , amount, fee) = abi.decode(
+            (, fromIndex, toIndex, , amount, fee) = abi.decode(
                 txs[i],
-                (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+                (uint256, uint256, uint256, uint256, uint256, uint256)
             );
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
@@ -244,7 +243,6 @@ library Tx {
 
     function transfer_messageOf(
         Transfer memory _tx,
-        uint256 token,
         uint256 nonce
     ) internal pure returns (bytes memory) {
         return
@@ -252,7 +250,6 @@ library Tx {
                 uint8(TRANSFER),
                 _tx.fromIndex,
                 _tx.toIndex,
-                token,
                 nonce,
                 _tx.amount,
                 _tx.fee
@@ -320,7 +317,7 @@ library Tx {
     function create2Transfer_fromEncoded(bytes memory txBytes)
         internal
         pure
-        returns (Tx.Create2Transfer memory, uint256 tokenType)
+        returns (Tx.Create2Transfer memory)
     {
         Types.Create2Transfer memory _tx;
         (
@@ -328,14 +325,12 @@ library Tx {
             _tx.fromIndex,
             _tx.toIndex,
             _tx.toAccID,
-            _tx.tokenType,
             _tx.nonce,
             _tx.amount,
             _tx.fee
         ) = abi.decode(
             txBytes,
             (
-                uint256,
                 uint256,
                 uint256,
                 uint256,
@@ -352,7 +347,7 @@ library Tx {
             _tx.amount,
             _tx.fee
         );
-        return (_txCompressed, _tx.tokenType);
+        return (_txCompressed);
     }
 
     function serializeCreate2Transfer(bytes[] memory txs)
