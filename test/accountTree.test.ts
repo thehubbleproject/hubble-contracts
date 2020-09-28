@@ -3,7 +3,7 @@ import { TestAccountTree } from "../types/ethers-contracts/TestAccountTree";
 import { Tree, Hasher } from "../ts/tree";
 import { ethers } from "@nomiclabs/buidler";
 import { assert } from "chai";
-import { parseEvents } from "../ts/utils";
+import { randHex, randomLeaves } from "../ts/utils";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
@@ -41,7 +41,7 @@ describe("Account Tree", async () => {
     });
     it("update with single leaf", async function() {
         for (let i = 0; i < 33; i++) {
-            const leaf = ethers.utils.hexlify(ethers.utils.randomBytes(32));
+            const leaf = randHex(32);
             treeLeft.updateSingle(i, leaf);
             await accountTree.updateSingle(leaf);
             assert.equal(treeLeft.root, await accountTree.rootLeft());
@@ -52,21 +52,17 @@ describe("Account Tree", async () => {
     it("batch update", async function() {
         const batchSize = 1 << BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
-            let leafs = [];
-            for (let i = 0; i < batchSize; i++) {
-                leafs.push(ethers.utils.hexlify(ethers.utils.randomBytes(32)));
-            }
+            const leafs = randomLeaves(batchSize);
             treeRight.updateBatch(batchSize * k, leafs);
-            await (await accountTree.updateBatch(leafs)).wait();
+            await accountTree.updateBatch(leafs);
             assert.equal(treeRight.root, await accountTree.rootRight());
             const root = hasher.hash2(treeLeft.root, treeRight.root);
             assert.equal(root, await accountTree.root());
         }
     }).timeout(50000);
     it("witness for left side", async function() {
-        let leafs = [];
-        for (let i = 0; i < 16; i++) {
-            leafs.push(ethers.utils.hexlify(ethers.utils.randomBytes(32)));
+        let leafs = randomLeaves(16);
+        for (let i = 0; i < leafs.length; i++) {
             treeLeft.updateSingle(i, leafs[i]);
             await accountTree.updateSingle(leafs[i]);
         }
@@ -74,18 +70,17 @@ describe("Account Tree", async () => {
             let leafIndex = i;
             let leaf = leafs[i];
             let witness = treeLeft.witness(i).nodes;
-            const receipt = await (
-                await accountTree.checkInclusion(leaf, leafIndex, witness)
-            ).wait();
-            assert.isTrue(parseEvents(receipt).Return2[1]);
+            const { 1: result } = await accountTree.callStatic.checkInclusion(
+                leaf,
+                leafIndex,
+                witness
+            );
+            assert.isTrue(result);
         }
     });
     it("witness for right side", async function() {
-        let leafs = [];
         const batchSize = 1 << BATCH_DEPTH;
-        for (let i = 0; i < batchSize; i++) {
-            leafs.push(ethers.utils.hexlify(ethers.utils.randomBytes(32)));
-        }
+        const leafs = randomLeaves(batchSize);
         treeRight.updateBatch(0, leafs);
         await accountTree.updateBatch(leafs);
         let offset = ethers.BigNumber.from(2).pow(ethers.BigNumber.from(DEPTH));
@@ -93,26 +88,23 @@ describe("Account Tree", async () => {
             const leafIndex = offset.add(i);
             let leaf = leafs[i];
             let witness = treeRight.witness(i).nodes;
-            let receipt = await (
-                await accountTree.checkInclusion(leaf, leafIndex, witness)
-            ).wait();
-            assert.isTrue(parseEvents(receipt).Return2[1]);
+            let { 1: result } = await accountTree.callStatic.checkInclusion(
+                leaf,
+                leafIndex,
+                witness
+            );
+            assert.isTrue(result);
         }
     });
 
     it("gas cost: update tree single", async function() {
         const leaf = ethers.utils.randomBytes(32);
-        const receipt = await (await accountTree.updateSingle(leaf)).wait();
-        const gasCost = parseEvents(receipt).Return[0];
+        const gasCost = await accountTree.callStatic.updateSingle(leaf);
         console.log(gasCost.toNumber());
     });
     it("gas cost: update tree batch", async function() {
-        const leafs = [];
-        for (let i = 0; i < 1 << BATCH_DEPTH; i++) {
-            leafs.push(ethers.utils.randomBytes(32));
-        }
-        const receipt = await (await accountTree.updateBatch(leafs)).wait();
-        const gasCost = parseEvents(receipt).Return[0];
+        const leafs = randomLeaves(1 << BATCH_DEPTH);
+        const gasCost = await accountTree.callStatic.updateBatch(leafs);
         console.log(gasCost.toNumber());
     });
 });

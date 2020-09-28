@@ -52,12 +52,12 @@ export function paddedHex(num: number, length: number): string {
     return ethers.utils.hexZeroPad(ethers.utils.hexlify(num), length);
 }
 
-export function parseEvents(receipt: any): { [key: string]: any[] } {
-    const obj: { [key: string]: any[] } = {};
-    receipt.events.forEach((event: any) => {
-        obj[event.event] = event.args;
-    });
-    return obj;
+export function randomLeaves(num: number): string[] {
+    const leaves = [];
+    for (let i = 0; i < num; i++) {
+        leaves.push(randHex(32));
+    }
+    return leaves;
 }
 
 export function getParentLeaf(left: string, right: string) {
