@@ -12,6 +12,7 @@ import { DepositManager } from "../types/ethers-contracts/DepositManager";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { MassMigration } from "../types/ethers-contracts/MassMigration";
+import { Vault } from "../types/ethers-contracts/Vault";
 
 export interface allContracts {
     paramManager: ParamManager;
@@ -22,6 +23,7 @@ export interface allContracts {
     merkleTreeUtils: MerkleTreeUtils;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
+    vault: Vault;
     transfer: Transfer;
     massMigration: MassMigration;
     pob: Pob;
