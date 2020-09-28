@@ -39,7 +39,7 @@ describe("Rollup Transfer Commitment", () => {
         registry = await AccountRegistry.new(registryContract);
         states = UserStateFactory.buildList(STATE_SIZE);
         for (const state of states) {
-            await registry.register(state.encodePubkey());
+            await registry.register(state.getPubkey());
         }
     });
 
@@ -52,18 +52,17 @@ describe("Rollup Transfer Commitment", () => {
 
     it("transfer commitment: signature check", async function() {
         const txs = txTransferFactory(states, COMMIT_SIZE);
-        let aggSignature = mcl.newG1();
+        const signatures = [];
         const pubkeys = [];
         const pubkeyWitnesses = [];
 
         for (const tx of txs) {
             const sender = states[tx.fromIndex];
-            pubkeys.push(sender.encodePubkey());
+            pubkeys.push(sender.getPubkey());
             pubkeyWitnesses.push(registry.witness(sender.pubkeyIndex));
-            const signature = sender.sign(tx);
-            aggSignature = mcl.aggreagate(aggSignature, signature);
+            signatures.push(sender.sign(tx));
         }
-        const signature = mcl.g1ToHex(aggSignature);
+        const signature = mcl.aggreagate(signatures);
         const stateTransitionProof = stateTree.applyTransferBatch(txs, 0);
         assert.isTrue(stateTransitionProof.safe);
         const serialized = serialize(txs);

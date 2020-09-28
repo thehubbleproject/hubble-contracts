@@ -20,7 +20,7 @@ export const EMPTY_STATE: StateSolStruct = {
 };
 
 export class State {
-    publicKey: mcl.PublicKey;
+    publicKey: mcl.PublicKey = ["0x", "0x", "0x", "0x"];
     secretKey: mcl.SecretKey;
     public static new(
         pubkeyIndex: number,
@@ -70,8 +70,8 @@ export class State {
         return this;
     }
 
-    public encodePubkey(): string[] {
-        return mcl.g2ToHex(this.publicKey);
+    public getPubkey(): mcl.PublicKey {
+        return this.publicKey;
     }
 
     public toStateLeaf(): string {
