@@ -11,40 +11,95 @@ import { POB } from "./POB.sol";
 import { Governance } from "./Governance.sol";
 import { Rollup } from "./Rollup.sol";
 
-contract DepositManager {
+contract SubtreeQueue {
+    // Each element of the queue is a root of a subtree of deposits.
+    mapping(uint256 => bytes32) queue;
+    uint256 public front = 1;
+    uint256 public back = 0;
+
+    function enqueue(bytes32 subtreeRoot) internal {
+        back += 1;
+        queue[back] = subtreeRoot;
+    }
+
+    function dequeue() internal returns (bytes32 subtreeRoot) {
+        require(back >= front, "Deposit Core: Queue should be non-empty");
+        subtreeRoot = queue[front];
+        delete queue[front];
+        front += 1;
+    }
+}
+
+contract DepositCore is SubtreeQueue {
+    // An element in this array is a deposit tree root of any depth.
+    // It could be just a leaf of a new deposit or
+    // a root of a full grown subtree.
+    bytes32[] public babyTrees;
+    uint256 public depositCount = 0;
+
+    uint256 public MAX_SUBTREE_SIZE;
+
+    constructor(uint256 maxSubtreeDepth) public {
+        MAX_SUBTREE_SIZE = 1 << maxSubtreeDepth;
+    }
+
+    function insertAndMerge(bytes32 depositLeaf)
+        internal
+        returns (bytes32 readySubtree)
+    {
+        babyTrees.push(depositLeaf);
+        depositCount++;
+        uint256 i = depositCount;
+        // As long as we have a pair to merge, we merge
+        // the number of iteration is bounded by maxSubtreeDepth
+        while (i & 1 == 0) {
+            // Override the left node with the merged result
+            babyTrees[babyTrees.length - 2] = keccak256(
+                abi.encode(
+                    // left node
+                    babyTrees[babyTrees.length - 2],
+                    // right node
+                    babyTrees[babyTrees.length - 1]
+                )
+            );
+            // Discard the right node
+            delete babyTrees[babyTrees.length - 1];
+            babyTrees.length--;
+
+            i >>= 1;
+        }
+        // Subtree is ready, send to SubtreeQueue
+        if (depositCount == MAX_SUBTREE_SIZE) {
+            readySubtree = babyTrees[0];
+            enqueue(readySubtree);
+            reset();
+        } else {
+            readySubtree = bytes32(0);
+        }
+    }
+
+    function reset() internal {
+        // Reset babyTrees
+        uint256 numberOfDeposits = babyTrees.length;
+        for (uint256 i = 0; i < numberOfDeposits; i++) {
+            delete babyTrees[i];
+        }
+        babyTrees.length = 0;
+        // Reset depositCount
+        depositCount = 0;
+    }
+}
+
+contract DepositManager is DepositCore {
     using Types for Types.UserState;
-    MTUtils public merkleUtils;
     Registry public nameRegistry;
-    bytes32[] public pendingDeposits;
     address public vault;
-    mapping(uint256 => bytes32) pendingFilledSubtrees;
-    uint256 public firstElement = 1;
-    uint256 public lastElement = 0;
-    uint256 public depositSubTreesPackaged = 0;
 
-    function enqueue(bytes32 newDepositSubtree) public {
-        lastElement += 1;
-        pendingFilledSubtrees[lastElement] = newDepositSubtree;
-        depositSubTreesPackaged++;
-    }
-
-    function dequeue() public returns (bytes32 depositSubtreeRoot) {
-        require(lastElement >= firstElement); // non-empty queue
-        depositSubtreeRoot = pendingFilledSubtrees[firstElement];
-        delete pendingFilledSubtrees[firstElement];
-        firstElement += 1;
-        depositSubTreesPackaged--;
-    }
-
-    uint256 public queueNumber;
-    uint256 public depositSubtreeHeight;
+    MTUtils public merkleUtils;
     Governance public governance;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
-
-    bytes32
-        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -75,6 +130,7 @@ contract DepositManager {
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
         vault = nameRegistry.getContractDetails(ParamManager.VAULT());
+        DepositCore(governance.MAX_DEPOSIT_SUBTREE());
     }
 
     /**
@@ -112,57 +168,10 @@ contract DepositManager {
         );
         // get new state hash
         bytes memory encodedState = newState.encode();
-        // queue the deposit
-        pendingDeposits.push(keccak256(encodedState));
-        // emit the event
         logger.logDepositQueued(accountID, encodedState);
-        queueNumber++;
-        uint256 tmpDepositSubtreeHeight = 0;
-        uint256 tmp = queueNumber;
-        while (tmp % 2 == 0) {
-            bytes32[] memory deposits = new bytes32[](2);
-            deposits[0] = pendingDeposits[pendingDeposits.length - 2];
-            deposits[1] = pendingDeposits[pendingDeposits.length - 1];
-
-            pendingDeposits[pendingDeposits.length - 2] = keccak256(
-                abi.encode(deposits[0], deposits[1])
-            );
-
-            // remove 1 deposit from the pending deposit queue
-            removeDeposit(pendingDeposits.length - 1);
-            tmp = tmp / 2;
-
-            // update the temp deposit subtree height
-            tmpDepositSubtreeHeight++;
-
-            // thow event for the coordinator
-            logger.logDepositLeafMerged(
-                deposits[0],
-                deposits[1],
-                pendingDeposits[0]
-            );
-        }
-
-        if (tmpDepositSubtreeHeight > depositSubtreeHeight) {
-            depositSubtreeHeight = tmpDepositSubtreeHeight;
-        }
-
-        if (depositSubtreeHeight == governance.MAX_DEPOSIT_SUBTREE()) {
-            // start adding deposits to prepackaged deposit subtree root queue
-            enqueue(pendingDeposits[0]);
-
-            // emit an event to signal that a package is ready
-            // isnt really important for anyone tho
-            logger.logDepositSubTreeReady(pendingDeposits[0]);
-
-            // update the number of items in pendingDeposits
-            queueNumber = queueNumber - 2**depositSubtreeHeight;
-
-            // empty the pending deposits queue
-            removeDeposit(0);
-
-            // reset deposit subtree height
-            depositSubtreeHeight = 0;
+        bytes32 readySubtree = insertAndMerge(keccak256(encodedState));
+        if (readySubtree != bytes32(0)) {
+            logger.logDepositSubTreeReady(readySubtree);
         }
     }
 
@@ -180,16 +189,15 @@ contract DepositManager {
     ) public onlyRollup returns (bytes32) {
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
 
-        // from mt proof we find the root of the tree
-        // we match the root to the balance tree root on-chain
-        bool isValid = merkleUtils.verifyLeaf(
-            latestBalanceTree,
-            emptySubtreeRoot,
-            zero.path,
-            zero.witness
+        require(
+            merkleUtils.verifyLeaf(
+                latestBalanceTree,
+                emptySubtreeRoot,
+                zero.path,
+                zero.witness
+            ),
+            "proof invalid"
         );
-
-        require(isValid, "proof invalid");
 
         // just dequeue from the pre package deposit subtrees
         bytes32 depositsSubTreeRoot = dequeue();
@@ -201,31 +209,7 @@ contract DepositManager {
         return (depositsSubTreeRoot);
     }
 
-    /**
-     * @notice Removes a deposit from the pendingDeposits queue and shifts the queue
-     * @param _index Index of the element to remove
-     * @return Remaining elements of the array
-     */
-    function removeDeposit(uint256 _index) internal {
-        require(
-            _index < pendingDeposits.length,
-            "array index is out of bounds"
-        );
-
-        // if we want to nuke the queue
-        if (_index == 0) {
-            uint256 numberOfDeposits = pendingDeposits.length;
-            for (uint256 i = 0; i < numberOfDeposits; i++) {
-                delete pendingDeposits[i];
-            }
-            pendingDeposits.length = 0;
-            return;
-        }
-
-        if (_index == pendingDeposits.length - 1) {
-            delete pendingDeposits[pendingDeposits.length - 1];
-            pendingDeposits.length--;
-            return;
-        }
+    function reenqueue(bytes32 subtreeRoot) external onlyRollup {
+        enqueue(subtreeRoot);
     }
 }
