@@ -96,6 +96,10 @@ contract DepositManager {
         tokenContract = IERC20(tokenContractAddress);
         // transfer from msg.sender to vault
         require(
+            tokenContract.allowance(msg.sender, address(this)) >= _amount,
+            "token allowance not approved"
+        );
+        require(
             tokenContract.transferFrom(msg.sender, vault, _amount),
             "token transfer not approved"
         );
