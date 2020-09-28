@@ -29,9 +29,23 @@ describe("DepositManager", async function() {
             [deposit0.toStateLeaf(), deposit1.toStateLeaf()]
         );
 
+        const gasCost0 = await depositManager.estimateGas.depositFor(
+            0,
+            10,
+            tokenType
+        );
+        console.log("Deposit 0 transaction cost", gasCost0.toNumber());
+
         await expect(depositManager.depositFor(0, 10, tokenType))
             .to.emit(logger, "DepositQueued")
             .withArgs(0, deposit0.encode());
+
+        const gasCost1 = await depositManager.estimateGas.depositFor(
+            1,
+            10,
+            tokenType
+        );
+        console.log("Deposit 1 transaction cost", gasCost1.toNumber());
 
         await expect(depositManager.depositFor(1, 10, tokenType))
             .to.emit(logger, "DepositQueued")
