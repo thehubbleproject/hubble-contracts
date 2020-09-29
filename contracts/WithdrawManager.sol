@@ -70,7 +70,7 @@ contract WithdrawManager {
                 address(this),
                 commitmentMP.commitment.body.amount
             ),
-            "token transfer failed"
+            "WithdrawManager: Token transfer failed"
         );
     }
 
@@ -104,7 +104,7 @@ contract WithdrawManager {
         // transfer tokens from vault
         require(
             tokenContract.transfer(msg.sender, balances[accountID][token]),
-            "token transfer failed"
+            "WithdrawManager: Token transfer failed"
         );
     }
 }
