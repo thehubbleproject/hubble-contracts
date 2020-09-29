@@ -74,16 +74,6 @@ contract Logger {
         emit DepositQueued(accountID, data);
     }
 
-    event DepositLeafMerged(bytes32 left, bytes32 right, bytes32 newRoot);
-
-    function logDepositLeafMerged(
-        bytes32 left,
-        bytes32 right,
-        bytes32 newRoot
-    ) public {
-        emit DepositLeafMerged(left, right, newRoot);
-    }
-
     event DepositSubTreeReady(bytes32 root);
 
     function logDepositSubTreeReady(bytes32 root) public {

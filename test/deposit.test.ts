@@ -50,12 +50,6 @@ describe("DepositManager", async function() {
         await expect(depositManager.depositFor(1, 10, tokenType))
             .to.emit(logger, "DepositQueued")
             .withArgs(1, deposit1.encode())
-            .and.to.emit(logger, "DepositLeafMerged")
-            .withArgs(
-                deposit0.toStateLeaf(),
-                deposit1.toStateLeaf(),
-                pendingDeposit
-            )
             .and.to.emit(logger, "DepositSubTreeReady")
             .withArgs(pendingDeposit);
     });
