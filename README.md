@@ -1,4 +1,4 @@
-# Reddit Optimistic Rollup
+# Hubble Optimistic Rollup Contracts
 
 ![Node.js CI](https://github.com/thehubbleproject/RedditHubble/workflows/Node.js%20CI/badge.svg)
 
