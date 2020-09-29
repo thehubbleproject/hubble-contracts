@@ -7,6 +7,7 @@ import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import "@nomiclabs/buidler/console.sol";
+
 contract Create2Transfer is FraudProofHelpers {
     using Tx for bytes;
     using Types for Types.UserState;
@@ -23,7 +24,7 @@ contract Create2Transfer is FraudProofHelpers {
         uint256[2][] memory messages = new uint256[2][](batchSize);
         console.log("batch lentg", batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-          console.log("here");
+            console.log("here");
             Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
             // check state inclustion
             require(
@@ -72,7 +73,11 @@ contract Create2Transfer is FraudProofHelpers {
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
 
-        console.log("length %s %s", messages.length, proof.pubkeysSender.length);
+        console.log(
+            "length %s %s",
+            messages.length,
+            proof.pubkeysSender.length
+        );
         if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
             return Types.ErrorCode.BadSignature;
         }

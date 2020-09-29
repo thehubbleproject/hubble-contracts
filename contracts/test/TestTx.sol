@@ -67,7 +67,11 @@ contract TestTx {
         return txs.transfer_size();
     }
 
-    function create2transfer_size(bytes memory txs) public pure returns (uint256) {
+    function create2transfer_size(bytes memory txs)
+        public
+        pure
+        returns (uint256)
+    {
         return txs.create2Transfer_size();
     }
 
@@ -78,6 +82,7 @@ contract TestTx {
     {
         return Tx.transfer_decode(txs, index);
     }
+
     function create2Transfer_decode(bytes memory txs, uint256 index)
         public
         pure
@@ -97,14 +102,17 @@ contract TestTx {
     function create2Transfer_messageOf(
         bytes memory txs,
         uint256 index,
-        uint256 nonce, 
+        uint256 nonce,
         uint256[4] memory from,
         uint256[4] memory to
     ) public pure returns (bytes memory) {
-        return Tx.create2Transfer_messageOf(Tx.create2Transfer_decode(txs,
-                                                                      index),
-                                                                      nonce,
-                                                                      from, to);
+        return
+            Tx.create2Transfer_messageOf(
+                Tx.create2Transfer_decode(txs, index),
+                nonce,
+                from,
+                to
+            );
     }
 
     function massMigration_decode(bytes memory txs, uint256 index)

@@ -162,8 +162,8 @@ library Tx {
                 uint32(toIndex),
                 uint32(toAccID),
                 uint16(encodeDecimal(amount)),
-                uint16(encodeDecimal(fee)
-            ));
+                uint16(encodeDecimal(fee))
+            );
             uint256 off = i * TX_LEN_1;
             for (uint256 j = 0; j < TX_LEN_1; j++) {
                 serialized[j + off] = _tx[j];
@@ -412,7 +412,6 @@ library Tx {
         }
         return serialized;
     }
-
 
     function create2Transfer_decode(bytes memory txs, uint256 index)
         internal

@@ -27,7 +27,7 @@ describe("Rollup Create2Transfer Commitment", () => {
     let stateTree: StateTree;
     let states: State[] = [];
 
-    before(async function () {
+    before(async function() {
         await mcl.init();
         mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
@@ -43,14 +43,14 @@ describe("Rollup Create2Transfer Commitment", () => {
         }
     });
 
-    beforeEach(async function () {
+    beforeEach(async function() {
         const [signer, ...rest] = await ethers.getSigners();
         rollup = await new TestCreate2TransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         stateTree.createStateBulk(states);
     });
 
-    it("create2transfer commitment: signature check", async function () {
+    it("create2transfer commitment: signature check", async function() {
         const senderIndex = 1;
         const receiverIndex = 2;
         let sender = states[senderIndex];
@@ -94,8 +94,8 @@ describe("Rollup Create2Transfer Commitment", () => {
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postStates = txs.map((tx) => stateTree.getState(tx.fromIndex));
-        const stateWitnesses = txs.map((tx) =>
+        const postStates = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const stateWitnesses = txs.map(tx =>
             stateTree.getStateWitness(tx.fromIndex)
         );
 
@@ -108,12 +108,12 @@ describe("Rollup Create2Transfer Commitment", () => {
             pubkeysSender,
             pubkeyWitnessesSender,
             pubkeysReceiver: pubkeyReceiver,
-            pubkeyWitnessesReceiver: pubkeyWitnessesReceiver,
+            pubkeyWitnessesReceiver: pubkeyWitnessesReceiver
         };
 
         const {
             0: gasCost,
-            1: error,
+            1: error
         } = await rollup.callStatic._checkSignature(
             signature,
             proof,

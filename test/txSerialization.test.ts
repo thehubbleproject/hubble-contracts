@@ -1,7 +1,12 @@
 import { TestTxFactory } from "../types/ethers-contracts/TestTxFactory";
 import * as mcl from "../ts/mcl";
 import { TestTx } from "../types/ethers-contracts/TestTx";
-import { TxTransfer, serialize, TxMassMigration, TxCreate2Transfer} from "../ts/tx";
+import {
+    TxTransfer,
+    serialize,
+    TxMassMigration,
+    TxCreate2Transfer
+} from "../ts/tx";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { COMMIT_SIZE } from "../ts/constants";
@@ -49,24 +54,51 @@ describe("Tx Serialization", async () => {
         );
         assert.isFalse(await c.create2transfer_hasExcessData(serialized));
         for (let i in txs) {
-            const { fromIndex, toIndex,toAccID ,amount, fee } = await c.create2Transfer_decode(
-                serialized,
-                i
+            const {
+                fromIndex,
+                toIndex,
+                toAccID,
+                amount,
+                fee
+            } = await c.create2Transfer_decode(serialized, i);
+
+            assert.equal(
+                fromIndex.toString(),
+                txs[i].fromIndex.toString(),
+                "from index not equal"
+            );
+            assert.equal(
+                toIndex.toString(),
+                txs[i].toIndex.toString(),
+                "to index not equal"
+            );
+            assert.equal(
+                toAccID.toString(),
+                txs[i].toAccID.toString(),
+                "to acc ID not equal"
+            );
+            assert.equal(
+                amount.toString(),
+                txs[i].amount.toString(),
+                "amount not equal"
+            );
+            assert.equal(
+                fee.toString(),
+                txs[i].fee.toString(),
+                "fee not equal"
             );
 
-            assert.equal(fromIndex.toString(), txs[i].fromIndex.toString(),"from index not equal");
-            assert.equal(toIndex.toString(), txs[i].toIndex.toString(),"to index not equal");
-            assert.equal(toAccID.toString(), txs[i].toAccID.toString(),"to acc ID not equal");
-            assert.equal(amount.toString(), txs[i].amount.toString(),"amount not equal");
-            assert.equal(fee.toString(), txs[i].fee.toString(), "fee not equal");
-
-          console.log("pubkey in trasnctions", txs[i].fromPubkey, txs[i].toPubkey)
+            console.log(
+                "pubkey in trasnctions",
+                txs[i].fromPubkey,
+                txs[i].toPubkey
+            );
             const message = await c.create2Transfer_messageOf(
                 serialized,
                 i,
-              txs[i].nonce, 
-              txs[i].fromPubkey,
-              txs[i].toPubkey
+                txs[i].nonce,
+                txs[i].fromPubkey,
+                txs[i].toPubkey
             );
             assert.equal(message, txs[i].message());
         }
