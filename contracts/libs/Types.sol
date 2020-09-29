@@ -192,11 +192,6 @@ library Types {
         bytes32[] witness;
     }
 
-    struct TransactionMerkleProof {
-        Transfer _tx;
-        bytes32[] siblings;
-    }
-
     enum ErrorCode {
         NoError,
         InvalidTokenAddress,
