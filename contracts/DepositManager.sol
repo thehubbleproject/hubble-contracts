@@ -39,10 +39,6 @@ contract DepositCore is SubtreeQueue {
 
     uint256 public MAX_SUBTREE_SIZE;
 
-    constructor(uint256 maxSubtreeDepth) public {
-        MAX_SUBTREE_SIZE = 1 << maxSubtreeDepth;
-    }
-
     function insertAndMerge(bytes32 depositLeaf)
         internal
         returns (bytes32 readySubtree)
@@ -130,7 +126,7 @@ contract DepositManager is DepositCore {
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
         vault = nameRegistry.getContractDetails(ParamManager.VAULT());
-        DepositCore(governance.MAX_DEPOSIT_SUBTREE());
+        MAX_SUBTREE_SIZE = 1 << governance.MAX_DEPOSIT_SUBTREE();
     }
 
     /**
