@@ -99,6 +99,31 @@ export class StateTree {
         return { proof: proofs, feeProof, safe };
     }
 
+    public applyCreate2TransferBatch(
+        txs: TxCreate2Transfer[],
+        feeReceiverID: number
+    ): {
+        proof: ProofTransferBatch;
+        feeProof: ProofTransferFee;
+        safe: boolean;
+    } {
+        let safe = true;
+        let proofs: ProofTransferTx[] = [];
+        for (let i = 0; i < txs.length; i++) {
+            if (safe) {
+                const proof = this.applyTxCreate2Transfer(txs[i]);
+                proofs.push(proof);
+                safe = proof.safe;
+            } else {
+                proofs.push(PLACEHOLDER_TRANSFER_PROOF);
+            }
+        }
+        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
+        const feeProof = this.applyFee(sumOfFee, feeReceiverID);
+        safe = feeProof.safe;
+        return { proof: proofs, feeProof, safe };
+    }
+
     public applyFee(
         sumOfFee: BigNumber,
         feeReceiverID: number

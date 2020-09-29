@@ -6,14 +6,14 @@ import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
-
+import "@nomiclabs/buidler/console.sol";
 contract Create2Transfer is FraudProofHelpers {
     using Tx for bytes;
     using Types for Types.UserState;
 
     function checkSignature(
         uint256[2] memory signature,
-        Types.SignatureProof memory proof,
+        Types.SignatureProofWithReceiver memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 domain,
@@ -21,8 +21,9 @@ contract Create2Transfer is FraudProofHelpers {
     ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.create2Transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
-        uint256 j = 0;
+        console.log("batch lentg", batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
+          console.log("here");
             Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
             // check state inclustion
             require(
@@ -39,9 +40,9 @@ contract Create2Transfer is FraudProofHelpers {
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[j])),
+                    keccak256(abi.encodePacked(proof.pubkeysSender[i])),
                     proof.states[i].pubkeyIndex,
-                    proof.pubkeyWitnesses[j]
+                    proof.pubkeyWitnessesSender[i]
                 ),
                 "Rollup: from account does not exists"
             );
@@ -50,9 +51,9 @@ contract Create2Transfer is FraudProofHelpers {
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[j+1])),
+                    keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
                     _tx.toAccID,
-                    proof.pubkeyWitnesses[j+1]
+                    proof.pubkeyWitnessesReceiver[i]
                 ),
                 "Rollup: to account does not exists"
             );
@@ -63,16 +64,16 @@ contract Create2Transfer is FraudProofHelpers {
             bytes memory txMsg = Tx.create2Transfer_messageOf(
                 _tx,
                 proof.states[i].nonce - 1,
-                proof.pubkeys[j],
-                proof.pubkeys[j + 1]
+                proof.pubkeysSender[i],
+                proof.pubkeysReceiver[i]
             );
-
+            //console.log("message %s", txMsg);
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
-
-            j+=2;
         }
-        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+
+        console.log("length %s %s", messages.length, proof.pubkeysSender.length);
+        if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
             return Types.ErrorCode.BadSignature;
         }
         return Types.ErrorCode.NoError;

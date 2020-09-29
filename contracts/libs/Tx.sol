@@ -31,14 +31,14 @@ library Tx {
     uint256 public constant POSITION_FEE_0 = 12;
 
     // transaction_type: create2Transfer
-    // [sender_state_id<4>|receiver_state_id<4>|receiver_acc_id<4>|amount<4>|fee<4>]
-    uint256 public constant TX_LEN_1 = 20;
+    // [sender_state_id<4>|receiver_state_id<4>|receiver_acc_id<4>|amount<2>|fee<2>]
+    uint256 public constant TX_LEN_1 = 16;
     // positions in bytes
     uint256 public constant POSITION_SENDER_1 = 4;
     uint256 public constant POSITION_RECEIVER_1 = 8;
     uint256 public constant POSITION_RECEIVER_ACCID_1 = 12;
-    uint256 public constant POSITION_AMOUNT_1 = 16;
-    uint256 public constant POSITION_FEE_1 = 20;
+    uint256 public constant POSITION_AMOUNT_1 = 14;
+    uint256 public constant POSITION_FEE_1 = 16;
 
     // transaction_type: Mass Migrations
     // [sender_state_id<4>|receiver_state_id<4>|amount<2>|spokeID<4>|fee<2>]
@@ -83,6 +83,7 @@ library Tx {
         return txs.length % TX_LEN_0 != 0;
     }
 
+    // num of txs in the bytes blob
     function transfer_size(bytes memory txs) internal pure returns (uint256) {
         return txs.length / TX_LEN_0;
     }
@@ -137,6 +138,34 @@ library Tx {
             );
             uint256 off = i * TX_LEN_0;
             for (uint256 j = 0; j < TX_LEN_0; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
+    function serialize(Create2Transfer[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_1 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 toIndex = txs[i].toIndex;
+            uint256 toAccID = txs[i].toAccID;
+            uint256 amount = txs[i].amount;
+            uint256 fee = txs[i].fee;
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint32(toAccID),
+                uint16(encodeDecimal(amount)),
+                uint16(encodeDecimal(fee)
+            ));
+            uint256 off = i * TX_LEN_1;
+            for (uint256 j = 0; j < TX_LEN_1; j++) {
                 serialized[j + off] = _tx[j];
             }
         }
@@ -343,7 +372,7 @@ library Tx {
         return (_txCompressed);
     }
 
-    function serializeCreate2Transfer(bytes[] memory txs)
+    function create2transfer_serialize(bytes[] memory txs)
         internal
         pure
         returns (bytes memory)
@@ -384,33 +413,6 @@ library Tx {
         return serialized;
     }
 
-    function serialize(Create2Transfer[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        uint256 batchSize = txs.length;
-        bytes memory serialized = new bytes(TX_LEN_1 * batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            uint256 fromIndex = txs[i].fromIndex;
-            uint256 toIndex = txs[i].toIndex;
-            uint256 toAccID = txs[i].toAccID;
-            uint256 amount = txs[i].amount;
-            uint256 fee = txs[i].fee;
-            bytes memory _tx = abi.encodePacked(
-                uint32(fromIndex),
-                uint32(toIndex),
-                uint32(toAccID),
-                uint32(amount),
-                uint32(fee)
-            );
-            uint256 off = i * TX_LEN_1;
-            for (uint256 j = 0; j < TX_LEN_1; j++) {
-                serialized[j + off] = _tx[j];
-            }
-        }
-        return serialized;
-    }
 
     function create2Transfer_decode(bytes memory txs, uint256 index)
         internal
@@ -446,7 +448,7 @@ library Tx {
         uint256[4] memory from,
         uint256[4] memory to
     ) internal pure returns (bytes memory) {
-       return
+        return
             abi.encode(
                 uint8(CREATE2TRANSFER),
                 from,
@@ -455,6 +457,5 @@ library Tx {
                 _tx.amount,
                 _tx.fee
             );
-
     }
 }

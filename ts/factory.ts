@@ -2,7 +2,7 @@ import { BigNumber } from "ethers";
 import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
 import { State } from "./state";
-import { TxTransfer } from "./tx";
+import { TxTransfer, TxCreate2Transfer } from "./tx";
 
 export class UserStateFactory {
     public static buildList(
@@ -43,6 +43,33 @@ export function txTransferFactory(
         const tx = new TxTransfer(
             senderIndex,
             reciverIndex,
+            amount,
+            fee,
+            sender.nonce,
+            USDT
+        );
+        txs.push(tx);
+    }
+    return txs;
+}
+
+export function txCreate2TransferFactory(
+    states: State[],
+    n: number = COMMIT_SIZE
+): TxCreate2Transfer[] {
+    const txs: TxCreate2Transfer[] = [];
+    for (let i = 0; i < n; i++) {
+        const senderIndex = i;
+        const reciverIndex = (i + 5) % n;
+        const sender = states[senderIndex];
+        const amount = sender.balance.div(10);
+        const fee = amount.div(10);
+        const tx = new TxCreate2Transfer(
+            senderIndex,
+            reciverIndex,
+            states[senderIndex].encodePubkey(),
+            states[reciverIndex].encodePubkey(),
+            states[reciverIndex].pubkeyIndex,
             amount,
             fee,
             sender.nonce,

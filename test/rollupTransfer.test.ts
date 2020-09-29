@@ -27,7 +27,7 @@ describe("Rollup Transfer Commitment", () => {
     let stateTree: StateTree;
     let states: State[] = [];
 
-    before(async function() {
+    before(async function () {
         await mcl.init();
         mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
@@ -43,14 +43,14 @@ describe("Rollup Transfer Commitment", () => {
         }
     });
 
-    beforeEach(async function() {
+    beforeEach(async function () {
         const [signer, ...rest] = await ethers.getSigners();
         rollup = await new TestTransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         stateTree.createStateBulk(states);
     });
 
-    it("transfer commitment: signature check", async function() {
+    it("transfer commitment: signature check", async function () {
         const txs = txTransferFactory(states, COMMIT_SIZE);
         let aggSignature = mcl.newG1();
         const pubkeys = [];
@@ -69,8 +69,8 @@ describe("Rollup Transfer Commitment", () => {
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postStates = txs.map(tx => stateTree.getState(tx.fromIndex));
-        const stateWitnesses = txs.map(tx =>
+        const postStates = txs.map((tx) => stateTree.getState(tx.fromIndex));
+        const stateWitnesses = txs.map((tx) =>
             stateTree.getStateWitness(tx.fromIndex)
         );
 
@@ -81,11 +81,11 @@ describe("Rollup Transfer Commitment", () => {
             states: postStates,
             stateWitnesses,
             pubkeys,
-            pubkeyWitnesses
+            pubkeyWitnesses,
         };
         const {
             0: gasCost,
-            1: error
+            1: error,
         } = await rollup.callStatic._checkSignature(
             signature,
             proof,
@@ -117,7 +117,7 @@ describe("Rollup Transfer Commitment", () => {
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
 
-    it("transfer commitment: processTx", async function() {
+    it("transfer commitment: processTx", async function () {
         const txs = txTransferFactory(states, COMMIT_SIZE);
         for (const tx of txs) {
             const preRoot = stateTree.root;
@@ -130,11 +130,11 @@ describe("Rollup Transfer Commitment", () => {
                 states[0].tokenType,
                 {
                     state: proof.sender,
-                    witness: proof.senderWitness
+                    witness: proof.senderWitness,
                 },
                 {
                     state: proof.receiver,
-                    witness: proof.receiverWitness
+                    witness: proof.receiverWitness,
                 }
             );
             assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
@@ -145,7 +145,7 @@ describe("Rollup Transfer Commitment", () => {
             );
         }
     });
-    it("transfer commitment: processTransferCommit", async function() {
+    it("transfer commitment: processTransferCommit", async function () {
         const txs = txTransferFactory(states, COMMIT_SIZE);
         const feeReceiver = 0;
 
@@ -159,22 +159,22 @@ describe("Rollup Transfer Commitment", () => {
         for (let i = 0; i < COMMIT_SIZE; i++) {
             stateMerkleProof.push({
                 state: proof[i].sender,
-                witness: proof[i].senderWitness
+                witness: proof[i].senderWitness,
             });
             stateMerkleProof.push({
                 state: proof[i].receiver,
-                witness: proof[i].receiverWitness
+                witness: proof[i].receiverWitness,
             });
         }
         stateMerkleProof.push({
             state: feeProof.feeReceiver,
-            witness: feeProof.feeReceiverWitness
+            witness: feeProof.feeReceiverWitness,
         });
         const postStateRoot = stateTree.root;
 
         const {
             0: postRoot,
-            1: gasCost
+            1: gasCost,
         } = await rollup.callStatic.testProcessTransferCommit(
             preStateRoot,
             serialize(txs),

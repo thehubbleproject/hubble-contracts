@@ -10,6 +10,14 @@ library Types {
         uint256[4][] pubkeys;
         bytes32[][] pubkeyWitnesses;
     }
+    struct SignatureProofWithReceiver {
+        Types.UserState[] states;
+        bytes32[][] stateWitnesses;
+        uint256[4][] pubkeysSender;
+        bytes32[][] pubkeyWitnessesSender;
+        uint256[4][] pubkeysReceiver;
+        bytes32[][] pubkeyWitnessesReceiver;
+    }
 
     // We define Usage for a batch or for a tx
     // to check if the usage of a batch and all txs in it are the same

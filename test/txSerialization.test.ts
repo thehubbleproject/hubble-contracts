@@ -1,9 +1,11 @@
 import { TestTxFactory } from "../types/ethers-contracts/TestTxFactory";
+import * as mcl from "../ts/mcl";
 import { TestTx } from "../types/ethers-contracts/TestTx";
-import { TxTransfer, serialize, TxMassMigration } from "../ts/tx";
+import { TxTransfer, serialize, TxMassMigration, TxCreate2Transfer} from "../ts/tx";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { COMMIT_SIZE } from "../ts/constants";
+import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -11,7 +13,6 @@ describe("Tx Serialization", async () => {
         const [signer, ...rest] = await ethers.getSigners();
         c = await new TestTxFactory(signer).deploy();
     });
-
     it("parse transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
         const serialized = serialize(txs);
@@ -37,9 +38,46 @@ describe("Tx Serialization", async () => {
             assert.equal(message, txs[i].message());
         }
     });
+    it("parse create2transfer transaction", async function() {
+        await mcl.init();
+        let states = UserStateFactory.buildList(COMMIT_SIZE);
+        const txs = txCreate2TransferFactory(states, COMMIT_SIZE);
+        const serialized = serialize(txs);
+        assert.equal(
+            (await c.create2transfer_size(serialized)).toNumber(),
+            txs.length
+        );
+        assert.isFalse(await c.create2transfer_hasExcessData(serialized));
+        for (let i in txs) {
+            const { fromIndex, toIndex,toAccID ,amount, fee } = await c.create2Transfer_decode(
+                serialized,
+                i
+            );
+
+            assert.equal(fromIndex.toString(), txs[i].fromIndex.toString(),"from index not equal");
+            assert.equal(toIndex.toString(), txs[i].toIndex.toString(),"to index not equal");
+            assert.equal(toAccID.toString(), txs[i].toAccID.toString(),"to acc ID not equal");
+            assert.equal(amount.toString(), txs[i].amount.toString(),"amount not equal");
+            assert.equal(fee.toString(), txs[i].fee.toString(), "fee not equal");
+
+          console.log("pubkey in trasnctions", txs[i].fromPubkey, txs[i].toPubkey)
+            const message = await c.create2Transfer_messageOf(
+                serialized,
+                i,
+              txs[i].nonce, 
+              txs[i].fromPubkey,
+              txs[i].toPubkey
+            );
+            assert.equal(message, txs[i].message());
+        }
+    });
     it("serialize transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
         assert.equal(await c.transfer_serialize(txs), serialize(txs));
+    });
+    it("serialize create2transfer transaction", async function() {
+        const txs = TxCreate2Transfer.buildList(COMMIT_SIZE);
+        assert.equal(await c.create2transfer_serialize(txs), serialize(txs));
     });
     it("transfer trasaction casting", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
