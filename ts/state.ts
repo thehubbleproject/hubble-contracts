@@ -1,6 +1,7 @@
 import * as mcl from "./mcl";
 import { Tx, SignableTx } from "./tx";
 import { BigNumber, BigNumberish, ethers } from "ethers";
+import { solidityPack } from "ethers/lib/utils";
 
 export interface StateSolStruct {
     pubkeyIndex: number;
@@ -20,7 +21,7 @@ export const EMPTY_STATE: StateSolStruct = {
 };
 
 export class State {
-    publicKey: mcl.PublicKey;
+    publicKey: mcl.PublicKey = ["0x", "0x", "0x", "0x"];
     secretKey: mcl.SecretKey;
     public static new(
         pubkeyIndex: number,
@@ -70,8 +71,15 @@ export class State {
         return this;
     }
 
-    public encodePubkey(): string[] {
-        return mcl.g2ToHex(this.publicKey);
+    public getPubkey(): mcl.PublicKey {
+        return this.publicKey;
+    }
+
+    public encode(): string {
+        return solidityPack(
+            ["uint256", "uint256", "uint256", "uint256"],
+            [this.pubkeyIndex, this.tokenType, this.balance, this.nonce]
+        );
     }
 
     public toStateLeaf(): string {

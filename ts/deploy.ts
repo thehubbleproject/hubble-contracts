@@ -19,6 +19,7 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
+import { VaultFactory } from "../types/ethers-contracts";
 
 async function waitAndRegister(
     contract: Contract,
@@ -118,6 +119,16 @@ export async function deployAll(
         nameRegistry,
         await paramManager.TOKEN_REGISTRY()
     );
+    const vault = await new VaultFactory(allLinkRefs, signer).deploy(
+        nameRegistry.address
+    );
+    await waitAndRegister(
+        vault,
+        "vault",
+        verbose,
+        nameRegistry,
+        await paramManager.VAULT()
+    );
 
     const massMigration = await new MassMigrationFactory(signer).deploy();
     await waitAndRegister(
@@ -200,6 +211,7 @@ export async function deployAll(
         merkleTreeUtils,
         blsAccountRegistry,
         tokenRegistry,
+        vault,
         transfer,
         massMigration,
         pob,

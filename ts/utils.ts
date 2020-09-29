@@ -10,54 +10,30 @@ export const ZERO = BigNumber.from("0");
 export const ONE = BigNumber.from("1");
 export const TWO = BigNumber.from("2");
 
-export function toBig(n: any): BigNumber {
-    return BigNumber.from(n);
-}
-
 export function randHex(n: number): string {
     return hexlify(randomBytes(n));
 }
 
-export function randBig(n: number): BigNumber {
-    return toBig(randomBytes(n));
-}
-
-export function bigToHex(n: BigNumber): string {
+export function to32Hex(n: BigNumber): string {
     return hexZeroPad(n.toHexString(), 32);
 }
 
 export function randFs(): BigNumber {
-    const r = randBig(32);
+    const r = BigNumber.from(randomBytes(32));
     return r.mod(FIELD_ORDER);
 }
 
-export function randFsHex(): string {
-    const r = randBig(32);
-    return bigToHex(r.mod(FIELD_ORDER));
-}
-
-export function randomHex(numBytes: number) {
-    return ethers.BigNumber.from(
-        ethers.utils.randomBytes(numBytes)
-    ).toHexString();
-}
-
 export function randomNum(numBytes: number): number {
-    const bytes = ethers.utils.randomBytes(numBytes);
-    return ethers.BigNumber.from(bytes).toNumber();
+    const bytes = randomBytes(numBytes);
+    return BigNumber.from(bytes).toNumber();
 }
 
-// with zeros prepended to length bytes.
-export function paddedHex(num: number, length: number): string {
-    return ethers.utils.hexZeroPad(ethers.utils.hexlify(num), length);
-}
-
-export function parseEvents(receipt: any): { [key: string]: any[] } {
-    const obj: { [key: string]: any[] } = {};
-    receipt.events.forEach((event: any) => {
-        obj[event.event] = event.args;
-    });
-    return obj;
+export function randomLeaves(num: number): string[] {
+    const leaves = [];
+    for (let i = 0; i < num; i++) {
+        leaves.push(randHex(32));
+    }
+    return leaves;
 }
 
 export function getParentLeaf(left: string, right: string) {

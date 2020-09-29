@@ -184,7 +184,7 @@ contract RollupHelpers is RollupSetup {
             delete batches[i];
 
             // queue deposits again
-            depositManager.enqueue(batch.depositRoot);
+            depositManager.reenqueue(batch.depositRoot);
 
             totalSlashings++;
 
