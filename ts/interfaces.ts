@@ -11,8 +11,8 @@ export enum Usage {
     MassMigration
 }
 
-export enum ErrorCode {
-    NoError,
+export enum Result {
+    Ok,
     InvalidTokenAddress,
     InvalidTokenAmount,
     NotEnoughTokenBalance,
@@ -20,5 +20,6 @@ export enum ErrorCode {
     BadToTokenType,
     BadFromIndex,
     NotOnDesignatedStateLeaf,
-    BadSignature
+    BadSignature,
+    MismatchedAmount
 }

@@ -192,8 +192,8 @@ library Types {
         bytes32[] witness;
     }
 
-    enum ErrorCode {
-        NoError,
+    enum Result {
+        Ok,
         InvalidTokenAddress,
         InvalidTokenAmount,
         NotEnoughTokenBalance,
@@ -201,6 +201,7 @@ library Types {
         BadToTokenType,
         BadFromIndex,
         NotOnDesignatedStateLeaf,
-        BadSignature
+        BadSignature,
+        MismatchedAmount
     }
 }

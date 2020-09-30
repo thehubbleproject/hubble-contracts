@@ -438,7 +438,7 @@ contract Rollup is RollupHelpers {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, bool isDisputeValid) = transfer
+        (bytes32 processedStateRoot, Types.Result result) = transfer
             .processTransferCommit(
             previous.commitment.stateRoot,
             target.commitment.body.txs,
@@ -448,7 +448,7 @@ contract Rollup is RollupHelpers {
         );
 
         if (
-            isDisputeValid ||
+            result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
         ) {
             // before rolling back mark the batch invalid
@@ -474,7 +474,7 @@ contract Rollup is RollupHelpers {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, bool isDisputeValid) = massMigration
+        (bytes32 processedStateRoot, Types.Result result) = massMigration
             .processMassMigrationCommit(
             previous.commitment.stateRoot,
             target.commitment.body,
@@ -482,7 +482,7 @@ contract Rollup is RollupHelpers {
         );
 
         if (
-            isDisputeValid ||
+            result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
         ) {
             // before rolling back mark the batch invalid
@@ -503,7 +503,7 @@ contract Rollup is RollupHelpers {
             "Rollup: Commitment not present in batch"
         );
 
-        Types.ErrorCode errCode = transfer.checkSignature(
+        Types.Result result = transfer.checkSignature(
             target.commitment.body.signature,
             signatureProof,
             target.commitment.stateRoot,
@@ -512,7 +512,7 @@ contract Rollup is RollupHelpers {
             target.commitment.body.txs
         );
 
-        if (errCode != Types.ErrorCode.NoError) {
+        if (result != Types.Result.Ok) {
             invalidBatchMarker = batchID;
             SlashAndRollback();
         }
@@ -528,7 +528,7 @@ contract Rollup is RollupHelpers {
             "Commitment not present in batch"
         );
 
-        Types.ErrorCode errCode = transfer.checkSignature(
+        Types.Result result = transfer.checkSignature(
             target.commitment.body.signature,
             signatureProof,
             target.commitment.stateRoot,
@@ -537,7 +537,7 @@ contract Rollup is RollupHelpers {
             target.commitment.body.txs
         );
 
-        if (errCode != Types.ErrorCode.NoError) {
+        if (result != Types.Result.Ok) {
             invalidBatchMarker = batchID;
             SlashAndRollback();
         }

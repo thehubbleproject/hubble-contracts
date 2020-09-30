@@ -11,13 +11,13 @@ library FraudProofHelpers {
         uint256 amount,
         uint256 fee,
         Types.UserState memory fromState
-    ) internal pure returns (Types.ErrorCode) {
+    ) internal pure returns (Types.Result) {
         if (amount == 0) {
-            return Types.ErrorCode.InvalidTokenAmount;
+            return Types.Result.InvalidTokenAmount;
         }
         if (fromState.balance < amount.add(fee)) {
-            return Types.ErrorCode.NotEnoughTokenBalance;
+            return Types.Result.NotEnoughTokenBalance;
         }
-        return Types.ErrorCode.NoError;
+        return Types.Result.Ok;
     }
 }

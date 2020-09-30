@@ -22,10 +22,9 @@ contract MassMigration {
         bytes32 stateRoot,
         Types.MassMigrationBody memory commitmentBody,
         Types.StateMerkleProof[] memory proofs
-    ) public view returns (bytes32, bool) {
+    ) public view returns (bytes32, Types.Result result) {
         uint256 length = commitmentBody.txs.massMigration_size();
 
-        bool isTxValid;
         // contains a bunch of variables to bypass STD
         // [tokenInTx0, tokenInTxUnderValidation, amountAggregationVar, spokeIDForCommitment]
         uint256[] memory metaInfoCounters = new uint256[](4);
@@ -56,8 +55,7 @@ contract MassMigration {
                 ,
                 ,
                 metaInfoCounters[1],
-                ,
-                isTxValid
+                result
             ) = processMassMigrationTx(stateRoot, _tx, proofs[i]);
 
             // cache token of first tx to evaluate others
@@ -71,17 +69,17 @@ contract MassMigration {
 
             // TODO do a withdraw root check
 
-            if (!isTxValid) {
+            if (result != Types.Result.Ok) {
                 break;
             }
         }
 
         // if amount aggregation is incorrect, slash!
         if (metaInfoCounters[2] != commitmentBody.amount) {
-            return (stateRoot, false);
+            return (stateRoot, Types.Result.MismatchedAmount);
         }
 
-        return (stateRoot, !isTxValid);
+        return (stateRoot, result);
     }
 
     function processMassMigrationTx(
@@ -96,8 +94,7 @@ contract MassMigration {
             bytes memory,
             bytes memory,
             uint256,
-            Types.ErrorCode,
-            bool
+            Types.Result
         )
     {
         require(
@@ -109,13 +106,12 @@ contract MassMigration {
             ),
             "MassMigration: sender does not exist"
         );
-        Types.ErrorCode err_code = FraudProofHelpers.validateTxBasic(
+        Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (err_code != Types.ErrorCode.NoError)
-            return (bytes32(0), "", "", 0, err_code, false);
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", 0, result);
 
         bytes32 newRoot;
         bytes memory newFromState;
@@ -126,8 +122,7 @@ contract MassMigration {
             newFromState,
             "",
             from.state.tokenType,
-            Types.ErrorCode.NoError,
-            true
+            Types.Result.Ok
         );
     }
 

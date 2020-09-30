@@ -13,9 +13,9 @@ contract TestTransfer is Transfer {
         bytes32 accountRoot,
         bytes32 domain,
         bytes memory txs
-    ) public returns (uint256, Types.ErrorCode) {
+    ) public returns (uint256, Types.Result) {
         uint256 operationCost = gasleft();
-        Types.ErrorCode err = checkSignature(
+        Types.Result result = checkSignature(
             signature,
             proof,
             stateRoot,
@@ -23,7 +23,7 @@ contract TestTransfer is Transfer {
             domain,
             txs
         );
-        return (operationCost - gasleft(), err);
+        return (operationCost - gasleft(), result);
     }
 
     function testProcessTx(
@@ -39,8 +39,7 @@ contract TestTransfer is Transfer {
             bytes32,
             bytes memory,
             bytes memory,
-            Types.ErrorCode,
-            bool
+            Types.Result
         )
     {
         return processTx(_balanceRoot, _tx, tokenType, from, to);
