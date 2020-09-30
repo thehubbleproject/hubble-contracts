@@ -11,7 +11,6 @@ contract MassMigration {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
-    uint256 constant BURN_STATE_INDEX = 0;
 
     /**
      * @notice processes the state transition of a commitment
@@ -32,18 +31,6 @@ contract MassMigration {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
-
-            // ensure the transaction is to burn state
-            if (_tx.toIndex != BURN_STATE_INDEX) {
-                break;
-            }
-
-            if (i == 0) {
-                metaInfoCounters[3] = _tx.spokeID;
-            } else if (metaInfoCounters[3] != _tx.spokeID) {
-                // commitment should have same spokeID, slash
-                break;
-            }
 
             // aggregate amounts from all transactions
             metaInfoCounters[2] += _tx.amount;
