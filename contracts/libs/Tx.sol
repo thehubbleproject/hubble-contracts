@@ -17,7 +17,6 @@ library Tx {
     uint256 public constant MANTISSA_BITS = 12;
     uint256 public constant MASK_MANTISSA = 0x0fff;
     uint256 public constant MASK_NONCE = 0xffffffff;
-    uint256 public constant MASK_SPOKE = 0xffffffff;
     uint256 public constant MASK_TOKEN_ID = 0xffff;
     uint256 public constant MASK_BYTE = 0xff;
 
@@ -41,14 +40,12 @@ library Tx {
     uint256 public constant POSITION_FEE_1 = 16;
 
     // transaction_type: Mass Migrations
-    // [sender_state_id<4>|receiver_state_id<4>|amount<2>|spokeID<4>|fee<2>]
-    uint256 public constant TX_LEN_5 = 16;
+    // [sender_state_id<4>|amount<2>|fee<2>]
+    uint256 public constant TX_LEN_5 = 8;
     // positions in bytes
     uint256 public constant POSITION_SENDER_5 = 4;
-    uint256 public constant POSITION_RECEIVER_5 = 8;
-    uint256 public constant POSITION_AMOUNT_5 = 10;
-    uint256 public constant POSITION_SPOKE_5 = 14;
-    uint256 public constant POSITION_FEE_5 = 16;
+    uint256 public constant POSITION_AMOUNT_5 = 6;
+    uint256 public constant POSITION_FEE_5 = 8;
 
     struct Transfer {
         uint256 fromIndex;
@@ -67,9 +64,7 @@ library Tx {
 
     struct MassMigration {
         uint256 fromIndex;
-        uint256 toIndex;
         uint256 amount;
-        uint256 spokeID;
         uint256 fee;
     }
 
@@ -294,18 +289,12 @@ library Tx {
         returns (MassMigration memory _tx)
     {
         uint256 sender;
-        uint256 receiver;
         uint256 amount;
-        uint256 spokeID;
         uint256 fee;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p_tx := add(txs, mul(index, TX_LEN_5))
             sender := and(mload(add(p_tx, POSITION_SENDER_5)), MASK_STATE_ID)
-            receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_5)),
-                MASK_STATE_ID
-            )
             let amountBytes := mload(add(p_tx, POSITION_AMOUNT_5))
             let amountExponent := shr(
                 MANTISSA_BITS,
@@ -313,13 +302,12 @@ library Tx {
             )
             let amountMantissa := and(amountBytes, MASK_MANTISSA)
             amount := mul(amountMantissa, exp(10, amountExponent))
-            spokeID := and(mload(add(p_tx, POSITION_SPOKE_5)), MASK_SPOKE)
             let feeBytes := mload(add(p_tx, POSITION_FEE_5))
             let feeExponent := shr(MANTISSA_BITS, and(feeBytes, MASK_EXPONENT))
             let feeMantissa := and(feeBytes, MASK_MANTISSA)
             fee := mul(feeMantissa, exp(10, feeExponent))
         }
-        return MassMigration(sender, receiver, amount, spokeID, fee);
+        return MassMigration(sender, amount, fee);
     }
 
     function massMigration_size(bytes memory txs)
