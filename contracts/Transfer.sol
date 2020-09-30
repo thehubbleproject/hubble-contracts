@@ -1,14 +1,16 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import { FraudProofHelpers } from "./FraudProof.sol";
+
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
-contract Transfer is FraudProofHelpers {
+contract Transfer {
+    using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
 
@@ -141,17 +143,17 @@ contract Transfer is FraudProofHelpers {
             "Transfer: sender does not exist"
         );
 
-        Types.ErrorCode err_code = validateTxBasic(
+        Types.ErrorCode err_code = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
         if (err_code != Types.ErrorCode.NoError)
-            return (ZERO_BYTES32, "", "", err_code, false);
+            return (bytes32(0), "", "", err_code, false);
 
         if (from.state.tokenType != tokenType) {
             return (
-                ZERO_BYTES32,
+                bytes32(0),
                 "",
                 "",
                 Types.ErrorCode.BadFromTokenType,
@@ -160,13 +162,7 @@ contract Transfer is FraudProofHelpers {
         }
 
         if (to.state.tokenType != tokenType)
-            return (
-                ZERO_BYTES32,
-                "",
-                "",
-                Types.ErrorCode.BadToTokenType,
-                false
-            );
+            return (bytes32(0), "", "", Types.ErrorCode.BadToTokenType, false);
 
         bytes32 newRoot;
         bytes memory newFromState;
@@ -243,7 +239,7 @@ contract Transfer is FraudProofHelpers {
     {
         Types.UserState memory state = stateLeafProof.state;
         if (state.tokenType != tokenType) {
-            return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
+            return (bytes32(0), Types.ErrorCode.BadToTokenType, false);
         }
         require(
             MerkleTreeUtilsLib.verifyLeaf(
