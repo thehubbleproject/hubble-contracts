@@ -23,36 +23,23 @@ contract MassMigration {
         Types.StateMerkleProof[] memory proofs
     ) public view returns (bytes32, Types.Result result) {
         uint256 length = commitmentBody.txs.massMigration_size();
-
-        // contains a bunch of variables to bypass STD
-        // [tokenInTx0, tokenInTxUnderValidation, amountAggregationVar, spokeIDForCommitment]
-        uint256[] memory metaInfoCounters = new uint256[](4);
         Tx.MassMigration memory _tx;
+        uint256 sumAmount = 0;
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
 
             // aggregate amounts from all transactions
-            metaInfoCounters[2] += _tx.amount;
+            sumAmount += _tx.amount;
 
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
-            (
+            (stateRoot, , result) = processMassMigrationTx(
                 stateRoot,
-                ,
-                ,
-                metaInfoCounters[1],
-                result
-            ) = processMassMigrationTx(stateRoot, _tx, proofs[i]);
-
-            // cache token of first tx to evaluate others
-            if (i == 0) {
-                metaInfoCounters[0] = metaInfoCounters[1];
-            }
-            // all transactions in same commitment should have same token
-            if (metaInfoCounters[0] != metaInfoCounters[1]) {
-                break;
-            }
+                _tx,
+                commitmentBody.tokenID,
+                proofs[i]
+            );
 
             // TODO do a withdraw root check
 
@@ -61,8 +48,7 @@ contract MassMigration {
             }
         }
 
-        // if amount aggregation is incorrect, slash!
-        if (metaInfoCounters[2] != commitmentBody.amount) {
+        if (sumAmount != commitmentBody.amount) {
             return (stateRoot, Types.Result.MismatchedAmount);
         }
 
@@ -72,6 +58,7 @@ contract MassMigration {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMigration memory _tx,
+        uint256 tokenType,
         Types.StateMerkleProof memory from
     )
         public
@@ -79,8 +66,6 @@ contract MassMigration {
         returns (
             bytes32,
             bytes memory,
-            bytes memory,
-            uint256,
             Types.Result
         )
     {
@@ -93,24 +78,21 @@ contract MassMigration {
             ),
             "MassMigration: sender does not exist"
         );
+        if (from.state.tokenType != tokenType) {
+            return (bytes32(0), "", Types.Result.BadFromTokenType);
+        }
         Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", 0, result);
+        if (result != Types.Result.Ok) return (bytes32(0), "", result);
 
         bytes32 newRoot;
         bytes memory newFromState;
         (newFromState, newRoot) = ApplyMassMigrationTxSender(from, _tx);
 
-        return (
-            newRoot,
-            newFromState,
-            "",
-            from.state.tokenType,
-            Types.Result.Ok
-        );
+        return (newRoot, newFromState, Types.Result.Ok);
     }
 
     function ApplyMassMigrationTxSender(
