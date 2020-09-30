@@ -3,10 +3,12 @@ pragma experimental ABIEncoderV2;
 
 library MerkleTreeUtilsLib {
     function rootFromWitnesses(
-        bytes32 leaf,
+        bytes32 leafInput,
         uint256 path,
         bytes32[] memory witnesses
     ) internal pure returns (bytes32) {
+        // Copy to avoid assigning to the function parameter.
+        bytes32 leaf = leafInput;
         for (uint256 i = 0; i < witnesses.length; i++) {
             // get i-th bit from right
             if (((path >> i) & 1) == 0) {
