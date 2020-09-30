@@ -7,6 +7,9 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Tx } from "./libs/Tx.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Vault } from "./Vault.sol";
+import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { BLS } from "./libs/BLS.sol";
 
 contract WithdrawManager {
     using Tx for bytes;
@@ -14,6 +17,8 @@ contract WithdrawManager {
     Vault public vault;
     mapping(uint256 => mapping(uint256 => uint256)) balances;
     ITokenRegistry public tokenRegistry;
+    BLSAccountRegistry public accountRegistry;
+    bytes32 public APP_ID;
 
     /*********************
      * Constructor *
@@ -24,6 +29,16 @@ contract WithdrawManager {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         vault = Vault(nameRegistry.getContractDetails(ParamManager.VAULT()));
+        accountRegistry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
+        );
+        APP_ID = keccak256(
+            abi.encodePacked(
+                address(
+                    nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+                )
+            )
+        );
     }
 
     function ProcessWithdrawCommitment(
@@ -59,12 +74,33 @@ contract WithdrawManager {
         );
     }
 
-    function ClaimTokens(uint256 token, uint256 accountID) external {
+    function ClaimTokens(
+        uint256 token,
+        uint256 accountID,
+        uint256[4] calldata pubkey,
+        uint256[2] calldata signature,
+        bytes32[] calldata witness
+    ) external {
+        require(
+            MerkleTreeUtilsLib.verifyLeaf(
+                accountRegistry.root(),
+                keccak256(abi.encodePacked(pubkey)),
+                accountID,
+                witness
+            ),
+            "WithdrawManager: Public key should be in the Registry"
+        );
+        require(
+            BLS.verifySingle(
+                signature,
+                pubkey,
+                BLS.hashToPoint(APP_ID, abi.encodePacked(msg.sender))
+            ),
+            "WithdrawManager: Bad signature"
+        );
+
         address tokenContractAddress = tokenRegistry.registeredTokens(token);
         IERC20 tokenContract = IERC20(tokenContractAddress);
-
-        // TODO validate accountID
-
         // transfer tokens from vault
         require(
             tokenContract.transfer(msg.sender, balances[accountID][token]),
