@@ -21,7 +21,7 @@ contract Transfer {
         bytes32 accountRoot,
         bytes32 domain,
         bytes memory txs
-    ) public view returns (Types.ErrorCode) {
+    ) public view returns (Types.Result) {
         uint256 batchSize = txs.transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
@@ -58,9 +58,9 @@ contract Transfer {
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
-            return Types.ErrorCode.BadSignature;
+            return Types.Result.BadSignature;
         }
-        return Types.ErrorCode.NoError;
+        return Types.Result.Ok;
     }
 
     /**
@@ -73,11 +73,10 @@ contract Transfer {
         Types.StateMerkleProof[] memory proofs,
         uint256 tokenType,
         uint256 feeReceiver
-    ) public pure returns (bytes32, bool) {
+    ) public pure returns (bytes32, Types.Result result) {
         uint256 length = txs.transfer_size();
 
-        bool isTxValid;
-        uint256 fees;
+        uint256 fees = 0;
         Tx.Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
@@ -85,19 +84,19 @@ contract Transfer {
             // tx evaluates correctly
             _tx = txs.transfer_decode(i);
             fees = fees.add(_tx.fee);
-            (stateRoot, , , , isTxValid) = processTx(
+            (stateRoot, , , result) = processTx(
                 stateRoot,
                 _tx,
                 tokenType,
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
-            if (!isTxValid) {
+            if (result != Types.Result.Ok) {
                 break;
             }
         }
-        if (isTxValid) {
-            (stateRoot, , isTxValid) = processFee(
+        if (result == Types.Result.Ok) {
+            (stateRoot, result) = processFee(
                 stateRoot,
                 fees,
                 tokenType,
@@ -106,7 +105,7 @@ contract Transfer {
             );
         }
 
-        return (stateRoot, !isTxValid);
+        return (stateRoot, result);
     }
 
     /**
@@ -129,8 +128,7 @@ contract Transfer {
             bytes32,
             bytes memory,
             bytes memory,
-            Types.ErrorCode,
-            bool
+            Types.Result
         )
     {
         require(
@@ -143,26 +141,19 @@ contract Transfer {
             "Transfer: sender does not exist"
         );
 
-        Types.ErrorCode err_code = FraudProofHelpers.validateTxBasic(
+        Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (err_code != Types.ErrorCode.NoError)
-            return (bytes32(0), "", "", err_code, false);
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
 
         if (from.state.tokenType != tokenType) {
-            return (
-                bytes32(0),
-                "",
-                "",
-                Types.ErrorCode.BadFromTokenType,
-                false
-            );
+            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
         }
 
         if (to.state.tokenType != tokenType)
-            return (bytes32(0), "", "", Types.ErrorCode.BadToTokenType, false);
+            return (bytes32(0), "", "", Types.Result.BadToTokenType);
 
         bytes32 newRoot;
         bytes memory newFromState;
@@ -182,13 +173,7 @@ contract Transfer {
 
         (newToState, newRoot) = ApplyTransferTxReceiver(to, _tx);
 
-        return (
-            newRoot,
-            newFromState,
-            newToState,
-            Types.ErrorCode.NoError,
-            true
-        );
+        return (newRoot, newFromState, newToState, Types.Result.Ok);
     }
 
     function ApplyTransferTxSender(
@@ -228,18 +213,10 @@ contract Transfer {
         uint256 tokenType,
         uint256 feeReceiver,
         Types.StateMerkleProof memory stateLeafProof
-    )
-        public
-        pure
-        returns (
-            bytes32 newRoot,
-            Types.ErrorCode err,
-            bool isValid
-        )
-    {
+    ) public pure returns (bytes32 newRoot, Types.Result) {
         Types.UserState memory state = stateLeafProof.state;
         if (state.tokenType != tokenType) {
-            return (bytes32(0), Types.ErrorCode.BadToTokenType, false);
+            return (bytes32(0), Types.Result.BadToTokenType);
         }
         require(
             MerkleTreeUtilsLib.verifyLeaf(
@@ -256,6 +233,6 @@ contract Transfer {
             feeReceiver,
             stateLeafProof.witness
         );
-        return (newRoot, Types.ErrorCode.NoError, true);
+        return (newRoot, Types.Result.Ok);
     }
 }

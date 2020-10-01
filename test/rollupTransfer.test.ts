@@ -11,7 +11,7 @@ import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
-import { ErrorCode } from "../ts/interfaces";
+import { Result } from "../ts/interfaces";
 import { txTransferFactory, UserStateFactory } from "../ts/factory";
 
 const DOMAIN_HEX = randHex(32);
@@ -84,7 +84,7 @@ describe("Rollup Transfer Commitment", () => {
         };
         const {
             0: gasCost,
-            1: error
+            1: result
         } = await rollup.callStatic._checkSignature(
             signature,
             proof,
@@ -93,7 +93,7 @@ describe("Rollup Transfer Commitment", () => {
             DOMAIN,
             serialized
         );
-        assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         console.log("operation gas cost:", gasCost.toString());
         const { 1: badSig } = await rollup.callStatic._checkSignature(
             signature,
@@ -103,7 +103,7 @@ describe("Rollup Transfer Commitment", () => {
             BAD_DOMAIN,
             serialized
         );
-        assert.equal(badSig, ErrorCode.BadSignature);
+        assert.equal(badSig, Result.BadSignature);
         const tx = await rollup._checkSignature(
             signature,
             proof,
@@ -123,7 +123,7 @@ describe("Rollup Transfer Commitment", () => {
             const proof = stateTree.applyTxTransfer(tx);
             assert.isTrue(proof.safe);
             const postRoot = stateTree.root;
-            const { 0: processedRoot, 3: error } = await rollup.testProcessTx(
+            const { 0: processedRoot, 3: result } = await rollup.testProcessTx(
                 preRoot,
                 tx,
                 states[0].tokenType,
@@ -136,7 +136,7 @@ describe("Rollup Transfer Commitment", () => {
                     witness: proof.receiverWitness
                 }
             );
-            assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
+            assert.equal(result, Result.Ok, `Got ${Result[result]}`);
             assert.equal(
                 processedRoot,
                 postRoot,
