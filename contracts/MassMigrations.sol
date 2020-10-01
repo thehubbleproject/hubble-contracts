@@ -24,16 +24,10 @@ contract MassMigration {
     ) public view returns (bytes32, Types.Result result) {
         uint256 length = commitmentBody.txs.massMigration_size();
         Tx.MassMigration memory _tx;
-        uint256 sumAmount = 0;
+        uint256 totalAmount = 0;
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
-
-            // aggregate amounts from all transactions
-            sumAmount += _tx.amount;
-
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
             (stateRoot, , result) = processMassMigrationTx(
                 stateRoot,
                 _tx,
@@ -46,9 +40,11 @@ contract MassMigration {
             if (result != Types.Result.Ok) {
                 break;
             }
+            // Only trust the amount when the result is good
+            totalAmount += _tx.amount;
         }
 
-        if (sumAmount != commitmentBody.amount) {
+        if (totalAmount != commitmentBody.amount) {
             return (stateRoot, Types.Result.MismatchedAmount);
         }
 
