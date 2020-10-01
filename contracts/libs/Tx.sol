@@ -8,6 +8,7 @@ library Tx {
     // Tx types in uint256
     uint256 constant TRANSFER = 1;
     uint256 constant CREATE2TRANSFER = 3;
+    uint256 constant MASS_MIGRATION = 5;
 
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
@@ -283,41 +284,6 @@ library Tx {
             );
     }
 
-    function massMigration_decode(bytes memory txs, uint256 index)
-        internal
-        pure
-        returns (MassMigration memory _tx)
-    {
-        uint256 sender;
-        uint256 amount;
-        uint256 fee;
-        // solium-disable-next-line security/no-inline-assembly
-        assembly {
-            let p_tx := add(txs, mul(index, TX_LEN_5))
-            sender := and(mload(add(p_tx, POSITION_SENDER_5)), MASK_STATE_ID)
-            let amountBytes := mload(add(p_tx, POSITION_AMOUNT_5))
-            let amountExponent := shr(
-                MANTISSA_BITS,
-                and(amountBytes, MASK_EXPONENT)
-            )
-            let amountMantissa := and(amountBytes, MASK_MANTISSA)
-            amount := mul(amountMantissa, exp(10, amountExponent))
-            let feeBytes := mload(add(p_tx, POSITION_FEE_5))
-            let feeExponent := shr(MANTISSA_BITS, and(feeBytes, MASK_EXPONENT))
-            let feeMantissa := and(feeBytes, MASK_MANTISSA)
-            fee := mul(feeMantissa, exp(10, feeExponent))
-        }
-        return MassMigration(sender, amount, fee);
-    }
-
-    function massMigration_size(bytes memory txs)
-        internal
-        pure
-        returns (uint256)
-    {
-        return txs.length / TX_LEN_5;
-    }
-
     function create2Transfer_hasExcessData(bytes memory txs)
         internal
         pure
@@ -454,6 +420,57 @@ library Tx {
                 nonce,
                 _tx.amount,
                 _tx.fee
+            );
+    }
+
+    function massMigration_decode(bytes memory txs, uint256 index)
+        internal
+        pure
+        returns (MassMigration memory _tx)
+    {
+        uint256 sender;
+        uint256 amount;
+        uint256 fee;
+        // solium-disable-next-line security/no-inline-assembly
+        assembly {
+            let p_tx := add(txs, mul(index, TX_LEN_5))
+            sender := and(mload(add(p_tx, POSITION_SENDER_5)), MASK_STATE_ID)
+            let amountBytes := mload(add(p_tx, POSITION_AMOUNT_5))
+            let amountExponent := shr(
+                MANTISSA_BITS,
+                and(amountBytes, MASK_EXPONENT)
+            )
+            let amountMantissa := and(amountBytes, MASK_MANTISSA)
+            amount := mul(amountMantissa, exp(10, amountExponent))
+            let feeBytes := mload(add(p_tx, POSITION_FEE_5))
+            let feeExponent := shr(MANTISSA_BITS, and(feeBytes, MASK_EXPONENT))
+            let feeMantissa := and(feeBytes, MASK_MANTISSA)
+            fee := mul(feeMantissa, exp(10, feeExponent))
+        }
+        return MassMigration(sender, amount, fee);
+    }
+
+    function massMigration_size(bytes memory txs)
+        internal
+        pure
+        returns (uint256)
+    {
+        return txs.length / TX_LEN_5;
+    }
+
+    function massMigration_messageOf(
+        MassMigration memory _tx,
+        uint256 nonce,
+        uint256 spokeID
+    ) internal pure returns (bytes memory) {
+        return
+            abi.encodePacked(
+                uint8(MASS_MIGRATION),
+                uint32(_tx.fromIndex),
+                uint16(_tx.amount),
+                uint16(_tx.fee),
+                uint32(nonce),
+                uint32(spokeID)
             );
     }
 }

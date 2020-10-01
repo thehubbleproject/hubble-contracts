@@ -557,12 +557,13 @@ contract Rollup is RollupHelpers {
             "Commitment not present in batch"
         );
 
-        Types.Result result = transfer.checkSignature(
+        Types.Result result = massMigration.checkSignature(
             target.commitment.body.signature,
             signatureProof,
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
             APP_ID,
+            target.commitment.body.targetSpokeID,
             target.commitment.body.txs
         );
 
