@@ -4,7 +4,6 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Rollup } from "./Rollup.sol";
-import { RollupUtils } from "./libs/RollupUtils.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
@@ -35,31 +34,29 @@ contract Vault {
         uint256 batch_id,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
-        // ensure msg.sender is the the target spoke
         require(
             msg.sender ==
                 spokes.getSpokeAddress(
                     commitmentMP.commitment.body.targetSpokeID
-                )
-        );
-        {
-            // ensure batch is finalised
-            require(
-                block.number >= rollup.getBatch(batch_id).finalisesOn,
-                "Batch not finalised"
-            );
-
-            // check if commitment was submitted in the batch
-            require(
-                MerkleTreeUtilsLib.verifyLeaf(
-                    rollup.getBatch(batch_id).commitmentRoot,
-                    commitmentMP.commitment.toHash(),
-                    commitmentMP.pathToCommitment,
-                    commitmentMP.witness
                 ),
-                "Commitment not present in batch"
-            );
-        }
+            "Vault: msg.sender should be the target spoke"
+        );
+        Types.Batch memory batch = rollup.getBatch(batch_id);
+
+        require(
+            block.number >= batch.finalisesOn,
+            "Vault: Batch shoould be finalised"
+        );
+
+        require(
+            MerkleTreeUtilsLib.verifyLeaf(
+                batch.commitmentRoot,
+                commitmentMP.commitment.toHash(),
+                commitmentMP.pathToCommitment,
+                commitmentMP.witness
+            ),
+            "Vault: Commitment is not present in batch"
+        );
 
         IERC20 tokenContract = IERC20(
             tokenRegistry.registeredTokens(commitmentMP.commitment.body.tokenID)
@@ -70,7 +67,7 @@ contract Vault {
                 msg.sender,
                 commitmentMP.commitment.body.amount
             ),
-            "Token approval failed"
+            "Vault: Token approval failed"
         );
     }
 }

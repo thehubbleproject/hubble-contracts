@@ -1,12 +1,14 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { FraudProofHelpers } from "./FraudProof.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
-contract MassMigration is FraudProofHelpers {
+contract MassMigration {
+    using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
     uint256 constant BURN_STATE_INDEX = 0;
@@ -107,13 +109,13 @@ contract MassMigration is FraudProofHelpers {
             ),
             "MassMigration: sender does not exist"
         );
-        Types.ErrorCode err_code = validateTxBasic(
+        Types.ErrorCode err_code = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
         if (err_code != Types.ErrorCode.NoError)
-            return (ZERO_BYTES32, "", "", 0, err_code, false);
+            return (bytes32(0), "", "", 0, err_code, false);
 
         bytes32 newRoot;
         bytes memory newFromState;
