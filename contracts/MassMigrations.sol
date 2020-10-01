@@ -5,12 +5,15 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { MerkleTreeUtilsLib, MerkleTreeUtils } from "./MerkleTreeUtils.sol";
+import { NameRegistry } from "./NameRegistry.sol";
 
-contract MassMigration {
+contract MassMigrationCore {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
+    MerkleTreeUtils merkleTree;
 
     /**
      * @notice processes the state transition of a commitment
@@ -25,27 +28,32 @@ contract MassMigration {
         uint256 length = commitmentBody.txs.massMigration_size();
         Tx.MassMigration memory _tx;
         uint256 totalAmount = 0;
+        bytes32 leaf = bytes32(0);
+        bytes32[] memory withdrawLeaves = new bytes32[](length);
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
-            (stateRoot, , result) = processMassMigrationTx(
+            (stateRoot, , leaf, result) = processMassMigrationTx(
                 stateRoot,
                 _tx,
                 commitmentBody.tokenID,
                 proofs[i]
             );
+            if (result != Types.Result.Ok) break;
 
-            // TODO do a withdraw root check
-
-            if (result != Types.Result.Ok) {
-                break;
-            }
-            // Only trust the amount when the result is good
+            // Only trust these variables when the result is good
             totalAmount += _tx.amount;
+            withdrawLeaves[i] = leaf;
         }
 
         if (totalAmount != commitmentBody.amount) {
             return (stateRoot, Types.Result.MismatchedAmount);
+        }
+        if (
+            merkleTree.getMerkleRootFromLeaves(withdrawLeaves) !=
+            commitmentBody.withdrawRoot
+        ) {
+            return (stateRoot, Types.Result.BadWithdrawRoot);
         }
 
         return (stateRoot, result);
@@ -62,6 +70,7 @@ contract MassMigration {
         returns (
             bytes32,
             bytes memory,
+            bytes32 withdrawLeaf,
             Types.Result
         )
     {
@@ -75,20 +84,26 @@ contract MassMigration {
             "MassMigration: sender does not exist"
         );
         if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", Types.Result.BadFromTokenType);
+            return (bytes32(0), "", bytes32(0), Types.Result.BadFromTokenType);
         }
         Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", result);
+        if (result != Types.Result.Ok)
+            return (bytes32(0), "", bytes32(0), result);
 
-        bytes32 newRoot;
-        bytes memory newFromState;
-        (newFromState, newRoot) = ApplyMassMigrationTxSender(from, _tx);
+        (
+            bytes memory newFromState,
+            bytes32 newRoot
+        ) = ApplyMassMigrationTxSender(from, _tx);
 
-        return (newRoot, newFromState, Types.Result.Ok);
+        withdrawLeaf = keccak256(
+            abi.encodePacked(from.state.pubkeyIndex, _tx.amount)
+        );
+
+        return (newRoot, newFromState, withdrawLeaf, Types.Result.Ok);
     }
 
     function ApplyMassMigrationTxSender(
@@ -105,5 +120,13 @@ contract MassMigration {
             _merkle_proof.witness
         );
         return (encodedState, newRoot);
+    }
+}
+
+contract MassMigration is MassMigrationCore {
+    constructor(NameRegistry nameRegistry) public {
+        merkleTree = MerkleTreeUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
     }
 }
