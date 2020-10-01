@@ -467,8 +467,8 @@ library Tx {
             abi.encodePacked(
                 uint8(MASS_MIGRATION),
                 uint32(_tx.fromIndex),
-                uint16(_tx.amount),
-                uint16(_tx.fee),
+                _tx.amount,
+                _tx.fee,
                 uint32(nonce),
                 uint32(spokeID)
             );

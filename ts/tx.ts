@@ -109,23 +109,14 @@ export class TxTransfer implements SignableTx {
 }
 
 export class TxMassMigration implements SignableTx {
-    private readonly TX_TYPE = "0x06";
+    private readonly TX_TYPE = "0x05";
     public static rand(): TxMassMigration {
         const sender = randomNum(stateIDLen);
-        const receiver = randomNum(stateIDLen);
         const amount = USDT.randInt();
         const fee = USDT.randInt();
         const nonce = randomNum(nonceLen);
         const spokeID = randomNum(spokeLen);
-        return new TxMassMigration(
-            sender,
-            receiver,
-            amount,
-            spokeID,
-            fee,
-            nonce,
-            USDT
-        );
+        return new TxMassMigration(sender, amount, spokeID, fee, nonce, USDT);
     }
     public static buildList(n: number = COMMIT_SIZE): TxMassMigration[] {
         const txs = [];
@@ -136,7 +127,6 @@ export class TxMassMigration implements SignableTx {
     }
     constructor(
         public readonly fromIndex: number,
-        public readonly toIndex: number,
         public readonly amount: BigNumber,
         public readonly spokeID: number,
         public readonly fee: BigNumber,
@@ -150,8 +140,11 @@ export class TxMassMigration implements SignableTx {
     public message(): string {
         const concated = concat([
             this.TX_TYPE,
+            hexZeroPad(hexlify(this.fromIndex), stateIDLen),
+            hexZeroPad(this.amount.toHexString(), 32),
+            hexZeroPad(this.fee.toHexString(), 32),
             hexZeroPad(hexlify(this.nonce), nonceLen),
-            this.encode()
+            hexZeroPad(hexlify(this.spokeID), spokeLen)
         ]);
         return hexlify(concated);
     }
@@ -159,7 +152,6 @@ export class TxMassMigration implements SignableTx {
     public extended() {
         return {
             fromIndex: this.fromIndex,
-            toIndex: this.toIndex,
             amount: this.amount,
             spokeID: this.spokeID,
             fee: this.fee,
@@ -171,9 +163,7 @@ export class TxMassMigration implements SignableTx {
     public encode(): string {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
-            hexZeroPad(hexlify(this.toIndex), stateIDLen),
             this.decimal.encodeInt(this.amount),
-            hexZeroPad(hexlify(this.spokeID), spokeLen),
             this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
