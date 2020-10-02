@@ -11,6 +11,9 @@ import { assert } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
+import { solidityKeccak256 } from "ethers/lib/utils";
+import { Tree } from "../ts/tree";
+import { getMerkleRootFromLeaves } from "../ts/utils";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -78,12 +81,18 @@ describe("Mass Migrations", async function() {
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
 
+        const leaf = solidityKeccak256(
+            ["uint256", "uint256"],
+            [Alice.pubkeyIndex, tx.amount]
+        );
+        const withdrawRoot = Tree.merklize([leaf]).root;
+
         const commitment = MassMigrationCommitment.new(
             stateRoot,
             root,
             aggregatedSignature0,
             tx.spokeID,
-            ethers.constants.HashZero,
+            withdrawRoot,
             tokenID,
             tx.amount,
             txs

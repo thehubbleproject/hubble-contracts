@@ -14,6 +14,10 @@ export function randHex(n: number): string {
     return hexlify(randomBytes(n));
 }
 
+export function sum(xs: BigNumber[]): BigNumber {
+    return xs.reduce((a, b) => a.add(b));
+}
+
 export function to32Hex(n: BigNumber): string {
     return hexZeroPad(n.toHexString(), 32);
 }

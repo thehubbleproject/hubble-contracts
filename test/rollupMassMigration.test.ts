@@ -3,7 +3,7 @@ import { AccountRegistry } from "../ts/accountTree";
 import { txMassMigrationFactory, UserStateFactory } from "../ts/factory";
 import { State } from "../ts/state";
 import { StateTree } from "../ts/stateTree";
-import { randHex } from "../ts/utils";
+import { randHex, sum } from "../ts/utils";
 import {
     LoggerFactory,
     BlsAccountRegistryFactory,
@@ -16,6 +16,9 @@ import { serialize } from "../ts/tx";
 import { assert } from "chai";
 import { Result } from "../ts/interfaces";
 import { constants } from "ethers";
+import { Tree } from "../ts/tree";
+import { solidityKeccak256 } from "ethers/lib/utils";
+import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 
 const DOMAIN_HEX = randHex(32);
 const STATE_SIZE = 32;
@@ -111,19 +114,27 @@ describe("Rollup Mass Migration", () => {
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
 
+        const leaves = txs.map(tx =>
+            solidityKeccak256(
+                ["uint256", "uint256"],
+                [states[tx.fromIndex].pubkeyIndex, tx.amount]
+            )
+        );
+        const withdrawRoot = Tree.merklize(leaves).root;
         const commitmentBody = {
             accountRoot: constants.HashZero,
             signature: [0, 0],
             targetSpokeID: spokeID,
-            withdrawRoot: constants.HashZero,
+            withdrawRoot,
             tokenID: states[0].tokenType,
-            amount: txs.map(tx => tx.amount).reduce((a, b) => a.add(b)),
+            amount: sum(txs.map(tx => tx.amount)),
             txs: serialize(txs)
         };
 
         const {
             0: gasCost,
-            1: postRoot
+            1: postRoot,
+            2: result
         } = await rollup.callStatic.testProcessMassMigrationCommit(
             preStateRoot,
             commitmentBody,
@@ -131,5 +142,6 @@ describe("Rollup Mass Migration", () => {
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());
         assert.equal(postRoot, postStateRoot, "Mismatch post state root");
+        assert.equal(Result[result], Result[Result.Ok]);
     }).timeout(80000);
 });
