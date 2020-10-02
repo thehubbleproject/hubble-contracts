@@ -5,7 +5,7 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 
 import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { StateTree } from "../ts/stateTree";
+import { solProofFromTransfer, StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
@@ -121,20 +121,15 @@ describe("Rollup Transfer Commitment", () => {
         for (const tx of txs) {
             const preRoot = stateTree.root;
             const proof = stateTree.applyTxTransfer(tx);
+            const [senderProof, receiverProof] = solProofFromTransfer(proof);
             assert.isTrue(proof.safe);
             const postRoot = stateTree.root;
             const { 0: processedRoot, 3: result } = await rollup.testProcessTx(
                 preRoot,
                 tx,
                 states[0].tokenType,
-                {
-                    state: proof.sender,
-                    witness: proof.senderWitness
-                },
-                {
-                    state: proof.receiver,
-                    witness: proof.receiverWitness
-                }
+                senderProof,
+                receiverProof
             );
             assert.equal(result, Result.Ok, `Got ${Result[result]}`);
             assert.equal(
@@ -149,26 +144,11 @@ describe("Rollup Transfer Commitment", () => {
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proof, feeProof, safe } = stateTree.applyTransferBatch(
+        const { solProofs, safe } = stateTree.applyTransferBatch(
             txs,
             feeReceiver
         );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
-        const stateMerkleProof = [];
-        for (let i = 0; i < COMMIT_SIZE; i++) {
-            stateMerkleProof.push({
-                state: proof[i].sender,
-                witness: proof[i].senderWitness
-            });
-            stateMerkleProof.push({
-                state: proof[i].receiver,
-                witness: proof[i].receiverWitness
-            });
-        }
-        stateMerkleProof.push({
-            state: feeProof.feeReceiver,
-            witness: feeProof.feeReceiverWitness
-        });
         const postStateRoot = stateTree.root;
 
         const {
@@ -177,7 +157,7 @@ describe("Rollup Transfer Commitment", () => {
         } = await rollup.callStatic.testProcessTransferCommit(
             preStateRoot,
             serialize(txs),
-            stateMerkleProof,
+            solProofs,
             states[0].tokenType,
             feeReceiver
         );

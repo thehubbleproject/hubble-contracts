@@ -1,7 +1,12 @@
 import { Tree } from "./tree";
 import { State, EMPTY_STATE, StateSolStruct } from "./state";
 import { TxTransfer, TxMassMigration } from "./tx";
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
+
+interface SolStateMerkleProof {
+    state: StateSolStruct;
+    witness: string[];
+}
 
 interface ProofTransferTx {
     sender: StateSolStruct;
@@ -25,10 +30,11 @@ interface ProofOfMassMigrationTx {
 }
 
 const STATE_WITNESS_LENGHT = 32;
-const ZERO =
-    "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(ZERO);
+const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(
+    constants.HashZero
+);
+
 const PLACEHOLDER_TRANSFER_PROOF: ProofTransferTx = {
     sender: EMPTY_STATE,
     receiver: EMPTY_STATE,
@@ -36,6 +42,20 @@ const PLACEHOLDER_TRANSFER_PROOF: ProofTransferTx = {
     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
     safe: false
 };
+
+export function solProofFromTransfer(
+    proof: ProofTransferTx
+): SolStateMerkleProof[] {
+    const { sender, senderWitness, receiver, receiverWitness } = proof;
+    return [
+        { state: sender, witness: senderWitness },
+        { state: receiver, witness: receiverWitness }
+    ];
+}
+
+function solProofFromFee(proof: ProofTransferFee): SolStateMerkleProof {
+    return { state: proof.feeReceiver, witness: proof.feeReceiverWitness };
+}
 
 export class StateTree {
     public static new(stateDepth: number) {
@@ -80,14 +100,17 @@ export class StateTree {
     ): {
         proof: ProofTransferBatch;
         feeProof: ProofTransferFee;
+        solProofs: SolStateMerkleProof[];
         safe: boolean;
     } {
         let safe = true;
         let proofs: ProofTransferTx[] = [];
+        let solProofs: SolStateMerkleProof[] = [];
         for (let i = 0; i < txs.length; i++) {
             if (safe) {
                 const proof = this.applyTxTransfer(txs[i]);
                 proofs.push(proof);
+                solProofs = solProofs.concat(solProofFromTransfer(proof));
                 safe = proof.safe;
             } else {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
@@ -95,8 +118,9 @@ export class StateTree {
         }
         const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
         const feeProof = this.applyFee(sumOfFee, feeReceiverID);
+        solProofs.push(solProofFromFee(feeProof));
         safe = feeProof.safe;
-        return { proof: proofs, feeProof, safe };
+        return { proof: proofs, feeProof, solProofs, safe };
     }
 
     public applyFee(
