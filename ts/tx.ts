@@ -1,14 +1,8 @@
-import { Tree } from "./tree";
 import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
 import { DecimalCodec, USDT } from "./decimal";
 import { MismatchByteLength } from "./exceptions";
-import {
-    hexZeroPad,
-    concat,
-    hexlify,
-    solidityKeccak256
-} from "ethers/lib/utils";
+import { hexZeroPad, concat, hexlify } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 
 const amountLen = 2;
@@ -17,27 +11,12 @@ const stateIDLen = 4;
 const nonceLen = 4;
 const spokeLen = 4;
 
-function log2(n: number) {
-    return Math.ceil(Math.log2(n));
-}
-
 export interface Tx {
-    hash(): string;
     encode(prefix?: boolean): string;
 }
 
 export interface SignableTx extends Tx {
     message(): string;
-}
-
-export function calculateRoot(txs: Tx[]) {
-    const depth = log2(txs.length);
-    const tree = Tree.new(depth);
-    for (let i = 0; i < txs.length; i++) {
-        const leaf = txs[i].hash();
-        tree.updateSingle(i, leaf);
-    }
-    return tree.root;
 }
 
 export function serialize(txs: Tx[]): string {
@@ -93,18 +72,6 @@ export class TxTransfer implements SignableTx {
             this.encode()
         ]);
         return hexlify(concated);
-    }
-
-    public hash(): string {
-        return solidityKeccak256(
-            ["uint32", "uint32", "uint16", "uint16"],
-            [
-                this.fromIndex,
-                this.toIndex,
-                this.decimal.encodeInt(this.amount),
-                this.decimal.encodeInt(this.fee)
-            ]
-        );
     }
 
     public extended(tokenType: number = 0) {
@@ -176,13 +143,6 @@ export class TxMassMigration implements SignableTx {
             this.encode()
         ]);
         return hexlify(concated);
-    }
-
-    public hash(): string {
-        return solidityKeccak256(
-            ["uint32", "uint32", "uint16", "uint32", "uint16"],
-            [this.fromIndex, this.toIndex, this.amount, this.spokeID, this.fee]
-        );
     }
 
     public extended() {
