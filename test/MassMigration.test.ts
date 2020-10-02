@@ -63,7 +63,6 @@ describe("Mass Migrations", async function() {
     it("submit a batch and dispute", async function() {
         const tx = new TxMassMigration(
             Alice.stateID,
-            0,
             USDT.castInt(39.99),
             1,
             USDT.castInt(0.01),
@@ -107,7 +106,7 @@ describe("Mass Migrations", async function() {
             stateTree.root,
             "should have same state root"
         );
-        assert.equal(result, Result.Ok, "Should be a safe state transition");
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         commitment.stateRoot = postStateRoot;
 
         const targetBatch = commitment.toBatch();
