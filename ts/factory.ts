@@ -2,7 +2,7 @@ import { BigNumber } from "ethers";
 import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
 import { State } from "./state";
-import { TxTransfer, TxCreate2Transfer } from "./tx";
+import { TxTransfer, TxCreate2Transfer, TxMassMigration } from "./tx";
 
 export class UserStateFactory {
     public static buildList(
@@ -82,8 +82,31 @@ export function txCreate2TransferFactory(
             fee,
             sender.nonce,
             USDT
-        );
+        );     
+        txs.push(tx);
+    }
+    return txs;
+}
 
+export function txMassMigrationFactory(
+    states: State[],
+    n: number = COMMIT_SIZE,
+    spokeID = 0
+): TxMassMigration[] {
+    const txs: TxMassMigration[] = [];
+    for (let i = 0; i < n; i++) {
+        const senderIndex = i;
+        const sender = states[senderIndex];
+        const amount = sender.balance.div(10);
+        const fee = amount.div(10);
+        const tx = new TxMassMigration(
+            senderIndex,
+            amount,
+            spokeID,
+            fee,
+            sender.nonce,
+            USDT
+        );
         txs.push(tx);
     }
     return txs;
