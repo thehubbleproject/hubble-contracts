@@ -15,6 +15,7 @@ import { TestMassMigration } from "../types/ethers-contracts/TestMassMigration";
 import { serialize } from "../ts/tx";
 import { assert } from "chai";
 import { Result } from "../ts/interfaces";
+import { constants } from "ethers";
 
 const DOMAIN_HEX = randHex(32);
 const STATE_SIZE = 32;
@@ -102,4 +103,33 @@ describe("Rollup Mass Migration", () => {
         assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
+    it("checks state transitions", async function() {
+        const txs = txMassMigrationFactory(states, COMMIT_SIZE, spokeID);
+
+        const preStateRoot = stateTree.root;
+        const { proofs, safe } = stateTree.applyMassMigrationBatch(txs);
+        assert.isTrue(safe, "Should be a valid applyTransferBatch");
+        const postStateRoot = stateTree.root;
+
+        const commitmentBody = {
+            accountRoot: constants.HashZero,
+            signature: [0, 0],
+            targetSpokeID: spokeID,
+            withdrawRoot: constants.HashZero,
+            tokenID: states[0].tokenType,
+            amount: txs.map(tx => tx.amount).reduce((a, b) => a.add(b)),
+            txs: serialize(txs)
+        };
+
+        const {
+            0: gasCost,
+            1: postRoot
+        } = await rollup.callStatic.testProcessMassMigrationCommit(
+            preStateRoot,
+            commitmentBody,
+            proofs
+        );
+        console.log("processTransferBatch gas cost", gasCost.toNumber());
+        assert.equal(postRoot, postStateRoot, "Mismatch post state root");
+    }).timeout(80000);
 });
