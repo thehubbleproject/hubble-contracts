@@ -7,7 +7,7 @@ import {
     concat,
     hexlify,
     solidityKeccak256,
-    defaultAbiCoder,
+    defaultAbiCoder
 } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 
@@ -26,7 +26,7 @@ export interface SignableTx extends Tx {
 }
 
 export function serialize(txs: Tx[]): string {
-    return hexlify(concat(txs.map((tx) => tx.encode())));
+    return hexlify(concat(txs.map(tx => tx.encode())));
 }
 
 function checkByteLength(
@@ -81,7 +81,7 @@ export class TxTransfer implements SignableTx {
                 this.toIndex,
                 this.nonce,
                 this.amount.toString(),
-                this.fee,
+                this.fee
             ]
         );
     }
@@ -93,7 +93,7 @@ export class TxTransfer implements SignableTx {
                 this.fromIndex,
                 this.toIndex,
                 this.decimal.encodeInt(this.amount),
-                this.decimal.encodeInt(this.fee),
+                this.decimal.encodeInt(this.fee)
             ]
         );
     }
@@ -105,7 +105,7 @@ export class TxTransfer implements SignableTx {
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce,
-            txType: 0,
+            txType: 0
         };
     }
 
@@ -114,7 +114,7 @@ export class TxTransfer implements SignableTx {
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
             this.decimal.encodeInt(this.amount),
-            this.decimal.encodeInt(this.fee),
+            this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
     }
@@ -163,7 +163,7 @@ export class TxMassMigration implements SignableTx {
         const concated = concat([
             this.TX_TYPE,
             hexZeroPad(hexlify(this.nonce), nonceLen),
-            this.encode(),
+            this.encode()
         ]);
         return hexlify(concated);
     }
@@ -176,7 +176,7 @@ export class TxMassMigration implements SignableTx {
             spokeID: this.spokeID,
             fee: this.fee,
             nonce: this.nonce,
-            txType: 0,
+            txType: 0
         };
     }
 
@@ -186,7 +186,7 @@ export class TxMassMigration implements SignableTx {
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
             this.decimal.encodeInt(this.amount),
             hexZeroPad(hexlify(this.spokeID), spokeLen),
-            this.decimal.encodeInt(this.fee),
+            this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
     }
@@ -246,7 +246,7 @@ export class TxCreate2Transfer implements SignableTx {
                 "uint256[4]",
                 "uint256",
                 "uint256",
-                "uint256",
+                "uint256"
             ],
             [
                 this.TX_TYPE,
@@ -254,7 +254,7 @@ export class TxCreate2Transfer implements SignableTx {
                 this.toPubkey,
                 this.nonce,
                 this.amount.toString(),
-                this.fee,
+                this.fee
             ]
         );
     }
@@ -267,7 +267,7 @@ export class TxCreate2Transfer implements SignableTx {
                 this.toIndex,
                 this.toAccID,
                 this.decimal.encodeInt(this.amount),
-                this.decimal.encodeInt(this.fee),
+                this.decimal.encodeInt(this.fee)
             ]
         );
     }
@@ -280,7 +280,7 @@ export class TxCreate2Transfer implements SignableTx {
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce,
-            txType: this.TX_TYPE,
+            txType: this.TX_TYPE
         };
     }
 
@@ -290,7 +290,7 @@ export class TxCreate2Transfer implements SignableTx {
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
             hexZeroPad(hexlify(this.toAccID), stateIDLen),
             this.decimal.encodeInt(this.amount),
-            this.decimal.encodeInt(this.fee),
+            this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
     }

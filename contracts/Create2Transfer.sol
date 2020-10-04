@@ -137,7 +137,7 @@ contract Create2Transfer is FraudProofHelpers {
         Types.StateMerkleProof memory to
     )
         public
-       pure 
+        pure
         returns (
             bytes32,
             bytes memory,

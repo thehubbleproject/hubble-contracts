@@ -51,7 +51,7 @@ describe("Tx Serialization", async () => {
             states.length,
             states.length
         );
-        const txs = txCreate2TransferFactory(states,newStates,  COMMIT_SIZE);
+        const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
         const serialized = serialize(txs);
         assert.equal(
             (await c.create2transfer_size(serialized)).toNumber(),

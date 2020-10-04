@@ -41,7 +41,7 @@ const PLACEHOLDER_TRANSFER_PROOF: ProofTransferTx = {
     receiver: EMPTY_STATE,
     senderWitness: PLACEHOLDER_PROOF_WITNESS,
     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false,
+    safe: false
 };
 
 export function solProofFromTransfer(
@@ -50,7 +50,7 @@ export function solProofFromTransfer(
     const { sender, senderWitness, receiver, receiverWitness } = proof;
     return [
         { state: sender, witness: senderWitness },
-        { state: receiver, witness: receiverWitness },
+        { state: receiver, witness: receiverWitness }
     ];
 }
 
@@ -125,7 +125,7 @@ export class StateTree {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
             }
         }
-        const sumOfFee = txs.map((tx) => tx.fee).reduce((a, b) => a.add(b));
+        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
         const feeProof = this.applyFee(sumOfFee, feeReceiverID);
         solProofs.push(solProofFromFee(feeProof));
         safe = feeProof.safe;
@@ -151,7 +151,7 @@ export class StateTree {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
             }
         }
-        const sumOfFee = txs.map((tx) => tx.fee).reduce((a, b) => a.add(b));
+        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
         const feeProof = this.applyFee(sumOfFee, feeReceiverID);
         safe = feeProof.safe;
         return { proof: proofs, feeProof, safe };
@@ -172,13 +172,13 @@ export class StateTree {
             return {
                 feeReceiver: stateStruct,
                 feeReceiverWitness: witness,
-                safe: true,
+                safe: true
             };
         } else {
             return {
                 feeReceiver: EMPTY_STATE,
                 feeReceiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false,
+                safe: false
             };
         }
     }
@@ -202,7 +202,7 @@ export class StateTree {
                     receiver: EMPTY_STATE,
                     senderWitness,
                     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                    safe: false,
+                    safe: false
                 };
             }
 
@@ -227,7 +227,7 @@ export class StateTree {
                 senderWitness,
                 receiver: receiverStateStruct,
                 receiverWitness,
-                safe: true,
+                safe: true
             };
         } else {
             if (!senderState) {
@@ -236,7 +236,7 @@ export class StateTree {
                     receiver: EMPTY_STATE,
                     senderWitness,
                     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                    safe: false,
+                    safe: false
                 };
             }
             const senderStateStruct = senderState.toSolStruct();
@@ -246,7 +246,7 @@ export class StateTree {
                 senderWitness,
                 receiver: EMPTY_STATE,
                 receiverWitness: receiverWitness,
-                safe: false,
+                safe: false
             };
         }
     }
@@ -257,7 +257,7 @@ export class StateTree {
             return {
                 state: EMPTY_STATE,
                 witness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false,
+                safe: false
             };
         }
         const senderState = this.states[senderID];
@@ -267,7 +267,7 @@ export class StateTree {
             return {
                 state: EMPTY_STATE,
                 witness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false,
+                safe: false
             };
         }
         senderState.balance = senderState.balance.sub(tx.amount);
@@ -277,7 +277,7 @@ export class StateTree {
         return {
             state: senderStateStruct,
             witness: senderWitness,
-            safe: true,
+            safe: true
         };
     }
 
@@ -293,7 +293,7 @@ export class StateTree {
                 receiver: EMPTY_STATE,
                 senderWitness,
                 receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false,
+                safe: false
             };
         }
 
@@ -328,7 +328,7 @@ export class StateTree {
             senderWitness,
             receiver: receiverStateStruct,
             receiverWitness,
-            safe: true,
+            safe: true
         };
     }
 }

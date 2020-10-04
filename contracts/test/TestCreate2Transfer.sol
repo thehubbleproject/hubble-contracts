@@ -34,7 +34,7 @@ contract TestCreate2Transfer is Create2Transfer {
         Types.StateMerkleProof memory to
     )
         public
-       pure 
+        pure
         returns (
             bytes32,
             bytes memory,
