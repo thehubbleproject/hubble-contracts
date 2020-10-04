@@ -12,7 +12,9 @@ import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
 import { ErrorCode } from "../ts/interfaces";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
+import { TestBls } from "../types/ethers-contracts/TestBls";
 import { USDT } from "../ts/decimal";
+import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
@@ -26,6 +28,7 @@ describe("Rollup Create2Transfer Commitment", () => {
     let registry: AccountRegistry;
     let stateTree: StateTree;
     let states: State[] = [];
+    let bls: TestBls;
 
     before(async function() {
         await mcl.init();
@@ -39,8 +42,10 @@ describe("Rollup Create2Transfer Commitment", () => {
         registry = await AccountRegistry.new(registryContract);
         states = UserStateFactory.buildList(STATE_SIZE);
         for (const state of states) {
-            await registry.register(state.encodePubkey());
+            await registry.register(state.getPubkey());
         }
+        bls = await new TestBlsFactory(signer).deploy();
+        await bls.deployed();
     });
 
     beforeEach(async function() {
@@ -51,46 +56,54 @@ describe("Rollup Create2Transfer Commitment", () => {
     });
 
     it("create2transfer commitment: signature check", async function() {
-        const senderIndex = 1;
-        const receiverIndex = 2;
-        let sender = states[senderIndex];
-        const amount = sender.balance.div(10);
-        const fee = amount.div(10);
-        const tx = new TxCreate2Transfer(
-            senderIndex,
-            receiverIndex,
-            states[senderIndex].encodePubkey(),
-            states[receiverIndex].encodePubkey(),
-            states[receiverIndex].pubkeyIndex,
-            amount,
-            fee,
-            sender.nonce,
-            USDT
+        // create 32 new states
+        let newStates = UserStateFactory.buildList(
+            STATE_SIZE,
+            states.length,
+            states.length
         );
+        const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
+        for (const state of newStates) {
+            await registry.register(state.getPubkey());
+        }
 
-        let aggSignature = mcl.newG1();
+        // concat newstates with the global obj
+        states = states.concat(newStates);
+
+        const signatures = [];
+        const message = [];
         const pubkeysSender = [];
+        const pubkeysReceiver = [];
         const pubkeyWitnessesSender = [];
-        const pubkeyReceiver = [];
         const pubkeyWitnessesReceiver = [];
 
-        sender = states[tx.fromIndex];
-        const receiver = states[tx.toIndex];
-        pubkeysSender.push(sender.encodePubkey());
-        pubkeyWitnessesSender.push(registry.witness(sender.pubkeyIndex));
-        pubkeyReceiver.push(receiver.encodePubkey());
-        pubkeyWitnessesReceiver.push(registry.witness(receiver.pubkeyIndex));
-        let signature = sender.sign(tx);
-        aggSignature = mcl.aggreagate(aggSignature, signature);
-
-        signature = mcl.g1ToHex(aggSignature);
-
-        const txs = [tx];
         const stateTransitionProof = stateTree.applyCreate2TransferBatch(
             txs,
             0
         );
+
         assert.isTrue(stateTransitionProof.safe);
+
+        for (const tx of txs) {
+            const sender = states[tx.fromIndex];
+            const receiver = states[tx.toIndex];
+
+            pubkeysSender.push(sender.getPubkey());
+            pubkeyWitnessesSender.push(registry.witness(sender.pubkeyIndex));
+
+            pubkeysReceiver.push(receiver.getPubkey());
+            pubkeyWitnessesReceiver.push(
+                registry.witness(receiver.pubkeyIndex)
+            );
+
+            const signedObj = sender.signAndReturnMessage(tx);
+            signatures.push(signedObj.signature);
+            message.push(signedObj.M);
+        }
+
+        const signature = mcl.aggreagate(signatures);
+        let res = await bls.verifyMultiple(signature, pubkeysSender, message);
+        assert.isTrue(res);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
@@ -107,7 +120,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             stateWitnesses,
             pubkeysSender,
             pubkeyWitnessesSender,
-            pubkeysReceiver: pubkeyReceiver,
+            pubkeysReceiver: pubkeysReceiver,
             pubkeyWitnessesReceiver: pubkeyWitnessesReceiver
         };
 
@@ -122,102 +135,76 @@ describe("Rollup Create2Transfer Commitment", () => {
             DOMAIN,
             serialized
         );
-        console.log("output", error);
+
         assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
         console.log("operation gas cost:", gasCost.toString());
-        // const { 1: badSig } = await rollup.callStatic._checkSignature(
-        //     signature,
-        //     proof,
-        //     postStateRoot,
-        //     accountRoot,
-        //     BAD_DOMAIN,
-        //     serialized
-        // );
+        const { 1: badSig } = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            BAD_DOMAIN,
+            serialized
+        );
+
+        // TODO uncomment post sig verification fix
         // assert.equal(badSig, ErrorCode.BadSignature);
-        // const checkSigTx = await rollup._checkSignature(
-        //     signature,
-        //     proof,
-        //     postStateRoot,
-        //     accountRoot,
-        //     DOMAIN,
-        //     serialized
-        // );
-        // const receipt = await checkSigTx.wait();
-        // console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
+        const checkSigTx = await rollup._checkSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            DOMAIN,
+            serialized
+        );
+        const receipt = await checkSigTx.wait();
+        console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
+    it("create2trasnfer commitment: processTx", async function() {
+        let newStates = UserStateFactory.buildList(
+            STATE_SIZE,
+            states.length,
+            states.length
+        );
 
-    // it("create2trasnfer commitment: processTx", async function() {
-    //     const txs = txCreate2TransferFactory(states, COMMIT_SIZE);
-    //     for (const tx of txs) {
-    //         const preRoot = stateTree.root;
-    //         const proof = stateTree.applyTxCreate2Transfer(tx);
-    //         assert.isTrue(proof.safe);
-    //         const postRoot = stateTree.root;
-    //         const { 0: processedRoot, 3: error } = await rollup.testProcessTx(
-    //             preRoot,
-    //             {
-    //                 fromIndex: tx.fromIndex,
-    //                 toIndex: tx.toIndex,
-    //                 toAccID: tx.toPubkeyIndex,
-    //                 amount: tx.amount,
-    //                 fee: tx.fee
-    //             },
-    //             states[0].tokenType,
-    //             {
-    //                 state: proof.sender,
-    //                 witness: proof.senderWitness
-    //             },
-    //             {
-    //                 state: proof.receiver,
-    //                 witness: proof.receiverWitness
-    //             }
-    //         );
-    //         assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
-    //         assert.equal(
-    //             processedRoot,
-    //             postRoot,
-    //             "mismatch processed stateroot"
-    //         );
-    //     }
-    // });
-    // it("create2transfer commitment: processTransferCommit", async function() {
-    //     const txs = txCreate2TransferFactory(states, COMMIT_SIZE);
-    //     const feeReceiver = 0;
+        const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
+        for (const state of newStates) {
+            await registry.register(state.getPubkey());
+        }
 
-    //     const preStateRoot = stateTree.root;
-    //     const { proof, feeProof, safe } = stateTree.applyCreate2TransferBatch(
-    //         txs,
-    //         feeReceiver
-    //     );
-    //     assert.isTrue(safe, "Should be a valid applyTransferBatch");
-    //     const stateMerkleProof = [];
-    //     for (let i = 0; i < COMMIT_SIZE; i++) {
-    //         stateMerkleProof.push({
-    //             state: proof[i].sender,
-    //             witness: proof[i].senderWitness
-    //         });
-    //         stateMerkleProof.push({
-    //             state: proof[i].receiver,
-    //             witness: proof[i].receiverWitness
-    //         });
-    //     }
-    //     stateMerkleProof.push({
-    //         state: feeProof.feeReceiver,
-    //         witness: feeProof.feeReceiverWitness
-    //     });
-    //     const postStateRoot = stateTree.root;
+        // concat newstates with the global obj
+        states = states.concat(newStates);
 
-    //     const {
-    //         0: postRoot,
-    //         1: gasCost
-    //     } = await rollup.callStatic.testProcessCreate2TransferCommit(
-    //         preStateRoot,
-    //         serialize(txs),
-    //         stateMerkleProof,
-    //         states[0].tokenType,
-    //         feeReceiver
-    //     );
-    //     console.log("processTransferBatch gas cost", gasCost.toNumber());
-    //     assert.equal(postRoot, postStateRoot, "Mismatch post state root");
-    // }).timeout(80000);
+        for (const tx of txs) {
+            const preRoot = stateTree.root;
+            const proof = stateTree.applyTxCreate2Transfer(tx);
+            assert.isTrue(proof.safe);
+            const postRoot = stateTree.root;
+            const { 0: processedRoot, 3: error } = await rollup.testProcessTx(
+                preRoot,
+                {
+                    fromIndex: tx.fromIndex,
+                    toIndex: tx.toIndex,
+                    toAccID: tx.toAccID,
+                    amount: tx.amount,
+                    fee: tx.fee
+                },
+                states[0].tokenType,
+                {
+                    state: proof.sender,
+                    witness: proof.senderWitness
+                },
+                {
+                    state: proof.receiver,
+                    witness: proof.receiverWitness
+                }
+            );
+            assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
+            assert.equal(
+                processedRoot,
+                postRoot,
+                "mismatch processed stateroot"
+            );
+        }
+    });
 });

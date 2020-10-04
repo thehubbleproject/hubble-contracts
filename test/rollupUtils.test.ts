@@ -66,9 +66,7 @@ describe("RollupUtils", async function() {
     it("bytes from Tx", async function() {
         await mcl.init();
         const keyPair = mcl.newKeyPair();
-        // receive signed encoded tx from user
         const pubkey = mcl.g2ToHex(keyPair.pubkey);
-
         let encodedTx = await RollupUtilsInstance[
             "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256)"
         ](1, pubkey, pubkey, 1, 1, 1, 1);

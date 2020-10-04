@@ -1,7 +1,8 @@
-import { Tree } from "./tree";
+import { Hasher, Tree } from "./tree";
 import { State, EMPTY_STATE, StateSolStruct } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber } from "ethers";
+import { ZERO_BYTES32 } from "./constants";
 
 interface ProofTransferTx {
     sender: StateSolStruct;
@@ -44,11 +45,18 @@ export class StateTree {
     private stateTree: Tree;
     private states: { [key: number]: State } = {};
     constructor(stateDepth: number) {
-        this.stateTree = Tree.new(stateDepth);
+        this.stateTree = Tree.new(
+            stateDepth,
+            Hasher.new("bytes", ZERO_BYTES32)
+        );
     }
 
     public getStateWitness(stateID: number) {
         return this.stateTree.witness(stateID).nodes;
+    }
+
+    public depth() {
+        return this.stateTree.depth;
     }
 
     public createState(state: State) {
@@ -56,10 +64,11 @@ export class StateTree {
         if (this.states[stateID]) {
             throw new Error("state id is in use");
         }
+        this.states[stateID] = state.clone();
+        this.states[stateID].setStateID(state.stateID);
+        this.states[stateID].setPubkey(state.publicKey);
         const leaf = state.toStateLeaf();
         this.stateTree.updateSingle(stateID, leaf);
-        // Need to clone the object so that whatever we do on this.states later won't affect the input state.
-        this.states[stateID] = state.clone();
     }
     public createStateBulk(states: State[]) {
         for (const state of states) {
@@ -251,68 +260,51 @@ export class StateTree {
     public applyTxCreate2Transfer(tx: TxCreate2Transfer): ProofTransferTx {
         const senderID = tx.fromIndex;
         const receiverID = tx.toIndex;
-
         const senderState = this.states[senderID];
-        const receiverState = this.states[receiverID];
-
         const senderWitness = this.stateTree.witness(senderID).nodes;
-        if (senderState && receiverState) {
-            const senderStateStruct = senderState.toSolStruct();
-            if (
-                senderState.balance.lt(tx.amount.add(tx.fee)) ||
-                senderState.tokenType != receiverState.tokenType
-            ) {
-                return {
-                    sender: senderStateStruct,
-                    receiver: EMPTY_STATE,
-                    senderWitness,
-                    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                    safe: false
-                };
-            }
-
-            senderState.balance = senderState.balance.sub(
-                tx.amount.add(tx.fee)
-            );
-            senderState.nonce += 1;
-            this.states[senderID] = senderState;
-            this.stateTree.updateSingle(senderID, senderState.toStateLeaf());
-
-            const receiverWitness = this.stateTree.witness(receiverID).nodes;
-            const receiverStateStruct = receiverState.toSolStruct();
-            receiverState.balance = receiverState.balance.add(tx.amount);
-            this.states[receiverID] = receiverState;
-            this.stateTree.updateSingle(
-                receiverID,
-                receiverState.toStateLeaf()
-            );
-
+        const senderStateStruct = senderState.toSolStruct();
+        if (senderState.balance.lt(tx.amount.add(tx.fee))) {
             return {
                 sender: senderStateStruct,
-                senderWitness,
-                receiver: receiverStateStruct,
-                receiverWitness,
-                safe: true
-            };
-        } else {
-            if (!senderState) {
-                return {
-                    sender: EMPTY_STATE,
-                    receiver: EMPTY_STATE,
-                    senderWitness,
-                    receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                    safe: false
-                };
-            }
-            const senderStateStruct = senderState.toSolStruct();
-            const receiverWitness = this.stateTree.witness(receiverID).nodes;
-            return {
-                sender: senderStateStruct,
-                senderWitness,
                 receiver: EMPTY_STATE,
-                receiverWitness: receiverWitness,
+                senderWitness,
+                receiverWitness: PLACEHOLDER_PROOF_WITNESS,
                 safe: false
             };
         }
+
+        // update sender
+
+        //balance
+        senderState.balance = senderState.balance.sub(tx.amount.add(tx.fee));
+        // nonce
+        senderState.nonce += 1;
+
+        // update state
+        this.states[senderID] = senderState;
+        this.stateTree.updateSingle(senderID, senderState.toStateLeaf());
+
+        // create receiver account
+        const receiverState = State.new(
+            tx.toAccID,
+            senderState.tokenType,
+            0,
+            0
+        );
+
+        receiverState.balance = receiverState.balance.add(tx.amount);
+        receiverState.stateID = tx.toAccID;
+        const receiverStateStruct = receiverState.toSolStruct();
+        // TODO add pubkey from account tree
+        this.createState(receiverState);
+
+        const receiverWitness = this.stateTree.witness(receiverID).nodes;
+        return {
+            sender: senderStateStruct,
+            senderWitness,
+            receiver: receiverStateStruct,
+            receiverWitness,
+            safe: true
+        };
     }
 }

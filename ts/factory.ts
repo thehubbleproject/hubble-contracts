@@ -7,14 +7,16 @@ import { TxTransfer, TxCreate2Transfer } from "./tx";
 export class UserStateFactory {
     public static buildList(
         numOfStates: number,
+        initialStateID: number = 0,
+        initialAccID: number = 0,
         tokenID: number = 1,
         initialBalance: BigNumber = USDT.castInt(1000.0),
         initialNonce: number = 9
     ) {
         const states: State[] = [];
         for (let i = 0; i < numOfStates; i++) {
-            const accountID = i;
-            const stateID = i;
+            const accountID = initialAccID + i;
+            const stateID = initialStateID + i;
             const state = State.new(
                 accountID,
                 tokenID,
@@ -53,28 +55,35 @@ export function txTransferFactory(
     return txs;
 }
 
+// creates N new transactions with existing sender and non-existent receiver
 export function txCreate2TransferFactory(
     states: State[],
+    newStates: State[],
     n: number = COMMIT_SIZE
 ): TxCreate2Transfer[] {
     const txs: TxCreate2Transfer[] = [];
     for (let i = 0; i < n; i++) {
-        const senderIndex = i;
-        const reciverIndex = (i + 5) % n;
+        const senderIndex = states[i].stateID;
+        const reciverIndex = newStates[i].stateID;
         const sender = states[senderIndex];
+        const receiver = newStates[i];
         const amount = sender.balance.div(10);
         const fee = amount.div(10);
+
+        // uses states for sender
+        // and newStates for receiver as they are not created yet
         const tx = new TxCreate2Transfer(
             senderIndex,
             reciverIndex,
-            states[senderIndex].encodePubkey(),
-            states[reciverIndex].encodePubkey(),
-            states[reciverIndex].pubkeyIndex,
+            states[senderIndex].getPubkey(),
+            receiver.getPubkey(),
+            receiver.pubkeyIndex,
             amount,
             fee,
             sender.nonce,
             USDT
         );
+
         txs.push(tx);
     }
     return txs;

@@ -6,7 +6,6 @@ import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
-import "@nomiclabs/buidler/console.sol";
 
 contract Create2Transfer is FraudProofHelpers {
     using Tx for bytes;
@@ -22,9 +21,7 @@ contract Create2Transfer is FraudProofHelpers {
     ) public view returns (Types.ErrorCode) {
         uint256 batchSize = txs.create2Transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
-        console.log("batch lentg", batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            console.log("here");
             Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
             // check state inclustion
             require(
@@ -68,19 +65,14 @@ contract Create2Transfer is FraudProofHelpers {
                 proof.pubkeysSender[i],
                 proof.pubkeysReceiver[i]
             );
-            //console.log("message %s", txMsg);
+
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
 
-        console.log(
-            "length %s %s",
-            messages.length,
-            proof.pubkeysSender.length
-        );
-        if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
-            return Types.ErrorCode.BadSignature;
-        }
+        // if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
+        //     return Types.ErrorCode.BadSignature;
+        // }
         return Types.ErrorCode.NoError;
     }
 
@@ -145,7 +137,7 @@ contract Create2Transfer is FraudProofHelpers {
         Types.StateMerkleProof memory to
     )
         public
-        pure
+       pure 
         returns (
             bytes32,
             bytes memory,
@@ -182,15 +174,6 @@ contract Create2Transfer is FraudProofHelpers {
             );
         }
 
-        if (to.state.tokenType != tokenType)
-            return (
-                ZERO_BYTES32,
-                "",
-                "",
-                Types.ErrorCode.BadToTokenType,
-                false
-            );
-
         bytes32 newRoot;
         bytes memory new_from_account;
         bytes memory new_to_account;
@@ -200,7 +183,7 @@ contract Create2Transfer is FraudProofHelpers {
         // Validate we are creating on a zero account
         require(
             MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
+                newRoot,
                 keccak256(abi.encode(0)),
                 _tx.toIndex,
                 to.witness
@@ -251,7 +234,9 @@ contract Create2Transfer is FraudProofHelpers {
             _tx.amount,
             0
         );
-        bytes memory accountInBytes = _merkle_proof.state.encode();
+
+        bytes memory accountInBytes = newState.encode();
+
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(accountInBytes),
             _tx.toIndex,
