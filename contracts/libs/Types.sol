@@ -209,13 +209,8 @@ library Types {
         bytes32[] witness;
     }
 
-    struct TransactionMerkleProof {
-        Transfer _tx;
-        bytes32[] siblings;
-    }
-
-    enum ErrorCode {
-        NoError,
+    enum Result {
+        Ok,
         InvalidTokenAddress,
         InvalidTokenAmount,
         NotEnoughTokenBalance,
@@ -223,6 +218,7 @@ library Types {
         BadToTokenType,
         BadFromIndex,
         NotOnDesignatedStateLeaf,
-        BadSignature
+        BadSignature,
+        MismatchedAmount
     }
 }

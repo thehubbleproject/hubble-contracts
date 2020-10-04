@@ -10,6 +10,7 @@ import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
+import { Result } from "../ts/interfaces";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -90,7 +91,7 @@ describe("Mass Migrations", async function() {
         );
         const {
             0: postStateRoot,
-            1: error
+            1: result
         } = await contracts.massMigration.processMassMigrationCommit(
             stateRoot,
             commitment.toSolStruct().body,
@@ -106,7 +107,7 @@ describe("Mass Migrations", async function() {
             stateTree.root,
             "should have same state root"
         );
-        assert.equal(error, false, "Should be a safe state transition");
+        assert.equal(result, Result.Ok, "Should be a safe state transition");
         commitment.stateRoot = postStateRoot;
 
         const targetBatch = commitment.toBatch();

@@ -1,12 +1,14 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { FraudProofHelpers } from "./FraudProof.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
-contract MassMigration is FraudProofHelpers {
+contract MassMigration {
+    using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
     uint256 constant BURN_STATE_INDEX = 0;
@@ -20,10 +22,9 @@ contract MassMigration is FraudProofHelpers {
         bytes32 stateRoot,
         Types.MassMigrationBody memory commitmentBody,
         Types.StateMerkleProof[] memory proofs
-    ) public view returns (bytes32, bool) {
+    ) public view returns (bytes32, Types.Result result) {
         uint256 length = commitmentBody.txs.massMigration_size();
 
-        bool isTxValid;
         // contains a bunch of variables to bypass STD
         // [tokenInTx0, tokenInTxUnderValidation, amountAggregationVar, spokeIDForCommitment]
         uint256[] memory metaInfoCounters = new uint256[](4);
@@ -54,8 +55,7 @@ contract MassMigration is FraudProofHelpers {
                 ,
                 ,
                 metaInfoCounters[1],
-                ,
-                isTxValid
+                result
             ) = processMassMigrationTx(stateRoot, _tx, proofs[i]);
 
             // cache token of first tx to evaluate others
@@ -69,17 +69,17 @@ contract MassMigration is FraudProofHelpers {
 
             // TODO do a withdraw root check
 
-            if (!isTxValid) {
+            if (result != Types.Result.Ok) {
                 break;
             }
         }
 
         // if amount aggregation is incorrect, slash!
         if (metaInfoCounters[2] != commitmentBody.amount) {
-            return (stateRoot, false);
+            return (stateRoot, Types.Result.MismatchedAmount);
         }
 
-        return (stateRoot, !isTxValid);
+        return (stateRoot, result);
     }
 
     function processMassMigrationTx(
@@ -94,8 +94,7 @@ contract MassMigration is FraudProofHelpers {
             bytes memory,
             bytes memory,
             uint256,
-            Types.ErrorCode,
-            bool
+            Types.Result
         )
     {
         require(
@@ -107,13 +106,12 @@ contract MassMigration is FraudProofHelpers {
             ),
             "MassMigration: sender does not exist"
         );
-        Types.ErrorCode err_code = validateTxBasic(
+        Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (err_code != Types.ErrorCode.NoError)
-            return (ZERO_BYTES32, "", "", 0, err_code, false);
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", 0, result);
 
         bytes32 newRoot;
         bytes memory newFromState;
@@ -124,8 +122,7 @@ contract MassMigration is FraudProofHelpers {
             newFromState,
             "",
             from.state.tokenType,
-            Types.ErrorCode.NoError,
-            true
+            Types.Result.Ok
         );
     }
 

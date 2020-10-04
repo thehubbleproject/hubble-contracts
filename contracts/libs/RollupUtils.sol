@@ -47,23 +47,6 @@ contract RollupUtils {
         return keccak256(state.encode());
     }
 
-    /**
-     * @notice Calculates the address from the pubkey
-     * @param pub is the pubkey
-     * @return Returns the address that has been calculated from the pubkey
-     */
-    function calculateAddress(bytes memory pub)
-        public
-        pure
-        returns (address addr)
-    {
-        bytes32 hash = keccak256(pub);
-        assembly {
-            mstore(0, hash)
-            addr := mload(0)
-        }
-    }
-
     function GetGenesisLeaves() public pure returns (bytes32[2] memory leaves) {
         Types.UserState memory state1;
         state1.pubkeyIndex = 0;

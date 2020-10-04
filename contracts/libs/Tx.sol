@@ -198,7 +198,9 @@ library Tx {
         return serialized;
     }
 
-    function encodeDecimal(uint256 x) internal pure returns (uint256) {
+    function encodeDecimal(uint256 input) internal pure returns (uint256) {
+        // Copy to avoid assigning to the function parameter.
+        uint256 x = input;
         uint256 exponent = 0;
         for (uint256 i = 0; i < 15; i++) {
             if (x != 0 && x % 10 == 0) {

@@ -1,8 +1,13 @@
 import { Hasher, Tree } from "./tree";
 import { State, EMPTY_STATE, StateSolStruct } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
-import { BigNumber } from "ethers";
+import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
+
+interface SolStateMerkleProof {
+    state: StateSolStruct;
+    witness: string[];
+}
 
 interface ProofTransferTx {
     sender: StateSolStruct;
@@ -26,17 +31,32 @@ interface ProofOfMassMigrationTx {
 }
 
 const STATE_WITNESS_LENGHT = 32;
-const ZERO =
-    "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(ZERO);
+const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(
+    constants.HashZero
+);
+
 const PLACEHOLDER_TRANSFER_PROOF: ProofTransferTx = {
     sender: EMPTY_STATE,
     receiver: EMPTY_STATE,
     senderWitness: PLACEHOLDER_PROOF_WITNESS,
     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
+    safe: false,
 };
+
+export function solProofFromTransfer(
+    proof: ProofTransferTx
+): SolStateMerkleProof[] {
+    const { sender, senderWitness, receiver, receiverWitness } = proof;
+    return [
+        { state: sender, witness: senderWitness },
+        { state: receiver, witness: receiverWitness },
+    ];
+}
+
+function solProofFromFee(proof: ProofTransferFee): SolStateMerkleProof {
+    return { state: proof.feeReceiver, witness: proof.feeReceiverWitness };
+}
 
 export class StateTree {
     public static new(stateDepth: number) {
@@ -89,23 +109,27 @@ export class StateTree {
     ): {
         proof: ProofTransferBatch;
         feeProof: ProofTransferFee;
+        solProofs: SolStateMerkleProof[];
         safe: boolean;
     } {
         let safe = true;
         let proofs: ProofTransferTx[] = [];
+        let solProofs: SolStateMerkleProof[] = [];
         for (let i = 0; i < txs.length; i++) {
             if (safe) {
                 const proof = this.applyTxTransfer(txs[i]);
                 proofs.push(proof);
+                solProofs = solProofs.concat(solProofFromTransfer(proof));
                 safe = proof.safe;
             } else {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
             }
         }
-        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
+        const sumOfFee = txs.map((tx) => tx.fee).reduce((a, b) => a.add(b));
         const feeProof = this.applyFee(sumOfFee, feeReceiverID);
+        solProofs.push(solProofFromFee(feeProof));
         safe = feeProof.safe;
-        return { proof: proofs, feeProof, safe };
+        return { proof: proofs, feeProof, solProofs, safe };
     }
 
     public applyCreate2TransferBatch(
@@ -127,7 +151,7 @@ export class StateTree {
                 proofs.push(PLACEHOLDER_TRANSFER_PROOF);
             }
         }
-        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
+        const sumOfFee = txs.map((tx) => tx.fee).reduce((a, b) => a.add(b));
         const feeProof = this.applyFee(sumOfFee, feeReceiverID);
         safe = feeProof.safe;
         return { proof: proofs, feeProof, safe };
@@ -148,13 +172,13 @@ export class StateTree {
             return {
                 feeReceiver: stateStruct,
                 feeReceiverWitness: witness,
-                safe: true
+                safe: true,
             };
         } else {
             return {
                 feeReceiver: EMPTY_STATE,
                 feeReceiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
+                safe: false,
             };
         }
     }
@@ -178,7 +202,7 @@ export class StateTree {
                     receiver: EMPTY_STATE,
                     senderWitness,
                     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                    safe: false
+                    safe: false,
                 };
             }
 
@@ -203,7 +227,7 @@ export class StateTree {
                 senderWitness,
                 receiver: receiverStateStruct,
                 receiverWitness,
-                safe: true
+                safe: true,
             };
         } else {
             if (!senderState) {
@@ -212,7 +236,7 @@ export class StateTree {
                     receiver: EMPTY_STATE,
                     senderWitness,
                     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                    safe: false
+                    safe: false,
                 };
             }
             const senderStateStruct = senderState.toSolStruct();
@@ -222,7 +246,7 @@ export class StateTree {
                 senderWitness,
                 receiver: EMPTY_STATE,
                 receiverWitness: receiverWitness,
-                safe: false
+                safe: false,
             };
         }
     }
@@ -233,7 +257,7 @@ export class StateTree {
             return {
                 state: EMPTY_STATE,
                 witness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
+                safe: false,
             };
         }
         const senderState = this.states[senderID];
@@ -243,7 +267,7 @@ export class StateTree {
             return {
                 state: EMPTY_STATE,
                 witness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
+                safe: false,
             };
         }
         senderState.balance = senderState.balance.sub(tx.amount);
@@ -253,7 +277,7 @@ export class StateTree {
         return {
             state: senderStateStruct,
             witness: senderWitness,
-            safe: true
+            safe: true,
         };
     }
 
@@ -269,7 +293,7 @@ export class StateTree {
                 receiver: EMPTY_STATE,
                 senderWitness,
                 receiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
+                safe: false,
             };
         }
 
@@ -304,7 +328,7 @@ export class StateTree {
             senderWitness,
             receiver: receiverStateStruct,
             receiverWitness,
-            safe: true
+            safe: true,
         };
     }
 }
