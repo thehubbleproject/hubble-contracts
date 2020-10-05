@@ -54,6 +54,16 @@ export function solProofFromTransfer(
     ];
 }
 
+export function solProofFromCreate2Transfer(
+    proof: ProofTransferTx
+): SolStateMerkleProof[] {
+    const { sender, senderWitness, receiver, receiverWitness } = proof;
+    return [
+        { state: sender, witness: senderWitness },
+        { state: receiver, witness: receiverWitness }
+    ];
+}
+
 function solProofFromFee(proof: ProofTransferFee): SolStateMerkleProof {
     return { state: proof.feeReceiver, witness: proof.feeReceiverWitness };
 }

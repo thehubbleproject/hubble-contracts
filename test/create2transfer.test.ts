@@ -4,13 +4,13 @@ import { TestCreate2Transfer } from "../types/ethers-contracts/TestCreate2Transf
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 import { serialize, TxCreate2Transfer } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { StateTree } from "../ts/stateTree";
+import { StateTree, solProofFromCreate2Transfer } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { randHex } from "../ts/utils";
-import { ErrorCode } from "../ts/interfaces";
+import { Result } from "../ts/interfaces";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { TestBls } from "../types/ethers-contracts/TestBls";
 import { USDT } from "../ts/decimal";
@@ -126,7 +126,7 @@ describe("Rollup Create2Transfer Commitment", () => {
 
         const {
             0: gasCost,
-            1: error
+            1: result
         } = await rollup.callStatic._checkSignature(
             signature,
             proof,
@@ -136,7 +136,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             serialized
         );
 
-        assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         console.log("operation gas cost:", gasCost.toString());
         const { 1: badSig } = await rollup.callStatic._checkSignature(
             signature,
@@ -178,28 +178,19 @@ describe("Rollup Create2Transfer Commitment", () => {
         for (const tx of txs) {
             const preRoot = stateTree.root;
             const proof = stateTree.applyTxCreate2Transfer(tx);
+            const [senderProof, receiverProof] = solProofFromCreate2Transfer(
+                proof
+            );
             assert.isTrue(proof.safe);
             const postRoot = stateTree.root;
-            const { 0: processedRoot, 3: error } = await rollup.testProcessTx(
+            const { 0: processedRoot, 3: result } = await rollup.testProcessTx(
                 preRoot,
-                {
-                    fromIndex: tx.fromIndex,
-                    toIndex: tx.toIndex,
-                    toAccID: tx.toAccID,
-                    amount: tx.amount,
-                    fee: tx.fee
-                },
+                tx,
                 states[0].tokenType,
-                {
-                    state: proof.sender,
-                    witness: proof.senderWitness
-                },
-                {
-                    state: proof.receiver,
-                    witness: proof.receiverWitness
-                }
+                senderProof,
+                receiverProof
             );
-            assert.equal(error, ErrorCode.NoError, `Got ${ErrorCode[error]}`);
+            assert.equal(result, Result.Ok, `Got ${Result[result]}`);
             assert.equal(
                 processedRoot,
                 postRoot,

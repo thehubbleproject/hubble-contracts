@@ -1,15 +1,17 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import { FraudProofHelpers } from "./FraudProof.sol";
+import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract Create2Transfer is FraudProofHelpers {
+contract Create2Transfer {
     using Tx for bytes;
     using Types for Types.UserState;
+    using SafeMath for uint256;
 
     function checkSignature(
         uint256[2] memory signature,
@@ -18,11 +20,12 @@ contract Create2Transfer is FraudProofHelpers {
         bytes32 accountRoot,
         bytes32 domain,
         bytes memory txs
-    ) public view returns (Types.ErrorCode) {
+    ) public view returns (Types.Result) {
         uint256 batchSize = txs.create2Transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
             Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
+
             // check state inclustion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
@@ -71,9 +74,9 @@ contract Create2Transfer is FraudProofHelpers {
         }
 
         // if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
-        //     return Types.ErrorCode.BadSignature;
+        //     return Types.Result.BadSignature;
         // }
-        return Types.ErrorCode.NoError;
+        return Types.Result.Ok;
     }
 
     /**
@@ -83,13 +86,12 @@ contract Create2Transfer is FraudProofHelpers {
     function processCreate2TransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
-        Types.StateMerkleProof[] memory accountProofs,
+        Types.StateMerkleProof[] memory proofs,
         uint256 tokenType,
         uint256 feeReceiver
-    ) public pure returns (bytes32, bool) {
+    ) public pure returns (bytes32, Types.Result result) {
         uint256 length = txs.create2Transfer_size();
 
-        bool isTxValid;
         uint256 fees;
         Tx.Create2Transfer memory _tx;
 
@@ -98,28 +100,29 @@ contract Create2Transfer is FraudProofHelpers {
             // tx evaluates correctly
             _tx = txs.create2Transfer_decode(i);
             fees = fees.add(_tx.fee);
-            (stateRoot, , , , isTxValid) = processTx(
+            (stateRoot, , , result) = processTx(
                 stateRoot,
                 _tx,
                 tokenType,
-                accountProofs[i * 2],
-                accountProofs[i * 2 + 1]
+                proofs[i * 2],
+                proofs[i * 2 + 1]
             );
-            if (!isTxValid) {
+            if (result != Types.Result.Ok) {
                 break;
             }
         }
-        if (isTxValid) {
-            (stateRoot, , isTxValid) = processFee(
+
+        if (result == Types.Result.Ok) {
+            (stateRoot, result) = processFee(
                 stateRoot,
                 fees,
                 tokenType,
                 feeReceiver,
-                accountProofs[length * 2]
+                proofs[length * 2]
             );
         }
 
-        return (stateRoot, !isTxValid);
+        return (stateRoot, result);
     }
 
     /**
@@ -142,8 +145,7 @@ contract Create2Transfer is FraudProofHelpers {
             bytes32,
             bytes memory,
             bytes memory,
-            Types.ErrorCode,
-            bool
+            Types.Result
         )
     {
         require(
@@ -153,25 +155,18 @@ contract Create2Transfer is FraudProofHelpers {
                 _tx.fromIndex,
                 from.witness
             ),
-            "Transfer: sender does not exist"
+            "Create2Transfer: sender does not exist"
         );
 
-        Types.ErrorCode err_code = validateTxBasic(
+        Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (err_code != Types.ErrorCode.NoError)
-            return (ZERO_BYTES32, "", "", err_code, false);
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
 
         if (from.state.tokenType != tokenType) {
-            return (
-                ZERO_BYTES32,
-                "",
-                "",
-                Types.ErrorCode.BadFromTokenType,
-                false
-            );
+            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
         }
 
         bytes32 newRoot;
@@ -188,7 +183,7 @@ contract Create2Transfer is FraudProofHelpers {
                 _tx.toIndex,
                 to.witness
             ),
-            "Transfer: receiver proof invalid"
+            "Create2Transfer: receiver proof invalid"
         );
 
         (new_to_account, newRoot) = ApplyTransferTxReceiver(
@@ -197,13 +192,7 @@ contract Create2Transfer is FraudProofHelpers {
             from.state.tokenType
         );
 
-        return (
-            newRoot,
-            new_from_account,
-            new_to_account,
-            Types.ErrorCode.NoError,
-            true
-        );
+        return (newRoot, new_from_account, new_to_account, Types.Result.Ok);
     }
 
     function ApplyTransferTxSender(
@@ -251,18 +240,10 @@ contract Create2Transfer is FraudProofHelpers {
         uint256 tokenType,
         uint256 feeReceiver,
         Types.StateMerkleProof memory stateLeafProof
-    )
-        public
-        pure
-        returns (
-            bytes32 newRoot,
-            Types.ErrorCode err,
-            bool isValid
-        )
-    {
+    ) public pure returns (bytes32 newRoot, Types.Result) {
         Types.UserState memory state = stateLeafProof.state;
         if (state.tokenType != tokenType) {
-            return (ZERO_BYTES32, Types.ErrorCode.BadToTokenType, false);
+            return (bytes32(0), Types.Result.BadToTokenType);
         }
         require(
             MerkleTreeUtilsLib.verifyLeaf(
@@ -271,7 +252,7 @@ contract Create2Transfer is FraudProofHelpers {
                 feeReceiver,
                 stateLeafProof.witness
             ),
-            "Transfer: fee receiver does not exist"
+            "Create2Transfer: fee receiver does not exist"
         );
         state.balance = state.balance.add(fees);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
@@ -279,6 +260,6 @@ contract Create2Transfer is FraudProofHelpers {
             feeReceiver,
             stateLeafProof.witness
         );
-        return (newRoot, Types.ErrorCode.NoError, true);
+        return (newRoot, Types.Result.Ok);
     }
 }
