@@ -6,6 +6,7 @@ import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { ethers } from "@nomiclabs/buidler";
 import { MassMigrationCommitment, TransferCommitment } from "../ts/commitments";
 import * as mcl from "../ts/mcl";
+import { randHex } from "../ts/utils";
 
 describe("RollupUtils", async function() {
     let RollupUtilsInstance: RollupUtils;
@@ -16,7 +17,6 @@ describe("RollupUtils", async function() {
 
     it("test state encoding and decoding", async function() {
         const state = EMPTY_STATE;
-
         const encodedState = await RollupUtilsInstance.BytesFromState(state);
         const decoded = await RollupUtilsInstance.StateFromBytes(encodedState);
         assert.equal(decoded.pubkeyIndex.toNumber(), state.pubkeyIndex);
@@ -27,7 +27,6 @@ describe("RollupUtils", async function() {
     it("test transfer utils", async function() {
         const txRaw = TxTransfer.rand();
         const tx = txRaw.extended();
-        tx.txType = 1;
         const signBytes = await RollupUtilsInstance[
             "getTxSignBytes((uint256,uint256,uint256,uint256,uint256,uint256))"
         ](tx);
@@ -39,7 +38,7 @@ describe("RollupUtils", async function() {
         assert.equal(txData.fromIndex.toNumber(), tx.fromIndex);
         assert.equal(txData.toIndex.toNumber(), tx.toIndex);
         assert.equal(txData.nonce.toNumber(), tx.nonce);
-        assert.equal(txData.txType.toNumber(), tx.txType);
+        assert.equal(txData.txType.toNumber(), 1);
         assert.equal(txData.amount.toString(), tx.amount.toString());
         await RollupUtilsInstance.CompressTransferFromEncoded(txBytes, "0x00");
         const txs = await RollupUtilsInstance.CompressManyTransferFromEncoded(
@@ -65,8 +64,9 @@ describe("RollupUtils", async function() {
 
     it("bytes from Tx", async function() {
         await mcl.init();
+        mcl.setDomainHex(randHex(32));
         const keyPair = mcl.newKeyPair();
-        const pubkey = mcl.g2ToHex(keyPair.pubkey);
+        const pubkey = keyPair.pubkey;
         let encodedTx = await RollupUtilsInstance[
             "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256)"
         ](1, pubkey, pubkey, 1, 1, 1, 1);
