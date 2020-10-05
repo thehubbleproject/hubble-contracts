@@ -105,7 +105,7 @@ export class TxTransfer implements SignableTx {
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce,
-            txType: 0
+            txType: this.TX_TYPE
         };
     }
 
@@ -261,7 +261,7 @@ export class TxCreate2Transfer implements SignableTx {
 
     public hash(): string {
         return solidityKeccak256(
-            ["uint32", "uint32", "uint16", "uint16"],
+            ["uint32", "uint32", "uint32", "uint16", "uint16"],
             [
                 this.fromIndex,
                 this.toIndex,

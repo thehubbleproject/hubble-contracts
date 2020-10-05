@@ -404,8 +404,8 @@ library Tx {
                 uint32(fromIndex),
                 uint32(toIndex),
                 uint32(toAccID),
-                uint32(amount),
-                uint32(fee)
+                uint16(encodeDecimal(amount)),
+                uint16(encodeDecimal(fee))
             );
             uint256 off = i * TX_LEN_1;
             for (uint256 j = 0; j < TX_LEN_1; j++) {
@@ -430,15 +430,24 @@ library Tx {
             let p_tx := add(txs, mul(index, TX_LEN_1))
             sender := and(mload(add(p_tx, POSITION_SENDER_1)), MASK_STATE_ID)
             receiver := and(
-                mload(add(p_tx, POSITION_RECEIVER_0)),
+                mload(add(p_tx, POSITION_RECEIVER_1)),
                 MASK_STATE_ID
             )
             receiverAccID := and(
                 mload(add(p_tx, POSITION_RECEIVER_ACCID_1)),
                 MASK_ACCOUNT_ID
             )
-            amount := and(mload(add(p_tx, POSITION_AMOUNT_1)), MASK_AMOUNT)
-            fee := and(mload(add(p_tx, POSITION_FEE_1)), MASK_FEE)
+            let amountBytes := mload(add(p_tx, POSITION_AMOUNT_1))
+            let amountExponent := shr(
+                MANTISSA_BITS,
+                and(amountBytes, MASK_EXPONENT)
+            )
+            let amountMantissa := and(amountBytes, MASK_MANTISSA)
+            amount := mul(amountMantissa, exp(10, amountExponent))
+            let feeBytes := mload(add(p_tx, POSITION_FEE_1))
+            let feeExponent := shr(MANTISSA_BITS, and(feeBytes, MASK_EXPONENT))
+            let feeMantissa := and(feeBytes, MASK_MANTISSA)
+            fee := mul(feeMantissa, exp(10, feeExponent))
         }
         return Create2Transfer(sender, receiver, receiverAccID, amount, fee);
     }

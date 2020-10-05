@@ -73,9 +73,9 @@ contract Create2Transfer {
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
 
-        // if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
-        //     return Types.Result.BadSignature;
-        // }
+        if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
+            return Types.Result.BadSignature;
+        }
         return Types.Result.Ok;
     }
 

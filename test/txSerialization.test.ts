@@ -52,12 +52,15 @@ describe("Tx Serialization", async () => {
             states.length
         );
         const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
+
         const serialized = serialize(txs);
         assert.equal(
             (await c.create2transfer_size(serialized)).toNumber(),
             txs.length
         );
+
         assert.isFalse(await c.create2transfer_hasExcessData(serialized));
+
         for (let i in txs) {
             const {
                 fromIndex,
@@ -82,23 +85,19 @@ describe("Tx Serialization", async () => {
                 txs[i].toAccID.toString(),
                 "to acc ID not equal"
             );
-            // TODO fix
-            // assert.equal(
-            //     amount.toString(),
-            //     txs[i].amount.toString(),
-            //     "amount not equal"
-            // );
+
+            assert.equal(
+                amount.toString(),
+                txs[i].amount.toString(),
+                "amount not equal"
+            );
+
             assert.equal(
                 fee.toString(),
                 txs[i].fee.toString(),
                 "fee not equal"
             );
 
-            console.log(
-                "pubkey in trasnctions",
-                txs[i].fromPubkey,
-                txs[i].toPubkey
-            );
             const message = await c.create2Transfer_messageOf(
                 serialized,
                 i,

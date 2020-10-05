@@ -147,8 +147,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             serialized
         );
 
-        // TODO uncomment post sig verification fix
-        // assert.equal(badSig, ErrorCode.BadSignature);
+        assert.equal(badSig, Result.BadSignature);
         const checkSigTx = await rollup._checkSignature(
             signature,
             proof,
