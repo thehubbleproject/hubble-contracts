@@ -196,5 +196,5 @@ describe("Rollup Create2Transfer Commitment", () => {
                 "mismatch processed stateroot"
             );
         }
-    });
+    }).timeout(80000);;
 });
