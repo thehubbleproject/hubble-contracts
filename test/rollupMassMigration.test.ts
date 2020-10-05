@@ -113,12 +113,15 @@ describe("Rollup Mass Migration", () => {
         const { proofs, safe } = stateTree.applyMassMigrationBatch(txs);
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
+        const tokenID = states[0].tokenType;
 
         const leaves = txs.map(tx =>
-            solidityKeccak256(
-                ["uint256", "uint256"],
-                [states[tx.fromIndex].pubkeyIndex, tx.amount]
-            )
+            State.new(
+                states[tx.fromIndex].pubkeyIndex,
+                tokenID,
+                tx.amount,
+                0
+            ).toStateLeaf()
         );
         const withdrawRoot = Tree.merklize(leaves).root;
         const commitmentBody = {
@@ -126,7 +129,7 @@ describe("Rollup Mass Migration", () => {
             signature: [0, 0],
             targetSpokeID: spokeID,
             withdrawRoot,
-            tokenID: states[0].tokenType,
+            tokenID,
             amount: sum(txs.map(tx => tx.amount)),
             txs: serialize(txs)
         };

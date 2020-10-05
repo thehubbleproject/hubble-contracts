@@ -81,10 +81,12 @@ describe("Mass Migrations", async function() {
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
 
-        const leaf = solidityKeccak256(
-            ["uint256", "uint256"],
-            [Alice.pubkeyIndex, tx.amount]
-        );
+        const leaf = State.new(
+            Alice.pubkeyIndex,
+            tokenID,
+            tx.amount,
+            0
+        ).toStateLeaf();
         const withdrawRoot = Tree.merklize([leaf]).root;
 
         const commitment = MassMigrationCommitment.new(

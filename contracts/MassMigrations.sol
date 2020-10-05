@@ -81,12 +81,12 @@ contract MassMigrationCore {
         uint256 length = commitmentBody.txs.massMigration_size();
         Tx.MassMigration memory _tx;
         uint256 totalAmount = 0;
-        bytes32 leaf = bytes32(0);
+        bytes memory freshState = "";
         bytes32[] memory withdrawLeaves = new bytes32[](length);
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
-            (stateRoot, , leaf, result) = processMassMigrationTx(
+            (stateRoot, , freshState, result) = processMassMigrationTx(
                 stateRoot,
                 _tx,
                 commitmentBody.tokenID,
@@ -96,7 +96,7 @@ contract MassMigrationCore {
 
             // Only trust these variables when the result is good
             totalAmount += _tx.amount;
-            withdrawLeaves[i] = leaf;
+            withdrawLeaves[i] = keccak256(freshState);
         }
 
         if (totalAmount != commitmentBody.amount) {
@@ -123,7 +123,7 @@ contract MassMigrationCore {
         returns (
             bytes32,
             bytes memory,
-            bytes32 withdrawLeaf,
+            bytes memory freshState,
             Types.Result
         )
     {
@@ -137,26 +137,29 @@ contract MassMigrationCore {
             "MassMigration: sender does not exist"
         );
         if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", bytes32(0), Types.Result.BadFromTokenType);
+            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
         }
         Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (result != Types.Result.Ok)
-            return (bytes32(0), "", bytes32(0), result);
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
 
         (
             bytes memory newFromState,
             bytes32 newRoot
         ) = ApplyMassMigrationTxSender(from, _tx);
 
-        withdrawLeaf = keccak256(
-            abi.encodePacked(from.state.pubkeyIndex, _tx.amount)
-        );
+        Types.UserState memory fresh = Types.UserState({
+            pubkeyIndex: from.state.pubkeyIndex,
+            tokenType: tokenType,
+            balance: _tx.amount,
+            nonce: 0
+        });
+        freshState = fresh.encode();
 
-        return (newRoot, newFromState, withdrawLeaf, Types.Result.Ok);
+        return (newRoot, newFromState, freshState, Types.Result.Ok);
     }
 
     function ApplyMassMigrationTxSender(
