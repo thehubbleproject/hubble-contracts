@@ -2,13 +2,7 @@ import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
 import { DecimalCodec, USDT } from "./decimal";
 import { MismatchByteLength } from "./exceptions";
-import {
-    hexZeroPad,
-    concat,
-    hexlify,
-    solidityKeccak256,
-    solidityPack
-} from "ethers/lib/utils";
+import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 
 const amountLen = 2;
@@ -138,15 +132,17 @@ export class TxMassMigration implements SignableTx {
     }
 
     public message(): string {
-        const concated = concat([
-            this.TX_TYPE,
-            hexZeroPad(hexlify(this.fromIndex), stateIDLen),
-            hexZeroPad(this.amount.toHexString(), 32),
-            hexZeroPad(this.fee.toHexString(), 32),
-            hexZeroPad(hexlify(this.nonce), nonceLen),
-            hexZeroPad(hexlify(this.spokeID), spokeLen)
-        ]);
-        return hexlify(concated);
+        return solidityPack(
+            ["uint8", "uint32", "uint256", "uint256", "uint32", "uint32"],
+            [
+                this.TX_TYPE,
+                this.fromIndex,
+                this.amount,
+                this.fee,
+                this.nonce,
+                this.spokeID
+            ]
+        );
     }
 
     public extended() {
