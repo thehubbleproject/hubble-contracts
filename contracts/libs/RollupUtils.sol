@@ -255,7 +255,7 @@ contract RollupUtils {
             transaction.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256[4], uint256[4], uint256, uint256, uint256, uint256)
         );
 
         transaction.fromIndex = from;
