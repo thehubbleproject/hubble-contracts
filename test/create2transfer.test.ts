@@ -71,7 +71,6 @@ describe("Rollup Create2Transfer Commitment", () => {
         states = states.concat(newStates);
 
         const signatures = [];
-        const message = [];
         const pubkeysSender = [];
         const pubkeysReceiver = [];
         const pubkeyWitnessesSender = [];
@@ -96,14 +95,11 @@ describe("Rollup Create2Transfer Commitment", () => {
                 registry.witness(receiver.pubkeyIndex)
             );
 
-            const signedObj = sender.signAndReturnMessage(tx);
+            const signedObj = sender.sign(tx);
             signatures.push(signedObj.signature);
-            message.push(signedObj.M);
         }
 
         const signature = mcl.aggreagate(signatures);
-        let res = await bls.verifyMultiple(signature, pubkeysSender, message);
-        assert.isTrue(res);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses

@@ -86,18 +86,6 @@ export class TxTransfer implements SignableTx {
         );
     }
 
-    public hash(): string {
-        return solidityKeccak256(
-            ["uint32", "uint32", "uint16", "uint16"],
-            [
-                this.fromIndex,
-                this.toIndex,
-                this.decimal.encodeInt(this.amount),
-                this.decimal.encodeInt(this.fee)
-            ]
-        );
-    }
-
     public extended() {
         return {
             fromIndex: this.fromIndex,
@@ -255,19 +243,6 @@ export class TxCreate2Transfer implements SignableTx {
                 this.nonce,
                 this.amount.toString(),
                 this.fee
-            ]
-        );
-    }
-
-    public hash(): string {
-        return solidityKeccak256(
-            ["uint32", "uint32", "uint32", "uint16", "uint16"],
-            [
-                this.fromIndex,
-                this.toIndex,
-                this.toAccID,
-                this.decimal.encodeInt(this.amount),
-                this.decimal.encodeInt(this.fee)
             ]
         );
     }

@@ -327,9 +327,8 @@ export class StateTree {
         );
 
         receiverState.balance = receiverState.balance.add(tx.amount);
-        receiverState.stateID = tx.toAccID;
+        receiverState.stateID = tx.toIndex;
         const receiverStateStruct = receiverState.toSolStruct();
-        // TODO add pubkey from account tree
         this.createState(receiverState);
 
         const receiverWitness = this.stateTree.witness(receiverID).nodes;

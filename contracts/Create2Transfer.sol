@@ -48,7 +48,7 @@ contract Create2Transfer {
                 "Rollup: from account does not exists"
             );
 
-            // check pubkey inclusion
+            // check receiver pubkye inclusion at committed accID
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
@@ -173,7 +173,7 @@ contract Create2Transfer {
         bytes memory new_from_account;
         bytes memory new_to_account;
 
-        (new_from_account, newRoot) = ApplyTransferTxSender(from, _tx);
+        (new_from_account, newRoot) = ApplyCreate2TransferSender(from, _tx);
 
         // Validate we are creating on a zero account
         require(
@@ -186,7 +186,7 @@ contract Create2Transfer {
             "Create2Transfer: receiver proof invalid"
         );
 
-        (new_to_account, newRoot) = ApplyTransferTxReceiver(
+        (new_to_account, newRoot) = ApplyCreate2TransferReceiver(
             to,
             _tx,
             from.state.tokenType
@@ -195,7 +195,7 @@ contract Create2Transfer {
         return (newRoot, new_from_account, new_to_account, Types.Result.Ok);
     }
 
-    function ApplyTransferTxSender(
+    function ApplyCreate2TransferSender(
         Types.StateMerkleProof memory _merkle_proof,
         Tx.Create2Transfer memory _tx
     ) public pure returns (bytes memory newState, bytes32 newRoot) {
@@ -211,7 +211,7 @@ contract Create2Transfer {
         return (encodedState, newRoot);
     }
 
-    function ApplyTransferTxReceiver(
+    function ApplyCreate2TransferReceiver(
         Types.StateMerkleProof memory _merkle_proof,
         Tx.Create2Transfer memory _tx,
         uint256 token
@@ -224,10 +224,10 @@ contract Create2Transfer {
             0
         );
 
-        bytes memory accountInBytes = newState.encode();
+        bytes memory encodedState = newState.encode();
 
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(accountInBytes),
+            keccak256(encodedState),
             _tx.toIndex,
             _merkle_proof.witness
         );

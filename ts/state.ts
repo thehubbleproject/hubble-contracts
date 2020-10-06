@@ -68,11 +68,6 @@ export class State {
         return signature;
     }
 
-    public signAndReturnMessage(tx: SignableTx) {
-        const msg = tx.message();
-        return mcl.sign(msg, this.secretKey);
-    }
-
     public setStateID(stateID: number): State {
         this.stateID = stateID;
         return this;
