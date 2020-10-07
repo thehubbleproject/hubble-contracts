@@ -16,6 +16,7 @@ import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
 import { Transfer } from "./Transfer.sol";
 import { MassMigration } from "./MassMigrations.sol";
+import { StakeManager } from "./StakeManager.sol";
 
 contract RollupSetup {
     using SafeMath for uint256;
@@ -40,8 +41,6 @@ contract RollupSetup {
     Transfer public transfer;
     MassMigration public massMigration;
 
-    address payable constant BURN_ADDRESS = 0x0000000000000000000000000000000000000000;
-    uint256 STAKE_AMOUNT;
     Governance public governance;
 
     // this variable will be greater than 0 if
@@ -54,7 +53,6 @@ contract RollupSetup {
             nameRegistry.getContractDetails(ParamManager.POB())
         );
         assert(msg.sender == pobContract.getCoordinator());
-        require(msg.value >= STAKE_AMOUNT, "Not enough stake committed");
         _;
     }
 
@@ -123,7 +121,7 @@ contract RollupSetup {
     }
 }
 
-contract RollupHelpers is RollupSetup {
+contract RollupHelpers is RollupSetup, StakeManager {
     /**
      * @notice Returns the total number of batches submitted
      */
@@ -152,11 +150,10 @@ contract RollupHelpers is RollupSetup {
      * Its a public function because we will need to pause if we are not able to delete all batches in one tx
      */
     function SlashAndRollback() public isRollingBack {
-        uint256 challengerRewards = 0;
-        uint256 burnedAmount = 0;
         uint256 totalSlashings = 0;
+        uint256 initialBatchID = batches.length - 1;
 
-        for (uint256 i = batches.length - 1; i >= invalidBatchMarker; i--) {
+        for (uint256 i = initialBatchID; i >= invalidBatchMarker; i--) {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
@@ -164,15 +161,6 @@ contract RollupHelpers is RollupSetup {
                 // exit loop gracefully
                 break;
             }
-
-            // load batch
-            Types.Batch memory batch = batches[i];
-
-            // calculate challeger's reward
-            uint256 _challengerReward = (STAKE_AMOUNT.mul(2)).div(3);
-            challengerRewards += _challengerReward;
-            burnedAmount += STAKE_AMOUNT.sub(_challengerReward);
-
             // delete batch
             delete batches[i];
 
@@ -190,13 +178,7 @@ contract RollupHelpers is RollupSetup {
                 break;
             }
         }
-
-        // transfer reward to challenger
-        (msg.sender).transfer(challengerRewards);
-
-        // burn the remaning amount
-        (BURN_ADDRESS).transfer(burnedAmount);
-
+        rewardAndBurn(msg.sender, initialBatchID, totalSlashings);
         // resize batches length
         batches.length = batches.length.sub(totalSlashings);
 
@@ -268,7 +250,7 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
         );
 
-        STAKE_AMOUNT = governance.STAKE_AMOUNT();
+        changeStakeAmount(governance.STAKE_AMOUNT());
         bytes32[] memory genesisCommitments = new bytes32[](1);
         genesisCommitments[0] = keccak256(
             abi.encodePacked(genesisStateRoot, ZERO_BYTES32)
@@ -580,25 +562,17 @@ contract Rollup is RollupHelpers {
 
     /**
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
-     * @param batch_id Batch ID that the coordinator submitted
      */
-    function WithdrawStake(uint256 batch_id) public {
-        Types.Batch memory committedBatch = batches[batch_id];
+    function WithdrawStake(uint256 batchID) public {
         require(
-            !committedBatch.withdrawn,
-            "Stake has been already withdrawn!!"
-        );
-        require(
-            msg.sender == committedBatch.committer,
+            msg.sender == batches[batchID].committer,
             "You are not the correct committer for this batch"
         );
         require(
-            block.number > committedBatch.finalisesOn,
+            block.number > batches[batchID].finalisesOn,
             "This batch is not yet finalised, check back soon!"
         );
-        committedBatch.withdrawn = true;
-
-        msg.sender.transfer(STAKE_AMOUNT);
-        logger.logStakeWithdraw(msg.sender, batch_id);
+        withdraw(msg.sender, batchID);
+        logger.logStakeWithdraw(msg.sender, batchID);
     }
 }
