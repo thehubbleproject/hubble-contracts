@@ -11,6 +11,9 @@ import { assert } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
+import { solidityKeccak256 } from "ethers/lib/utils";
+import { Tree } from "../ts/tree";
+import { getMerkleRootFromLeaves } from "../ts/utils";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -63,7 +66,6 @@ describe("Mass Migrations", async function() {
     it("submit a batch and dispute", async function() {
         const tx = new TxMassMigration(
             Alice.stateID,
-            0,
             USDT.castInt(39.99),
             1,
             USDT.castInt(0.01),
@@ -79,12 +81,20 @@ describe("Mass Migrations", async function() {
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
 
+        const leaf = State.new(
+            Alice.pubkeyIndex,
+            tokenID,
+            tx.amount,
+            0
+        ).toStateLeaf();
+        const withdrawRoot = Tree.merklize([leaf]).root;
+
         const commitment = MassMigrationCommitment.new(
             stateRoot,
             root,
             aggregatedSignature0,
             tx.spokeID,
-            ethers.constants.HashZero,
+            withdrawRoot,
             tokenID,
             tx.amount,
             txs
@@ -107,7 +117,7 @@ describe("Mass Migrations", async function() {
             stateTree.root,
             "should have same state root"
         );
-        assert.equal(result, Result.Ok, "Should be a safe state transition");
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         commitment.stateRoot = postStateRoot;
 
         const targetBatch = commitment.toBatch();

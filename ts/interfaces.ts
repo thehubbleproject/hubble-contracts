@@ -21,5 +21,6 @@ export enum Result {
     BadFromIndex,
     NotOnDesignatedStateLeaf,
     BadSignature,
-    MismatchedAmount
+    MismatchedAmount,
+    BadWithdrawRoot
 }

@@ -68,6 +68,12 @@ function solProofFromFee(proof: ProofTransferFee): SolStateMerkleProof {
     return { state: proof.feeReceiver, witness: proof.feeReceiverWitness };
 }
 
+const PLACEHOLDER_MASS_MIGRATION_PROOF: ProofOfMassMigrationTx = {
+    state: EMPTY_STATE,
+    witness: PLACEHOLDER_PROOF_WITNESS,
+    safe: false
+};
+
 export class StateTree {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
@@ -167,6 +173,26 @@ export class StateTree {
         return { proof: proofs, feeProof, safe };
     }
 
+    public applyMassMigrationBatch(
+        txs: TxMassMigration[]
+    ): {
+        proofs: ProofOfMassMigrationTx[];
+        safe: boolean;
+    } {
+        let safe = true;
+        let proofs: ProofOfMassMigrationTx[] = [];
+        for (const tx of txs) {
+            if (safe) {
+                const proof = this.applyMassMigration(tx);
+                proofs.push(proof);
+                safe = proof.safe;
+            } else {
+                proofs.push(PLACEHOLDER_MASS_MIGRATION_PROOF);
+            }
+        }
+        return { proofs, safe };
+    }
+
     public applyFee(
         sumOfFee: BigNumber,
         feeReceiverID: number
@@ -263,13 +289,6 @@ export class StateTree {
 
     public applyMassMigration(tx: TxMassMigration): ProofOfMassMigrationTx {
         const senderID = tx.fromIndex;
-        if (tx.toIndex != 0) {
-            return {
-                state: EMPTY_STATE,
-                witness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
-            };
-        }
         const senderState = this.states[senderID];
         const senderWitness = this.stateTree.witness(senderID).nodes;
         const senderStateStruct = senderState.toSolStruct();

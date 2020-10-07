@@ -1,7 +1,6 @@
 import { BigNumberish, BytesLike, ethers } from "ethers";
 import { Rollup } from "../types/ethers-contracts/Rollup";
-import { ZERO_BYTES32 } from "./constants";
-import { Hasher, Tree } from "./tree";
+import { Tree } from "./tree";
 
 interface CompressedStruct {
     stateRoot: BytesLike;
@@ -180,11 +179,7 @@ export class MassMigrationCommitment extends Commitment {
 export class Batch {
     private tree: Tree;
     constructor(public readonly commitments: Commitment[]) {
-        const depth = Math.ceil(Math.log2(commitments.length + 1));
-        this.tree = Tree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
-        for (const [index, commitment] of commitments.entries()) {
-            this.tree.updateSingle(index, commitment.hash());
-        }
+        this.tree = Tree.merklize(commitments.map(c => c.hash()));
     }
 
     get commitmentRoot(): string {

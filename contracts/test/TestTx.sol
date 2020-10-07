@@ -130,4 +130,12 @@ contract TestTx {
     {
         return txs.massMigration_size();
     }
+
+    function testMassMigration_messageOf(
+        Tx.MassMigration memory _tx,
+        uint256 nonce,
+        uint256 spokeID
+    ) public pure returns (bytes memory) {
+        return Tx.massMigration_messageOf(_tx, nonce, spokeID);
+    }
 }

@@ -134,18 +134,23 @@ describe("Tx Serialization", async () => {
         const size = await c.massMigration_size(serialized);
         assert.equal(size.toNumber(), txs.length);
         for (let i in txs) {
-            const {
-                fromIndex,
-                toIndex,
-                amount,
-                spokeID,
-                fee
-            } = await c.massMigration_decode(serialized, i);
+            const { fromIndex, amount, fee } = await c.massMigration_decode(
+                serialized,
+                i
+            );
             assert.equal(fromIndex.toString(), txs[i].fromIndex.toString());
-            assert.equal(toIndex.toString(), txs[i].toIndex.toString());
             assert.equal(amount.toString(), txs[i].amount.toString());
-            assert.equal(spokeID.toString(), txs[i].spokeID.toString());
             assert.equal(fee.toString(), txs[i].fee.toString());
+            const message = await c.testMassMigration_messageOf(
+                txs[i],
+                txs[i].nonce,
+                txs[i].spokeID
+            );
+            assert.equal(
+                message,
+                txs[i].message(),
+                "message should be the same"
+            );
         }
     });
 });

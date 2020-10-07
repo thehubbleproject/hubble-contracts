@@ -5,13 +5,68 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
-contract MassMigration {
+import { BLS } from "./libs/BLS.sol";
+import { ParamManager } from "./libs/ParamManager.sol";
+import { MerkleTreeUtilsLib, MerkleTreeUtils } from "./MerkleTreeUtils.sol";
+import { NameRegistry } from "./NameRegistry.sol";
+
+contract MassMigrationCore {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
-    uint256 constant BURN_STATE_INDEX = 0;
+    MerkleTreeUtils merkleTree;
+
+    function checkSignature(
+        uint256[2] memory signature,
+        Types.SignatureProof memory proof,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 domain,
+        uint256 targetSpokeID,
+        bytes memory txs
+    ) public view returns (Types.Result) {
+        uint256 length = txs.massMigration_size();
+        uint256[2][] memory messages = new uint256[2][](length);
+        for (uint256 i = 0; i < length; i++) {
+            Tx.MassMigration memory _tx = txs.massMigration_decode(i);
+            // check state inclustion
+            require(
+                MerkleTreeUtilsLib.verifyLeaf(
+                    stateRoot,
+                    keccak256(proof.states[i].encode()),
+                    _tx.fromIndex,
+                    proof.stateWitnesses[i]
+                ),
+                "Rollup: state inclusion signer"
+            );
+
+            // check pubkey inclusion
+            require(
+                MerkleTreeUtilsLib.verifyLeaf(
+                    accountRoot,
+                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    proof.states[i].pubkeyIndex,
+                    proof.pubkeyWitnesses[i]
+                ),
+                "Rollup: account does not exists"
+            );
+
+            // construct the message
+            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
+            bytes memory txMsg = Tx.massMigration_messageOf(
+                _tx,
+                proof.states[i].nonce - 1,
+                targetSpokeID
+            );
+            // make the message
+            messages[i] = BLS.hashToPoint(domain, txMsg);
+        }
+        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+            return Types.Result.BadSignature;
+        }
+        return Types.Result.Ok;
+    }
 
     /**
      * @notice processes the state transition of a commitment
@@ -24,59 +79,34 @@ contract MassMigration {
         Types.StateMerkleProof[] memory proofs
     ) public view returns (bytes32, Types.Result result) {
         uint256 length = commitmentBody.txs.massMigration_size();
-
-        // contains a bunch of variables to bypass STD
-        // [tokenInTx0, tokenInTxUnderValidation, amountAggregationVar, spokeIDForCommitment]
-        uint256[] memory metaInfoCounters = new uint256[](4);
         Tx.MassMigration memory _tx;
+        uint256 totalAmount = 0;
+        bytes memory freshState = "";
+        bytes32[] memory withdrawLeaves = new bytes32[](length);
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
-
-            // ensure the transaction is to burn state
-            if (_tx.toIndex != BURN_STATE_INDEX) {
-                break;
-            }
-
-            if (i == 0) {
-                metaInfoCounters[3] = _tx.spokeID;
-            } else if (metaInfoCounters[3] != _tx.spokeID) {
-                // commitment should have same spokeID, slash
-                break;
-            }
-
-            // aggregate amounts from all transactions
-            metaInfoCounters[2] += _tx.amount;
-
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
-            (
+            (stateRoot, , freshState, result) = processMassMigrationTx(
                 stateRoot,
-                ,
-                ,
-                metaInfoCounters[1],
-                result
-            ) = processMassMigrationTx(stateRoot, _tx, proofs[i]);
+                _tx,
+                commitmentBody.tokenID,
+                proofs[i]
+            );
+            if (result != Types.Result.Ok) break;
 
-            // cache token of first tx to evaluate others
-            if (i == 0) {
-                metaInfoCounters[0] = metaInfoCounters[1];
-            }
-            // all transactions in same commitment should have same token
-            if (metaInfoCounters[0] != metaInfoCounters[1]) {
-                break;
-            }
-
-            // TODO do a withdraw root check
-
-            if (result != Types.Result.Ok) {
-                break;
-            }
+            // Only trust these variables when the result is good
+            totalAmount += _tx.amount;
+            withdrawLeaves[i] = keccak256(freshState);
         }
 
-        // if amount aggregation is incorrect, slash!
-        if (metaInfoCounters[2] != commitmentBody.amount) {
+        if (totalAmount != commitmentBody.amount) {
             return (stateRoot, Types.Result.MismatchedAmount);
+        }
+        if (
+            merkleTree.getMerkleRootFromLeaves(withdrawLeaves) !=
+            commitmentBody.withdrawRoot
+        ) {
+            return (stateRoot, Types.Result.BadWithdrawRoot);
         }
 
         return (stateRoot, result);
@@ -85,6 +115,7 @@ contract MassMigration {
     function processMassMigrationTx(
         bytes32 stateRoot,
         Tx.MassMigration memory _tx,
+        uint256 tokenType,
         Types.StateMerkleProof memory from
     )
         public
@@ -92,8 +123,7 @@ contract MassMigration {
         returns (
             bytes32,
             bytes memory,
-            bytes memory,
-            uint256,
+            bytes memory freshState,
             Types.Result
         )
     {
@@ -106,24 +136,30 @@ contract MassMigration {
             ),
             "MassMigration: sender does not exist"
         );
+        if (from.state.tokenType != tokenType) {
+            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
+        }
         Types.Result result = FraudProofHelpers.validateTxBasic(
             _tx.amount,
             _tx.fee,
             from.state
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", 0, result);
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
 
-        bytes32 newRoot;
-        bytes memory newFromState;
-        (newFromState, newRoot) = ApplyMassMigrationTxSender(from, _tx);
+        (
+            bytes memory newFromState,
+            bytes32 newRoot
+        ) = ApplyMassMigrationTxSender(from, _tx);
 
-        return (
-            newRoot,
-            newFromState,
-            "",
-            from.state.tokenType,
-            Types.Result.Ok
-        );
+        Types.UserState memory fresh = Types.UserState({
+            pubkeyIndex: from.state.pubkeyIndex,
+            tokenType: tokenType,
+            balance: _tx.amount,
+            nonce: 0
+        });
+        freshState = fresh.encode();
+
+        return (newRoot, newFromState, freshState, Types.Result.Ok);
     }
 
     function ApplyMassMigrationTxSender(
@@ -140,5 +176,13 @@ contract MassMigration {
             _merkle_proof.witness
         );
         return (encodedState, newRoot);
+    }
+}
+
+contract MassMigration is MassMigrationCore {
+    constructor(NameRegistry nameRegistry) public {
+        merkleTree = MerkleTreeUtils(
+            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+        );
     }
 }

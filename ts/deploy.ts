@@ -130,7 +130,10 @@ export async function deployAll(
         await paramManager.VAULT()
     );
 
-    const massMigration = await new MassMigrationFactory(signer).deploy();
+    const massMigration = await new MassMigrationFactory(
+        allLinkRefs,
+        signer
+    ).deploy(nameRegistry.address);
     await waitAndRegister(
         massMigration,
         "mass_migs",

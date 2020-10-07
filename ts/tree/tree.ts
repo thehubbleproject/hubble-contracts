@@ -1,3 +1,4 @@
+import { ZERO_BYTES32 } from "../constants";
 import { Hasher, Node } from "./hasher";
 
 type Level = { [node: number]: Node };
@@ -22,6 +23,18 @@ export class Tree {
 
     public static new(depth: number, hasher?: Hasher): Tree {
         return new Tree(depth, hasher || Hasher.new());
+    }
+
+    public static merklize(leaves: Node[]): Tree {
+        // Make the depth as shallow as possible
+        // the length 1 is a special case that the formula doesn't work
+        const depth =
+            leaves.length == 1 ? 1 : Math.ceil(Math.log2(leaves.length));
+        // This ZERO_BYTES32 must match the one we use in the mekle tree utils contract
+        const hasher = Hasher.new("bytes", ZERO_BYTES32);
+        const tree = Tree.new(depth, hasher);
+        tree.updateBatch(0, leaves);
+        return tree;
     }
 
     constructor(depth: number, hasher: Hasher) {
