@@ -234,7 +234,8 @@ contract RollupUtils {
         uint256 amount,
         uint256 fee
     ) public pure returns (bytes32) {
-        return keccak256(abi.encodePacked(txType, from, to, nonce, amount, fee));
+        return
+            keccak256(abi.encodePacked(txType, from, to, nonce, amount, fee));
     }
 
     // NOTE: txBytes is from BytesFromTx() using from/to as public keys

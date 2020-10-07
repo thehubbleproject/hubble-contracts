@@ -96,8 +96,7 @@ describe("Rollup Create2Transfer Commitment", () => {
                 registry.witness(receiver.pubkeyIndex)
             );
 
-            const signedObj = sender.sign(tx);
-            signatures.push(signedObj.signature);
+            signatures.push(sender.sign(tx));
         }
 
         const signature = mcl.aggreagate(signatures);
