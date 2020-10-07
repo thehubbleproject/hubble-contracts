@@ -103,9 +103,15 @@ contract RollupSetup {
         uint256 targetPathToCommitment
     ) {
         if (targetPathToCommitment == 0) {
-            // target is the first commit in the batch, so the previous commit is in the previous batch
+            // target is the first commit in the batch, so the previous commit must be
+            // the last commit of the previous batch
             require(
-                checkInclusion(batches[_batch_id - 1].commitmentRoot, previous),
+                merkleUtils.isLast(
+                    batches[_batch_id - 1].commitmentRoot,
+                    previous.commitment.toHash(),
+                    previous.pathToCommitment,
+                    previous.witness
+                ),
                 "previous commitment is absent in the previous batch"
             );
         } else {
