@@ -225,13 +225,12 @@ contract Create2Transfer {
         );
 
         bytes memory encodedState = newState.encode();
-
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(encodedState),
             _tx.toIndex,
             _merkle_proof.witness
         );
-        return (accountInBytes, newRoot);
+        return (encodedState, newRoot);
     }
 
     function processFee(

@@ -70,7 +70,6 @@ describe("RollupUtils", async function() {
         let encodedTx = await RollupUtilsInstance[
             "BytesFromTx(uint256,uint256[4],uint256[4],uint256,uint256,uint256,uint256)"
         ](1, pubkey, pubkey, 1, 1, 1, 1);
-
         // re-encode to Create2Transfer
         encodedTx = await RollupUtilsInstance.Create2PubkeyToIndex(
             encodedTx,
@@ -78,11 +77,9 @@ describe("RollupUtils", async function() {
             4,
             1
         );
-
         const decodedTx = await RollupUtilsInstance[
             "Create2TransferFromBytes(bytes)"
         ](encodedTx);
-
         assert.equal(
             decodedTx.fromIndex.toString(),
             "3",

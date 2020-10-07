@@ -62,6 +62,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             states.length,
             states.length
         );
+
         const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
         for (const state of newStates) {
             await registry.register(state.getPubkey());

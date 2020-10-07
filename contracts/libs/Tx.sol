@@ -279,7 +279,7 @@ library Tx {
     {
         return
             abi.encodePacked(
-                uint8(TRANSFER),
+                TRANSFER,
                 _tx.fromIndex,
                 _tx.toIndex,
                 nonce,
@@ -460,7 +460,7 @@ library Tx {
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
-                uint8(CREATE2TRANSFER),
+                CREATE2TRANSFER,
                 from,
                 to,
                 nonce,

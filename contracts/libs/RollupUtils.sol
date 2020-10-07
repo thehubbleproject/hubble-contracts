@@ -68,7 +68,7 @@ contract RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encode(
+            abi.encodePacked(
                 _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
@@ -182,7 +182,7 @@ contract RollupUtils {
         uint256 amount,
         uint256 fee
     ) public pure returns (bytes memory) {
-        return abi.encode(txType, from, to, toAccID, nonce, amount, fee);
+        return abi.encodePacked(txType, from, to, toAccID, nonce, amount, fee);
     }
 
     function BytesFromTx(Types.Create2Transfer memory _tx)
@@ -191,7 +191,7 @@ contract RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encode(
+            abi.encodePacked(
                 _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
@@ -234,7 +234,7 @@ contract RollupUtils {
         uint256 amount,
         uint256 fee
     ) public pure returns (bytes32) {
-        return keccak256(abi.encode(txType, from, to, nonce, amount, fee));
+        return keccak256(abi.encodePacked(txType, from, to, nonce, amount, fee));
     }
 
     // NOTE: txBytes is from BytesFromTx() using from/to as public keys
@@ -281,7 +281,7 @@ contract RollupUtils {
             txBytes
         );
         return
-            abi.encode(
+            abi.encodePacked(
                 transaction.txType,
                 from,
                 to,

@@ -7,7 +7,7 @@ import {
     concat,
     hexlify,
     solidityKeccak256,
-    defaultAbiCoder
+    solidityPack
 } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 
@@ -73,14 +73,14 @@ export class TxTransfer implements SignableTx {
     }
 
     public message(): string {
-        return defaultAbiCoder.encode(
-            ["uint8", "uint256", "uint256", "uint256", "uint256", "uint256"],
+        return solidityPack(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
             [
                 this.TX_TYPE,
                 this.fromIndex,
                 this.toIndex,
                 this.nonce,
-                this.amount.toString(),
+                this.amount,
                 this.fee
             ]
         );
@@ -88,12 +88,12 @@ export class TxTransfer implements SignableTx {
 
     public extended() {
         return {
+            txType: this.TX_TYPE,
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
             amount: this.amount,
-            fee: this.fee,
             nonce: this.nonce,
-            txType: this.TX_TYPE
+            fee: this.fee
         };
     }
 
@@ -227,9 +227,9 @@ export class TxCreate2Transfer implements SignableTx {
     }
 
     public message(): string {
-        return defaultAbiCoder.encode(
+        return solidityPack(
             [
-                "uint8",
+                "uint256",
                 "uint256[4]",
                 "uint256[4]",
                 "uint256",
@@ -241,7 +241,7 @@ export class TxCreate2Transfer implements SignableTx {
                 this.fromPubkey,
                 this.toPubkey,
                 this.nonce,
-                this.amount.toString(),
+                this.amount,
                 this.fee
             ]
         );
