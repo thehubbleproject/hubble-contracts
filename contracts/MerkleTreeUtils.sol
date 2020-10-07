@@ -173,4 +173,28 @@ contract MerkleTreeUtils {
     ) public pure returns (bytes32) {
         return MerkleTreeUtilsLib.rootFromWitnesses(_leaf, _path, _siblings);
     }
+
+    /**
+     * @notice check if the leaf is the last non-zero leaf in the tree
+     */
+    function isLast(
+        bytes32 root,
+        bytes32 leafInput,
+        uint256 path,
+        bytes32[] memory witnesses
+    ) public view returns (bool) {
+        // Copy to avoid assigning to the function parameter.
+        bytes32 leaf = leafInput;
+        for (uint256 i = 0; i < witnesses.length; i++) {
+            // get i-th bit from right
+            if (((path >> i) & 1) == 0) {
+                // if the leaf index is even, then the right size should be a zero leaf
+                if (witnesses[i] != defaultHashes[i]) return false;
+                leaf = keccak256(abi.encode(leaf, witnesses[i]));
+            } else {
+                leaf = keccak256(abi.encode(witnesses[i], leaf));
+            }
+        }
+        return leaf == root;
+    }
 }
