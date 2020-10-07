@@ -82,7 +82,7 @@ export function txCreate2TransferFactory(
             fee,
             sender.nonce,
             USDT
-        );     
+        );
         txs.push(tx);
     }
     return txs;
