@@ -154,7 +154,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         );
         const receipt = await checkSigTx.wait();
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
-    }).timeout(400000);
+    }).timeout(800000);
     it("create2trasnfer commitment: processTx", async function() {
         let newStates = UserStateFactory.buildList(
             STATE_SIZE,
