@@ -2,7 +2,13 @@ import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
 import { DecimalCodec, USDT } from "./decimal";
 import { MismatchByteLength } from "./exceptions";
-import { hexZeroPad, concat, hexlify } from "ethers/lib/utils";
+import {
+    hexZeroPad,
+    concat,
+    hexlify,
+    solidityKeccak256,
+    solidityPack
+} from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 
 const amountLen = 2;
@@ -45,6 +51,7 @@ export class TxTransfer implements SignableTx {
         const nonce = randomNum(nonceLen);
         return new TxTransfer(sender, receiver, amount, fee, nonce, USDT);
     }
+
     public static buildList(n: number = COMMIT_SIZE): TxTransfer[] {
         const txs = [];
         for (let i = 0; i < n; i++) {
@@ -66,23 +73,27 @@ export class TxTransfer implements SignableTx {
     }
 
     public message(): string {
-        const concated = concat([
-            this.TX_TYPE,
-            hexZeroPad(hexlify(this.nonce), nonceLen),
-            this.encode()
-        ]);
-        return hexlify(concated);
+        return solidityPack(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            [
+                this.TX_TYPE,
+                this.fromIndex,
+                this.toIndex,
+                this.nonce,
+                this.amount,
+                this.fee
+            ]
+        );
     }
 
-    public extended(tokenType: number = 0) {
+    public extended() {
         return {
+            txType: this.TX_TYPE,
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
             amount: this.amount,
-            fee: this.fee,
             nonce: this.nonce,
-            tokenType,
-            txType: 0
+            fee: this.fee
         };
     }
 
@@ -153,7 +164,6 @@ export class TxMassMigration implements SignableTx {
             spokeID: this.spokeID,
             fee: this.fee,
             nonce: this.nonce,
-            tokenType: 0,
             txType: 0
         };
     }
@@ -164,6 +174,97 @@ export class TxMassMigration implements SignableTx {
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
             this.decimal.encodeInt(this.amount),
             hexZeroPad(hexlify(this.spokeID), spokeLen),
+            this.decimal.encodeInt(this.fee)
+        ]);
+        return hexlify(concated);
+    }
+}
+
+export class TxCreate2Transfer implements SignableTx {
+    private readonly TX_TYPE = "0x03";
+    public static rand(): TxCreate2Transfer {
+        const sender = randomNum(stateIDLen);
+        const receiver = randomNum(stateIDLen);
+        const senderPub: string[] = [];
+        const receiverPub: string[] = [];
+        const toAccID = randomNum(stateIDLen);
+        const amount = USDT.randInt();
+        const fee = USDT.randInt();
+        const nonce = randomNum(nonceLen);
+        return new TxCreate2Transfer(
+            sender,
+            receiver,
+            senderPub,
+            receiverPub,
+            toAccID,
+            amount,
+            fee,
+            nonce,
+            USDT
+        );
+    }
+    public static buildList(n: number = COMMIT_SIZE): TxCreate2Transfer[] {
+        const txs = [];
+        for (let i = 0; i < n; i++) {
+            txs.push(TxCreate2Transfer.rand());
+        }
+        return txs;
+    }
+
+    constructor(
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
+        public readonly fromPubkey: string[],
+        public readonly toPubkey: string[],
+        public readonly toAccID: number,
+        public readonly amount: BigNumber,
+        public readonly fee: BigNumber,
+        public nonce: number,
+        public readonly decimal: DecimalCodec
+    ) {
+        checkByteLength(decimal, "amount", amountLen);
+        checkByteLength(decimal, "fee", feeLen);
+    }
+
+    public message(): string {
+        return solidityPack(
+            [
+                "uint256",
+                "uint256[4]",
+                "uint256[4]",
+                "uint256",
+                "uint256",
+                "uint256"
+            ],
+            [
+                this.TX_TYPE,
+                this.fromPubkey,
+                this.toPubkey,
+                this.nonce,
+                this.amount,
+                this.fee
+            ]
+        );
+    }
+
+    public extended() {
+        return {
+            fromIndex: this.fromIndex,
+            toIndex: this.toIndex,
+            toPubkeyIndex: this.toAccID,
+            amount: this.amount,
+            fee: this.fee,
+            nonce: this.nonce,
+            txType: this.TX_TYPE
+        };
+    }
+
+    public encode(): string {
+        const concated = concat([
+            hexZeroPad(hexlify(this.fromIndex), stateIDLen),
+            hexZeroPad(hexlify(this.toIndex), stateIDLen),
+            hexZeroPad(hexlify(this.toAccID), stateIDLen),
+            this.decimal.encodeInt(this.amount),
             this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);

@@ -1,31 +1,31 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
-
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
+import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract Transfer {
-    using SafeMath for uint256;
+contract Create2Transfer {
     using Tx for bytes;
     using Types for Types.UserState;
+    using SafeMath for uint256;
 
     function checkSignature(
         uint256[2] memory signature,
-        Types.SignatureProof memory proof,
+        Types.SignatureProofWithReceiver memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        uint256 batchSize = txs.transfer_size();
+        uint256 batchSize = txs.create2Transfer_size();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            Tx.Transfer memory _tx = txs.transfer_decode(i);
+            Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
+
             // check state inclustion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
@@ -41,23 +41,39 @@ contract Transfer {
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
                     accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[i])),
+                    keccak256(abi.encodePacked(proof.pubkeysSender[i])),
                     proof.states[i].pubkeyIndex,
-                    proof.pubkeyWitnesses[i]
+                    proof.pubkeyWitnessesSender[i]
                 ),
-                "Rollup: account does not exists"
+                "Rollup: from account does not exists"
+            );
+
+            // check receiver pubkye inclusion at committed accID
+            require(
+                MerkleTreeUtilsLib.verifyLeaf(
+                    accountRoot,
+                    keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
+                    _tx.toAccID,
+                    proof.pubkeyWitnessesReceiver[i]
+                ),
+                "Rollup: to account does not exists"
             );
 
             // construct the message
             require(proof.states[i].nonce > 0, "Rollup: zero nonce");
-            bytes memory txMsg = Tx.transfer_messageOf(
+
+            bytes memory txMsg = Tx.create2Transfer_messageOf(
                 _tx,
-                proof.states[i].nonce - 1
+                proof.states[i].nonce - 1,
+                proof.pubkeysSender[i],
+                proof.pubkeysReceiver[i]
             );
+
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
-        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+
+        if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
             return Types.Result.BadSignature;
         }
         return Types.Result.Ok;
@@ -67,22 +83,22 @@ contract Transfer {
      * @notice processes the state transition of a commitment
      * @return updatedRoot, txRoot and if the batch is valid or not
      * */
-    function processTransferCommit(
+    function processCreate2TransferCommit(
         bytes32 stateRoot,
         bytes memory txs,
         Types.StateMerkleProof[] memory proofs,
         uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, Types.Result result) {
-        uint256 length = txs.transfer_size();
+        uint256 length = txs.create2Transfer_size();
 
-        uint256 fees = 0;
-        Tx.Transfer memory _tx;
+        uint256 fees;
+        Tx.Create2Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
             // call process tx update for every transaction to check if any
             // tx evaluates correctly
-            _tx = txs.transfer_decode(i);
+            _tx = txs.create2Transfer_decode(i);
             fees = fees.add(_tx.fee);
             (stateRoot, , , result) = processTx(
                 stateRoot,
@@ -95,6 +111,7 @@ contract Transfer {
                 break;
             }
         }
+
         if (result == Types.Result.Ok) {
             (stateRoot, result) = processFee(
                 stateRoot,
@@ -117,7 +134,7 @@ contract Transfer {
      */
     function processTx(
         bytes32 stateRoot,
-        Tx.Transfer memory _tx,
+        Tx.Create2Transfer memory _tx,
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
@@ -138,7 +155,7 @@ contract Transfer {
                 _tx.fromIndex,
                 from.witness
             ),
-            "Transfer: sender does not exist"
+            "Create2Transfer: sender does not exist"
         );
 
         Types.Result result = FraudProofHelpers.validateTxBasic(
@@ -152,33 +169,35 @@ contract Transfer {
             return (bytes32(0), "", "", Types.Result.BadFromTokenType);
         }
 
-        if (to.state.tokenType != tokenType)
-            return (bytes32(0), "", "", Types.Result.BadToTokenType);
-
         bytes32 newRoot;
-        bytes memory newFromState;
-        bytes memory newToState;
+        bytes memory new_from_account;
+        bytes memory new_to_account;
 
-        (newFromState, newRoot) = ApplyTransferTxSender(from, _tx);
+        (new_from_account, newRoot) = ApplyCreate2TransferSender(from, _tx);
 
+        // Validate we are creating on a zero account
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 newRoot,
-                keccak256(to.state.encode()),
+                keccak256(abi.encode(0)),
                 _tx.toIndex,
                 to.witness
             ),
-            "Transfer: receiver does not exist"
+            "Create2Transfer: receiver proof invalid"
         );
 
-        (newToState, newRoot) = ApplyTransferTxReceiver(to, _tx);
+        (new_to_account, newRoot) = ApplyCreate2TransferReceiver(
+            to,
+            _tx,
+            from.state.tokenType
+        );
 
-        return (newRoot, newFromState, newToState, Types.Result.Ok);
+        return (newRoot, new_from_account, new_to_account, Types.Result.Ok);
     }
 
-    function ApplyTransferTxSender(
+    function ApplyCreate2TransferSender(
         Types.StateMerkleProof memory _merkle_proof,
-        Tx.Transfer memory _tx
+        Tx.Create2Transfer memory _tx
     ) public pure returns (bytes memory newState, bytes32 newRoot) {
         Types.UserState memory state = _merkle_proof.state;
         state.balance = state.balance.sub(_tx.amount).sub(_tx.fee);
@@ -192,13 +211,20 @@ contract Transfer {
         return (encodedState, newRoot);
     }
 
-    function ApplyTransferTxReceiver(
+    function ApplyCreate2TransferReceiver(
         Types.StateMerkleProof memory _merkle_proof,
-        Tx.Transfer memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.add(_tx.amount);
-        bytes memory encodedState = state.encode();
+        Tx.Create2Transfer memory _tx,
+        uint256 token
+    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
+        // Initialize account
+        Types.UserState memory newState = Types.UserState(
+            _tx.toAccID,
+            token,
+            _tx.amount,
+            0
+        );
+
+        bytes memory encodedState = newState.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(encodedState),
             _tx.toIndex,
@@ -225,7 +251,7 @@ contract Transfer {
                 feeReceiver,
                 stateLeafProof.witness
             ),
-            "Transfer: fee receiver does not exist"
+            "Create2Transfer: fee receiver does not exist"
         );
         state.balance = state.balance.add(fees);
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(

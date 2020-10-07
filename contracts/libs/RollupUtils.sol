@@ -68,11 +68,10 @@ contract RollupUtils {
         returns (bytes memory)
     {
         return
-            abi.encode(
+            abi.encodePacked(
                 _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
-                _tx.tokenType,
                 _tx.nonce,
                 _tx.amount,
                 _tx.fee
@@ -90,13 +89,12 @@ contract RollupUtils {
             transaction.txType,
             transaction.fromIndex,
             transaction.toIndex,
-            transaction.tokenType,
             transaction.nonce,
             transaction.amount,
             transaction.fee
         ) = abi.decode(
             txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+            (uint256, uint256, uint256, uint256, uint256, uint256)
         );
         return transaction;
     }
@@ -106,10 +104,7 @@ contract RollupUtils {
         pure
         returns (bytes memory)
     {
-        Types.Transfer[] memory _txx = new Types.Transfer[](1);
-        _txx[0] = _tx;
-        bytes memory txs = Tx.transfer_serializeFromEncoded(_txx);
-        return Tx.transfer_messageOf(txs, 0, _tx.nonce);
+        return BytesFromTx(_tx);
     }
 
     function DecompressTransfers(bytes memory txs)
@@ -172,5 +167,129 @@ contract RollupUtils {
             structTxs[i] = txs.transfer_decode(i);
         }
         return structTxs;
+    }
+
+    //
+    // Create2Transfer
+    //
+
+    function BytesFromTx(
+        uint256 txType,
+        uint256[4] memory from,
+        uint256[4] memory to,
+        uint256 toAccID,
+        uint256 nonce,
+        uint256 amount,
+        uint256 fee
+    ) public pure returns (bytes memory) {
+        return abi.encodePacked(txType, from, to, toAccID, nonce, amount, fee);
+    }
+
+    function BytesFromTx(Types.Create2Transfer memory _tx)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(
+                _tx.txType,
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.toAccID,
+                _tx.nonce,
+                _tx.amount,
+                _tx.fee
+            );
+    }
+
+    function Create2TransferFromBytes(bytes memory txBytes)
+        public
+        pure
+        returns (Types.Create2Transfer memory)
+    {
+        // TODO: use txBytes.transfer_transfer_encodedFromBytes(...)
+        Types.Create2Transfer memory transaction;
+        (
+            transaction.txType,
+            transaction.fromIndex,
+            transaction.toIndex,
+            transaction.toAccID,
+            transaction.nonce,
+            transaction.amount,
+            transaction.fee
+        ) = abi.decode(
+            txBytes,
+            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
+        );
+        return transaction;
+    }
+
+    // NOTE: GetSignBytes for create2Account doesnt include toAccID as its not known while transaction signing
+    // toAccID is included by the coordinator at the time of compression.
+    function getTxSignBytes(
+        uint256 txType,
+        uint256[4] memory from,
+        uint256[4] memory to,
+        uint256 nonce,
+        uint256 amount,
+        uint256 fee
+    ) public pure returns (bytes32) {
+        return
+            keccak256(abi.encodePacked(txType, from, to, nonce, amount, fee));
+    }
+
+    // NOTE: txBytes is from BytesFromTx() using from/to as public keys
+    function Create2PubkeyToIndex(
+        bytes memory txBytes,
+        uint256 from,
+        uint256 to,
+        uint256 toAccID
+    ) public pure returns (bytes memory) {
+        Types.Create2Transfer memory transaction;
+        (
+            transaction.txType,
+            ,
+            ,
+            toAccID,
+            transaction.nonce,
+            transaction.amount,
+            transaction.fee
+        ) = abi.decode(
+            txBytes,
+            (
+                uint256,
+                uint256[4],
+                uint256[4],
+                uint256,
+                uint256,
+                uint256,
+                uint256
+            )
+        );
+
+        transaction.fromIndex = from;
+        transaction.toIndex = to;
+        transaction.toAccID = toAccID;
+        return BytesFromTx(transaction);
+    }
+
+    function Create2IndexToPubkey(
+        bytes memory txBytes,
+        uint256[4] memory from,
+        uint256[4] memory to
+    ) public pure returns (bytes memory) {
+        Types.Create2Transfer memory transaction = Create2TransferFromBytes(
+            txBytes
+        );
+        return
+            abi.encodePacked(
+                transaction.txType,
+                from,
+                to,
+                transaction.toAccID,
+                transaction.nonce,
+                transaction.amount,
+                transaction.fee
+            );
     }
 }

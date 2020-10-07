@@ -10,6 +10,14 @@ library Types {
         uint256[4][] pubkeys;
         bytes32[][] pubkeyWitnesses;
     }
+    struct SignatureProofWithReceiver {
+        Types.UserState[] states;
+        bytes32[][] stateWitnesses;
+        uint256[4][] pubkeysSender;
+        bytes32[][] pubkeyWitnessesSender;
+        uint256[4][] pubkeysReceiver;
+        bytes32[][] pubkeyWitnessesReceiver;
+    }
 
     // We define Usage for a batch or for a tx
     // to check if the usage of a batch and all txs in it are the same
@@ -17,6 +25,7 @@ library Types {
         Genesis, // The Genesis type is only applicable to batch but not tx
         Transfer,
         MassMigration,
+        Create2Transfer,
         // Only applicable to batch and not tx
         Deposit
     }
@@ -29,6 +38,7 @@ library Types {
         bytes32 depositRoot;
         bool withdrawn;
     }
+
     struct Commitment {
         bytes32 stateRoot;
         bytes32 bodyRoot;
@@ -145,13 +155,20 @@ library Types {
         bytes32[] witness;
     }
 
-    // Transaction represents how each transaction looks like for
-    // this rollup chain
     struct Transfer {
         uint256 txType;
         uint256 fromIndex;
         uint256 toIndex;
-        uint256 tokenType;
+        uint256 nonce;
+        uint256 amount;
+        uint256 fee;
+    }
+
+    struct Create2Transfer {
+        uint256 txType;
+        uint256 fromIndex;
+        uint256 toIndex;
+        uint256 toAccID;
         uint256 nonce;
         uint256 amount;
         uint256 fee;

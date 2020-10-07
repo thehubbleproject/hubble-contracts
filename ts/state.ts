@@ -36,6 +36,8 @@ export class State {
             nonce
         );
     }
+
+    // TODO add optional params for pubkey and stateID
     public clone() {
         return new State(
             this.pubkeyIndex,
@@ -62,12 +64,17 @@ export class State {
 
     public sign(tx: SignableTx) {
         const msg = tx.message();
-        const { signature, M } = mcl.sign(msg, this.secretKey);
+        const { signature } = mcl.sign(msg, this.secretKey);
         return signature;
     }
 
     public setStateID(stateID: number): State {
         this.stateID = stateID;
+        return this;
+    }
+
+    public setPubkey(pubkey: mcl.PublicKey): State {
+        this.publicKey = pubkey;
         return this;
     }
 

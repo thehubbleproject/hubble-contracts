@@ -15,6 +15,14 @@ contract TestTx {
         return Tx.serialize(txs);
     }
 
+    function create2transfer_serialize(Tx.Create2Transfer[] memory txs)
+        public
+        pure
+        returns (bytes memory)
+    {
+        return Tx.serialize(txs);
+    }
+
     function transfer_serializeFromEncoded(bytes[] memory txs)
         public
         pure
@@ -33,7 +41,6 @@ contract TestTx {
                 Types.Usage.Transfer,
                 _tx.fromIndex,
                 _tx.toIndex,
-                _tx.tokenType,
                 _tx.nonce,
                 _tx.amount,
                 _tx.fee
@@ -48,8 +55,24 @@ contract TestTx {
         return txs.transfer_hasExcessData();
     }
 
+    function create2transfer_hasExcessData(bytes memory txs)
+        public
+        pure
+        returns (bool)
+    {
+        return txs.create2Transfer_hasExcessData();
+    }
+
     function transfer_size(bytes memory txs) public pure returns (uint256) {
         return txs.transfer_size();
+    }
+
+    function create2transfer_size(bytes memory txs)
+        public
+        pure
+        returns (uint256)
+    {
+        return txs.create2Transfer_size();
     }
 
     function transfer_decode(bytes memory txs, uint256 index)
@@ -60,12 +83,36 @@ contract TestTx {
         return Tx.transfer_decode(txs, index);
     }
 
+    function create2Transfer_decode(bytes memory txs, uint256 index)
+        public
+        pure
+        returns (Tx.Create2Transfer memory)
+    {
+        return Tx.create2Transfer_decode(txs, index);
+    }
+
     function transfer_messageOf(
         bytes memory txs,
         uint256 index,
         uint256 nonce
     ) public pure returns (bytes memory) {
-        return txs.transfer_messageOf(index, nonce);
+        return Tx.transfer_messageOf(Tx.transfer_decode(txs, index), nonce);
+    }
+
+    function create2Transfer_messageOf(
+        bytes memory txs,
+        uint256 index,
+        uint256 nonce,
+        uint256[4] memory from,
+        uint256[4] memory to
+    ) public pure returns (bytes memory) {
+        return
+            Tx.create2Transfer_messageOf(
+                Tx.create2Transfer_decode(txs, index),
+                nonce,
+                from,
+                to
+            );
     }
 
     function massMigration_decode(bytes memory txs, uint256 index)
