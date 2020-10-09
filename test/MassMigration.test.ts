@@ -14,9 +14,6 @@ import { Result } from "../ts/interfaces";
 import { Tree } from "../ts/tree";
 import { mineBlocks } from "../ts/utils";
 
-const DOMAIN =
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-
 describe("Mass Migrations", async function() {
     const tokenID = 1;
     let Alice: State;
@@ -26,12 +23,13 @@ describe("Mass Migrations", async function() {
     let initialBatch: MassMigrationBatch;
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN);
     });
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
+        mcl.setDomainHex(await contracts.rollup.APP_ID());
+
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
@@ -149,7 +147,7 @@ describe("Mass Migrations", async function() {
             tx.amount,
             0
         ).toStateLeaf();
-        const withdrawRoot = Tree.merklize([leaf]).root;
+        const withdrawTree = Tree.merklize([leaf]);
         const { safe } = stateTree.applyMassMigrationBatch([tx]);
         assert.isTrue(safe);
 
@@ -158,7 +156,7 @@ describe("Mass Migrations", async function() {
             await registry.root(),
             mcl.aggreagate([Alice.sign(tx)]),
             tx.spokeID,
-            withdrawRoot,
+            withdrawTree.root,
             tokenID,
             tx.amount,
             tx.encode()
@@ -187,5 +185,40 @@ describe("Mass Migrations", async function() {
             batchId,
             batch.proof(0)
         );
+        const withdrawal = withdrawTree.witness(0);
+        const [, claimer] = await ethers.getSigners();
+        const claimerAddress = await claimer.getAddress();
+        const { signature } = mcl.sign(claimerAddress, Alice.secretKey);
+        const state = {
+            pubkeyIndex: Alice.pubkeyIndex,
+            tokenType: tokenID,
+            balance: tx.amount,
+            nonce: 0
+        };
+        const withdrawProof = {
+            state,
+            path: withdrawal.index,
+            witness: withdrawal.nodes
+        };
+        await contracts.withdrawManager
+            .connect(claimer)
+            .ClaimTokens(
+                commitment.withdrawRoot,
+                withdrawProof,
+                Alice.publicKey,
+                mcl.g1ToHex(signature),
+                registry.witness(Alice.pubkeyIndex)
+            );
+        await expect(
+            contracts.withdrawManager
+                .connect(claimer)
+                .ClaimTokens(
+                    commitment.withdrawRoot,
+                    withdrawProof,
+                    Alice.publicKey,
+                    mcl.g1ToHex(signature),
+                    registry.witness(Alice.pubkeyIndex)
+                )
+        ).revertedWith("WithdrawManager: Token has been claimed");
     });
 });
