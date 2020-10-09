@@ -40,6 +40,15 @@ export function randomLeaves(num: number): string[] {
     return leaves;
 }
 
+export async function mineBlocks(
+    provider: ethers.providers.JsonRpcProvider,
+    numOfBlocks: number
+) {
+    for (let i = 0; i < numOfBlocks; i++) {
+        await provider.send("evm_mine", []);
+    }
+}
+
 export function getParentLeaf(left: string, right: string) {
     return ethers.utils.solidityKeccak256(
         ["bytes32", "bytes32"],

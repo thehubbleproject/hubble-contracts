@@ -19,7 +19,11 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
-import { VaultFactory } from "../types/ethers-contracts";
+import {
+    SpokeRegistryFactory,
+    VaultFactory,
+    WithdrawManagerFactory
+} from "../types/ethers-contracts";
 
 async function waitAndRegister(
     contract: Contract,
@@ -60,7 +64,8 @@ export async function deployAll(
 
     // deploy governance
     const governance = await new GovernanceFactory(signer).deploy(
-        parameters.MAX_DEPOSIT_SUBTREE_DEPTH
+        parameters.MAX_DEPOSIT_SUBTREE_DEPTH,
+        parameters.TIME_TO_FINALISE
     );
     await waitAndRegister(
         governance,
@@ -119,16 +124,6 @@ export async function deployAll(
         nameRegistry,
         await paramManager.TOKEN_REGISTRY()
     );
-    const vault = await new VaultFactory(allLinkRefs, signer).deploy(
-        nameRegistry.address
-    );
-    await waitAndRegister(
-        vault,
-        "vault",
-        verbose,
-        nameRegistry,
-        await paramManager.VAULT()
-    );
 
     const massMigration = await new MassMigrationFactory(
         allLinkRefs,
@@ -170,6 +165,28 @@ export async function deployAll(
         nameRegistry,
         await paramManager.TEST_TOKEN()
     );
+    await tokenRegistry.requestTokenRegistration(testToken.address);
+    await tokenRegistry.finaliseTokenRegistration(testToken.address);
+
+    const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
+    await waitAndRegister(
+        spokeRegistry,
+        "spokeRegistry",
+        verbose,
+        nameRegistry,
+        await paramManager.SPOKE_REGISTRY()
+    );
+
+    const vault = await new VaultFactory(allLinkRefs, signer).deploy(
+        nameRegistry.address
+    );
+    await waitAndRegister(
+        vault,
+        "vault",
+        verbose,
+        nameRegistry,
+        await paramManager.VAULT()
+    );
 
     // deploy deposit manager
     const depositManager = await new DepositManagerFactory(
@@ -204,6 +221,20 @@ export async function deployAll(
         nameRegistry,
         await paramManager.ROLLUP_CORE()
     );
+    await vault.setRollupAddress();
+
+    const withdrawManager = await new WithdrawManagerFactory(
+        allLinkRefs,
+        signer
+    ).deploy(nameRegistry.address);
+    await waitAndRegister(
+        withdrawManager,
+        "withdrawManager",
+        verbose,
+        nameRegistry,
+        await paramManager.WITHDRAW_MANAGER()
+    );
+    await spokeRegistry.registerSpoke(withdrawManager.address);
 
     return {
         paramManager,
@@ -214,13 +245,15 @@ export async function deployAll(
         merkleTreeUtils,
         blsAccountRegistry,
         tokenRegistry,
-        vault,
         transfer,
         massMigration,
         pob,
         testToken,
+        spokeRegistry,
+        vault,
         depositManager,
-        rollup
+        rollup,
+        withdrawManager
     };
 }
 

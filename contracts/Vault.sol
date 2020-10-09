@@ -19,14 +19,20 @@ contract Vault {
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
-        rollup = Rollup(
-            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
-        );
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         spokes = SpokeRegistry(
             nameRegistry.getContractDetails(ParamManager.SPOKE_REGISTRY())
+        );
+    }
+
+    /**
+    @dev We assume Vault is deployed before Rollup
+     */
+    function setRollupAddress() external {
+        rollup = Rollup(
+            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
         );
     }
 
@@ -58,9 +64,15 @@ contract Vault {
             "Vault: Commitment is not present in batch"
         );
 
-        IERC20 tokenContract = IERC20(
-            tokenRegistry.registeredTokens(commitmentMP.commitment.body.tokenID)
+        address tokenContractAddress = tokenRegistry.registeredTokens(
+            commitmentMP.commitment.body.tokenID
         );
+        require(
+            tokenContractAddress != address(0),
+            "Vault: Token should be registered"
+        );
+
+        IERC20 tokenContract = IERC20(tokenContractAddress);
 
         require(
             tokenContract.approve(
