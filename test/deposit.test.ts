@@ -66,8 +66,6 @@ describe("DepositManager", async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
         const { testToken, tokenRegistry, depositManager } = contracts;
-        await tokenRegistry.requestTokenRegistration(testToken.address);
-        await tokenRegistry.finaliseTokenRegistration(testToken.address);
         tokenType = (await tokenRegistry.numTokens()).toNumber();
         await testToken.approve(depositManager.address, LARGE_AMOUNT_OF_TOKEN);
     });
