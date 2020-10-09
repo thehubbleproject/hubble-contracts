@@ -28,10 +28,11 @@ describe("Mass Migrations", async function() {
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
-        mcl.setDomainHex(await contracts.rollup.APP_ID());
+        const { rollup, blsAccountRegistry } = contracts;
+        mcl.setDomainHex(await rollup.APP_ID());
 
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
-        const registryContract = contracts.blsAccountRegistry;
+        const registryContract = blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
         const initialBalance = USDT.castInt(1000.0);
         Alice = State.new(-1, tokenID, initialBalance, 0);
@@ -47,13 +48,11 @@ describe("Mass Migrations", async function() {
         );
         initialBatch = initialCommitment.toBatch();
         // We submit a batch that has a stateRoot containing Alice and Bob
-        await initialBatch.submit(
-            contracts.rollup,
-            TESTING_PARAMS.STAKE_AMOUNT
-        );
+        await initialBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
     });
 
     it("submit a batch and dispute", async function() {
+        const { rollup, massMigration } = contracts;
         const tx = new TxMassMigration(
             Alice.stateID,
             USDT.castInt(39.99),
@@ -63,7 +62,6 @@ describe("Mass Migrations", async function() {
             USDT
         );
         const signature = Alice.sign(tx);
-        const rollup = contracts.rollup;
         const stateRoot = stateTree.root;
         const proof = stateTree.applyMassMigration(tx);
         assert.isTrue(proof.safe);
@@ -92,7 +90,7 @@ describe("Mass Migrations", async function() {
         const {
             0: postStateRoot,
             1: result
-        } = await contracts.massMigration.processMassMigrationCommit(
+        } = await massMigration.processMassMigrationCommit(
             stateRoot,
             commitment.toSolStruct().body,
             [{ state: proof.state, witness: proof.witness }]
@@ -133,6 +131,7 @@ describe("Mass Migrations", async function() {
         );
     });
     it("submit a batch, finalize, and withdraw", async function() {
+        const { rollup, withdrawManager, testToken, vault } = contracts;
         const tx = new TxMassMigration(
             Alice.stateID,
             USDT.castInt(39.99),
@@ -163,25 +162,21 @@ describe("Mass Migrations", async function() {
         );
 
         const batch = commitment.toBatch();
-        await batch.submit(contracts.rollup, TESTING_PARAMS.STAKE_AMOUNT);
+        await batch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
 
-        const batchId =
-            Number(await contracts.rollup.numOfBatchesSubmitted()) - 1;
+        const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
 
         await expect(
-            contracts.withdrawManager.ProcessWithdrawCommitment(
-                batchId,
-                batch.proof(0)
-            )
+            withdrawManager.ProcessWithdrawCommitment(batchId, batch.proof(0))
         ).revertedWith("Vault: Batch shoould be finalised");
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.TIME_TO_FINALISE);
 
         // We cheat here a little bit by sending token to the vault manually.
         // Ideally the tokens of the vault should come from the deposits
-        await contracts.testToken.transfer(contracts.vault.address, tx.amount);
+        await testToken.transfer(vault.address, tx.amount);
 
-        const txProcess = await contracts.withdrawManager.ProcessWithdrawCommitment(
+        const txProcess = await withdrawManager.ProcessWithdrawCommitment(
             batchId,
             batch.proof(0)
         );
@@ -205,7 +200,7 @@ describe("Mass Migrations", async function() {
             path: withdrawal.index,
             witness: withdrawal.nodes
         };
-        const txClaim = await contracts.withdrawManager
+        const txClaim = await withdrawManager
             .connect(claimer)
             .ClaimTokens(
                 commitment.withdrawRoot,
@@ -220,7 +215,7 @@ describe("Mass Migrations", async function() {
             receiptClaim.gasUsed.toNumber()
         );
         await expect(
-            contracts.withdrawManager
+            withdrawManager
                 .connect(claimer)
                 .ClaimTokens(
                     commitment.withdrawRoot,
