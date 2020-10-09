@@ -19,14 +19,20 @@ contract Vault {
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
-        rollup = Rollup(
-            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
-        );
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         spokes = SpokeRegistry(
             nameRegistry.getContractDetails(ParamManager.SPOKE_REGISTRY())
+        );
+    }
+
+    /**
+    @dev We assume Vault is deployed before Rollup
+     */
+    function setRollupAddress() external {
+        rollup = Rollup(
+            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
         );
     }
 

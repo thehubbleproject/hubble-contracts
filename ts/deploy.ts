@@ -221,6 +221,7 @@ export async function deployAll(
         nameRegistry,
         await paramManager.ROLLUP_CORE()
     );
+    await vault.setRollupAddress();
 
     const withdrawManager = await new WithdrawManagerFactory(
         allLinkRefs,
