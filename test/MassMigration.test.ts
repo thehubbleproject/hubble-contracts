@@ -11,9 +11,7 @@ import { assert } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
-import { solidityKeccak256 } from "ethers/lib/utils";
 import { Tree } from "../ts/tree";
-import { getMerkleRootFromLeaves } from "../ts/utils";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -21,7 +19,6 @@ const DOMAIN =
 describe("Mass Migrations", async function() {
     const tokenID = 1;
     let Alice: State;
-    let Bob: State;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
@@ -32,7 +29,7 @@ describe("Mass Migrations", async function() {
     });
 
     beforeEach(async function() {
-        const [signer, ...rest] = await ethers.getSigners();
+        const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
@@ -43,13 +40,7 @@ describe("Mass Migrations", async function() {
         Alice.newKeyPair();
         Alice.pubkeyIndex = await registry.register(Alice.getPubkey());
 
-        Bob = State.new(-1, tokenID, initialBalance, 0);
-        Bob.setStateID(3);
-        Bob.newKeyPair();
-        Bob.pubkeyIndex = await registry.register(Bob.getPubkey());
-
         stateTree.createState(Alice);
-        stateTree.createState(Bob);
         const accountRoot = await registry.root();
         const initialCommitment = MassMigrationCommitment.new(
             stateTree.root,
@@ -105,12 +96,7 @@ describe("Mass Migrations", async function() {
         } = await contracts.massMigration.processMassMigrationCommit(
             stateRoot,
             commitment.toSolStruct().body,
-            [
-                {
-                    state: proof.state,
-                    witness: proof.witness
-                }
-            ]
+            [{ state: proof.state, witness: proof.witness }]
         );
         assert.equal(
             postStateRoot,
@@ -138,10 +124,7 @@ describe("Mass Migrations", async function() {
         const commitmentMP = targetBatch.proof(0);
 
         await rollup.disputeMMBatch(batchId, previousMP, commitmentMP, [
-            {
-                state: proof.state,
-                witness: proof.witness
-            }
+            { state: proof.state, witness: proof.witness }
         ]);
 
         assert.equal(
