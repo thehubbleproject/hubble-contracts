@@ -181,9 +181,14 @@ describe("Mass Migrations", async function() {
         // Ideally the tokens of the vault should come from the deposits
         await contracts.testToken.transfer(contracts.vault.address, tx.amount);
 
-        await contracts.withdrawManager.ProcessWithdrawCommitment(
+        const txProcess = await contracts.withdrawManager.ProcessWithdrawCommitment(
             batchId,
             batch.proof(0)
+        );
+        const receiptProcess = await txProcess.wait();
+        console.log(
+            "Transaction cost: Process Withdraw Commitment",
+            receiptProcess.gasUsed.toNumber()
         );
         const withdrawal = withdrawTree.witness(0);
         const [, claimer] = await ethers.getSigners();
@@ -200,7 +205,7 @@ describe("Mass Migrations", async function() {
             path: withdrawal.index,
             witness: withdrawal.nodes
         };
-        await contracts.withdrawManager
+        const txClaim = await contracts.withdrawManager
             .connect(claimer)
             .ClaimTokens(
                 commitment.withdrawRoot,
@@ -209,6 +214,11 @@ describe("Mass Migrations", async function() {
                 mcl.g1ToHex(signature),
                 registry.witness(Alice.pubkeyIndex)
             );
+        const receiptClaim = await txClaim.wait();
+        console.log(
+            "Transaction cost: claiming a token",
+            receiptClaim.gasUsed.toNumber()
+        );
         await expect(
             contracts.withdrawManager
                 .connect(claimer)
