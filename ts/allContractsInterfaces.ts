@@ -13,6 +13,8 @@ import { Rollup } from "../types/ethers-contracts/Rollup";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { MassMigration } from "../types/ethers-contracts/MassMigration";
 import { Vault } from "../types/ethers-contracts/Vault";
+import { WithdrawManager } from "../types/ethers-contracts/WithdrawManager";
+import { SpokeRegistry } from "../types/ethers-contracts/SpokeRegistry";
 
 export interface allContracts {
     paramManager: ParamManager;
@@ -23,11 +25,13 @@ export interface allContracts {
     merkleTreeUtils: MerkleTreeUtils;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
-    vault: Vault;
     transfer: Transfer;
     massMigration: MassMigration;
     pob: Pob;
     testToken: TestToken;
     depositManager: DepositManager;
     rollup: Rollup;
+    spokeRegistry: SpokeRegistry;
+    vault: Vault;
+    withdrawManager: WithdrawManager;
 }

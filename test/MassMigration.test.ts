@@ -7,11 +7,12 @@ import { State } from "../ts/state";
 import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
-import { assert } from "chai";
+import { assert, expect } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
 import { Tree } from "../ts/tree";
+import { mineBlocks } from "../ts/utils";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -162,8 +163,20 @@ describe("Mass Migrations", async function() {
             tx.amount,
             tx.encode()
         );
-        await commitment
-            .toBatch()
-            .submit(contracts.rollup, TESTING_PARAMS.STAKE_AMOUNT);
+
+        const batch = commitment.toBatch();
+        await batch.submit(contracts.rollup, TESTING_PARAMS.STAKE_AMOUNT);
+
+        const batchId =
+            Number(await contracts.rollup.numOfBatchesSubmitted()) - 1;
+
+        await expect(
+            contracts.withdrawManager.ProcessWithdrawCommitment(
+                batchId,
+                batch.proof(0)
+            )
+        ).revertedWith("Vault: Batch shoould be finalised");
+
+        await mineBlocks(ethers.provider, TESTING_PARAMS.TIME_TO_FINALISE);
     });
 });

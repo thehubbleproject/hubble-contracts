@@ -4,19 +4,17 @@ pragma solidity ^0.5.15;
 Governance contract handles all the proof of burn related functionality
 */
 contract Governance {
-    constructor(uint256 maxDepositSubTree) public {
-        _MAX_DEPOSIT_SUBTREE = maxDepositSubTree;
-    }
+    uint256 private _MAX_DEPOSIT_SUBTREE = 0;
+    uint256 private _TIME_TO_FINALISE = 0;
 
-    uint256 public _MAX_DEPOSIT_SUBTREE = 2;
+    constructor(uint256 maxDepositSubTree, uint256 timeToFinalise) public {
+        _MAX_DEPOSIT_SUBTREE = maxDepositSubTree;
+        _TIME_TO_FINALISE = timeToFinalise;
+    }
 
     function MAX_DEPOSIT_SUBTREE() public view returns (uint256) {
         return _MAX_DEPOSIT_SUBTREE;
     }
-
-    // finalisation time is the number of blocks required by a batch to finalise
-    // Delay period = 7 days. Block time = 15 seconds
-    uint256 public _TIME_TO_FINALISE = 7 days;
 
     function TIME_TO_FINALISE() public view returns (uint256) {
         return _TIME_TO_FINALISE;

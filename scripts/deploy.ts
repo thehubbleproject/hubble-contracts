@@ -24,6 +24,7 @@ async function main() {
         MAX_DEPTH: 20,
         MAX_DEPOSIT_SUBTREE_DEPTH: 1,
         STAKE_AMOUNT: "0.1",
+        TIME_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
         GENESIS_STATE_ROOT: argv.root
     };
 
