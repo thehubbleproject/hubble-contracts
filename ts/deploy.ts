@@ -166,6 +166,8 @@ export async function deployAll(
         nameRegistry,
         await paramManager.TEST_TOKEN()
     );
+    await tokenRegistry.requestTokenRegistration(testToken.address);
+    await tokenRegistry.finaliseTokenRegistration(testToken.address);
 
     // deploy deposit manager
     const depositManager = await new DepositManagerFactory(

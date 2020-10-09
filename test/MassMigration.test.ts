@@ -178,5 +178,14 @@ describe("Mass Migrations", async function() {
         ).revertedWith("Vault: Batch shoould be finalised");
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.TIME_TO_FINALISE);
+
+        // We cheat here a little bit by sending token to the vault manually.
+        // Ideally the tokens of the vault should come from the deposits
+        await contracts.testToken.transfer(contracts.vault.address, tx.amount);
+
+        await contracts.withdrawManager.ProcessWithdrawCommitment(
+            batchId,
+            batch.proof(0)
+        );
     });
 });
