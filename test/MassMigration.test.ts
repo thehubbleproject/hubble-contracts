@@ -133,4 +133,37 @@ describe("Mass Migrations", async function() {
             "Good state transition should not rollback"
         );
     });
+    it("submit a batch, finalize, and withdraw", async function() {
+        const tx = new TxMassMigration(
+            Alice.stateID,
+            USDT.castInt(39.99),
+            1,
+            USDT.castInt(0.01),
+            Alice.nonce + 1,
+            USDT
+        );
+        const leaf = State.new(
+            Alice.pubkeyIndex,
+            tokenID,
+            tx.amount,
+            0
+        ).toStateLeaf();
+        const withdrawRoot = Tree.merklize([leaf]).root;
+        const { safe } = stateTree.applyMassMigrationBatch([tx]);
+        assert.isTrue(safe);
+
+        const commitment = MassMigrationCommitment.new(
+            stateTree.root,
+            await registry.root(),
+            mcl.aggreagate([Alice.sign(tx)]),
+            tx.spokeID,
+            withdrawRoot,
+            tokenID,
+            tx.amount,
+            tx.encode()
+        );
+        await commitment
+            .toBatch()
+            .submit(contracts.rollup, TESTING_PARAMS.STAKE_AMOUNT);
+    });
 });
