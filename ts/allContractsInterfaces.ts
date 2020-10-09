@@ -29,9 +29,9 @@ export interface allContracts {
     massMigration: MassMigration;
     pob: Pob;
     testToken: TestToken;
-    depositManager: DepositManager;
-    rollup: Rollup;
     spokeRegistry: SpokeRegistry;
     vault: Vault;
+    depositManager: DepositManager;
+    rollup: Rollup;
     withdrawManager: WithdrawManager;
 }

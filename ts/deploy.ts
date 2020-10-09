@@ -24,7 +24,6 @@ import {
     VaultFactory,
     WithdrawManagerFactory
 } from "../types/ethers-contracts";
-import { SpokeRegistry } from "../types/ethers-contracts/SpokeRegistry";
 
 async function waitAndRegister(
     contract: Contract,
@@ -169,6 +168,26 @@ export async function deployAll(
     await tokenRegistry.requestTokenRegistration(testToken.address);
     await tokenRegistry.finaliseTokenRegistration(testToken.address);
 
+    const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
+    await waitAndRegister(
+        spokeRegistry,
+        "spokeRegistry",
+        verbose,
+        nameRegistry,
+        await paramManager.SPOKE_REGISTRY()
+    );
+
+    const vault = await new VaultFactory(allLinkRefs, signer).deploy(
+        nameRegistry.address
+    );
+    await waitAndRegister(
+        vault,
+        "vault",
+        verbose,
+        nameRegistry,
+        await paramManager.VAULT()
+    );
+
     // deploy deposit manager
     const depositManager = await new DepositManagerFactory(
         allLinkRefs,
@@ -203,26 +222,6 @@ export async function deployAll(
         await paramManager.ROLLUP_CORE()
     );
 
-    const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
-    await waitAndRegister(
-        spokeRegistry,
-        "spokeRegistry",
-        verbose,
-        nameRegistry,
-        await paramManager.SPOKE_REGISTRY()
-    );
-
-    const vault = await new VaultFactory(allLinkRefs, signer).deploy(
-        nameRegistry.address
-    );
-    await waitAndRegister(
-        vault,
-        "vault",
-        verbose,
-        nameRegistry,
-        await paramManager.VAULT()
-    );
-
     const withdrawManager = await new WithdrawManagerFactory(
         allLinkRefs,
         signer
@@ -249,10 +248,10 @@ export async function deployAll(
         massMigration,
         pob,
         testToken,
-        depositManager,
-        rollup,
         spokeRegistry,
         vault,
+        depositManager,
+        rollup,
         withdrawManager
     };
 }
