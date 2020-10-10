@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { Logger } from "./Logger.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -91,7 +90,6 @@ contract DepositManager is DepositCore {
     Registry public nameRegistry;
     address public vault;
 
-    MTUtils public merkleUtils;
     Governance public governance;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
@@ -120,9 +118,6 @@ contract DepositManager is DepositCore {
         nameRegistry = Registry(_registryAddr);
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
