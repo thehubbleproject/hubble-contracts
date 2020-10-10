@@ -149,7 +149,11 @@ contract RollupHelpers is RollupSetup, StakeManager {
         uint256 totalSlashings = 0;
         uint256 initialBatchID = batches.length - 1;
 
-        for (uint256 i = initialBatchID; i >= invalidBatchMarker; i--) {
+        for (
+            uint256 batchID = initialBatchID;
+            batchID >= invalidBatchMarker;
+            batchID--
+        ) {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
@@ -158,16 +162,16 @@ contract RollupHelpers is RollupSetup, StakeManager {
                 break;
             }
             // delete batch
-            delete batches[i];
+            delete batches[batchID];
 
             // queue deposits again
-            depositManager.tryReenqueue(i);
+            depositManager.tryReenqueue(batchID);
 
             totalSlashings++;
 
-            logger.logBatchRollback(i);
+            logger.logBatchRollback(batchID);
 
-            if (i == invalidBatchMarker) {
+            if (batchID == invalidBatchMarker) {
                 // we have completed rollback
                 // update the marker
                 invalidBatchMarker = 0;
