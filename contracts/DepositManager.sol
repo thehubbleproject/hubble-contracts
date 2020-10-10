@@ -183,6 +183,7 @@ contract DepositManager is DepositCore {
         bytes32 subtreeRoot = submittedSubtree[batchID];
         if (subtreeRoot != bytes32(0)) {
             enqueue(subtreeRoot);
+            delete submittedSubtree[batchID];
         }
     }
 }
