@@ -171,38 +171,12 @@ contract DepositManager is DepositCore {
         }
     }
 
-    /**
-     * @notice Merges the deposit tree with the balance tree by
-     *        superimposing the deposit subtree on the balance tree
-     * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
-     * @param zero Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
-     * @return Updates in-state merkle tree root
-     */
-    function finaliseDeposits(
-        uint256 _subTreeDepth,
-        Types.StateMerkleProofWithPath memory zero,
-        bytes32 latestBalanceTree
-    ) public onlyRollup returns (bytes32) {
-        bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
-
-        require(
-            merkleUtils.verifyLeaf(
-                latestBalanceTree,
-                emptySubtreeRoot,
-                zero.path,
-                zero.witness
-            ),
-            "proof invalid"
-        );
-
-        // just dequeue from the pre package deposit subtrees
-        bytes32 depositsSubTreeRoot = dequeue();
-
-        // emit the event
-        logger.logDepositFinalised(depositsSubTreeRoot, zero.path);
-
-        // return the updated merkle tree root
-        return (depositsSubTreeRoot);
+    function finaliseDeposits()
+        public
+        onlyRollup
+        returns (bytes32 subtreeRoot)
+    {
+        subtreeRoot = dequeue();
     }
 
     function reenqueue(bytes32 subtreeRoot) external onlyRollup {

@@ -409,11 +409,19 @@ contract Rollup is RollupHelpers {
         uint256 _subTreeDepth,
         Types.StateMerkleProofWithPath calldata zero
     ) external payable onlyCoordinator isNotRollingBack {
-        bytes32 depositSubTreeRoot = depositManager.finaliseDeposits(
-            _subTreeDepth,
-            zero,
-            getLatestBalanceTreeRoot()
+        bytes32 stateRoot = getLatestBalanceTreeRoot();
+        bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
+        require(
+            merkleUtils.verifyLeaf(
+                stateRoot,
+                emptySubtreeRoot,
+                zero.path,
+                zero.witness
+            ),
+            "proof invalid"
         );
+        bytes32 depositSubTreeRoot = depositManager.finaliseDeposits();
+        logger.logDepositFinalised(depositSubTreeRoot, zero.path);
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
