@@ -184,7 +184,7 @@ contract RollupHelpers is RollupSetup {
             delete batches[i];
 
             // queue deposits again
-            depositManager.reenqueue(batch.depositRoot);
+            depositManager.tryReenqueue(i);
 
             totalSlashings++;
 
@@ -420,7 +420,8 @@ contract Rollup is RollupHelpers {
             ),
             "proof invalid"
         );
-        bytes32 depositSubTreeRoot = depositManager.finaliseDeposits();
+        uint256 newBatchID = batches.length;
+        bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit(newBatchID);
         logger.logDepositFinalised(depositSubTreeRoot, zero.path);
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(

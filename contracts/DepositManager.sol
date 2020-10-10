@@ -97,6 +97,9 @@ contract DepositManager is DepositCore {
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
 
+    // batchID => subtreeRoot
+    mapping(uint256 => bytes32) submittedSubtree;
+
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.POB())
@@ -171,15 +174,20 @@ contract DepositManager is DepositCore {
         }
     }
 
-    function finaliseDeposits()
-        public
+    function dequeueToSubmit(uint256 batchID)
+        external
         onlyRollup
-        returns (bytes32 subtreeRoot)
+        returns (bytes32)
     {
-        subtreeRoot = dequeue();
+        bytes32 subtreeRoot = dequeue();
+        submittedSubtree[batchID] = subtreeRoot;
+        return subtreeRoot;
     }
 
-    function reenqueue(bytes32 subtreeRoot) external onlyRollup {
-        enqueue(subtreeRoot);
+    function tryReenqueue(uint256 batchID) external onlyRollup {
+        bytes32 subtreeRoot = submittedSubtree[batchID];
+        if (subtreeRoot != bytes32(0)) {
+            enqueue(subtreeRoot);
+        }
     }
 }
