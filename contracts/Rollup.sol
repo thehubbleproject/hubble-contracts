@@ -125,13 +125,6 @@ contract RollupSetup {
 
 contract RollupHelpers is RollupSetup {
     /**
-     * @notice Returns the latest state root
-     */
-    function getLatestBalanceTreeRoot() public view returns (bytes32) {
-        return batches[batches.length - 1].commitmentRoot;
-    }
-
-    /**
      * @notice Returns the total number of batches submitted
      */
     function numOfBatchesSubmitted() public view returns (uint256) {
@@ -404,10 +397,15 @@ contract Rollup is RollupHelpers {
      * @notice finalise deposits and submit batch
      */
     function finaliseDepositsAndSubmitBatch(
+        Types.CommitmentInclusionProof calldata previous,
         uint256 _subTreeDepth,
         Types.StateMerkleProofWithPath calldata zero
     ) external payable onlyCoordinator isNotRollingBack {
-        bytes32 stateRoot = getLatestBalanceTreeRoot();
+        uint256 preBatchID = batches.length - 1;
+        require(
+            checkInclusion(batches[preBatchID].commitmentRoot, previous),
+            "previous commitment is absent in the previous batch"
+        );
         bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
         require(
             merkleUtils.verifyLeaf(
@@ -418,8 +416,11 @@ contract Rollup is RollupHelpers {
             ),
             "proof invalid"
         );
-        uint256 newBatchID = batches.length;
-        bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit(newBatchID);
+        uint256 postBatchID = preBatchID + 1;
+        // This deposit subtree is included in the batch whose ID is postBatchID
+        bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit(
+            postBatchID
+        );
         logger.logDepositFinalised(depositSubTreeRoot, zero.path);
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
@@ -447,7 +448,7 @@ contract Rollup is RollupHelpers {
         logger.logNewBatch(
             newBatch.committer,
             newRoot,
-            batches.length - 1,
+            postBatchID,
             Types.Usage.Deposit
         );
     }
