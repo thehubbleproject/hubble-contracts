@@ -208,6 +208,12 @@ library Types {
         bytes32[] witness;
     }
 
+    struct SubtreeVacancyProof {
+        uint256 depth;
+        uint256 pathAtDepth;
+        bytes32[] witness;
+    }
+
     enum Result {
         Ok,
         InvalidTokenAddress,

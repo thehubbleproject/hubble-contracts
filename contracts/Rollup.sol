@@ -397,36 +397,34 @@ contract Rollup is RollupHelpers {
      * @notice finalise deposits and submit batch
      */
     function finaliseDepositsAndSubmitBatch(
-        Types.CommitmentInclusionProof calldata previous,
-        uint256 _subTreeDepth,
-        Types.StateMerkleProofWithPath calldata zero
-    ) external payable onlyCoordinator isNotRollingBack {
+        Types.CommitmentInclusionProof memory previous,
+        Types.SubtreeVacancyProof memory vacant
+    ) public payable onlyCoordinator isNotRollingBack {
         uint256 preBatchID = batches.length - 1;
         require(
             checkInclusion(batches[preBatchID].commitmentRoot, previous),
             "previous commitment is absent in the previous batch"
         );
-        bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
         require(
             merkleUtils.verifyLeaf(
-                stateRoot,
-                emptySubtreeRoot,
-                zero.path,
-                zero.witness
+                previous.commitment.stateRoot,
+                merkleUtils.getRoot(vacant.depth),
+                vacant.pathAtDepth,
+                vacant.witness
             ),
-            "proof invalid"
+            "Rollup: State subtree is not vacant"
         );
         uint256 postBatchID = preBatchID + 1;
         // This deposit subtree is included in the batch whose ID is postBatchID
         bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit(
             postBatchID
         );
-        logger.logDepositFinalised(depositSubTreeRoot, zero.path);
+        logger.logDepositFinalised(depositSubTreeRoot, vacant.pathAtDepth);
 
         bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
             depositSubTreeRoot,
-            zero.path,
-            zero.witness
+            vacant.pathAtDepth,
+            vacant.witness
         );
 
         bytes32[] memory depositCommitments = new bytes32[](1);
