@@ -287,7 +287,7 @@ contract Rollup is RollupHelpers {
     /**
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
-    function submitTransferBatch(
+    function submitTransfer(
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
         uint256[] calldata tokenTypes,
@@ -316,7 +316,7 @@ contract Rollup is RollupHelpers {
     /**
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
-    function submitCreate2TransferBatch(
+    function submitCreate2Transfer(
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
         uint256[] calldata tokenTypes,
@@ -346,7 +346,7 @@ contract Rollup is RollupHelpers {
      * @param meta is targetSpokeID, tokenID, and amount combined
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
-    function submitMassMigrationBatch(
+    function submitMassMigration(
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
         uint256[3][] calldata meta,
@@ -374,10 +374,7 @@ contract Rollup is RollupHelpers {
         submitBatch(leaves, Types.Usage.MassMigration);
     }
 
-    /**
-     * @notice finalise deposits and submit batch
-     */
-    function finaliseDepositsAndSubmitBatch(
+    function submitDeposits(
         Types.CommitmentInclusionProof memory previous,
         Types.SubtreeVacancyProof memory vacant
     ) public payable onlyCoordinator isNotRollingBack {
@@ -437,7 +434,7 @@ contract Rollup is RollupHelpers {
      * @notice Gives the number of batches submitted on-chain
      * @return Total number of batches submitted onchain
      */
-    function disputeBatch(
+    function disputeTransitionTransfer(
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.TransferCommitmentInclusionProof memory target,
@@ -473,7 +470,7 @@ contract Rollup is RollupHelpers {
         }
     }
 
-    function disputeMMBatch(
+    function disputeTransitionMassMigration(
         uint256 _batch_id,
         Types.CommitmentInclusionProof memory previous,
         Types.MMCommitmentInclusionProof memory target,
@@ -507,7 +504,7 @@ contract Rollup is RollupHelpers {
         }
     }
 
-    function disputeSignature(
+    function disputeSignatureTransfer(
         uint256 batchID,
         Types.TransferCommitmentInclusionProof memory target,
         Types.SignatureProof memory signatureProof
@@ -532,7 +529,7 @@ contract Rollup is RollupHelpers {
         }
     }
 
-    function disputeSignatureinMM(
+    function disputeSignatureMassMigration(
         uint256 batchID,
         Types.MMCommitmentInclusionProof memory target,
         Types.SignatureProof memory signatureProof
