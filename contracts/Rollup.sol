@@ -286,7 +286,6 @@ contract Rollup is RollupHelpers {
             ),
             committer: msg.sender,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            depositRoot: ZERO_BYTES32,
             withdrawn: false
         });
         batches.push(newBatch);
@@ -306,7 +305,6 @@ contract Rollup is RollupHelpers {
             commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
             committer: msg.sender,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            depositRoot: ZERO_BYTES32,
             withdrawn: false
         });
         batches.push(newBatch);
@@ -441,7 +439,6 @@ contract Rollup is RollupHelpers {
             ),
             committer: msg.sender,
             finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            depositRoot: depositSubTreeRoot,
             withdrawn: false
         });
 

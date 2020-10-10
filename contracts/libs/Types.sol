@@ -35,7 +35,6 @@ library Types {
         bytes32 commitmentRoot;
         address committer;
         uint256 finalisesOn;
-        bytes32 depositRoot;
         bool withdrawn;
     }
 
