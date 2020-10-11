@@ -283,6 +283,7 @@ contract Rollup is RollupHelpers {
             withdrawn: false
         });
         batches.push(newBatch);
+        stake(batches.length - 1);
     }
 
     /**
