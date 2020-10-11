@@ -4,6 +4,7 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
+    uint256 constant addressMask = 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
     struct SignatureProof {
         Types.UserState[] states;
         bytes32[][] stateWitnesses;
@@ -33,8 +34,50 @@ library Types {
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {
         bytes32 commitmentRoot;
-        address committer;
-        uint256 finalisesOn;
+        // [...|batchType<1>|commitmentLength<1>|committer<20>|finaliseOn<4>]
+        bytes32 meta;
+    }
+
+    function encodeMeta(
+        Usage batchType,
+        uint256 commitmentLength,
+        address committer,
+        uint256 finaliseOn
+    ) internal pure returns (bytes32) {
+        uint256 meta = 0;
+        assembly {
+            meta := or(shl(31, and(batchType, 0xff)), meta)
+            meta := or(shl(30, and(commitmentLength, 0xff)), meta)
+            meta := or(
+                shl(
+                    10,
+                    and(committer, 0xffffffffffffffffffffffffffffffffffffffff)
+                ),
+                meta
+            )
+            meta := or(shl(6, and(finaliseOn, 0xffffffff)), meta)
+        }
+        return bytes32(meta);
+    }
+
+    function batchType(Batch memory batch) internal pure returns (uint256) {
+        return (uint256(batch.meta) >> 31) & 0xff;
+    }
+
+    function commitmentLength(Batch memory batch)
+        internal
+        pure
+        returns (uint256)
+    {
+        return (uint256(batch.meta) >> 30) & 0xff;
+    }
+
+    function committer(Batch memory batch) internal pure returns (address) {
+        return address((uint256(batch.meta) >> 10) & addressMask);
+    }
+
+    function finaliseOn(Batch memory batch) internal pure returns (uint256) {
+        return (uint256(batch.meta) >> 6) & 0xffffffff;
     }
 
     struct Commitment {

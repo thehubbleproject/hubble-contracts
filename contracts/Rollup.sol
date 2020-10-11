@@ -21,6 +21,7 @@ import { StakeManager } from "./StakeManager.sol";
 contract RollupSetup {
     using SafeMath for uint256;
     using Tx for bytes;
+    using Types for Types.Batch;
     using Types for Types.Commitment;
     using Types for Types.TransferCommitment;
     using Types for Types.MassMigrationCommitment;
@@ -67,7 +68,7 @@ contract RollupSetup {
     }
     modifier isDisputable(uint256 _batch_id) {
         require(
-            block.number < batches[_batch_id].finalisesOn,
+            block.number < batches[_batch_id].finaliseOn(),
             "Batch already finalised"
         );
 
@@ -247,20 +248,24 @@ contract Rollup is RollupHelpers {
         );
 
         changeStakeAmount(governance.STAKE_AMOUNT());
-        bytes32[] memory genesisCommitments = new bytes32[](1);
-        genesisCommitments[0] = keccak256(
-            abi.encodePacked(genesisStateRoot, ZERO_BYTES32)
+        bytes32 genesisCommitment = keccak256(
+            abi.encode(genesisStateRoot, ZERO_BYTES32)
+        );
+        bytes32 commitmentRoot = keccak256(
+            abi.encode(genesisCommitment, ZERO_BYTES32)
         );
         Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(
-                genesisCommitments
-            ),
-            committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE()
+            commitmentRoot: commitmentRoot,
+            meta: Types.encodeMeta(
+                Types.Usage.Genesis,
+                1,
+                msg.sender,
+                block.number // genesis finalise instantly
+            )
         });
         batches.push(newBatch);
         logger.logNewBatch(
-            newBatch.committer,
+            msg.sender,
             genesisStateRoot,
             batches.length - 1,
             Types.Usage.Genesis
@@ -268,13 +273,19 @@ contract Rollup is RollupHelpers {
         APP_ID = keccak256(abi.encodePacked(address(this)));
     }
 
-    function submitBatch(bytes32[] memory commitments, Types.Usage batchType)
-        internal
-    {
+    function submitBatch(
+        bytes32 commitmentRoot,
+        uint256 commitmentLength,
+        Types.Usage batchType
+    ) internal {
         Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
-            committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE()
+            commitmentRoot: commitmentRoot,
+            meta: Types.encodeMeta(
+                batchType,
+                commitmentLength,
+                msg.sender,
+                block.number + governance.TIME_TO_FINALISE()
+            )
         });
         batches.push(newBatch);
         stake(batches.length - 1);
@@ -306,7 +317,11 @@ contract Rollup is RollupHelpers {
             );
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
-        submitBatch(leaves, Types.Usage.Transfer);
+        submitBatch(
+            merkleUtils.getMerkleRootFromLeaves(leaves),
+            stateRoots.length,
+            Types.Usage.Transfer
+        );
     }
 
     /**
@@ -335,7 +350,11 @@ contract Rollup is RollupHelpers {
             );
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
-        submitBatch(leaves, Types.Usage.Create2Transfer);
+        submitBatch(
+            merkleUtils.getMerkleRootFromLeaves(leaves),
+            stateRoots.length,
+            Types.Usage.Create2Transfer
+        );
     }
 
     /**
@@ -367,7 +386,11 @@ contract Rollup is RollupHelpers {
             );
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
-        submitBatch(leaves, Types.Usage.MassMigration);
+        submitBatch(
+            merkleUtils.getMerkleRootFromLeaves(leaves),
+            stateRoots.length,
+            Types.Usage.MassMigration
+        );
     }
 
     /**
@@ -404,27 +427,11 @@ contract Rollup is RollupHelpers {
             vacant.witness
         );
 
-        bytes32[] memory depositCommitments = new bytes32[](1);
-        depositCommitments[0] = keccak256(
-            abi.encodePacked(newRoot, ZERO_BYTES32)
+        bytes32 depositCommitment = keccak256(
+            abi.encode(newRoot, ZERO_BYTES32)
         );
-
-        Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: merkleUtils.getMerkleRootFromLeaves(
-                depositCommitments
-            ),
-            committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE()
-        });
-
-        batches.push(newBatch);
-
-        logger.logNewBatch(
-            newBatch.committer,
-            newRoot,
-            postBatchID,
-            Types.Usage.Deposit
-        );
+        bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
+        submitBatch(root, 1, Types.Usage.MassMigration);
     }
 
     /**
@@ -559,11 +566,11 @@ contract Rollup is RollupHelpers {
      */
     function WithdrawStake(uint256 batchID) public {
         require(
-            msg.sender == batches[batchID].committer,
+            msg.sender == batches[batchID].committer(),
             "You are not the correct committer for this batch"
         );
         require(
-            block.number > batches[batchID].finalisesOn,
+            block.number > batches[batchID].finaliseOn(),
             "This batch is not yet finalised, check back soon!"
         );
         withdraw(msg.sender, batchID);
