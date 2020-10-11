@@ -257,7 +257,7 @@ contract Rollup is RollupHelpers {
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
-                Types.Usage.Genesis,
+                uint256(Types.Usage.Genesis),
                 1,
                 msg.sender,
                 block.number // genesis finalise instantly
@@ -281,7 +281,7 @@ contract Rollup is RollupHelpers {
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
-                batchType,
+                uint256(batchType),
                 commitmentLength,
                 msg.sender,
                 block.number + governance.TIME_TO_FINALISE()

@@ -7,7 +7,7 @@ contract TestTypes {
     using Types for Types.Batch;
 
     function encodeMeta(
-        Types.Usage batchType,
+        uint256 batchType,
         uint256 commitmentLength,
         address committer,
         uint256 finaliseOn
