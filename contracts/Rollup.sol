@@ -67,10 +67,6 @@ contract RollupSetup {
     }
     modifier isDisputable(uint256 _batch_id) {
         require(
-            !batches[_batch_id].withdrawn,
-            "No point dispute a withdrawn batch"
-        );
-        require(
             block.number < batches[_batch_id].finalisesOn,
             "Batch already finalised"
         );
@@ -260,8 +256,7 @@ contract Rollup is RollupHelpers {
                 genesisCommitments
             ),
             committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            withdrawn: false
+            finalisesOn: block.number + governance.TIME_TO_FINALISE()
         });
         batches.push(newBatch);
         logger.logNewBatch(
@@ -279,8 +274,7 @@ contract Rollup is RollupHelpers {
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: merkleUtils.getMerkleRootFromLeaves(commitments),
             committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            withdrawn: false
+            finalisesOn: block.number + governance.TIME_TO_FINALISE()
         });
         batches.push(newBatch);
         stake(batches.length - 1);
@@ -420,8 +414,7 @@ contract Rollup is RollupHelpers {
                 depositCommitments
             ),
             committer: msg.sender,
-            finalisesOn: block.number + governance.TIME_TO_FINALISE(),
-            withdrawn: false
+            finalisesOn: block.number + governance.TIME_TO_FINALISE()
         });
 
         batches.push(newBatch);
