@@ -212,7 +212,7 @@ export class TransferBatch extends Batch {
     }
 
     async submit(rollup: Rollup, stakingAmount: string) {
-        return await rollup.submitTransferBatch(
+        return await rollup.submitTransfer(
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => c.tokenType),
@@ -228,7 +228,7 @@ export class MassMigrationBatch extends Batch {
         super(commitments);
     }
     async submit(rollup: Rollup, stakingAmount: string) {
-        return await rollup.submitMassMigrationBatch(
+        return await rollup.submitMassMigration(
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => [c.targetSpokeID, c.tokenID, c.amount]),
