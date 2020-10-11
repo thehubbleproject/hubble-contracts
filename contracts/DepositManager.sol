@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { Logger } from "./Logger.sol";
-import { MerkleTreeUtils as MTUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -91,11 +90,13 @@ contract DepositManager is DepositCore {
     Registry public nameRegistry;
     address public vault;
 
-    MTUtils public merkleUtils;
     Governance public governance;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
     IERC20 public tokenContract;
+
+    // batchID => subtreeRoot
+    mapping(uint256 => bytes32) submittedSubtree;
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -117,9 +118,6 @@ contract DepositManager is DepositCore {
         nameRegistry = Registry(_registryAddr);
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.Governance())
-        );
-        merkleUtils = MTUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
         );
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
@@ -171,41 +169,21 @@ contract DepositManager is DepositCore {
         }
     }
 
-    /**
-     * @notice Merges the deposit tree with the balance tree by
-     *        superimposing the deposit subtree on the balance tree
-     * @param _subTreeDepth Deposit tree depth or depth of subtree that is being deposited
-     * @param zero Merkle proof proving the node at which we are inserting the deposit subtree consists of all empty leaves
-     * @return Updates in-state merkle tree root
-     */
-    function finaliseDeposits(
-        uint256 _subTreeDepth,
-        Types.StateMerkleProofWithPath memory zero,
-        bytes32 latestBalanceTree
-    ) public onlyRollup returns (bytes32) {
-        bytes32 emptySubtreeRoot = merkleUtils.getRoot(_subTreeDepth);
-
-        require(
-            merkleUtils.verifyLeaf(
-                latestBalanceTree,
-                emptySubtreeRoot,
-                zero.path,
-                zero.witness
-            ),
-            "proof invalid"
-        );
-
-        // just dequeue from the pre package deposit subtrees
-        bytes32 depositsSubTreeRoot = dequeue();
-
-        // emit the event
-        logger.logDepositFinalised(depositsSubTreeRoot, zero.path);
-
-        // return the updated merkle tree root
-        return (depositsSubTreeRoot);
+    function dequeueToSubmit(uint256 batchID)
+        external
+        onlyRollup
+        returns (bytes32)
+    {
+        bytes32 subtreeRoot = dequeue();
+        submittedSubtree[batchID] = subtreeRoot;
+        return subtreeRoot;
     }
 
-    function reenqueue(bytes32 subtreeRoot) external onlyRollup {
-        enqueue(subtreeRoot);
+    function tryReenqueue(uint256 batchID) external onlyRollup {
+        bytes32 subtreeRoot = submittedSubtree[batchID];
+        if (subtreeRoot != bytes32(0)) {
+            enqueue(subtreeRoot);
+            delete submittedSubtree[batchID];
+        }
     }
 }

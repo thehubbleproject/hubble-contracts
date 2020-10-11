@@ -35,7 +35,6 @@ library Types {
         bytes32 commitmentRoot;
         address committer;
         uint256 finalisesOn;
-        bytes32 depositRoot;
         bool withdrawn;
     }
 
@@ -206,6 +205,12 @@ library Types {
     struct StateMerkleProofWithPath {
         UserState state;
         uint256 path;
+        bytes32[] witness;
+    }
+
+    struct SubtreeVacancyProof {
+        uint256 depth;
+        uint256 pathAtDepth;
         bytes32[] witness;
     }
 
