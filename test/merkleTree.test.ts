@@ -11,7 +11,7 @@ describe("MerkleTreeUtils", async function() {
     let contract: TestMerkleTree;
     before(async function() {
         const [signer] = await ethers.getSigners();
-        contract = await new TestMerkleTreeFactory(signer).deploy();
+        contract = await new TestMerkleTreeFactory(signer).deploy(MAX_DEPTH);
     });
     it("verify", async function() {
         const size = 50;
@@ -33,5 +33,16 @@ describe("MerkleTreeUtils", async function() {
             totalCost += gasCost.toNumber();
         }
         console.log("Average cost of verifying a leaf", totalCost / size);
+    });
+
+    it("merklize", async function() {
+        const size = 32;
+        const leaves = randomLeaves(size);
+        const {
+            0: root,
+            1: gasCost
+        } = await contract.callStatic.testGetMerkleRootFromLeaves(leaves);
+        assert.equal(root, Tree.merklize(leaves).root);
+        console.log(`Merklizing ${size} leaves onchain`, gasCost.toNumber());
     });
 });
