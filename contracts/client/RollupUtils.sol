@@ -1,8 +1,8 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { Tx } from "./Tx.sol";
-import { Types } from "./Types.sol";
+import { Tx } from "../libs/Tx.sol";
+import { Types } from "../libs/Types.sol";
 
 contract RollupUtils {
     using Tx for bytes;
