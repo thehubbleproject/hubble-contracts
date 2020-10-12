@@ -38,7 +38,7 @@ contract Vault {
     }
 
     function requestApproval(
-        uint256 batch_id,
+        uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
         require(
@@ -48,7 +48,7 @@ contract Vault {
                 ),
             "Vault: msg.sender should be the target spoke"
         );
-        Types.Batch memory batch = rollup.getBatch(batch_id);
+        Types.Batch memory batch = rollup.getBatch(batchID);
 
         require(
             block.number >= batch.finaliseOn(),

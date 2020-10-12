@@ -36,7 +36,7 @@ contract DepositCore is SubtreeQueue {
     bytes32[] public babyTrees;
     uint256 public depositCount = 0;
 
-    uint256 public MAX_SUBTREE_SIZE;
+    uint256 public govMaxSubtreeSize;
 
     function insertAndMerge(bytes32 depositLeaf)
         internal
@@ -64,7 +64,7 @@ contract DepositCore is SubtreeQueue {
             i >>= 1;
         }
         // Subtree is ready, send to SubtreeQueue
-        if (depositCount == MAX_SUBTREE_SIZE) {
+        if (depositCount == govMaxSubtreeSize) {
             readySubtree = babyTrees[0];
             enqueue(readySubtree);
             reset();
@@ -123,7 +123,7 @@ contract DepositManager is DepositCore {
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
         vault = nameRegistry.getContractDetails(ParamManager.VAULT());
-        MAX_SUBTREE_SIZE = 1 << governance.MAX_DEPOSIT_SUBTREE();
+        govMaxSubtreeSize = 1 << governance.MAX_DEPOSIT_SUBTREE();
     }
 
     /**

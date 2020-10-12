@@ -33,16 +33,16 @@ library MerkleTreeUtilsLib {
 contract MerkleTreeUtils {
     // The default hashes
     bytes32[] public defaultHashes;
-    uint256 public MAX_DEPTH;
+    uint256 public maxDepth;
 
     /**
      * @notice Initialize a new MerkleTree contract, computing the default hashes for the merkle tree (MT)
      */
-    constructor(uint256 maxDepth) public {
-        MAX_DEPTH = maxDepth;
-        defaultHashes = new bytes32[](MAX_DEPTH);
+    constructor(uint256 depth) public {
+        maxDepth = depth;
+        defaultHashes = new bytes32[](maxDepth);
         // Calculate & set the default hashes
-        setDefaultHashes(MAX_DEPTH);
+        setDefaultHashes(maxDepth);
     }
 
     /* Methods */
@@ -64,8 +64,8 @@ contract MerkleTreeUtils {
         return
             keccak256(
                 abi.encode(
-                    defaultHashes[MAX_DEPTH - 1],
-                    defaultHashes[MAX_DEPTH - 1]
+                    defaultHashes[maxDepth - 1],
+                    defaultHashes[maxDepth - 1]
                 )
             );
     }

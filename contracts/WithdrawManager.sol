@@ -21,7 +21,7 @@ contract WithdrawManager {
     // withdrawRoot => accountRoot
     mapping(bytes32 => bytes32) private processed;
     ITokenRegistry public tokenRegistry;
-    bytes32 public APP_ID;
+    bytes32 public appID;
 
     /*********************
      * Constructor *
@@ -32,7 +32,7 @@ contract WithdrawManager {
             nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
         );
         vault = Vault(nameRegistry.getContractDetails(ParamManager.VAULT()));
-        APP_ID = keccak256(
+        appID = keccak256(
             abi.encodePacked(
                 address(
                     nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
@@ -60,10 +60,10 @@ contract WithdrawManager {
     }
 
     function ProcessWithdrawCommitment(
-        uint256 _batch_id,
+        uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
-        vault.requestApproval(_batch_id, commitmentMP);
+        vault.requestApproval(batchID, commitmentMP);
         IERC20 tokenContract = IERC20(
             tokenRegistry.safeGetAddress(commitmentMP.commitment.body.tokenID)
         );
@@ -120,7 +120,7 @@ contract WithdrawManager {
             BLS.verifySingle(
                 signature,
                 pubkey,
-                BLS.hashToPoint(APP_ID, abi.encodePacked(msg.sender))
+                BLS.hashToPoint(appID, abi.encodePacked(msg.sender))
             ),
             "WithdrawManager: Bad signature"
         );

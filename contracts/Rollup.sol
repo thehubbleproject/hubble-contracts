@@ -63,14 +63,14 @@ contract RollupSetup {
         assert(invalidBatchMarker > 0);
         _;
     }
-    modifier isDisputable(uint256 _batch_id) {
+    modifier isDisputable(uint256 batchID) {
         require(
-            block.number < batches[_batch_id].finaliseOn(),
+            block.number < batches[batchID].finaliseOn(),
             "Batch already finalised"
         );
 
         require(
-            _batch_id < invalidBatchMarker || invalidBatchMarker == 0,
+            batchID < invalidBatchMarker || invalidBatchMarker == 0,
             "Already successfully disputed. Roll back in process"
         );
         _;
@@ -128,16 +128,16 @@ contract RollupHelpers is RollupSetup, StakeManager {
     /**
      * @notice Returns the batch
      */
-    function getBatch(uint256 _batch_id)
+    function getBatch(uint256 batchID)
         external
         view
         returns (Types.Batch memory batch)
     {
         require(
-            batches.length - 1 >= _batch_id,
+            batches.length - 1 >= batchID,
             "Batch id greater than total number of batches, invalid batch id"
         );
-        batch = batches[_batch_id];
+        batch = batches[batchID];
     }
 
     /**
@@ -216,7 +216,7 @@ contract Rollup is RollupHelpers {
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
-    bytes32 public APP_ID;
+    bytes32 public appID;
 
     /*********************
      * Constructor *
@@ -269,7 +269,7 @@ contract Rollup is RollupHelpers {
             batches.length - 1,
             Types.Usage.Genesis
         );
-        APP_ID = keccak256(abi.encodePacked(address(this)));
+        appID = keccak256(abi.encodePacked(address(this)));
     }
 
     function submitBatch(
@@ -442,17 +442,17 @@ contract Rollup is RollupHelpers {
      * @return Total number of batches submitted onchain
      */
     function disputeTransitionTransfer(
-        uint256 _batch_id,
+        uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
         Types.TransferCommitmentInclusionProof memory target,
         Types.StateMerkleProof[] memory proofs
     )
         public
-        isDisputable(_batch_id)
-        checkPreviousCommitment(_batch_id, previous, target.pathToCommitment)
+        isDisputable(batchID)
+        checkPreviousCommitment(batchID, previous, target.pathToCommitment)
     {
         require(
-            checkInclusion(batches[_batch_id].commitmentRoot, target),
+            checkInclusion(batches[batchID].commitmentRoot, target),
             "Target commitment is absent in the batch"
         );
 
@@ -471,24 +471,24 @@ contract Rollup is RollupHelpers {
         ) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
+            invalidBatchMarker = batchID;
             SlashAndRollback();
             return;
         }
     }
 
     function disputeTransitionMassMigration(
-        uint256 _batch_id,
+        uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
         Types.MMCommitmentInclusionProof memory target,
         Types.StateMerkleProof[] memory proofs
     )
         public
-        isDisputable(_batch_id)
-        checkPreviousCommitment(_batch_id, previous, target.pathToCommitment)
+        isDisputable(batchID)
+        checkPreviousCommitment(batchID, previous, target.pathToCommitment)
     {
         require(
-            checkInclusion(batches[_batch_id].commitmentRoot, target),
+            checkInclusion(batches[batchID].commitmentRoot, target),
             "Target commitment is absent in the batch"
         );
 
@@ -505,7 +505,7 @@ contract Rollup is RollupHelpers {
         ) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
+            invalidBatchMarker = batchID;
             SlashAndRollback();
             return;
         }
@@ -526,7 +526,7 @@ contract Rollup is RollupHelpers {
             signatureProof,
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
-            APP_ID,
+            appID,
             target.commitment.body.txs
         );
 
@@ -551,7 +551,7 @@ contract Rollup is RollupHelpers {
             signatureProof,
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
-            APP_ID,
+            appID,
             target.commitment.body.targetSpokeID,
             target.commitment.body.txs
         );
