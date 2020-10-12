@@ -118,7 +118,7 @@ describe("Rollup", async function() {
         const previousMP = initialBatch.proofCompressed(0);
         const commitmentMP = targetBatch.proof(0);
 
-        const _tx = await rollup.disputeBatch(
+        const _tx = await rollup.disputeTransitionTransfer(
             batchId,
             previousMP,
             commitmentMP,

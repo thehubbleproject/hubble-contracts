@@ -120,9 +120,12 @@ describe("Mass Migrations", async function() {
         const previousMP = initialBatch.proofCompressed(0);
         const commitmentMP = targetBatch.proof(0);
 
-        await rollup.disputeMMBatch(batchId, previousMP, commitmentMP, [
-            { state: proof.state, witness: proof.witness }
-        ]);
+        await rollup.disputeTransitionMassMigration(
+            batchId,
+            previousMP,
+            commitmentMP,
+            [{ state: proof.state, witness: proof.witness }]
+        );
 
         assert.equal(
             (await rollup.invalidBatchMarker()).toNumber(),
