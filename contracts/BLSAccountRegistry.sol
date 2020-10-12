@@ -5,7 +5,7 @@ import { BLS } from "./libs/BLS.sol";
 import { Logger } from "./Logger.sol";
 
 contract BLSAccountRegistry is AccountTree {
-    Logger logger;
+    Logger public logger;
 
     constructor(address _logger) public AccountTree() {
         logger = Logger(_logger);

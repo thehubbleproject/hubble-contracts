@@ -15,7 +15,7 @@ contract MassMigrationCore {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
-    MerkleTreeUtils merkleTree;
+    MerkleTreeUtils public merkleTree;
 
     function checkSignature(
         uint256[2] memory signature,

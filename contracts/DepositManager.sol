@@ -12,7 +12,7 @@ import { Rollup } from "./Rollup.sol";
 
 contract SubtreeQueue {
     // Each element of the queue is a root of a subtree of deposits.
-    mapping(uint256 => bytes32) queue;
+    mapping(uint256 => bytes32) public queue;
     uint256 public front = 1;
     uint256 public back = 0;
 
@@ -95,7 +95,7 @@ contract DepositManager is DepositCore {
     ITokenRegistry public tokenRegistry;
 
     // batchID => subtreeRoot
-    mapping(uint256 => bytes32) submittedSubtree;
+    mapping(uint256 => bytes32) public submittedSubtree;
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
