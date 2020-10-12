@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "buidler test",
+    "solhint": "solhint \"contracts/**/*.sol\" -f unix",
     "lint": "prettier --check \"**/*.{sol,ts,js}\"",
     "prettier": "prettier --write \"**/*.{sol,ts,js}\"",
     "generate": "buidler compile && typechain --target ethers-v5 './build/**/*.json'",
