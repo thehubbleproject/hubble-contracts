@@ -196,25 +196,6 @@ library Types {
         bytes32[] witness;
     }
 
-    struct Transfer {
-        uint256 txType;
-        uint256 fromIndex;
-        uint256 toIndex;
-        uint256 nonce;
-        uint256 amount;
-        uint256 fee;
-    }
-
-    struct Create2Transfer {
-        uint256 txType;
-        uint256 fromIndex;
-        uint256 toIndex;
-        uint256 toAccID;
-        uint256 nonce;
-        uint256 amount;
-        uint256 fee;
-    }
-
     /**
     @param pubkeyIndex path to the pubkey in the PDA tree
      */
