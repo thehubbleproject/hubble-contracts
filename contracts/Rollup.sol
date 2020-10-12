@@ -251,6 +251,7 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
+        // Same effect as `merkleUtils.getMerkleRootFromLeaves`
         bytes32 commitmentRoot = keccak256(
             abi.encode(genesisCommitment, ZERO_BYTES32)
         );
@@ -426,10 +427,10 @@ contract Rollup is RollupHelpers {
             vacant.pathAtDepth,
             vacant.witness
         );
-
         bytes32 depositCommitment = keccak256(
             abi.encode(newRoot, ZERO_BYTES32)
         );
+        // Same effect as `merkleUtils.getMerkleRootFromLeaves`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
         submitBatch(root, 1, Types.Usage.MassMigration);
     }
