@@ -139,14 +139,12 @@ contract Create2Transfer {
         public
         pure
         returns (
-            bytes32,
-            bytes memory,
-            bytes memory,
+            bytes32 newRoot,
+            bytes memory newFromState,
+            bytes memory newToState,
             Types.Result result
         )
     {
-        bytes32 newRoot = bytes32(0);
-        bytes memory newFromState = "";
         (newRoot, newFromState, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
@@ -156,33 +154,30 @@ contract Create2Transfer {
             from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
+        (newToState, newRoot) = processCreate2TransferReceiver(
+            _tx,
+            from.state.tokenType,
+            to
+        );
 
+        return (newRoot, newFromState, newToState, Types.Result.Ok);
+    }
+
+    function processCreate2TransferReceiver(
+        Tx.Create2Transfer memory _tx,
+        uint256 token,
+        Types.StateMerkleProof memory proof
+    ) public pure returns (bytes memory encodedState, bytes32 newRoot) {
         // Validate we are creating on a zero account
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 newRoot,
                 keccak256(abi.encode(0)),
                 _tx.toIndex,
-                to.witness
+                proof.witness
             ),
             "Create2Transfer: receiver proof invalid"
         );
-
-        bytes memory newToState = "";
-        (newToState, newRoot) = ApplyCreate2TransferReceiver(
-            to,
-            _tx,
-            from.state.tokenType
-        );
-
-        return (newRoot, newFromState, newToState, Types.Result.Ok);
-    }
-
-    function ApplyCreate2TransferReceiver(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.Create2Transfer memory _tx,
-        uint256 token
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
         // Initialize account
         Types.UserState memory newState = Types.UserState(
             _tx.toAccID,
@@ -190,12 +185,11 @@ contract Create2Transfer {
             _tx.amount,
             0
         );
-
-        bytes memory encodedState = newState.encode();
+        encodedState = newState.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(encodedState),
             _tx.toIndex,
-            _merkle_proof.witness
+            proof.witness
         );
         return (encodedState, newRoot);
     }

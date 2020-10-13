@@ -99,15 +99,13 @@ contract MassMigrationCore {
             withdrawLeaves[i] = keccak256(freshState);
         }
 
-        if (totalAmount != commitmentBody.amount) {
+        if (totalAmount != commitmentBody.amount)
             return (stateRoot, Types.Result.MismatchedAmount);
-        }
+
         if (
             merkleTree.getMerkleRootFromLeaves(withdrawLeaves) !=
             commitmentBody.withdrawRoot
-        ) {
-            return (stateRoot, Types.Result.BadWithdrawRoot);
-        }
+        ) return (stateRoot, Types.Result.BadWithdrawRoot);
 
         return (stateRoot, result);
     }
@@ -121,14 +119,12 @@ contract MassMigrationCore {
         public
         pure
         returns (
-            bytes32,
-            bytes memory,
+            bytes32 newRoot,
+            bytes memory newFromState,
             bytes memory freshState,
             Types.Result result
         )
     {
-        bytes32 newRoot = bytes32(0);
-        bytes memory newFromState = "";
         (newRoot, newFromState, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,

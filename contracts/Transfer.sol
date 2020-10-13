@@ -122,15 +122,12 @@ contract Transfer {
         public
         pure
         returns (
-            bytes32,
-            bytes memory,
-            bytes memory,
+            bytes32 newRoot,
+            bytes memory newFromState,
+            bytes memory newToState,
             Types.Result result
         )
     {
-        bytes32 newRoot = bytes32(0);
-        bytes memory newFromState = "";
-
         (newRoot, newFromState, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
@@ -140,7 +137,6 @@ contract Transfer {
             from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-        bytes memory newToState = "";
         (newRoot, newToState, result) = Transition.processReceiver(
             newRoot,
             _tx.toIndex,
