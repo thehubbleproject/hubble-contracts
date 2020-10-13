@@ -130,7 +130,7 @@ contract MassMigrationCore {
             _tx.fromIndex,
             tokenType,
             _tx.amount,
-            _tx.fee,
+            0,
             from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
