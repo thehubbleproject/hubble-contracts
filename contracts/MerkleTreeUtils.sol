@@ -70,39 +70,8 @@ contract MerkleTreeUtils {
             );
     }
 
-    function getMaxTreeDepth() public view returns (uint256) {
-        return MAX_DEPTH;
-    }
-
     function getRoot(uint256 index) public view returns (bytes32) {
         return defaultHashes[index];
-    }
-
-    function getDefaultHashAtLevel(uint256 index)
-        public
-        view
-        returns (bytes32)
-    {
-        return defaultHashes[index];
-    }
-
-    /**
-     * @notice Get the merkle root computed from some set of data blocks.
-     * @param _dataBlocks The data being used to generate the tree.
-     * @return the merkle tree root
-     * NOTE: This is a stateless operation
-     */
-    function getMerkleRoot(bytes[] calldata _dataBlocks)
-        external
-        view
-        returns (bytes32)
-    {
-        bytes32[] memory nodes = new bytes32[](_dataBlocks.length); // Add one in case we have an odd number of leaves
-        // Generate the leaves
-        for (uint256 i = 0; i < _dataBlocks.length; i++) {
-            nodes[i] = keccak256(_dataBlocks[i]);
-        }
-        return getMerkleRootFromLeaves(nodes);
     }
 
     /**
