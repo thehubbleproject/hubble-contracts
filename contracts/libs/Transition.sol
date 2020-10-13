@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "./Types.sol";
 
-library FraudProofHelpers {
+library Transition {
     using SafeMath for uint256;
 
     function validateTxBasic(
