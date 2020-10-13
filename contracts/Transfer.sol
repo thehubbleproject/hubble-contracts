@@ -80,10 +80,7 @@ contract Transfer {
         Tx.Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
             _tx = txs.transfer_decode(i);
-            fees = fees.add(_tx.fee);
             (stateRoot, , , result) = processTx(
                 stateRoot,
                 _tx,
@@ -91,9 +88,9 @@ contract Transfer {
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
-            if (result != Types.Result.Ok) {
-                break;
-            }
+            if (result != Types.Result.Ok) break;
+            // Only trust fees when the result is good
+            fees = fees.add(_tx.fee);
         }
         if (result == Types.Result.Ok) {
             (stateRoot, , result) = Transition.processReceiver(
