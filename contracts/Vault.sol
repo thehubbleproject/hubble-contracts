@@ -11,6 +11,7 @@ import { SpokeRegistry } from "./SpokeRegistry.sol";
 
 contract Vault {
     using Types for Types.MassMigrationCommitment;
+    using Types for Types.Batch;
 
     Rollup public rollup;
     Registry public nameRegistry;
@@ -50,7 +51,7 @@ contract Vault {
         Types.Batch memory batch = rollup.getBatch(batch_id);
 
         require(
-            block.number >= batch.finalisesOn,
+            block.number >= batch.finaliseOn(),
             "Vault: Batch shoould be finalised"
         );
 
