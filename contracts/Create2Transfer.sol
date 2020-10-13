@@ -155,6 +155,7 @@ contract Create2Transfer {
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
         (newToState, newRoot) = processCreate2TransferReceiver(
+            newRoot,
             _tx,
             from.state.tokenType,
             to
@@ -164,6 +165,7 @@ contract Create2Transfer {
     }
 
     function processCreate2TransferReceiver(
+        bytes32 stateRoot,
         Tx.Create2Transfer memory _tx,
         uint256 token,
         Types.StateMerkleProof memory proof
@@ -171,7 +173,7 @@ contract Create2Transfer {
         // Validate we are creating on a zero account
         require(
             MerkleTreeUtilsLib.verifyLeaf(
-                newRoot,
+                stateRoot,
                 keccak256(abi.encode(0)),
                 _tx.toIndex,
                 proof.witness
