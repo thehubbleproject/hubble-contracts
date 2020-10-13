@@ -96,11 +96,11 @@ contract Transfer {
             }
         }
         if (result == Types.Result.Ok) {
-            (stateRoot, result) = processFee(
+            (stateRoot, , result) = Transition.processReceiver(
                 stateRoot,
+                feeReceiver,
                 fees,
                 tokenType,
-                feeReceiver,
                 proofs[length * 2]
             );
         }
@@ -145,39 +145,14 @@ contract Transfer {
             _tx.fromIndex,
             _tx.amount.add(_tx.fee)
         );
-        result = Transition.validateReceiver(
+        bytes memory newToState = "";
+        (newRoot, newToState, result) = Transition.processReceiver(
             newRoot,
             _tx.toIndex,
+            _tx.amount,
             tokenType,
             to
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-
-        bytes memory newToState = "";
-        (newToState, newRoot) = Transition.ApplyReceiver(
-            to,
-            _tx.toIndex,
-            _tx.amount
-        );
-
-        return (newRoot, newFromState, newToState, Types.Result.Ok);
-    }
-
-    function processFee(
-        bytes32 stateRoot,
-        uint256 fees,
-        uint256 tokenType,
-        uint256 feeReceiver,
-        Types.StateMerkleProof memory proof
-    ) public pure returns (bytes32 newRoot, Types.Result) {
-        Types.Result result = Transition.validateReceiver(
-            stateRoot,
-            feeReceiver,
-            tokenType,
-            proof
-        );
-        if (result != Types.Result.Ok) return (bytes32(0), result);
-        (, newRoot) = Transition.ApplyReceiver(proof, feeReceiver, fees);
-        return (newRoot, Types.Result.Ok);
+        return (newRoot, newFromState, newToState, result);
     }
 }
