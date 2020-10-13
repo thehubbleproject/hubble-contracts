@@ -88,19 +88,17 @@ contract Transfer {
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
-            if (result != Types.Result.Ok) break;
+            if (result != Types.Result.Ok) return (stateRoot, result);
             // Only trust fees when the result is good
             fees = fees.add(_tx.fee);
         }
-        if (result == Types.Result.Ok) {
-            (stateRoot, , result) = Transition.processReceiver(
-                stateRoot,
-                feeReceiver,
-                fees,
-                tokenType,
-                proofs[length * 2]
-            );
-        }
+        (stateRoot, , result) = Transition.processReceiver(
+            stateRoot,
+            feeReceiver,
+            fees,
+            tokenType,
+            proofs[length * 2]
+        );
 
         return (stateRoot, result);
     }

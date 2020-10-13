@@ -92,7 +92,7 @@ contract MassMigrationCore {
                 commitmentBody.tokenID,
                 proofs[i]
             );
-            if (result != Types.Result.Ok) break;
+            if (result != Types.Result.Ok) return (stateRoot, result);
 
             // Only trust these variables when the result is good
             totalAmount += _tx.amount;
