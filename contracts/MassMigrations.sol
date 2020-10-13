@@ -116,7 +116,7 @@ contract MassMigrationCore {
         uint256 tokenType,
         Types.StateMerkleProof memory from
     )
-        public
+        internal
         pure
         returns (
             bytes32 newRoot,

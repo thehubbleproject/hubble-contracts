@@ -117,7 +117,7 @@ contract Transfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     )
-        public
+        internal
         pure
         returns (
             bytes32 newRoot,

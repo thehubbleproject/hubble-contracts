@@ -91,8 +91,7 @@ contract Create2Transfer {
         uint256 feeReceiver
     ) public pure returns (bytes32, Types.Result result) {
         uint256 length = txs.create2Transfer_size();
-
-        uint256 fees;
+        uint256 fees = 0;
         Tx.Create2Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
@@ -133,7 +132,7 @@ contract Create2Transfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     )
-        public
+        internal
         pure
         returns (
             bytes32 newRoot,
@@ -166,8 +165,8 @@ contract Create2Transfer {
         Tx.Create2Transfer memory _tx,
         uint256 token,
         Types.StateMerkleProof memory proof
-    ) public pure returns (bytes memory encodedState, bytes32 newRoot) {
-        // Validate we are creating on a zero account
+    ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
+        // Validate we are creating on a zero state
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
@@ -177,7 +176,6 @@ contract Create2Transfer {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        // Initialize account
         Types.UserState memory newState = Types.UserState(
             _tx.toAccID,
             token,
