@@ -131,7 +131,10 @@ contract Transfer {
             Types.Result result
         )
     {
-        result = Transition.validateSender(
+        bytes32 newRoot = bytes32(0);
+        bytes memory newFromState = "";
+
+        (newRoot, newFromState, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -140,11 +143,6 @@ contract Transfer {
             from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-        (bytes memory newFromState, bytes32 newRoot) = Transition.ApplySender(
-            from,
-            _tx.fromIndex,
-            _tx.amount.add(_tx.fee)
-        );
         bytes memory newToState = "";
         (newRoot, newToState, result) = Transition.processReceiver(
             newRoot,

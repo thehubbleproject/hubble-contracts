@@ -9,13 +9,54 @@ library Transition {
     using SafeMath for uint256;
     using Types for Types.UserState;
 
+    function processSender(
+        bytes32 stateRoot,
+        uint256 senderStateIndex,
+        uint256 tokenType,
+        uint256 amount,
+        uint256 fee,
+        Types.StateMerkleProof memory proof
+    )
+        internal
+        pure
+        returns (
+            bytes32 newRoot,
+            bytes memory newToState,
+            Types.Result
+        )
+    {
+        Types.Result result = validateSender(
+            stateRoot,
+            senderStateIndex,
+            tokenType,
+            amount,
+            fee,
+            proof
+        );
+        if (result != Types.Result.Ok) return (bytes32(0), "", result);
+        (newToState, newRoot) = ApplySender(
+            proof,
+            senderStateIndex,
+            amount.add(fee)
+        );
+        return (newRoot, newToState, Types.Result.Ok);
+    }
+
     function processReceiver(
         bytes32 stateRoot,
         uint256 receiverStateIndex,
         uint256 amount,
         uint256 tokenType,
         Types.StateMerkleProof memory proof
-    ) public pure returns (bytes32 newRoot, bytes memory newToState, Types.Result) {
+    )
+        internal
+        pure
+        returns (
+            bytes32 newRoot,
+            bytes memory newToState,
+            Types.Result
+        )
+    {
         Types.Result result = validateReceiver(
             stateRoot,
             receiverStateIndex,
