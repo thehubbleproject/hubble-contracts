@@ -1,6 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
+import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
@@ -145,35 +145,23 @@ contract Create2Transfer {
             bytes32,
             bytes memory,
             bytes memory,
-            Types.Result
+            Types.Result result
         )
     {
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(from.state.encode()),
-                _tx.fromIndex,
-                from.witness
-            ),
-            "Create2Transfer: sender does not exist"
-        );
-
-        Types.Result result = FraudProofHelpers.validateTxBasic(
+        result = Transition.validateSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
             _tx.amount,
             _tx.fee,
-            from.state
+            from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-
-        if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
-        }
-
-        bytes32 newRoot;
-        bytes memory new_from_account;
-        bytes memory new_to_account;
-
-        (new_from_account, newRoot) = ApplyCreate2TransferSender(from, _tx);
+        (bytes memory newFromState, bytes32 newRoot) = Transition.ApplySender(
+            from,
+            _tx.fromIndex,
+            _tx.amount.add(_tx.fee)
+        );
 
         // Validate we are creating on a zero account
         require(
@@ -186,29 +174,14 @@ contract Create2Transfer {
             "Create2Transfer: receiver proof invalid"
         );
 
-        (new_to_account, newRoot) = ApplyCreate2TransferReceiver(
+        bytes memory newToState = "";
+        (newToState, newRoot) = ApplyCreate2TransferReceiver(
             to,
             _tx,
             from.state.tokenType
         );
 
-        return (newRoot, new_from_account, new_to_account, Types.Result.Ok);
-    }
-
-    function ApplyCreate2TransferSender(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.Create2Transfer memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.sub(_tx.amount).sub(_tx.fee);
-        state.nonce++;
-        bytes memory encodedState = state.encode();
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(encodedState),
-            _tx.fromIndex,
-            _merkle_proof.witness
-        );
-        return (encodedState, newRoot);
+        return (newRoot, newFromState, newToState, Types.Result.Ok);
     }
 
     function ApplyCreate2TransferReceiver(
