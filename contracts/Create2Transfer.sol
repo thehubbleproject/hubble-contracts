@@ -96,10 +96,7 @@ contract Create2Transfer {
         Tx.Create2Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
             _tx = txs.create2Transfer_decode(i);
-            fees = fees.add(_tx.fee);
             (stateRoot, , , result) = processTx(
                 stateRoot,
                 _tx,
@@ -107,17 +104,17 @@ contract Create2Transfer {
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
-            if (result != Types.Result.Ok) {
-                break;
-            }
+            if (result != Types.Result.Ok) break;
+            // Only trust fees when the result is good
+            fees = fees.add(_tx.fee);
         }
 
         if (result == Types.Result.Ok) {
-            (stateRoot, result) = processFee(
+            (stateRoot, , result) = Transition.processReceiver(
                 stateRoot,
+                feeReceiver,
                 fees,
                 tokenType,
-                feeReceiver,
                 proofs[length * 2]
             );
         }
@@ -148,7 +145,9 @@ contract Create2Transfer {
             Types.Result result
         )
     {
-        result = Transition.validateSender(
+        bytes32 newRoot = bytes32(0);
+        bytes memory newFromState = "";
+        (newRoot, newFromState, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -157,11 +156,6 @@ contract Create2Transfer {
             from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-        (bytes memory newFromState, bytes32 newRoot) = Transition.ApplySender(
-            from,
-            _tx.fromIndex,
-            _tx.amount.add(_tx.fee)
-        );
 
         // Validate we are creating on a zero account
         require(
@@ -204,34 +198,5 @@ contract Create2Transfer {
             _merkle_proof.witness
         );
         return (encodedState, newRoot);
-    }
-
-    function processFee(
-        bytes32 stateRoot,
-        uint256 fees,
-        uint256 tokenType,
-        uint256 feeReceiver,
-        Types.StateMerkleProof memory stateLeafProof
-    ) public pure returns (bytes32 newRoot, Types.Result) {
-        Types.UserState memory state = stateLeafProof.state;
-        if (state.tokenType != tokenType) {
-            return (bytes32(0), Types.Result.BadToTokenType);
-        }
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(state.encode()),
-                feeReceiver,
-                stateLeafProof.witness
-            ),
-            "Create2Transfer: fee receiver does not exist"
-        );
-        state.balance = state.balance.add(fees);
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(state.encode()),
-            feeReceiver,
-            stateLeafProof.witness
-        );
-        return (newRoot, Types.Result.Ok);
     }
 }
