@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
+import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 
@@ -124,32 +124,24 @@ contract MassMigrationCore {
             bytes32,
             bytes memory,
             bytes memory freshState,
-            Types.Result
+            Types.Result result
         )
     {
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(from.state.encode()),
-                _tx.fromIndex,
-                from.witness
-            ),
-            "MassMigration: sender does not exist"
-        );
-        if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
-        }
-        Types.Result result = FraudProofHelpers.validateTxBasic(
+        result = Transition.validateSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
             _tx.amount,
             _tx.fee,
-            from.state
+            from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
 
-        (
-            bytes memory newFromState,
-            bytes32 newRoot
-        ) = ApplyMassMigrationTxSender(from, _tx);
+        (bytes memory newFromState, bytes32 newRoot) = Transition.ApplySender(
+            from,
+            _tx.fromIndex,
+            _tx.amount.add(_tx.fee)
+        );
 
         Types.UserState memory fresh = Types.UserState({
             pubkeyIndex: from.state.pubkeyIndex,
@@ -160,22 +152,6 @@ contract MassMigrationCore {
         freshState = fresh.encode();
 
         return (newRoot, newFromState, freshState, Types.Result.Ok);
-    }
-
-    function ApplyMassMigrationTxSender(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.MassMigration memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.sub(_tx.amount);
-        state.nonce++;
-        bytes memory encodedState = state.encode();
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(encodedState),
-            _tx.fromIndex,
-            _merkle_proof.witness
-        );
-        return (encodedState, newRoot);
     }
 }
 
