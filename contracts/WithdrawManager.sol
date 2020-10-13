@@ -59,7 +59,7 @@ contract WithdrawManager {
         bitmap[withdrawRoot][wordIndex] |= (1 << bitIndex);
     }
 
-    function ProcessWithdrawCommitment(
+    function processWithdrawCommitment(
         uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
@@ -82,7 +82,7 @@ contract WithdrawManager {
         );
     }
 
-    function ClaimTokens(
+    function claimTokens(
         bytes32 withdrawRoot,
         Types.StateMerkleProofWithPath calldata withdrawal,
         uint256[4] calldata pubkey,
