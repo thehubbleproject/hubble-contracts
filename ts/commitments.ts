@@ -109,6 +109,7 @@ export class MassMigrationCommitment extends Commitment {
         withdrawRoot: BytesLike = ethers.constants.HashZero,
         tokenID: BigNumberish = 0,
         amount: BigNumberish = 0,
+        feeReceiver: BigNumberish = 0,
         txs: BytesLike = "0x"
     ) {
         return new MassMigrationCommitment(
@@ -119,6 +120,7 @@ export class MassMigrationCommitment extends Commitment {
             withdrawRoot,
             tokenID,
             amount,
+            feeReceiver,
             txs
         );
     }
@@ -130,6 +132,7 @@ export class MassMigrationCommitment extends Commitment {
         public withdrawRoot: BytesLike,
         public tokenID: BigNumberish,
         public amount: BigNumberish,
+        public feeReceiver: BigNumberish,
         public txs: BytesLike
     ) {
         super(stateRoot);
@@ -144,6 +147,7 @@ export class MassMigrationCommitment extends Commitment {
                 "bytes32",
                 "uint256",
                 "uint256",
+                "uint256",
                 "bytes"
             ],
             [
@@ -153,6 +157,7 @@ export class MassMigrationCommitment extends Commitment {
                 this.withdrawRoot,
                 this.tokenID,
                 this.amount,
+                this.feeReceiver,
                 this.txs
             ]
         );
@@ -167,6 +172,7 @@ export class MassMigrationCommitment extends Commitment {
                 withdrawRoot: this.withdrawRoot,
                 tokenID: this.tokenID,
                 amount: this.amount,
+                feeReceiver: this.feeReceiver,
                 txs: this.txs
             }
         };

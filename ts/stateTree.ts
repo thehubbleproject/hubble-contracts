@@ -174,7 +174,8 @@ export class StateTree {
     }
 
     public applyMassMigrationBatch(
-        txs: TxMassMigration[]
+        txs: TxMassMigration[],
+        feeReceiverID: number
     ): {
         proofs: ProofOfMassMigrationTx[];
         safe: boolean;
@@ -190,6 +191,9 @@ export class StateTree {
                 proofs.push(PLACEHOLDER_MASS_MIGRATION_PROOF);
             }
         }
+        const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
+        const feeProof = this.applyFee(sumOfFee, feeReceiverID);
+        safe = feeProof.safe;
         return { proofs, safe };
     }
 

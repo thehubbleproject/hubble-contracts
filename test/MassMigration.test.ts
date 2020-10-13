@@ -135,6 +135,7 @@ describe("Mass Migrations", async function() {
     });
     it("submit a batch, finalize, and withdraw", async function() {
         const { rollup, withdrawManager, testToken, vault } = contracts;
+        const feeReceiver = Alice.stateID;
         const tx = new TxMassMigration(
             Alice.stateID,
             USDT.castInt(39.99),
@@ -150,7 +151,7 @@ describe("Mass Migrations", async function() {
             0
         ).toStateLeaf();
         const withdrawTree = Tree.merklize([leaf]);
-        const { safe } = stateTree.applyMassMigrationBatch([tx]);
+        const { safe } = stateTree.applyMassMigrationBatch([tx], feeReceiver);
         assert.isTrue(safe);
 
         const commitment = MassMigrationCommitment.new(
