@@ -71,7 +71,6 @@ contract MassMigrationCore {
     /**
      * @notice processes the state transition of a commitment
      * @param stateRoot represents the state before the state transition
-     * @return updatedRoot, txRoot and if the batch is valid or not
      * */
     function processMassMigrationCommit(
         bytes32 stateRoot,

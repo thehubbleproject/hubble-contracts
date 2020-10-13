@@ -65,7 +65,6 @@ contract Transfer {
 
     /**
      * @notice processes the state transition of a commitment
-     * @return updatedRoot, txRoot and if the batch is valid or not
      * */
     function processTransferCommit(
         bytes32 stateRoot,
@@ -108,7 +107,6 @@ contract Transfer {
      *  and the updated leaves
      * conditions in require mean that the dispute be declared invalid
      * if conditons evaluate if the coordinator was at fault
-     * @return Total number of batches submitted onchain
      */
     function processTx(
         bytes32 stateRoot,
