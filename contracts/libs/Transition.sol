@@ -87,8 +87,9 @@ library Transition {
                 senderIndex,
                 sender.witness
             ),
-            "Transfer: sender does not exist"
+            "Transition: Sender does not exist"
         );
+        // We can only trust and validate the state after the merkle check
         if (amount == 0) return Types.Result.InvalidTokenAmount;
         if (sender.state.balance < amount.add(fee))
             return Types.Result.NotEnoughTokenBalance;
@@ -110,8 +111,9 @@ library Transition {
                 receiverIndex,
                 receiver.witness
             ),
-            "Transfer: receiver does not exist"
+            "Transition: receiver does not exist"
         );
+        // We can only trust and validate the state after the merkle check
         if (receiver.state.tokenType != tokenType)
             return Types.Result.BadToTokenType;
         return Types.Result.Ok;
