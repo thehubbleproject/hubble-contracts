@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
+import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 
@@ -128,83 +128,39 @@ contract Transfer {
             bytes32,
             bytes memory,
             bytes memory,
-            Types.Result
+            Types.Result result
         )
     {
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(from.state.encode()),
-                _tx.fromIndex,
-                from.witness
-            ),
-            "Transfer: sender does not exist"
-        );
-
-        Types.Result result = FraudProofHelpers.validateTxBasic(
+        result = Transition.validateSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
             _tx.amount,
             _tx.fee,
-            from.state
+            from
+        );
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
+        (bytes memory newFromState, bytes32 newRoot) = Transition.ApplySender(
+            from,
+            _tx.fromIndex,
+            _tx.amount.add(_tx.fee)
+        );
+        result = Transition.validateReceiver(
+            newRoot,
+            _tx.toIndex,
+            tokenType,
+            to
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
 
-        if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
-        }
-
-        if (to.state.tokenType != tokenType)
-            return (bytes32(0), "", "", Types.Result.BadToTokenType);
-
-        bytes32 newRoot;
-        bytes memory newFromState;
-        bytes memory newToState;
-
-        (newFromState, newRoot) = ApplyTransferTxSender(from, _tx);
-
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                newRoot,
-                keccak256(to.state.encode()),
-                _tx.toIndex,
-                to.witness
-            ),
-            "Transfer: receiver does not exist"
+        bytes memory newToState = "";
+        (newToState, newRoot) = Transition.ApplyReceiver(
+            to,
+            _tx.toIndex,
+            _tx.amount
         );
-
-        (newToState, newRoot) = ApplyTransferTxReceiver(to, _tx);
 
         return (newRoot, newFromState, newToState, Types.Result.Ok);
-    }
-
-    function ApplyTransferTxSender(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.Transfer memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.sub(_tx.amount).sub(_tx.fee);
-        state.nonce++;
-        bytes memory encodedState = state.encode();
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(encodedState),
-            _tx.fromIndex,
-            _merkle_proof.witness
-        );
-        return (encodedState, newRoot);
-    }
-
-    function ApplyTransferTxReceiver(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.Transfer memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.add(_tx.amount);
-        bytes memory encodedState = state.encode();
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(encodedState),
-            _tx.toIndex,
-            _merkle_proof.witness
-        );
-        return (encodedState, newRoot);
     }
 
     function processFee(
@@ -212,27 +168,16 @@ contract Transfer {
         uint256 fees,
         uint256 tokenType,
         uint256 feeReceiver,
-        Types.StateMerkleProof memory stateLeafProof
+        Types.StateMerkleProof memory proof
     ) public pure returns (bytes32 newRoot, Types.Result) {
-        Types.UserState memory state = stateLeafProof.state;
-        if (state.tokenType != tokenType) {
-            return (bytes32(0), Types.Result.BadToTokenType);
-        }
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(state.encode()),
-                feeReceiver,
-                stateLeafProof.witness
-            ),
-            "Transfer: fee receiver does not exist"
-        );
-        state.balance = state.balance.add(fees);
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(state.encode()),
+        Types.Result result = Transition.validateReceiver(
+            stateRoot,
             feeReceiver,
-            stateLeafProof.witness
+            tokenType,
+            proof
         );
+        if (result != Types.Result.Ok) return (bytes32(0), result);
+        (, newRoot) = Transition.ApplyReceiver(proof, feeReceiver, fees);
         return (newRoot, Types.Result.Ok);
     }
 }
