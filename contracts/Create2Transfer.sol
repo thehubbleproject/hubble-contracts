@@ -1,6 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
-import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
+import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
@@ -81,7 +81,6 @@ contract Create2Transfer {
 
     /**
      * @notice processes the state transition of a commitment
-     * @return updatedRoot, txRoot and if the batch is valid or not
      * */
     function processCreate2TransferCommit(
         bytes32 stateRoot,
@@ -91,15 +90,11 @@ contract Create2Transfer {
         uint256 feeReceiver
     ) public pure returns (bytes32, Types.Result result) {
         uint256 length = txs.create2Transfer_size();
-
-        uint256 fees;
+        uint256 fees = 0;
         Tx.Create2Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            // call process tx update for every transaction to check if any
-            // tx evaluates correctly
             _tx = txs.create2Transfer_decode(i);
-            fees = fees.add(_tx.fee);
             (stateRoot, , , result) = processTx(
                 stateRoot,
                 _tx,
@@ -107,20 +102,17 @@ contract Create2Transfer {
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
-            if (result != Types.Result.Ok) {
-                break;
-            }
+            if (result != Types.Result.Ok) return (stateRoot, result);
+            // Only trust fees when the result is good
+            fees = fees.add(_tx.fee);
         }
-
-        if (result == Types.Result.Ok) {
-            (stateRoot, result) = processFee(
-                stateRoot,
-                fees,
-                tokenType,
-                feeReceiver,
-                proofs[length * 2]
-            );
-        }
+        (stateRoot, , result) = Transition.processReceiver(
+            stateRoot,
+            feeReceiver,
+            fees,
+            tokenType,
+            proofs[length * 2]
+        );
 
         return (stateRoot, result);
     }
@@ -130,7 +122,6 @@ contract Create2Transfer {
      *  and the updated leaves
      * conditions in require mean that the dispute be declared invalid
      * if conditons evaluate if the coordinator was at fault
-     * @return Total number of batches submitted onchain
      */
     function processTx(
         bytes32 stateRoot,
@@ -139,126 +130,62 @@ contract Create2Transfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     )
-        public
+        internal
         pure
         returns (
-            bytes32,
-            bytes memory,
-            bytes memory,
-            Types.Result
+            bytes32 newRoot,
+            bytes memory newFromState,
+            bytes memory newToState,
+            Types.Result result
         )
     {
+        (newRoot, newFromState, result) = Transition.processSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
+            _tx.amount,
+            _tx.fee,
+            from
+        );
+        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
+        (newToState, newRoot) = processCreate2TransferReceiver(
+            newRoot,
+            _tx,
+            from.state.tokenType,
+            to
+        );
+
+        return (newRoot, newFromState, newToState, Types.Result.Ok);
+    }
+
+    function processCreate2TransferReceiver(
+        bytes32 stateRoot,
+        Tx.Create2Transfer memory _tx,
+        uint256 token,
+        Types.StateMerkleProof memory proof
+    ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
+        // Validate we are creating on a zero state
         require(
             MerkleTreeUtilsLib.verifyLeaf(
                 stateRoot,
-                keccak256(from.state.encode()),
-                _tx.fromIndex,
-                from.witness
-            ),
-            "Create2Transfer: sender does not exist"
-        );
-
-        Types.Result result = FraudProofHelpers.validateTxBasic(
-            _tx.amount,
-            _tx.fee,
-            from.state
-        );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-
-        if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
-        }
-
-        bytes32 newRoot;
-        bytes memory new_from_account;
-        bytes memory new_to_account;
-
-        (new_from_account, newRoot) = ApplyCreate2TransferSender(from, _tx);
-
-        // Validate we are creating on a zero account
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                newRoot,
                 keccak256(abi.encode(0)),
                 _tx.toIndex,
-                to.witness
+                proof.witness
             ),
             "Create2Transfer: receiver proof invalid"
         );
-
-        (new_to_account, newRoot) = ApplyCreate2TransferReceiver(
-            to,
-            _tx,
-            from.state.tokenType
-        );
-
-        return (newRoot, new_from_account, new_to_account, Types.Result.Ok);
-    }
-
-    function ApplyCreate2TransferSender(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.Create2Transfer memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.sub(_tx.amount).sub(_tx.fee);
-        state.nonce++;
-        bytes memory encodedState = state.encode();
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(encodedState),
-            _tx.fromIndex,
-            _merkle_proof.witness
-        );
-        return (encodedState, newRoot);
-    }
-
-    function ApplyCreate2TransferReceiver(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.Create2Transfer memory _tx,
-        uint256 token
-    ) public pure returns (bytes memory updatedAccount, bytes32 newRoot) {
-        // Initialize account
         Types.UserState memory newState = Types.UserState(
             _tx.toAccID,
             token,
             _tx.amount,
             0
         );
-
-        bytes memory encodedState = newState.encode();
+        encodedState = newState.encode();
         newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
             keccak256(encodedState),
             _tx.toIndex,
-            _merkle_proof.witness
+            proof.witness
         );
         return (encodedState, newRoot);
-    }
-
-    function processFee(
-        bytes32 stateRoot,
-        uint256 fees,
-        uint256 tokenType,
-        uint256 feeReceiver,
-        Types.StateMerkleProof memory stateLeafProof
-    ) public pure returns (bytes32 newRoot, Types.Result) {
-        Types.UserState memory state = stateLeafProof.state;
-        if (state.tokenType != tokenType) {
-            return (bytes32(0), Types.Result.BadToTokenType);
-        }
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(state.encode()),
-                feeReceiver,
-                stateLeafProof.witness
-            ),
-            "Create2Transfer: fee receiver does not exist"
-        );
-        state.balance = state.balance.add(fees);
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(state.encode()),
-            feeReceiver,
-            stateLeafProof.witness
-        );
-        return (newRoot, Types.Result.Ok);
     }
 }

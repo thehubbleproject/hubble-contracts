@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { FraudProofHelpers } from "./libs/FraudProofHelpers.sol";
+import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
 
@@ -71,7 +71,6 @@ contract MassMigrationCore {
     /**
      * @notice processes the state transition of a commitment
      * @param stateRoot represents the state before the state transition
-     * @return updatedRoot, txRoot and if the batch is valid or not
      * */
     function processMassMigrationCommit(
         bytes32 stateRoot,
@@ -92,22 +91,20 @@ contract MassMigrationCore {
                 commitmentBody.tokenID,
                 proofs[i]
             );
-            if (result != Types.Result.Ok) break;
+            if (result != Types.Result.Ok) return (stateRoot, result);
 
             // Only trust these variables when the result is good
             totalAmount += _tx.amount;
             withdrawLeaves[i] = keccak256(freshState);
         }
 
-        if (totalAmount != commitmentBody.amount) {
+        if (totalAmount != commitmentBody.amount)
             return (stateRoot, Types.Result.MismatchedAmount);
-        }
+
         if (
             merkleTree.getMerkleRootFromLeaves(withdrawLeaves) !=
             commitmentBody.withdrawRoot
-        ) {
-            return (stateRoot, Types.Result.BadWithdrawRoot);
-        }
+        ) return (stateRoot, Types.Result.BadWithdrawRoot);
 
         return (stateRoot, result);
     }
@@ -118,38 +115,24 @@ contract MassMigrationCore {
         uint256 tokenType,
         Types.StateMerkleProof memory from
     )
-        public
+        internal
         pure
         returns (
-            bytes32,
-            bytes memory,
+            bytes32 newRoot,
+            bytes memory newFromState,
             bytes memory freshState,
-            Types.Result
+            Types.Result result
         )
     {
-        require(
-            MerkleTreeUtilsLib.verifyLeaf(
-                stateRoot,
-                keccak256(from.state.encode()),
-                _tx.fromIndex,
-                from.witness
-            ),
-            "MassMigration: sender does not exist"
-        );
-        if (from.state.tokenType != tokenType) {
-            return (bytes32(0), "", "", Types.Result.BadFromTokenType);
-        }
-        Types.Result result = FraudProofHelpers.validateTxBasic(
+        (newRoot, newFromState, result) = Transition.processSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
             _tx.amount,
-            _tx.fee,
-            from.state
+            0,
+            from
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-
-        (
-            bytes memory newFromState,
-            bytes32 newRoot
-        ) = ApplyMassMigrationTxSender(from, _tx);
 
         Types.UserState memory fresh = Types.UserState({
             pubkeyIndex: from.state.pubkeyIndex,
@@ -160,22 +143,6 @@ contract MassMigrationCore {
         freshState = fresh.encode();
 
         return (newRoot, newFromState, freshState, Types.Result.Ok);
-    }
-
-    function ApplyMassMigrationTxSender(
-        Types.StateMerkleProof memory _merkle_proof,
-        Tx.MassMigration memory _tx
-    ) public pure returns (bytes memory newState, bytes32 newRoot) {
-        Types.UserState memory state = _merkle_proof.state;
-        state.balance = state.balance.sub(_tx.amount);
-        state.nonce++;
-        bytes memory encodedState = state.encode();
-        newRoot = MerkleTreeUtilsLib.rootFromWitnesses(
-            keccak256(encodedState),
-            _tx.fromIndex,
-            _merkle_proof.witness
-        );
-        return (encodedState, newRoot);
     }
 }
 
