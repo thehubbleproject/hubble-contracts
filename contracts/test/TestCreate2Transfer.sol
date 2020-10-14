@@ -32,16 +32,7 @@ contract TestCreate2Transfer is Create2Transfer {
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
-    )
-        public
-        pure
-        returns (
-            bytes32,
-            bytes memory,
-            bytes memory,
-            Types.Result
-        )
-    {
+    ) public pure returns (bytes32, Types.Result) {
         return processTx(_balanceRoot, _tx, tokenType, from, to);
     }
 

@@ -13,6 +13,7 @@ const spokeLen = 4;
 
 export interface Tx {
     encode(prefix?: boolean): string;
+    encodeOffchain(): string;
 }
 
 export interface SignableTx extends Tx {
@@ -80,15 +81,18 @@ export class TxTransfer implements SignableTx {
         );
     }
 
-    public extended() {
-        return {
-            txType: this.TX_TYPE,
-            fromIndex: this.fromIndex,
-            toIndex: this.toIndex,
-            amount: this.amount,
-            nonce: this.nonce,
-            fee: this.fee
-        };
+    public encodeOffchain() {
+        return solidityPack(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            [
+                this.TX_TYPE,
+                this.fromIndex,
+                this.toIndex,
+                this.amount,
+                this.fee,
+                this.nonce
+            ]
+        );
     }
 
     public encode(): string {
@@ -145,15 +149,18 @@ export class TxMassMigration implements SignableTx {
         );
     }
 
-    public extended() {
-        return {
-            fromIndex: this.fromIndex,
-            amount: this.amount,
-            spokeID: this.spokeID,
-            fee: this.fee,
-            nonce: this.nonce,
-            txType: 0
-        };
+    public encodeOffchain() {
+        return solidityPack(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            [
+                this.TX_TYPE,
+                this.fromIndex,
+                this.amount,
+                this.fee,
+                this.spokeID,
+                this.nonce
+            ]
+        );
     }
 
     public encode(): string {
@@ -233,16 +240,27 @@ export class TxCreate2Transfer implements SignableTx {
         );
     }
 
-    public extended() {
-        return {
-            fromIndex: this.fromIndex,
-            toIndex: this.toIndex,
-            toPubkeyIndex: this.toAccID,
-            amount: this.amount,
-            fee: this.fee,
-            nonce: this.nonce,
-            txType: this.TX_TYPE
-        };
+    public encodeOffchain() {
+        return solidityPack(
+            [
+                "uint256",
+                "uint256",
+                "uint256",
+                "uint256",
+                "uint256",
+                "uint256",
+                "uint256"
+            ],
+            [
+                this.TX_TYPE,
+                this.fromIndex,
+                this.toIndex,
+                this.toAccID,
+                this.amount,
+                this.fee,
+                this.nonce
+            ]
+        );
     }
 
     public encode(): string {

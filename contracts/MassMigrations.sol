@@ -85,7 +85,7 @@ contract MassMigrationCore {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigration_decode(i);
-            (stateRoot, , freshState, result) = processMassMigrationTx(
+            (stateRoot, freshState, result) = processMassMigrationTx(
                 stateRoot,
                 _tx,
                 commitmentBody.tokenID,
@@ -119,12 +119,11 @@ contract MassMigrationCore {
         pure
         returns (
             bytes32 newRoot,
-            bytes memory newFromState,
             bytes memory freshState,
             Types.Result result
         )
     {
-        (newRoot, newFromState, result) = Transition.processSender(
+        (newRoot, , result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -132,7 +131,7 @@ contract MassMigrationCore {
             0,
             from
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
+        if (result != Types.Result.Ok) return (newRoot, "", result);
 
         Types.UserState memory fresh = Types.UserState({
             pubkeyIndex: from.state.pubkeyIndex,
@@ -142,7 +141,7 @@ contract MassMigrationCore {
         });
         freshState = fresh.encode();
 
-        return (newRoot, newFromState, freshState, Types.Result.Ok);
+        return (newRoot, freshState, Types.Result.Ok);
     }
 }
 

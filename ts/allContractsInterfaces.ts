@@ -1,5 +1,4 @@
 import { ParamManager } from "../types/ethers-contracts/ParamManager";
-import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { Governance } from "../types/ethers-contracts/Governance";
 import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
@@ -15,10 +14,11 @@ import { MassMigration } from "../types/ethers-contracts/MassMigration";
 import { Vault } from "../types/ethers-contracts/Vault";
 import { WithdrawManager } from "../types/ethers-contracts/WithdrawManager";
 import { SpokeRegistry } from "../types/ethers-contracts/SpokeRegistry";
+import { ClientFrontend } from "../types/ethers-contracts/ClientFrontend";
 
 export interface allContracts {
     paramManager: ParamManager;
-    rollupUtils: RollupUtils;
+    clientFrondend: ClientFrontend;
     nameRegistry: NameRegistry;
     governance: Governance;
     logger: Logger;

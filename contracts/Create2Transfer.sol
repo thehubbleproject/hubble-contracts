@@ -95,7 +95,7 @@ contract Create2Transfer {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = txs.create2Transfer_decode(i);
-            (stateRoot, , , result) = processTx(
+            (stateRoot, result) = processTx(
                 stateRoot,
                 _tx,
                 tokenType,
@@ -129,17 +129,8 @@ contract Create2Transfer {
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
-    )
-        internal
-        pure
-        returns (
-            bytes32 newRoot,
-            bytes memory newFromState,
-            bytes memory newToState,
-            Types.Result result
-        )
-    {
-        (newRoot, newFromState, result) = Transition.processSender(
+    ) internal pure returns (bytes32 newRoot, Types.Result result) {
+        (newRoot, , result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -147,15 +138,15 @@ contract Create2Transfer {
             _tx.fee,
             from
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-        (newToState, newRoot) = processCreate2TransferReceiver(
+        if (result != Types.Result.Ok) return (newRoot, result);
+        (, newRoot) = processCreate2TransferReceiver(
             newRoot,
             _tx,
             from.state.tokenType,
             to
         );
 
-        return (newRoot, newFromState, newToState, Types.Result.Ok);
+        return (newRoot, Types.Result.Ok);
     }
 
     function processCreate2TransferReceiver(

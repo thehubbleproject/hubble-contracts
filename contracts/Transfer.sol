@@ -80,7 +80,7 @@ contract Transfer {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = txs.transfer_decode(i);
-            (stateRoot, , , result) = processTx(
+            (stateRoot, result) = processTx(
                 stateRoot,
                 _tx,
                 tokenType,
@@ -114,17 +114,8 @@ contract Transfer {
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
-    )
-        internal
-        pure
-        returns (
-            bytes32 newRoot,
-            bytes memory newFromState,
-            bytes memory newToState,
-            Types.Result result
-        )
-    {
-        (newRoot, newFromState, result) = Transition.processSender(
+    ) internal pure returns (bytes32 newRoot, Types.Result result) {
+        (newRoot, , result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -132,14 +123,14 @@ contract Transfer {
             _tx.fee,
             from
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", "", result);
-        (newRoot, newToState, result) = Transition.processReceiver(
+        if (result != Types.Result.Ok) return (newRoot, result);
+        (newRoot, , result) = Transition.processReceiver(
             newRoot,
             _tx.toIndex,
             _tx.amount,
             tokenType,
             to
         );
-        return (newRoot, newFromState, newToState, result);
+        return (newRoot, result);
     }
 }

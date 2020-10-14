@@ -178,7 +178,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             );
             assert.isTrue(proof.safe);
             const postRoot = stateTree.root;
-            const { 0: processedRoot, 3: result } = await rollup.testProcessTx(
+            const { 0: processedRoot, 1: result } = await rollup.testProcessTx(
                 preRoot,
                 tx,
                 states[0].tokenType,

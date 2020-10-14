@@ -116,17 +116,6 @@ describe("Tx Serialization", async () => {
         const txs = TxCreate2Transfer.buildList(COMMIT_SIZE);
         assert.equal(await c.create2transfer_serialize(txs), serialize(txs));
     });
-    it("transfer trasaction casting", async function() {
-        const txs = TxTransfer.buildList(COMMIT_SIZE);
-        const txsInBytes = [];
-        for (const tx of txs) {
-            const extended = tx.extended();
-            const bytes = await c.transfer_bytesFromEncoded(extended);
-            txsInBytes.push(bytes);
-        }
-        const serialized = await c.transfer_serializeFromEncoded(txsInBytes);
-        assert.equal(serialized, serialize(txs));
-    });
 
     it("massMigration", async function() {
         const txs = TxMassMigration.buildList(COMMIT_SIZE);

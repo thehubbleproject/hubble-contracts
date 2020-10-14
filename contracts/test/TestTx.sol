@@ -23,30 +23,6 @@ contract TestTx {
         return Tx.serialize(txs);
     }
 
-    function transfer_serializeFromEncoded(bytes[] memory txs)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return Tx.serialize(txs);
-    }
-
-    function transfer_bytesFromEncoded(Types.Transfer memory _tx)
-        public
-        pure
-        returns (bytes memory)
-    {
-        return
-            abi.encode(
-                Types.Usage.Transfer,
-                _tx.fromIndex,
-                _tx.toIndex,
-                _tx.nonce,
-                _tx.amount,
-                _tx.fee
-            );
-    }
-
     function transfer_hasExcessData(bytes memory txs)
         public
         pure

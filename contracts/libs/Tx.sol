@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { BLS } from "./BLS.sol";
-import { Types } from "./Types.sol";
 
 library Tx {
     // Tx types in uint256
@@ -82,32 +81,6 @@ library Tx {
     // num of txs in the bytes blob
     function transfer_size(bytes memory txs) internal pure returns (uint256) {
         return txs.length / TX_LEN_0;
-    }
-
-    function transfer_fromEncoded(bytes memory txBytes)
-        internal
-        pure
-        returns (Tx.Transfer memory)
-    {
-        Types.Transfer memory _tx;
-        (
-            _tx.txType,
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.nonce,
-            _tx.amount,
-            _tx.fee
-        ) = abi.decode(
-            txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
-        );
-        Tx.Transfer memory _txCompressed = Tx.Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.amount,
-            _tx.fee
-        );
-        return (_txCompressed);
     }
 
     function serialize(bytes[] memory txs)
@@ -210,32 +183,6 @@ library Tx {
         return (exponent << 12) + x;
     }
 
-    function transfer_serializeFromEncoded(Types.Transfer[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        uint256 batchSize = txs.length;
-        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            uint256 fromIndex = txs[i].fromIndex;
-            uint256 toIndex = txs[i].toIndex;
-            uint256 amount = encodeDecimal(txs[i].amount);
-            uint256 fee = encodeDecimal(txs[i].fee);
-            bytes memory _tx = abi.encodePacked(
-                uint32(fromIndex),
-                uint32(toIndex),
-                uint16(amount),
-                uint16(fee)
-            );
-            uint256 off = i * TX_LEN_0;
-            for (uint256 j = 0; j < TX_LEN_0; j++) {
-                serialized[j + off] = _tx[j];
-            }
-        }
-        return serialized;
-    }
-
     function transfer_decode(bytes memory txs, uint256 index)
         internal
         pure
@@ -298,75 +245,6 @@ library Tx {
         returns (uint256)
     {
         return txs.length / TX_LEN_1;
-    }
-
-    function create2Transfer_fromEncoded(bytes memory txBytes)
-        internal
-        pure
-        returns (Tx.Create2Transfer memory)
-    {
-        Types.Create2Transfer memory _tx;
-        (
-            _tx.txType,
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.toAccID,
-            _tx.nonce,
-            _tx.amount,
-            _tx.fee
-        ) = abi.decode(
-            txBytes,
-            (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
-        );
-        Tx.Create2Transfer memory _txCompressed = Tx.Create2Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.toAccID,
-            _tx.amount,
-            _tx.fee
-        );
-        return (_txCompressed);
-    }
-
-    function create2transfer_serialize(bytes[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        uint256 batchSize = txs.length;
-        bytes memory serialized = new bytes(TX_LEN_1 * batchSize);
-        for (uint256 i = 0; i < txs.length; i++) {
-            uint256 fromIndex;
-            uint256 toIndex;
-            uint256 toAccID;
-            uint256 amount;
-            uint256 fee;
-            (, fromIndex, toIndex, toAccID, , , amount, fee) = abi.decode(
-                txs[i],
-                (
-                    uint256,
-                    uint256,
-                    uint256,
-                    uint256,
-                    uint256,
-                    uint256,
-                    uint256,
-                    uint256
-                )
-            );
-            bytes memory _tx = abi.encodePacked(
-                uint32(fromIndex),
-                uint32(toIndex),
-                uint32(toAccID),
-                uint16(encodeDecimal(amount)),
-                uint16(encodeDecimal(fee))
-            );
-            uint256 off = i * TX_LEN_1;
-            for (uint256 j = 0; j < TX_LEN_1; j++) {
-                serialized[j + off] = _tx[j];
-            }
-        }
-        return serialized;
     }
 
     function create2Transfer_decode(bytes memory txs, uint256 index)
