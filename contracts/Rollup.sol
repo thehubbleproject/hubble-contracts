@@ -93,27 +93,29 @@ contract RollupSetup {
     }
 
     modifier checkPreviousCommitment(
-        uint256 _batch_id,
+        uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
         uint256 targetPathToCommitment
     ) {
+        uint256 previousPath = 0;
+        uint256 expectedBatchID = 0;
         if (targetPathToCommitment == 0) {
             // target is the first commit in the batch, so the previous commit is in the previous batch
-            require(
-                checkInclusion(batches[_batch_id - 1].commitmentRoot, previous),
-                "previous commitment is absent in the previous batch"
-            );
+            expectedBatchID = batchID - 1;
+            previousPath = batches[expectedBatchID].commitmentLength() - 1;
         } else {
             // target and previous commits are both in the current batch
-            require(
-                previous.pathToCommitment == targetPathToCommitment - 1,
-                "previous commitment has wrong path"
-            );
-            require(
-                checkInclusion(batches[_batch_id].commitmentRoot, previous),
-                "previous commitment is absent in the current batch"
-            );
+            expectedBatchID = batchID;
+            previousPath = targetPathToCommitment - 1;
         }
+        require(
+            previous.pathToCommitment == previousPath,
+            "previous commitment has wrong path"
+        );
+        require(
+            checkInclusion(batches[expectedBatchID].commitmentRoot, previous),
+            "previous commitment is absent in the current batch"
+        );
         _;
     }
 }
@@ -403,6 +405,11 @@ contract Rollup is RollupHelpers {
         Types.SubtreeVacancyProof memory vacant
     ) public payable onlyCoordinator isNotRollingBack {
         uint256 preBatchID = batches.length - 1;
+        require(
+            previous.pathToCommitment ==
+                batches[preBatchID].commitmentLength() - 1,
+            "previous commitment has wrong path"
+        );
         require(
             checkInclusion(batches[preBatchID].commitmentRoot, previous),
             "previous commitment is absent in the previous batch"
