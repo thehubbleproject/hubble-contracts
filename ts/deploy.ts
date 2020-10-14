@@ -1,6 +1,4 @@
 import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFactory";
-import { RollupUtilsFactory } from "../types/ethers-contracts/RollupUtilsFactory";
-import { RollupUtils } from "../types/ethers-contracts/RollupUtils";
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { GovernanceFactory } from "../types/ethers-contracts/GovernanceFactory";
@@ -20,10 +18,12 @@ import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
 import {
+    ClientFrontendFactory,
     SpokeRegistryFactory,
     VaultFactory,
     WithdrawManagerFactory
 } from "../types/ethers-contracts";
+import { State } from "./state";
 
 async function waitAndRegister(
     contract: Contract,
@@ -55,8 +55,8 @@ export async function deployAll(
     const paramManager = await new ParamManagerFactory(signer).deploy();
     await waitAndRegister(paramManager, "paramManager", verbose);
 
-    const rollupUtils = await new RollupUtilsFactory(signer).deploy();
-    await waitAndRegister(rollupUtils, "rollupUtils", verbose);
+    const clientFrondend = await new ClientFrontendFactory(signer).deploy();
+    await waitAndRegister(clientFrondend, "clientFrondend", verbose);
 
     // deploy name registry
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
@@ -204,7 +204,6 @@ export async function deployAll(
     const root =
         parameters.GENESIS_STATE_ROOT ||
         (await getMerkleRootWithCoordinatorAccount(
-            rollupUtils,
             merkleTreeUtils,
             parameters
         ));
@@ -238,7 +237,7 @@ export async function deployAll(
 
     return {
         paramManager,
-        rollupUtils,
+        clientFrondend,
         nameRegistry,
         governance,
         logger,
@@ -258,12 +257,12 @@ export async function deployAll(
 }
 
 async function getMerkleRootWithCoordinatorAccount(
-    rollupUtils: RollupUtils,
     merkleTreeUtils: MerkleTreeUtils,
     parameters: DeploymentParameters
 ) {
-    const genesisLeaves = await rollupUtils.GetGenesisLeaves();
-    const dataLeaves = [genesisLeaves[0], genesisLeaves[1]];
+    const state0 = State.new(0, 0, 0, 0);
+    const state1 = State.new(1, 0, 0, 0);
+    const dataLeaves = [state0.toStateLeaf(), state1.toStateLeaf()];
     const ZERO_BYTES32 =
         "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
     for (let i = dataLeaves.length; i < 2 ** parameters.MAX_DEPTH; i++) {
