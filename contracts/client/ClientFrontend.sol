@@ -36,8 +36,6 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(txBytes);
     }
 
-    // Transfer
-
     function processTransferTx(
         bytes32 stateRoot,
         bytes memory txBytes,
@@ -96,18 +94,4 @@ contract ClientFrontend {
             _tx.amount
         );
     }
-
-    // processFee
-    // checkSignature
-    // Create2Tranfer
-
-    // processTx(which takes encoded tx data and compresses it on contracts)
-    // ApplyTx ( checks if tx.from == mp.account.path and routes to ApplyTxSender)
-    // processFee
-    // checkSignature
-    // Mass Migrations
-
-    // processTx
-    // ApplyTx
-    // processFee (not ready on contract yet)
 }
