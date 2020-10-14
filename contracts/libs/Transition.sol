@@ -123,7 +123,7 @@ library Transition {
         Types.StateMerkleProof memory proof,
         uint256 senderStateIndex,
         uint256 decrement
-    ) public pure returns (bytes memory newState, bytes32 stateRoot) {
+    ) internal pure returns (bytes memory newState, bytes32 stateRoot) {
         Types.UserState memory state = proof.state;
         state.balance = state.balance.sub(decrement);
         state.nonce++;
@@ -139,7 +139,7 @@ library Transition {
         Types.StateMerkleProof memory proof,
         uint256 receiverStateIndex,
         uint256 increment
-    ) public pure returns (bytes memory newState, bytes32 stateRoot) {
+    ) internal pure returns (bytes memory newState, bytes32 stateRoot) {
         Types.UserState memory state = proof.state;
         state.balance = state.balance.add(increment);
         newState = state.encode();
