@@ -12,28 +12,28 @@ contract ClientFrontend {
     using Tx for bytes;
     using Types for Types.UserState;
 
-    function decodeTransfer(bytes calldata txBytes)
+    function decodeTransfer(bytes calldata encodedTx)
         external
         pure
         returns (Offchain.Transfer memory _tx)
     {
-        return Offchain.decodeTransfer(txBytes);
+        return Offchain.decodeTransfer(encodedTx);
     }
 
-    function decodeMassMigration(bytes calldata txBytes)
+    function decodeMassMigration(bytes calldata encodedTx)
         external
         pure
         returns (Offchain.MassMigration memory _tx)
     {
-        return Offchain.decodeMassMigration(txBytes);
+        return Offchain.decodeMassMigration(encodedTx);
     }
 
-    function decodeCreate2Transfer(bytes calldata txBytes)
+    function decodeCreate2Transfer(bytes calldata encodedTx)
         external
         pure
         returns (Offchain.Create2Transfer memory _tx)
     {
-        return Offchain.decodeCreate2Transfer(txBytes);
+        return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
     function processTransferTx(

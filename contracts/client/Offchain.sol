@@ -13,7 +13,7 @@ library Offchain {
         uint256 nonce;
     }
 
-    function decodeTransfer(bytes memory txBytes)
+    function decodeTransfer(bytes memory encodedTx)
         internal
         pure
         returns (Transfer memory _tx)
@@ -26,7 +26,7 @@ library Offchain {
             _tx.fee,
             _tx.nonce
         ) = abi.decode(
-            txBytes,
+            encodedTx,
             (uint256, uint256, uint256, uint256, uint256, uint256)
         );
     }
@@ -40,7 +40,7 @@ library Offchain {
         uint256 nonce;
     }
 
-    function decodeMassMigration(bytes memory txBytes)
+    function decodeMassMigration(bytes memory encodedTx)
         internal
         pure
         returns (MassMigration memory _tx)
@@ -53,7 +53,7 @@ library Offchain {
             _tx.spokeID,
             _tx.nonce
         ) = abi.decode(
-            txBytes,
+            encodedTx,
             (uint256, uint256, uint256, uint256, uint256, uint256)
         );
     }
@@ -68,7 +68,7 @@ library Offchain {
         uint256 nonce;
     }
 
-    function decodeCreate2Transfer(bytes memory txBytes)
+    function decodeCreate2Transfer(bytes memory encodedTx)
         internal
         pure
         returns (Create2Transfer memory _tx)
@@ -82,7 +82,7 @@ library Offchain {
             _tx.fee,
             _tx.nonce
         ) = abi.decode(
-            txBytes,
+            encodedTx,
             (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
     }
