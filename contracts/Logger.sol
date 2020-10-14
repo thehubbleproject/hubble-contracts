@@ -3,7 +3,6 @@ pragma solidity ^0.5.15;
 import { Types } from "./libs/Types.sol";
 
 contract Logger {
-
     /*********************
      * Rollup Contract *
      ********************/
