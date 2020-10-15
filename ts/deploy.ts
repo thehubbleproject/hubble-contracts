@@ -165,8 +165,8 @@ export async function deployAll(
         nameRegistry,
         await paramManager.TEST_TOKEN()
     );
-    await tokenRegistry.requestTokenRegistration(testToken.address);
-    await tokenRegistry.finaliseTokenRegistration(testToken.address);
+    await tokenRegistry.requestRegistration(testToken.address);
+    await tokenRegistry.finaliseRegistration(testToken.address);
 
     const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
     await waitAndRegister(
