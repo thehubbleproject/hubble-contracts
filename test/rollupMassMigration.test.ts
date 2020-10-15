@@ -7,8 +7,7 @@ import { randHex, sum } from "../ts/utils";
 import {
     LoggerFactory,
     BlsAccountRegistryFactory,
-    TestMassMigrationFactory,
-    MerkleTreeUtilsFactory
+    TestMassMigrationFactory
 } from "../types/ethers-contracts";
 import * as mcl from "../ts/mcl";
 import { TestMassMigration } from "../types/ethers-contracts/TestMassMigration";
@@ -47,12 +46,7 @@ describe("Rollup Mass Migration", () => {
     });
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        const merkleTree = await new MerkleTreeUtilsFactory(signer).deploy(
-            STATE_TREE_DEPTH
-        );
-        rollup = await new TestMassMigrationFactory(signer).deploy(
-            merkleTree.address
-        );
+        rollup = await new TestMassMigrationFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         stateTree.createStateBulk(states);
     });

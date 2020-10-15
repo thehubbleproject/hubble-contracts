@@ -5,13 +5,12 @@ import { Tree } from "../ts/tree";
 import { TestMerkleTreeFactory } from "../types/ethers-contracts/TestMerkleTreeFactory";
 import { TestMerkleTree } from "../types/ethers-contracts/TestMerkleTree";
 
-// Test all stateless operations
-describe("MerkleTreeUtils", async function() {
+describe("MerkleTree", async function() {
     const MAX_DEPTH = 32;
     let contract: TestMerkleTree;
     before(async function() {
         const [signer] = await ethers.getSigners();
-        contract = await new TestMerkleTreeFactory(signer).deploy(MAX_DEPTH);
+        contract = await new TestMerkleTreeFactory(signer).deploy();
     });
     it("verify", async function() {
         const size = 50;

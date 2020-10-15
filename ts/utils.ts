@@ -65,10 +65,7 @@ export function defaultHashes(depth: number) {
     return hashes;
 }
 
-export async function getMerkleRootFromLeaves(
-    dataLeaves: string[],
-    maxDepth: number
-) {
+export async function merklise(dataLeaves: string[], maxDepth: number) {
     let nodes: string[] = dataLeaves.slice();
     const defaultHashesForLeaves: string[] = defaultHashes(maxDepth);
     let odd = nodes.length & 1;
