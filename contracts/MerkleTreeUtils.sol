@@ -60,16 +60,6 @@ contract MerkleTreeUtils {
         }
     }
 
-    function getZeroRoot() public view returns (bytes32) {
-        return
-            keccak256(
-                abi.encode(
-                    defaultHashes[maxDepth - 1],
-                    defaultHashes[maxDepth - 1]
-                )
-            );
-    }
-
     function getRoot(uint256 index) public view returns (bytes32) {
         return defaultHashes[index];
     }
@@ -107,39 +97,5 @@ contract MerkleTreeUtils {
             level += 1;
         }
         return nodes[0];
-    }
-
-    /**
-     * @notice Verify an inclusion proof.
-     * @param _root The root of the tree we are verifying inclusion for.
-     * @param _leaf The data block we're verifying inclusion for.
-     * @param _path The path from the leaf to the root.
-     * @param _siblings The sibling nodes along the way.
-     * @return The next level of the tree
-     * NOTE: This is a stateless operation
-     */
-    function verify(
-        bytes32 _root,
-        bytes32 _leaf,
-        uint256 _path,
-        bytes32[] memory _siblings
-    ) public pure returns (bool) {
-        return MerkleProof.verify(_root, _leaf, _path, _siblings);
-    }
-
-    /**
-     * @notice Update a leaf using siblings and root
-     *         This is a stateless operation
-     * @param _leaf The leaf we're updating.
-     * @param _path The path from the leaf to the root / the index of the leaf.
-     * @param _siblings The sibling nodes along the way.
-     * @return Updated root
-     */
-    function updateLeafWithSiblings(
-        bytes32 _leaf,
-        uint256 _path,
-        bytes32[] memory _siblings
-    ) public pure returns (bytes32) {
-        return MerkleProof.computeRoot(_leaf, _path, _siblings);
     }
 }

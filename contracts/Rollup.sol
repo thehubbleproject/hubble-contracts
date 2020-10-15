@@ -406,7 +406,7 @@ contract Rollup is RollupHelpers {
             "previous commitment is absent in the previous batch"
         );
         require(
-            merkleUtils.verify(
+            MerkleProof.verify(
                 previous.commitment.stateRoot,
                 merkleUtils.getRoot(vacant.depth),
                 vacant.pathAtDepth,
@@ -421,7 +421,7 @@ contract Rollup is RollupHelpers {
         );
         logger.logDepositFinalised(depositSubTreeRoot, vacant.pathAtDepth);
 
-        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
+        bytes32 newRoot = MerkleProof.computeRoot(
             depositSubTreeRoot,
             vacant.pathAtDepth,
             vacant.witness
