@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { Logger } from "./Logger.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
+import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";

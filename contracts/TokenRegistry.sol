@@ -5,7 +5,15 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
 
-contract TokenRegistry {
+interface ITokenRegistry {
+    function registeredTokens(uint256 tokenID) external view returns (address);
+
+    function requestTokenRegistration(address tokenContract) external;
+
+    function finaliseTokenRegistration(address tokenContract) external;
+}
+
+contract TokenRegistry is ITokenRegistry {
     address public rollupNC;
     Logger public logger;
     mapping(address => bool) public pendingRegistrations;
