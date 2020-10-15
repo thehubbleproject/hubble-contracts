@@ -4,7 +4,7 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Rollup } from "./Rollup.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
+import { ITokenRegistry } from "./TokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
 import { SpokeRegistry } from "./SpokeRegistry.sol";
@@ -64,17 +64,9 @@ contract Vault {
             ),
             "Vault: Commitment is not present in batch"
         );
-
-        address tokenContractAddress = tokenRegistry.registeredTokens(
-            commitmentMP.commitment.body.tokenID
+        IERC20 tokenContract = IERC20(
+            tokenRegistry.safeGetAddress(commitmentMP.commitment.body.tokenID)
         );
-        require(
-            tokenContractAddress != address(0),
-            "Vault: Token should be registered"
-        );
-
-        IERC20 tokenContract = IERC20(tokenContractAddress);
-
         require(
             tokenContract.approve(
                 msg.sender,

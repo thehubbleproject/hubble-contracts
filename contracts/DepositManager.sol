@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { Logger } from "./Logger.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
+import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
@@ -93,7 +93,6 @@ contract DepositManager is DepositCore {
     Governance public governance;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
-    IERC20 public tokenContract;
 
     // batchID => subtreeRoot
     mapping(uint256 => bytes32) submittedSubtree;
@@ -139,11 +138,7 @@ contract DepositManager is DepositCore {
     ) public {
         // check amount is greater than 0
         require(_amount > 0, "token deposit must be greater than 0");
-        // check token type exists
-        address tokenContractAddress = tokenRegistry.registeredTokens(
-            _tokenType
-        );
-        tokenContract = IERC20(tokenContractAddress);
+        IERC20 tokenContract = IERC20(tokenRegistry.safeGetAddress(_tokenType));
         // transfer from msg.sender to vault
         require(
             tokenContract.allowance(msg.sender, address(this)) >= _amount,

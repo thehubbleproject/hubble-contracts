@@ -5,11 +5,19 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
 
-contract TokenRegistry {
+interface ITokenRegistry {
+    function safeGetAddress(uint256 tokenID) external view returns (address);
+
+    function requestRegistration(address tokenContract) external;
+
+    function finaliseRegistration(address tokenContract) external;
+}
+
+contract TokenRegistry is ITokenRegistry {
     address public rollupNC;
     Logger public logger;
     mapping(address => bool) public pendingRegistrations;
-    mapping(uint256 => address) public registeredTokens;
+    mapping(uint256 => address) private registeredTokens;
 
     uint256 public numTokens;
 
@@ -28,11 +36,20 @@ contract TokenRegistry {
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
     }
 
+    function safeGetAddress(uint256 tokenID) external view returns (address) {
+        address tokenContract = registeredTokens[tokenID];
+        require(
+            tokenContract != address(0),
+            "TokenRegistry: Unregistered tokenID"
+        );
+        return tokenContract;
+    }
+
     /**
      * @notice Requests addition of a new token to the chain, can be called by anyone
      * @param tokenContract Address for the new token being added
      */
-    function requestTokenRegistration(address tokenContract) public {
+    function requestRegistration(address tokenContract) public {
         require(
             pendingRegistrations[tokenContract] == false,
             "Token already registered."
@@ -46,7 +63,7 @@ contract TokenRegistry {
      * @param tokenContract Deposit tree depth or depth of subtree that is being deposited
      * TODO: add a modifier to allow only coordinator
      */
-    function finaliseTokenRegistration(address tokenContract) public {
+    function finaliseRegistration(address tokenContract) public {
         require(
             pendingRegistrations[tokenContract],
             "Token was not registered"
