@@ -81,7 +81,7 @@ contract RollupSetup {
         Types.CommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -190,7 +190,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
         Types.TransferCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -203,7 +203,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
         Types.MMCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -406,7 +406,7 @@ contract Rollup is RollupHelpers {
             "previous commitment is absent in the previous batch"
         );
         require(
-            merkleUtils.verifyLeaf(
+            merkleUtils.verify(
                 previous.commitment.stateRoot,
                 merkleUtils.getRoot(vacant.depth),
                 vacant.pathAtDepth,

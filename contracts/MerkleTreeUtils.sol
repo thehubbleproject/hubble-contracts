@@ -20,7 +20,7 @@ library MerkleProof {
         return leaf;
     }
 
-    function verifyLeaf(
+    function verify(
         bytes32 root,
         bytes32 leaf,
         uint256 path,
@@ -118,13 +118,13 @@ contract MerkleTreeUtils {
      * @return The next level of the tree
      * NOTE: This is a stateless operation
      */
-    function verifyLeaf(
+    function verify(
         bytes32 _root,
         bytes32 _leaf,
         uint256 _path,
         bytes32[] memory _siblings
     ) public pure returns (bool) {
-        return MerkleProof.verifyLeaf(_root, _leaf, _path, _siblings);
+        return MerkleProof.verify(_root, _leaf, _path, _siblings);
     }
 
     /**

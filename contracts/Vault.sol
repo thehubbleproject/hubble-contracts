@@ -56,7 +56,7 @@ contract Vault {
         );
 
         require(
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 batch.commitmentRoot,
                 commitmentMP.commitment.toHash(),
                 commitmentMP.pathToCommitment,

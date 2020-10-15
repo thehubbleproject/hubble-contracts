@@ -32,7 +32,7 @@ contract MassMigrationCore {
             Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
             // check state inclustion
             require(
-                MerkleProof.verifyLeaf(
+                MerkleProof.verify(
                     stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
@@ -43,7 +43,7 @@ contract MassMigrationCore {
 
             // check pubkey inclusion
             require(
-                MerkleProof.verifyLeaf(
+                MerkleProof.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
                     proof.states[i].pubkeyIndex,

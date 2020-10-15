@@ -13,7 +13,7 @@ contract TestMerkleTree is MerkleTreeUtils {
         bytes32[] memory witnesses
     ) public returns (bool, uint256) {
         uint256 gasCost = gasleft();
-        bool result = MerkleProof.verifyLeaf(
+        bool result = MerkleProof.verify(
             root,
             leaf,
             path,

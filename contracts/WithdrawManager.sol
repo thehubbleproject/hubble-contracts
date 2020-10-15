@@ -95,7 +95,7 @@ contract WithdrawManager {
             "WithdrawManager: withdrawRoot should have been processed"
         );
         require(
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 withdrawRoot,
                 keccak256(withdrawal.state.encode()),
                 withdrawal.path,
@@ -108,7 +108,7 @@ contract WithdrawManager {
             "WithdrawManager: Token has been claimed"
         );
         require(
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 accountRoot,
                 keccak256(abi.encodePacked(pubkey)),
                 withdrawal.state.pubkeyIndex,

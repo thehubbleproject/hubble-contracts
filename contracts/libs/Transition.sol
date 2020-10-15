@@ -81,7 +81,7 @@ library Transition {
         Types.StateMerkleProof memory sender
     ) internal pure returns (Types.Result) {
         require(
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 stateRoot,
                 keccak256(sender.state.encode()),
                 senderIndex,
@@ -105,7 +105,7 @@ library Transition {
         Types.StateMerkleProof memory receiver
     ) internal pure returns (Types.Result) {
         require(
-            MerkleProof.verifyLeaf(
+            MerkleProof.verify(
                 stateRoot,
                 keccak256(receiver.state.encode()),
                 receiverIndex,
