@@ -8,14 +8,13 @@ import { Tx } from "./libs/Tx.sol";
 
 import { BLS } from "./libs/BLS.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { MerkleTree, MerkleTreeUtils } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./MerkleTreeUtils.sol";
 import { NameRegistry } from "./NameRegistry.sol";
 
-contract MassMigrationCore {
+contract MassMigration {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
-    MerkleTreeUtils public merkleTree;
 
     function checkSignature(
         uint256[2] memory signature,
@@ -111,10 +110,8 @@ contract MassMigrationCore {
         if (totalAmount != commitmentBody.amount)
             return (stateRoot, Types.Result.MismatchedAmount);
 
-        if (
-            merkleTree.getMerkleRootFromLeaves(withdrawLeaves) !=
-            commitmentBody.withdrawRoot
-        ) return (stateRoot, Types.Result.BadWithdrawRoot);
+        if (MerkleTree.merklise(withdrawLeaves) != commitmentBody.withdrawRoot)
+            return (stateRoot, Types.Result.BadWithdrawRoot);
 
         return (stateRoot, result);
     }
@@ -152,13 +149,5 @@ contract MassMigrationCore {
         freshState = fresh.encode();
 
         return (newRoot, freshState, Types.Result.Ok);
-    }
-}
-
-contract MassMigration is MassMigrationCore {
-    constructor(NameRegistry nameRegistry) public {
-        merkleTree = MerkleTreeUtils(
-            nameRegistry.getContractDetails(ParamManager.merkleUtils())
-        );
     }
 }

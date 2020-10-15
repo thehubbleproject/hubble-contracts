@@ -42,7 +42,7 @@ describe("MerkleTreeUtils", async function() {
             const {
                 0: root,
                 1: gasCost
-            } = await contract.callStatic.testGetMerkleRootFromLeaves(leaves);
+            } = await contract.callStatic.testMerklise(leaves);
             assert.equal(root, Tree.merklize(leaves).root);
             console.log(
                 `Merklizing ${size} leaves onchain`,
@@ -53,21 +53,7 @@ describe("MerkleTreeUtils", async function() {
     it("testGetRoot", async function() {
         const levels = [0, 5, 10, 20, 31];
         for (const level of levels) {
-            const {
-                0: root,
-                1: gasCost
-            } = await contract.callStatic.testGetRoot(level);
-            console.log(`Get Root at level ${level}`, gasCost.toNumber());
-        }
-    });
-
-    it("testGetRoot2", async function() {
-        const levels = [0, 5, 10, 20, 31];
-        for (const level of levels) {
-            const {
-                0: root,
-                1: gasCost
-            } = await contract.callStatic.testGetRoot2(level);
+            const { 1: gasCost } = await contract.callStatic.testGetRoot(level);
             console.log(`Get Root at level ${level}`, gasCost.toNumber());
         }
     });
