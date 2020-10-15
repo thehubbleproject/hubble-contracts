@@ -5,16 +5,16 @@ library MerkleProof {
     function computeRoot(
         bytes32 leafInput,
         uint256 path,
-        bytes32[] memory witnesses
+        bytes32[] memory witness
     ) internal pure returns (bytes32) {
         // Copy to avoid assigning to the function parameter.
         bytes32 leaf = leafInput;
-        for (uint256 i = 0; i < witnesses.length; i++) {
+        for (uint256 i = 0; i < witness.length; i++) {
             // get i-th bit from right
             if (((path >> i) & 1) == 0) {
-                leaf = keccak256(abi.encode(leaf, witnesses[i]));
+                leaf = keccak256(abi.encode(leaf, witness[i]));
             } else {
-                leaf = keccak256(abi.encode(witnesses[i], leaf));
+                leaf = keccak256(abi.encode(witness[i], leaf));
             }
         }
         return leaf;
@@ -24,9 +24,9 @@ library MerkleProof {
         bytes32 root,
         bytes32 leaf,
         uint256 path,
-        bytes32[] memory witnesses
+        bytes32[] memory witness
     ) internal pure returns (bool) {
-        return computeRoot(leaf, path, witnesses) == root;
+        return computeRoot(leaf, path, witness) == root;
     }
 }
 
