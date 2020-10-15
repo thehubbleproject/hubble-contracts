@@ -1,7 +1,7 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { MerkleTree } from "../MerkleTreeUtils.sol";
+import { MerkleTree } from "../libs/MerkleTree.sol";
 
 contract TestMerkleTree {
     function testVerify(

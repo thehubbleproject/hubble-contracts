@@ -8,7 +8,7 @@ import { Tx } from "./libs/Tx.sol";
 import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./Logger.sol";
 import { POB } from "./POB.sol";
-import { MerkleTree } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";

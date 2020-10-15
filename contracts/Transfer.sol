@@ -4,8 +4,7 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
-import { MerkleTree } from "./MerkleTreeUtils.sol";
-
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 

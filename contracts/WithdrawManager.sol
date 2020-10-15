@@ -7,7 +7,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Tx } from "./libs/Tx.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Vault } from "./Vault.sol";
-import { MerkleTree } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
 
 contract WithdrawManager {

@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "./Types.sol";
-import { MerkleTree } from "../MerkleTreeUtils.sol";
+import { MerkleTree } from "../libs/MerkleTree.sol";
 
 library Transition {
     using SafeMath for uint256;

@@ -8,7 +8,7 @@ import { Tx } from "./libs/Tx.sol";
 
 import { BLS } from "./libs/BLS.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { MerkleTree } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { NameRegistry } from "./NameRegistry.sol";
 
 contract MassMigration {
