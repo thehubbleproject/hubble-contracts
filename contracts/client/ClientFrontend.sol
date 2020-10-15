@@ -83,12 +83,12 @@ contract ClientFrontend {
         returns (bytes memory senderState, bytes memory receiverState)
     {
         Offchain.Transfer memory _tx = Offchain.decodeTransfer(txBytes);
-        (senderState, ) = Transition.ApplySender(
+        (senderState, ) = Transition.applySender(
             from,
             _tx.fromIndex,
             _tx.amount.add(_tx.fee)
         );
-        (receiverState, ) = Transition.ApplyReceiver(
+        (receiverState, ) = Transition.applyReceiver(
             to,
             _tx.toIndex,
             _tx.amount

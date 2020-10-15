@@ -34,7 +34,7 @@ library Transition {
             proof
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", result);
-        (newToState, newRoot) = ApplySender(
+        (newToState, newRoot) = applySender(
             proof,
             senderStateIndex,
             amount.add(fee)
@@ -64,7 +64,7 @@ library Transition {
             proof
         );
         if (result != Types.Result.Ok) return (bytes32(0), "", result);
-        (newToState, newRoot) = ApplyReceiver(
+        (newToState, newRoot) = applyReceiver(
             proof,
             receiverStateIndex,
             amount
@@ -119,7 +119,7 @@ library Transition {
         return Types.Result.Ok;
     }
 
-    function ApplySender(
+    function applySender(
         Types.StateMerkleProof memory proof,
         uint256 senderStateIndex,
         uint256 decrement
@@ -135,7 +135,7 @@ library Transition {
         );
     }
 
-    function ApplyReceiver(
+    function applyReceiver(
         Types.StateMerkleProof memory proof,
         uint256 receiverStateIndex,
         uint256 increment
