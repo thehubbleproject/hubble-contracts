@@ -64,17 +64,9 @@ contract Vault {
             ),
             "Vault: Commitment is not present in batch"
         );
-
-        address tokenContractAddress = tokenRegistry.registeredTokens(
-            commitmentMP.commitment.body.tokenID
+        IERC20 tokenContract = IERC20(
+            tokenRegistry.safeGetAddress(commitmentMP.commitment.body.tokenID)
         );
-        require(
-            tokenContractAddress != address(0),
-            "Vault: Token should be registered"
-        );
-
-        IERC20 tokenContract = IERC20(tokenContractAddress);
-
         require(
             tokenContract.approve(
                 msg.sender,

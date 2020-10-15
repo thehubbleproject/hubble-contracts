@@ -64,17 +64,13 @@ contract WithdrawManager {
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
         vault.requestApproval(_batch_id, commitmentMP);
-        // check token type exists
-        address tokenContractAddress = tokenRegistry.registeredTokens(
-            commitmentMP.commitment.body.tokenID
+        IERC20 tokenContract = IERC20(
+            tokenRegistry.safeGetAddress(commitmentMP.commitment.body.tokenID)
         );
-
         processed[commitmentMP.commitment.body.withdrawRoot] = commitmentMP
             .commitment
             .body
             .accountRoot;
-
-        IERC20 tokenContract = IERC20(tokenContractAddress);
         // transfer tokens from vault
         require(
             tokenContract.transferFrom(
@@ -129,10 +125,9 @@ contract WithdrawManager {
             "WithdrawManager: Bad signature"
         );
 
-        address tokenContractAddress = tokenRegistry.registeredTokens(
-            withdrawal.state.tokenType
+        IERC20 tokenContract = IERC20(
+            tokenRegistry.safeGetAddress(withdrawal.state.tokenType)
         );
-        IERC20 tokenContract = IERC20(tokenContractAddress);
         setClaimed(withdrawRoot, withdrawal.state.pubkeyIndex);
         // transfer tokens from vault
         require(
