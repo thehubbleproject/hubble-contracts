@@ -2,7 +2,7 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 library MerkleProof {
-    function rootFromWitnesses(
+    function computeRoot(
         bytes32 leafInput,
         uint256 path,
         bytes32[] memory witnesses
@@ -26,7 +26,7 @@ library MerkleProof {
         uint256 path,
         bytes32[] memory witnesses
     ) internal pure returns (bool) {
-        return rootFromWitnesses(leaf, path, witnesses) == root;
+        return computeRoot(leaf, path, witnesses) == root;
     }
 }
 
@@ -140,6 +140,6 @@ contract MerkleTreeUtils {
         uint256 _path,
         bytes32[] memory _siblings
     ) public pure returns (bytes32) {
-        return MerkleProof.rootFromWitnesses(_leaf, _path, _siblings);
+        return MerkleProof.computeRoot(_leaf, _path, _siblings);
     }
 }

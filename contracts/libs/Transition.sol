@@ -128,7 +128,7 @@ library Transition {
         state.balance = state.balance.sub(decrement);
         state.nonce++;
         newState = state.encode();
-        stateRoot = MerkleProof.rootFromWitnesses(
+        stateRoot = MerkleProof.computeRoot(
             keccak256(newState),
             senderStateIndex,
             proof.witness
@@ -143,7 +143,7 @@ library Transition {
         Types.UserState memory state = proof.state;
         state.balance = state.balance.add(increment);
         newState = state.encode();
-        stateRoot = MerkleProof.rootFromWitnesses(
+        stateRoot = MerkleProof.computeRoot(
             keccak256(newState),
             receiverStateIndex,
             proof.witness

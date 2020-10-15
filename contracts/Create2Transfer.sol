@@ -172,7 +172,7 @@ contract Create2Transfer {
             0
         );
         encodedState = newState.encode();
-        newRoot = MerkleProof.rootFromWitnesses(
+        newRoot = MerkleProof.computeRoot(
             keccak256(encodedState),
             _tx.toIndex,
             proof.witness
