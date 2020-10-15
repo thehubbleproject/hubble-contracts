@@ -22,7 +22,19 @@ contract TestMerkleTree is MerkleTreeUtils {
         returns (bytes32, uint256)
     {
         uint256 gasCost = gasleft();
-        bytes32 root = getMerkleRootFromLeaves(nodes);
+        bytes32 root = MerkleProof.merklise(nodes);
+        return (root, gasCost - gasleft());
+    }
+
+    function testGetRoot(uint256 level) public returns (bytes32, uint256) {
+        uint256 gasCost = gasleft();
+        bytes32 root = getRoot(level);
+        return (root, gasCost - gasleft());
+    }
+
+    function testGetRoot2(uint256 level) public returns (bytes32, uint256) {
+        uint256 gasCost = gasleft();
+        bytes32 root = MerkleProof.getRoot(level);
         return (root, gasCost - gasleft());
     }
 }

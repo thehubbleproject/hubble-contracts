@@ -36,13 +36,39 @@ describe("MerkleTreeUtils", async function() {
     });
 
     it("merklize", async function() {
-        const size = 32;
-        const leaves = randomLeaves(size);
-        const {
-            0: root,
-            1: gasCost
-        } = await contract.callStatic.testGetMerkleRootFromLeaves(leaves);
-        assert.equal(root, Tree.merklize(leaves).root);
-        console.log(`Merklizing ${size} leaves onchain`, gasCost.toNumber());
+        const sizes = [1, 5, 10, 20, 32];
+        for (const size of sizes) {
+            const leaves = randomLeaves(size);
+            const {
+                0: root,
+                1: gasCost
+            } = await contract.callStatic.testGetMerkleRootFromLeaves(leaves);
+            assert.equal(root, Tree.merklize(leaves).root);
+            console.log(
+                `Merklizing ${size} leaves onchain`,
+                gasCost.toNumber()
+            );
+        }
+    });
+    it("testGetRoot", async function() {
+        const levels = [0, 5, 10, 20, 31];
+        for (const level of levels) {
+            const {
+                0: root,
+                1: gasCost
+            } = await contract.callStatic.testGetRoot(level);
+            console.log(`Get Root at level ${level}`, gasCost.toNumber());
+        }
+    });
+
+    it("testGetRoot2", async function() {
+        const levels = [0, 5, 10, 20, 31];
+        for (const level of levels) {
+            const {
+                0: root,
+                1: gasCost
+            } = await contract.callStatic.testGetRoot2(level);
+            console.log(`Get Root at level ${level}`, gasCost.toNumber());
+        }
     });
 });
