@@ -8,7 +8,7 @@ import { Tx } from "./libs/Tx.sol";
 import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./Logger.sol";
 import { POB } from "./POB.sol";
-import { MerkleTreeUtils, MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { MerkleTreeUtils, MerkleProof } from "./MerkleTreeUtils.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
@@ -81,7 +81,7 @@ contract RollupSetup {
         Types.CommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleProof.verifyLeaf(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -190,7 +190,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
         Types.TransferCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleProof.verifyLeaf(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -203,7 +203,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
         Types.MMCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleProof.verifyLeaf(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,

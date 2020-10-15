@@ -1,7 +1,7 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-library MerkleTreeUtilsLib {
+library MerkleProof {
     function rootFromWitnesses(
         bytes32 leafInput,
         uint256 path,
@@ -124,7 +124,7 @@ contract MerkleTreeUtils {
         uint256 _path,
         bytes32[] memory _siblings
     ) public pure returns (bool) {
-        return MerkleTreeUtilsLib.verifyLeaf(_root, _leaf, _path, _siblings);
+        return MerkleProof.verifyLeaf(_root, _leaf, _path, _siblings);
     }
 
     /**
@@ -140,6 +140,6 @@ contract MerkleTreeUtils {
         uint256 _path,
         bytes32[] memory _siblings
     ) public pure returns (bytes32) {
-        return MerkleTreeUtilsLib.rootFromWitnesses(_leaf, _path, _siblings);
+        return MerkleProof.rootFromWitnesses(_leaf, _path, _siblings);
     }
 }

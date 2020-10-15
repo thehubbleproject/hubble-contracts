@@ -1,7 +1,7 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { MerkleTreeUtilsLib, MerkleTreeUtils } from "../MerkleTreeUtils.sol";
+import { MerkleProof, MerkleTreeUtils } from "../MerkleTreeUtils.sol";
 
 contract TestMerkleTree is MerkleTreeUtils {
     constructor(uint256 maxDepth) public MerkleTreeUtils(maxDepth) {}
@@ -13,7 +13,7 @@ contract TestMerkleTree is MerkleTreeUtils {
         bytes32[] memory witnesses
     ) public returns (bool, uint256) {
         uint256 gasCost = gasleft();
-        bool result = MerkleTreeUtilsLib.verifyLeaf(
+        bool result = MerkleProof.verifyLeaf(
             root,
             leaf,
             path,
