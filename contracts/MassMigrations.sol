@@ -8,7 +8,7 @@ import { Tx } from "./libs/Tx.sol";
 
 import { BLS } from "./libs/BLS.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { MerkleProof, MerkleTreeUtils } from "./MerkleTreeUtils.sol";
+import { MerkleTree, MerkleTreeUtils } from "./MerkleTreeUtils.sol";
 import { NameRegistry } from "./NameRegistry.sol";
 
 contract MassMigrationCore {
@@ -32,7 +32,7 @@ contract MassMigrationCore {
             Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
             // check state inclustion
             require(
-                MerkleProof.verify(
+                MerkleTree.verify(
                     stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
@@ -43,7 +43,7 @@ contract MassMigrationCore {
 
             // check pubkey inclusion
             require(
-                MerkleProof.verify(
+                MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
                     proof.states[i].pubkeyIndex,

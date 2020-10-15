@@ -2,10 +2,9 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
-import { MerkleProof } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./MerkleTreeUtils.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
-import { MerkleProof } from "./MerkleTreeUtils.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Create2Transfer {
@@ -28,7 +27,7 @@ contract Create2Transfer {
 
             // check state inclustion
             require(
-                MerkleProof.verify(
+                MerkleTree.verify(
                     stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
@@ -39,7 +38,7 @@ contract Create2Transfer {
 
             // check pubkey inclusion
             require(
-                MerkleProof.verify(
+                MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysSender[i])),
                     proof.states[i].pubkeyIndex,
@@ -50,7 +49,7 @@ contract Create2Transfer {
 
             // check receiver pubkye inclusion at committed accID
             require(
-                MerkleProof.verify(
+                MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
                     _tx.toAccID,
@@ -157,7 +156,7 @@ contract Create2Transfer {
     ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
         // Validate we are creating on a zero state
         require(
-            MerkleProof.verify(
+            MerkleTree.verify(
                 stateRoot,
                 keccak256(abi.encode(0)),
                 _tx.toIndex,
@@ -172,7 +171,7 @@ contract Create2Transfer {
             0
         );
         encodedState = newState.encode();
-        newRoot = MerkleProof.computeRoot(
+        newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
             _tx.toIndex,
             proof.witness
