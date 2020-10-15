@@ -157,7 +157,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
-            if (gasleft() <= governance.MIN_GAS_LIMIT_LEFT()) {
+            if (gasleft() <= governance.minGasLeft()) {
                 // exit loop gracefully
                 break;
             }
@@ -245,7 +245,7 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
         );
 
-        changeStakeAmount(governance.STAKE_AMOUNT());
+        changeStakeAmount(governance.stakeAmount());
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
@@ -283,7 +283,7 @@ contract Rollup is RollupHelpers {
                 uint256(batchType),
                 commitmentLength,
                 msg.sender,
-                block.number + governance.TIME_TO_FINALISE()
+                block.number + governance.timeToFinalise()
             )
         });
         batches.push(newBatch);

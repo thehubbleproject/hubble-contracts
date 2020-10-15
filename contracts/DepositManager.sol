@@ -123,7 +123,7 @@ contract DepositManager is DepositCore {
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
         vault = nameRegistry.getContractDetails(ParamManager.VAULT());
-        govMaxSubtreeSize = 1 << governance.MAX_DEPOSIT_SUBTREE();
+        govMaxSubtreeSize = 1 << governance.maxDepositSubtree();
     }
 
     /**
