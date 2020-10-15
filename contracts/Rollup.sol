@@ -141,11 +141,11 @@ contract RollupHelpers is RollupSetup, StakeManager {
     }
 
     /**
-     * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
+     * @notice slashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challengers. Also deletes all the batches after invalid batch
      * Its a public function because we will need to pause if we are not able to delete all batches in one tx
      */
-    function SlashAndRollback() public isRollingBack {
+    function slashAndRollback() public isRollingBack {
         uint256 totalSlashings = 0;
         uint256 initialBatchID = batches.length - 1;
 
@@ -472,7 +472,7 @@ contract Rollup is RollupHelpers {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
             invalidBatchMarker = batchID;
-            SlashAndRollback();
+            slashAndRollback();
             return;
         }
     }
@@ -506,7 +506,7 @@ contract Rollup is RollupHelpers {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
             invalidBatchMarker = batchID;
-            SlashAndRollback();
+            slashAndRollback();
             return;
         }
     }
@@ -532,7 +532,7 @@ contract Rollup is RollupHelpers {
 
         if (result != Types.Result.Ok) {
             invalidBatchMarker = batchID;
-            SlashAndRollback();
+            slashAndRollback();
         }
     }
 
@@ -558,14 +558,14 @@ contract Rollup is RollupHelpers {
 
         if (result != Types.Result.Ok) {
             invalidBatchMarker = batchID;
-            SlashAndRollback();
+            slashAndRollback();
         }
     }
 
     /**
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
      */
-    function WithdrawStake(uint256 batchID) public {
+    function withdrawStake(uint256 batchID) public {
         require(
             msg.sender == batches[batchID].committer(),
             "You are not the correct committer for this batch"
