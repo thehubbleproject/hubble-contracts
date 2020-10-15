@@ -17,8 +17,6 @@ import { assert } from "chai";
 import { Result } from "../ts/interfaces";
 import { constants } from "ethers";
 import { Tree } from "../ts/tree";
-import { solidityKeccak256 } from "ethers/lib/utils";
-import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 
 const DOMAIN_HEX = randHex(32);
 const STATE_SIZE = 32;
@@ -72,7 +70,7 @@ describe("Rollup Mass Migration", () => {
             signatures.push(sender.sign(tx));
         }
         const signature = mcl.aggreagate(signatures);
-        const { safe } = stateTree.applyMassMigrationBatch(txs);
+        const { safe } = stateTree.applyMassMigrationBatch(txs, 0);
         assert.isTrue(safe);
         const serialized = serialize(txs);
 
@@ -108,9 +106,13 @@ describe("Rollup Mass Migration", () => {
     }).timeout(400000);
     it("checks state transitions", async function() {
         const txs = txMassMigrationFactory(states, COMMIT_SIZE, spokeID);
+        const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.applyMassMigrationBatch(txs);
+        const { proofs, safe } = stateTree.applyMassMigrationBatch(
+            txs,
+            feeReceiver
+        );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
         const tokenID = states[0].tokenType;
@@ -131,6 +133,7 @@ describe("Rollup Mass Migration", () => {
             withdrawRoot,
             tokenID,
             amount: sum(txs.map(tx => tx.amount)),
+            feeReceiver,
             txs: serialize(txs)
         };
 

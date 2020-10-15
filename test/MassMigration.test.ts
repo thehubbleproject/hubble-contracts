@@ -53,6 +53,7 @@ describe("Mass Migrations", async function() {
 
     it("submit a batch and dispute", async function() {
         const { rollup, massMigration } = contracts;
+        const feeReceiver = Alice.stateID;
         const tx = new TxMassMigration(
             Alice.stateID,
             USDT.castInt(39.99),
@@ -63,8 +64,11 @@ describe("Mass Migrations", async function() {
         );
         const signature = Alice.sign(tx);
         const stateRoot = stateTree.root;
-        const proof = stateTree.applyMassMigration(tx);
-        assert.isTrue(proof.safe);
+        const { proofs, safe } = stateTree.applyMassMigrationBatch(
+            [tx],
+            feeReceiver
+        );
+        assert.isTrue(safe);
         const txs = tx.encode();
         const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
@@ -85,6 +89,7 @@ describe("Mass Migrations", async function() {
             withdrawRoot,
             tokenID,
             tx.amount,
+            feeReceiver,
             txs
         );
         const {
@@ -93,7 +98,7 @@ describe("Mass Migrations", async function() {
         } = await massMigration.processMassMigrationCommit(
             stateRoot,
             commitment.toSolStruct().body,
-            [{ state: proof.state, witness: proof.witness }]
+            proofs
         );
         assert.equal(
             postStateRoot,
@@ -124,7 +129,7 @@ describe("Mass Migrations", async function() {
             batchId,
             previousMP,
             commitmentMP,
-            [{ state: proof.state, witness: proof.witness }]
+            proofs
         );
 
         assert.equal(
@@ -162,6 +167,7 @@ describe("Mass Migrations", async function() {
             withdrawTree.root,
             tokenID,
             tx.amount,
+            feeReceiver,
             tx.encode()
         );
 

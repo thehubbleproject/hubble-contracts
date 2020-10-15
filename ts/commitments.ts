@@ -237,7 +237,12 @@ export class MassMigrationBatch extends Batch {
         return await rollup.submitMassMigration(
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
-            this.commitments.map(c => [c.targetSpokeID, c.tokenID, c.amount]),
+            this.commitments.map(c => [
+                c.targetSpokeID,
+                c.tokenID,
+                c.amount,
+                c.feeReceiver
+            ]),
             this.commitments.map(c => c.withdrawRoot),
             this.commitments.map(c => c.txs),
             { value: ethers.utils.parseEther(stakingAmount) }
