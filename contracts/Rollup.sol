@@ -2,7 +2,6 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { ITokenRegistry } from "./interfaces/ITokenRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
@@ -33,7 +32,6 @@ contract RollupSetup {
     DepositManager public depositManager;
     BLSAccountRegistry public accountRegistry;
     Logger public logger;
-    ITokenRegistry public tokenRegistry;
     Registry public nameRegistry;
     Types.Batch[] public batches;
     MerkleTreeUtils public merkleUtils;
@@ -240,11 +238,6 @@ contract Rollup is RollupHelpers {
         accountRegistry = BLSAccountRegistry(
             nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
         );
-
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
-        );
-
         transfer = Transfer(
             nameRegistry.getContractDetails(ParamManager.TRANSFER())
         );
