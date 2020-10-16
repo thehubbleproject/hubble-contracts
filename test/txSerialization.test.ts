@@ -24,7 +24,7 @@ describe("Tx Serialization", async () => {
         assert.equal((await c.transferSize(serialized)).toNumber(), txs.length);
         assert.isFalse(await c.transferHasExcessData(serialized));
         for (let i in txs) {
-            const { fromIndex, toIndex, amount, fee } = await c.transfer_decode(
+            const { fromIndex, toIndex, amount, fee } = await c.transferDecode(
                 serialized,
                 i
             );
@@ -32,7 +32,7 @@ describe("Tx Serialization", async () => {
             assert.equal(toIndex.toString(), txs[i].toIndex.toString());
             assert.equal(amount.toString(), txs[i].amount.toString());
             assert.equal(fee.toString(), txs[i].fee.toString());
-            const message = await c.transfer_messageOf(
+            const message = await c.transferMessageOf(
                 serialized,
                 i,
                 txs[i].nonce
@@ -117,17 +117,17 @@ describe("Tx Serialization", async () => {
     it("massMigration", async function() {
         const txs = TxMassMigration.buildList(COMMIT_SIZE);
         const serialized = serialize(txs);
-        const size = await c.massMigration_size(serialized);
+        const size = await c.massMigrationSize(serialized);
         assert.equal(size.toNumber(), txs.length);
         for (let i in txs) {
-            const { fromIndex, amount, fee } = await c.massMigration_decode(
+            const { fromIndex, amount, fee } = await c.massMigrationDecode(
                 serialized,
                 i
             );
             assert.equal(fromIndex.toString(), txs[i].fromIndex.toString());
             assert.equal(amount.toString(), txs[i].amount.toString());
             assert.equal(fee.toString(), txs[i].fee.toString());
-            const message = await c.testMassMigration_messageOf(
+            const message = await c.testMassMigrationMessageOf(
                 txs[i],
                 txs[i].nonce,
                 txs[i].spokeID
