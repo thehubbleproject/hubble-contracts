@@ -1,6 +1,11 @@
 pragma solidity ^0.5.15;
 
-library modexp_3064_fd54 {
+/**
+    @notice Compute $input^(N - 2) mod N$ using Addition Chain method.
+    Where     N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
+    and   N - 2 = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd45
+ */
+library ModexpInverse {
     function run(uint256 t2) internal pure returns (uint256 t0) {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
@@ -319,7 +324,12 @@ library modexp_3064_fd54 {
     }
 }
 
-library modexp_c191_3f52 {
+/**
+    @notice Compute $input^{(N + 1) / 4} mod N$ using Addition Chain method.
+    Where           N = 0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47
+    and   (N + 1) / 4 = 0xc19139cb84c680a6e14116da060561765e05aa45a1c72a34f082305b61f3f52
+ */
+library ModexpSqrt {
     function run(uint256 t6) internal pure returns (uint256 t0) {
         // solium-disable-next-line security/no-inline-assembly
         assembly {

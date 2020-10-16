@@ -1,6 +1,6 @@
 pragma solidity ^0.5.15;
 
-import { modexp_3064_fd54, modexp_c191_3f52 } from "./ModExp.sol";
+import { ModexpInverse, ModexpSqrt } from "./ModExp.sol";
 
 library BLS {
     // Field order
@@ -295,12 +295,12 @@ library BLS {
     }
 
     function sqrt(uint256 xx) internal pure returns (uint256 x, bool hasRoot) {
-        x = modexp_c191_3f52.run(xx);
+        x = ModexpSqrt.run(xx);
         hasRoot = mulmod(x, x, N) == xx;
     }
 
     function inverse(uint256 a) internal pure returns (uint256) {
-        return modexp_3064_fd54.run(a);
+        return ModexpInverse.run(a);
     }
 
     function hashToField(bytes32 domain, bytes memory messages)
