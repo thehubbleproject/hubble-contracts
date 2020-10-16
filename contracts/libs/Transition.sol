@@ -3,7 +3,7 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "./Types.sol";
-import { MerkleTreeUtilsLib } from "../MerkleTreeUtils.sol";
+import { MerkleTree } from "../libs/MerkleTree.sol";
 
 library Transition {
     using SafeMath for uint256;
@@ -81,7 +81,7 @@ library Transition {
         Types.StateMerkleProof memory sender
     ) internal pure returns (Types.Result) {
         require(
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 stateRoot,
                 keccak256(sender.state.encode()),
                 senderIndex,
@@ -105,7 +105,7 @@ library Transition {
         Types.StateMerkleProof memory receiver
     ) internal pure returns (Types.Result) {
         require(
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 stateRoot,
                 keccak256(receiver.state.encode()),
                 receiverIndex,
@@ -128,7 +128,7 @@ library Transition {
         state.balance = state.balance.sub(decrement);
         state.nonce++;
         newState = state.encode();
-        stateRoot = MerkleTreeUtilsLib.rootFromWitnesses(
+        stateRoot = MerkleTree.computeRoot(
             keccak256(newState),
             senderStateIndex,
             proof.witness
@@ -143,7 +143,7 @@ library Transition {
         Types.UserState memory state = proof.state;
         state.balance = state.balance.add(increment);
         newState = state.encode();
-        stateRoot = MerkleTreeUtilsLib.rootFromWitnesses(
+        stateRoot = MerkleTree.computeRoot(
             keccak256(newState),
             receiverStateIndex,
             proof.witness

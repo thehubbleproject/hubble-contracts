@@ -7,7 +7,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Tx } from "./libs/Tx.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Vault } from "./Vault.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
 
 contract WithdrawManager {
@@ -95,7 +95,7 @@ contract WithdrawManager {
             "WithdrawManager: withdrawRoot should have been processed"
         );
         require(
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 withdrawRoot,
                 keccak256(withdrawal.state.encode()),
                 withdrawal.path,
@@ -108,7 +108,7 @@ contract WithdrawManager {
             "WithdrawManager: Token has been claimed"
         );
         require(
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 accountRoot,
                 keccak256(abi.encodePacked(pubkey)),
                 withdrawal.state.pubkeyIndex,

@@ -1,15 +1,10 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { MassMigrationCore } from "../MassMigrations.sol";
-import { MerkleTreeUtils } from "../MerkleTreeUtils.sol";
+import { MassMigration } from "../MassMigrations.sol";
 import { Types } from "../libs/Types.sol";
 
-contract TestMassMigration is MassMigrationCore {
-    constructor(MerkleTreeUtils _merkleTree) public {
-        merkleTree = _merkleTree;
-    }
-
+contract TestMassMigration is MassMigration {
     function testCheckSignature(
         uint256[2] memory signature,
         Types.SignatureProof memory proof,

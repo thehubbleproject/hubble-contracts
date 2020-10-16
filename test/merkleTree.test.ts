@@ -5,13 +5,12 @@ import { Tree } from "../ts/tree";
 import { TestMerkleTreeFactory } from "../types/ethers-contracts/TestMerkleTreeFactory";
 import { TestMerkleTree } from "../types/ethers-contracts/TestMerkleTree";
 
-// Test all stateless operations
-describe("MerkleTreeUtils", async function() {
+describe("MerkleTree", async function() {
     const MAX_DEPTH = 32;
     let contract: TestMerkleTree;
     before(async function() {
         const [signer] = await ethers.getSigners();
-        contract = await new TestMerkleTreeFactory(signer).deploy(MAX_DEPTH);
+        contract = await new TestMerkleTreeFactory(signer).deploy();
     });
     it("verify", async function() {
         const size = 50;
@@ -36,13 +35,25 @@ describe("MerkleTreeUtils", async function() {
     });
 
     it("merklize", async function() {
-        const size = 32;
-        const leaves = randomLeaves(size);
-        const {
-            0: root,
-            1: gasCost
-        } = await contract.callStatic.testGetMerkleRootFromLeaves(leaves);
-        assert.equal(root, Tree.merklize(leaves).root);
-        console.log(`Merklizing ${size} leaves onchain`, gasCost.toNumber());
+        const sizes = [1, 5, 10, 20, 32];
+        for (const size of sizes) {
+            const leaves = randomLeaves(size);
+            const {
+                0: root,
+                1: gasCost
+            } = await contract.callStatic.testMerklise(leaves);
+            assert.equal(root, Tree.merklize(leaves).root);
+            console.log(
+                `Merklizing ${size} leaves onchain`,
+                gasCost.toNumber()
+            );
+        }
+    });
+    it("testGetRoot", async function() {
+        const levels = [0, 5, 10, 20, 31];
+        for (const level of levels) {
+            const { 1: gasCost } = await contract.callStatic.testGetRoot(level);
+            console.log(`Get Root at level ${level}`, gasCost.toNumber());
+        }
     });
 });

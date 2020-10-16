@@ -2,8 +2,6 @@ import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFacto
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { GovernanceFactory } from "../types/ethers-contracts/GovernanceFactory";
-import { MerkleTreeUtilsFactory } from "../types/ethers-contracts/MerkleTreeUtilsFactory";
-import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { PobFactory } from "../types/ethers-contracts/PobFactory";
@@ -24,6 +22,7 @@ import {
     WithdrawManagerFactory
 } from "../types/ethers-contracts";
 import { State } from "./state";
+import { merklise } from "./utils";
 
 async function waitAndRegister(
     contract: Contract,
@@ -89,18 +88,6 @@ export async function deployAll(
         __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address
     };
 
-    // deploy MTUtils
-    const merkleTreeUtils = await new MerkleTreeUtilsFactory(signer).deploy(
-        parameters.MAX_DEPTH
-    );
-    await waitAndRegister(
-        merkleTreeUtils,
-        "merkleTreeUtils",
-        verbose,
-        nameRegistry,
-        await paramManager.merkleUtils()
-    );
-
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
         signer
     ).deploy(logger.address);
@@ -125,10 +112,7 @@ export async function deployAll(
         await paramManager.tokenRegistry()
     );
 
-    const massMigration = await new MassMigrationFactory(
-        allLinkRefs,
-        signer
-    ).deploy(nameRegistry.address);
+    const massMigration = await new MassMigrationFactory(signer).deploy();
     await waitAndRegister(
         massMigration,
         "mass_migs",
@@ -203,10 +187,7 @@ export async function deployAll(
 
     const root =
         parameters.GENESIS_STATE_ROOT ||
-        (await getMerkleRootWithCoordinatorAccount(
-            merkleTreeUtils,
-            parameters
-        ));
+        (await getMerkleRootWithCoordinatorAccount(parameters));
 
     // deploy Rollup core
     const rollup = await new RollupFactory(allLinkRefs, signer).deploy(
@@ -241,7 +222,6 @@ export async function deployAll(
         nameRegistry,
         governance,
         logger,
-        merkleTreeUtils,
         blsAccountRegistry,
         tokenRegistry,
         transfer,
@@ -257,7 +237,6 @@ export async function deployAll(
 }
 
 async function getMerkleRootWithCoordinatorAccount(
-    merkleTreeUtils: MerkleTreeUtils,
     parameters: DeploymentParameters
 ) {
     const state0 = State.new(0, 0, 0, 0);
@@ -268,6 +247,6 @@ async function getMerkleRootWithCoordinatorAccount(
     for (let i = dataLeaves.length; i < 2 ** parameters.MAX_DEPTH; i++) {
         dataLeaves[i] = ZERO_BYTES32;
     }
-    const result = await merkleTreeUtils.getMerkleRootFromLeaves(dataLeaves);
+    const result = await merklise(dataLeaves, parameters.MAX_DEPTH);
     return result;
 }

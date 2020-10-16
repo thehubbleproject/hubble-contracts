@@ -1,7 +1,6 @@
 import { ParamManager } from "../types/ethers-contracts/ParamManager";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { Governance } from "../types/ethers-contracts/Governance";
-import { MerkleTreeUtils } from "../types/ethers-contracts/MerkleTreeUtils";
 import { Logger } from "../types/ethers-contracts/Logger";
 import { TokenRegistry } from "../types/ethers-contracts/TokenRegistry";
 import { Pob } from "../types/ethers-contracts/Pob";
@@ -22,7 +21,6 @@ export interface allContracts {
     nameRegistry: NameRegistry;
     governance: Governance;
     logger: Logger;
-    merkleTreeUtils: MerkleTreeUtils;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
     transfer: Transfer;

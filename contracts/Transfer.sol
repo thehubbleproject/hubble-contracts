@@ -4,8 +4,7 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
-
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
 
@@ -28,7 +27,7 @@ contract Transfer {
             Tx.Transfer memory _tx = txs.transferDecode(i);
             // check state inclustion
             require(
-                MerkleTreeUtilsLib.verifyLeaf(
+                MerkleTree.verify(
                     stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
@@ -39,7 +38,7 @@ contract Transfer {
 
             // check pubkey inclusion
             require(
-                MerkleTreeUtilsLib.verifyLeaf(
+                MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
                     proof.states[i].pubkeyIndex,

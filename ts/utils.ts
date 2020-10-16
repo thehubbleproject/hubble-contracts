@@ -1,6 +1,6 @@
-import { ethers } from "ethers";
+import { constants, ethers } from "ethers";
 import { BigNumber } from "ethers";
-import { randomBytes, hexlify, hexZeroPad } from "ethers/lib/utils";
+import { randomBytes, hexlify, hexZeroPad, keccak256 } from "ethers/lib/utils";
 
 export const FIELD_ORDER = BigNumber.from(
     "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
@@ -56,25 +56,16 @@ export function getParentLeaf(left: string, right: string) {
     );
 }
 
-export function getZeroHash(zeroValue: any) {
-    return ethers.utils.solidityKeccak256(["uint256"], [zeroValue]);
-}
-
 export function defaultHashes(depth: number) {
-    const zeroValue = 0;
     const hashes = [];
-    hashes[0] = getZeroHash(zeroValue);
+    hashes[0] = keccak256(constants.HashZero);
     for (let i = 1; i < depth; i++) {
         hashes[i] = getParentLeaf(hashes[i - 1], hashes[i - 1]);
     }
-
     return hashes;
 }
 
-export async function getMerkleRootFromLeaves(
-    dataLeaves: string[],
-    maxDepth: number
-) {
+export async function merklise(dataLeaves: string[], maxDepth: number) {
     let nodes: string[] = dataLeaves.slice();
     const defaultHashesForLeaves: string[] = defaultHashes(maxDepth);
     let odd = nodes.length & 1;

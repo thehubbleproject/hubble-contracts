@@ -6,7 +6,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Rollup } from "./Rollup.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
-import { MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { SpokeRegistry } from "./SpokeRegistry.sol";
 
 contract Vault {
@@ -56,7 +56,7 @@ contract Vault {
         );
 
         require(
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 batch.commitmentRoot,
                 commitmentMP.commitment.toHash(),
                 commitmentMP.pathToCommitment,

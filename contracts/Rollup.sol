@@ -8,7 +8,7 @@ import { Tx } from "./libs/Tx.sol";
 import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
 import { Logger } from "./Logger.sol";
 import { POB } from "./POB.sol";
-import { MerkleTreeUtils, MerkleTreeUtilsLib } from "./MerkleTreeUtils.sol";
+import { MerkleTree } from "./libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Governance } from "./Governance.sol";
 import { DepositManager } from "./DepositManager.sol";
@@ -34,7 +34,6 @@ contract RollupSetup {
     Logger public logger;
     Registry public nameRegistry;
     Types.Batch[] public batches;
-    MerkleTreeUtils public merkleUtils;
 
     Transfer public transfer;
     MassMigration public massMigration;
@@ -81,7 +80,7 @@ contract RollupSetup {
         Types.CommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -190,7 +189,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
         Types.TransferCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -203,7 +202,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
         Types.MMCommitmentInclusionProof memory proof
     ) internal pure returns (bool) {
         return
-            MerkleTreeUtilsLib.verifyLeaf(
+            MerkleTree.verify(
                 root,
                 proof.commitment.toHash(),
                 proof.pathToCommitment,
@@ -232,9 +231,6 @@ contract Rollup is RollupHelpers {
         governance = Governance(
             nameRegistry.getContractDetails(ParamManager.governance())
         );
-        merkleUtils = MerkleTreeUtils(
-            nameRegistry.getContractDetails(ParamManager.merkleUtils())
-        );
         accountRegistry = BLSAccountRegistry(
             nameRegistry.getContractDetails(ParamManager.accountRegistry())
         );
@@ -249,7 +245,7 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
-        // Same effect as `merkleUtils.getMerkleRootFromLeaves`
+        // Same effect as `MerkleTree.merklise`
         bytes32 commitmentRoot = keccak256(
             abi.encode(genesisCommitment, ZERO_BYTES32)
         );
@@ -315,7 +311,7 @@ contract Rollup is RollupHelpers {
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(
-            merkleUtils.getMerkleRootFromLeaves(leaves),
+            MerkleTree.merklise(leaves),
             stateRoots.length,
             Types.Usage.Transfer
         );
@@ -346,7 +342,7 @@ contract Rollup is RollupHelpers {
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(
-            merkleUtils.getMerkleRootFromLeaves(leaves),
+            MerkleTree.merklise(leaves),
             stateRoots.length,
             Types.Usage.Create2Transfer
         );
@@ -381,7 +377,7 @@ contract Rollup is RollupHelpers {
             );
         }
         submitBatch(
-            merkleUtils.getMerkleRootFromLeaves(leaves),
+            MerkleTree.merklise(leaves),
             stateRoots.length,
             Types.Usage.MassMigration
         );
@@ -402,9 +398,9 @@ contract Rollup is RollupHelpers {
             "previous commitment is absent in the previous batch"
         );
         require(
-            merkleUtils.verifyLeaf(
+            MerkleTree.verify(
                 previous.commitment.stateRoot,
-                merkleUtils.getRoot(vacant.depth),
+                MerkleTree.getRoot(vacant.depth),
                 vacant.pathAtDepth,
                 vacant.witness
             ),
@@ -417,7 +413,7 @@ contract Rollup is RollupHelpers {
         );
         logger.logDepositFinalised(depositSubTreeRoot, vacant.pathAtDepth);
 
-        bytes32 newRoot = merkleUtils.updateLeafWithSiblings(
+        bytes32 newRoot = MerkleTree.computeRoot(
             depositSubTreeRoot,
             vacant.pathAtDepth,
             vacant.witness
@@ -425,7 +421,7 @@ contract Rollup is RollupHelpers {
         bytes32 depositCommitment = keccak256(
             abi.encode(newRoot, ZERO_BYTES32)
         );
-        // Same effect as `merkleUtils.getMerkleRootFromLeaves`
+        // Same effect as `MerkleTree.merklise`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
         submitBatch(root, 1, Types.Usage.MassMigration);
     }
