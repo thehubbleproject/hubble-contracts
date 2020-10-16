@@ -21,11 +21,8 @@ describe("Tx Serialization", async () => {
     it("parse transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
         const serialized = serialize(txs);
-        assert.equal(
-            (await c.transfer_size(serialized)).toNumber(),
-            txs.length
-        );
-        assert.isFalse(await c.transfer_hasExcessData(serialized));
+        assert.equal((await c.transferSize(serialized)).toNumber(), txs.length);
+        assert.isFalse(await c.transferHasExcessData(serialized));
         for (let i in txs) {
             const { fromIndex, toIndex, amount, fee } = await c.transfer_decode(
                 serialized,
@@ -55,11 +52,11 @@ describe("Tx Serialization", async () => {
 
         const serialized = serialize(txs);
         assert.equal(
-            (await c.create2transfer_size(serialized)).toNumber(),
+            (await c.create2transferSize(serialized)).toNumber(),
             txs.length
         );
 
-        assert.isFalse(await c.create2transfer_hasExcessData(serialized));
+        assert.isFalse(await c.create2transferHasExcessData(serialized));
 
         for (let i in txs) {
             const {
@@ -68,7 +65,7 @@ describe("Tx Serialization", async () => {
                 toAccID,
                 amount,
                 fee
-            } = await c.create2Transfer_decode(serialized, i);
+            } = await c.create2TransferDecode(serialized, i);
 
             assert.equal(
                 fromIndex.toString(),
@@ -98,7 +95,7 @@ describe("Tx Serialization", async () => {
                 "fee not equal"
             );
 
-            const message = await c.create2Transfer_messageOf(
+            const message = await c.create2TransferMessageOf(
                 serialized,
                 i,
                 txs[i].nonce,
@@ -110,11 +107,11 @@ describe("Tx Serialization", async () => {
     });
     it("serialize transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);
-        assert.equal(await c.transfer_serialize(txs), serialize(txs));
+        assert.equal(await c.transferSerialize(txs), serialize(txs));
     });
     it("serialize create2transfer transaction", async function() {
         const txs = TxCreate2Transfer.buildList(COMMIT_SIZE);
-        assert.equal(await c.create2transfer_serialize(txs), serialize(txs));
+        assert.equal(await c.create2transferSerialize(txs), serialize(txs));
     });
 
     it("massMigration", async function() {

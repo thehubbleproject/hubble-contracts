@@ -22,10 +22,10 @@ contract Transfer {
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        uint256 batchSize = txs.transfer_size();
+        uint256 batchSize = txs.transferSize();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            Tx.Transfer memory _tx = txs.transfer_decode(i);
+            Tx.Transfer memory _tx = txs.transferDecode(i);
             // check state inclustion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
@@ -50,7 +50,7 @@ contract Transfer {
 
             // construct the message
             require(proof.states[i].nonce > 0, "Rollup: zero nonce");
-            bytes memory txMsg = Tx.transfer_messageOf(
+            bytes memory txMsg = Tx.transferMessageOf(
                 _tx,
                 proof.states[i].nonce - 1
             );
@@ -73,13 +73,13 @@ contract Transfer {
         uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, Types.Result result) {
-        uint256 length = txs.transfer_size();
+        uint256 length = txs.transferSize();
 
         uint256 fees = 0;
         Tx.Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            _tx = txs.transfer_decode(i);
+            _tx = txs.transferDecode(i);
             (stateRoot, result) = processTx(
                 stateRoot,
                 _tx,
