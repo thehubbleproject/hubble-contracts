@@ -158,7 +158,6 @@ describe("Rollup Transfer Commitment", () => {
             preStateRoot,
             serialize(txs),
             solProofs,
-            states[0].tokenType,
             feeReceiver
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());

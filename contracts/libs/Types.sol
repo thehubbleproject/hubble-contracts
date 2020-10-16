@@ -100,7 +100,6 @@ library Types {
     struct TransferBody {
         bytes32 accountRoot;
         uint256[2] signature;
-        uint256 tokenType;
         uint256 feeReceiver;
         bytes txs;
     }
@@ -111,7 +110,6 @@ library Types {
                 abi.encodePacked(
                     body.accountRoot,
                     body.signature,
-                    body.tokenType,
                     body.feeReceiver,
                     body.txs
                 )

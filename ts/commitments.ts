@@ -48,7 +48,6 @@ export class TransferCommitment extends Commitment {
         stateRoot: BytesLike = ethers.constants.HashZero,
         accountRoot: BytesLike = ethers.constants.HashZero,
         signature: BigNumberish[] = [0, 0],
-        tokenType: BigNumberish = 0,
         feeReceiver: BigNumberish = 0,
         txs: BytesLike = "0x"
     ) {
@@ -56,7 +55,6 @@ export class TransferCommitment extends Commitment {
             stateRoot,
             accountRoot,
             signature,
-            tokenType,
             feeReceiver,
             txs
         );
@@ -65,7 +63,6 @@ export class TransferCommitment extends Commitment {
         public stateRoot: BytesLike,
         public accountRoot: BytesLike,
         public signature: BigNumberish[],
-        public tokenType: BigNumberish,
         public feeReceiver: BigNumberish,
         public txs: BytesLike
     ) {
@@ -73,14 +70,8 @@ export class TransferCommitment extends Commitment {
     }
     public get bodyRoot() {
         return ethers.utils.solidityKeccak256(
-            ["bytes32", "uint256[2]", "uint256", "uint256", "bytes"],
-            [
-                this.accountRoot,
-                this.signature,
-                this.tokenType,
-                this.feeReceiver,
-                this.txs
-            ]
+            ["bytes32", "uint256[2]", "uint256", "bytes"],
+            [this.accountRoot, this.signature, this.feeReceiver, this.txs]
         );
     }
     public toSolStruct(): SolStruct {
@@ -89,7 +80,6 @@ export class TransferCommitment extends Commitment {
             body: {
                 accountRoot: this.accountRoot,
                 signature: this.signature,
-                tokenType: this.tokenType,
                 feeReceiver: this.feeReceiver,
                 txs: this.txs
             }
@@ -221,7 +211,6 @@ export class TransferBatch extends Batch {
         return await rollup.submitTransfer(
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
-            this.commitments.map(c => c.tokenType),
             this.commitments.map(c => c.feeReceiver),
             this.commitments.map(c => c.txs),
             { value: ethers.utils.parseEther(stakingAmount) }

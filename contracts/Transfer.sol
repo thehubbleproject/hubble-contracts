@@ -70,12 +70,13 @@ contract Transfer {
         bytes32 stateRoot,
         bytes memory txs,
         Types.StateMerkleProof[] memory proofs,
-        uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, Types.Result result) {
         uint256 length = txs.transferSize();
 
         uint256 fees = 0;
+        // tokenType should be the same for all states in this commit
+        uint256 tokenType = proofs[0].state.tokenType;
         Tx.Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {

@@ -296,7 +296,6 @@ contract Rollup is RollupHelpers {
     function submitTransfer(
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
-        uint256[] calldata tokenTypes,
         uint256[] calldata feeReceivers,
         bytes[] calldata txss
     ) external payable onlyCoordinator {
@@ -309,7 +308,6 @@ contract Rollup is RollupHelpers {
                 abi.encodePacked(
                     accountRoot,
                     signatures[i],
-                    tokenTypes[i],
                     feeReceivers[i],
                     txss[i]
                 )
@@ -329,7 +327,6 @@ contract Rollup is RollupHelpers {
     function submitCreate2Transfer(
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
-        uint256[] calldata tokenTypes,
         uint256[] calldata feeReceivers,
         bytes[] calldata txss
     ) external payable onlyCoordinator {
@@ -342,7 +339,6 @@ contract Rollup is RollupHelpers {
                 abi.encodePacked(
                     accountRoot,
                     signatures[i],
-                    tokenTypes[i],
                     feeReceivers[i],
                     txss[i]
                 )
@@ -460,7 +456,6 @@ contract Rollup is RollupHelpers {
             previous.commitment.stateRoot,
             target.commitment.body.txs,
             proofs,
-            target.commitment.body.tokenType,
             target.commitment.body.feeReceiver
         );
 

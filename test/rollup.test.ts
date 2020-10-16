@@ -92,7 +92,6 @@ describe("Rollup", async function() {
             postStateRoot,
             root,
             aggregatedSignature0,
-            tokenID,
             feeReceiver,
             serialized
         );
