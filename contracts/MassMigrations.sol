@@ -80,6 +80,7 @@ contract MassMigrationCore {
         uint256 length = commitmentBody.txs.massMigrationSize();
         Tx.MassMigration memory _tx;
         uint256 totalAmount = 0;
+        uint256 fees = 0;
         bytes memory freshState = "";
         bytes32[] memory withdrawLeaves = new bytes32[](length);
 
@@ -95,8 +96,17 @@ contract MassMigrationCore {
 
             // Only trust these variables when the result is good
             totalAmount += _tx.amount;
+            fees += _tx.fee;
             withdrawLeaves[i] = keccak256(freshState);
         }
+        (stateRoot, , result) = Transition.processReceiver(
+            stateRoot,
+            commitmentBody.feeReceiver,
+            fees,
+            commitmentBody.tokenID,
+            proofs[length]
+        );
+        if (result != Types.Result.Ok) return (stateRoot, result);
 
         if (totalAmount != commitmentBody.amount)
             return (stateRoot, Types.Result.MismatchedAmount);
@@ -128,7 +138,7 @@ contract MassMigrationCore {
             _tx.fromIndex,
             tokenType,
             _tx.amount,
-            0,
+            _tx.fee,
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);

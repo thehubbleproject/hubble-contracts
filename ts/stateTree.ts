@@ -3,6 +3,7 @@ import { State, EMPTY_STATE, StateSolStruct } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
+import { sum } from "./utils";
 
 interface SolStateMerkleProof {
     state: StateSolStruct;
@@ -16,19 +17,8 @@ interface ProofTransferTx {
     receiverWitness: string[];
     safe: boolean;
 }
-interface ProofTransferFee {
-    feeReceiver: StateSolStruct;
-    feeReceiverWitness: string[];
-    safe: boolean;
-}
 
 type ProofTransferBatch = ProofTransferTx[];
-
-interface ProofOfMassMigrationTx {
-    state: StateSolStruct;
-    witness: string[];
-    safe: boolean;
-}
 
 const STATE_WITNESS_LENGHT = 32;
 
@@ -42,6 +32,11 @@ const PLACEHOLDER_TRANSFER_PROOF: ProofTransferTx = {
     senderWitness: PLACEHOLDER_PROOF_WITNESS,
     receiverWitness: PLACEHOLDER_PROOF_WITNESS,
     safe: false
+};
+
+const PLACEHOLDER_SOL_STATE_PROOF: SolStateMerkleProof = {
+    state: EMPTY_STATE,
+    witness: PLACEHOLDER_PROOF_WITNESS
 };
 
 export function solProofFromTransfer(
@@ -63,16 +58,6 @@ export function solProofFromCreate2Transfer(
         { state: receiver, witness: receiverWitness }
     ];
 }
-
-function solProofFromFee(proof: ProofTransferFee): SolStateMerkleProof {
-    return { state: proof.feeReceiver, witness: proof.feeReceiverWitness };
-}
-
-const PLACEHOLDER_MASS_MIGRATION_PROOF: ProofOfMassMigrationTx = {
-    state: EMPTY_STATE,
-    witness: PLACEHOLDER_PROOF_WITNESS,
-    safe: false
-};
 
 export class StateTree {
     public static new(stateDepth: number) {
@@ -124,7 +109,7 @@ export class StateTree {
         feeReceiverID: number
     ): {
         proof: ProofTransferBatch;
-        feeProof: ProofTransferFee;
+        feeProof: SolStateMerkleProof;
         solProofs: SolStateMerkleProof[];
         safe: boolean;
     } {
@@ -142,9 +127,12 @@ export class StateTree {
             }
         }
         const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
-        const feeProof = this.applyFee(sumOfFee, feeReceiverID);
-        solProofs.push(solProofFromFee(feeProof));
-        safe = feeProof.safe;
+        const { proof: feeProof, safe: feeSafe } = this.applyFee(
+            sumOfFee,
+            feeReceiverID
+        );
+        solProofs.push(feeProof);
+        safe = feeSafe;
         return { proof: proofs, feeProof, solProofs, safe };
     }
 
@@ -153,7 +141,7 @@ export class StateTree {
         feeReceiverID: number
     ): {
         proof: ProofTransferBatch;
-        feeProof: ProofTransferFee;
+        feeProof: SolStateMerkleProof;
         safe: boolean;
     } {
         let safe = true;
@@ -168,35 +156,43 @@ export class StateTree {
             }
         }
         const sumOfFee = txs.map(tx => tx.fee).reduce((a, b) => a.add(b));
-        const feeProof = this.applyFee(sumOfFee, feeReceiverID);
-        safe = feeProof.safe;
+        const { proof: feeProof, safe: feeSafe } = this.applyFee(
+            sumOfFee,
+            feeReceiverID
+        );
+        safe = feeSafe;
         return { proof: proofs, feeProof, safe };
     }
 
     public applyMassMigrationBatch(
-        txs: TxMassMigration[]
+        txs: TxMassMigration[],
+        feeReceiverID: number
     ): {
-        proofs: ProofOfMassMigrationTx[];
+        proofs: SolStateMerkleProof[];
         safe: boolean;
     } {
         let safe = true;
-        let proofs: ProofOfMassMigrationTx[] = [];
+        let proofs: SolStateMerkleProof[] = [];
         for (const tx of txs) {
             if (safe) {
-                const proof = this.applyMassMigration(tx);
+                const { proof, safe: txSafe } = this.applyMassMigration(tx);
                 proofs.push(proof);
-                safe = proof.safe;
+                safe = txSafe;
             } else {
-                proofs.push(PLACEHOLDER_MASS_MIGRATION_PROOF);
+                proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
             }
         }
+        const sumOfFee = sum(txs.map(tx => tx.fee));
+        const { proof, safe: feeSafe } = this.applyFee(sumOfFee, feeReceiverID);
+        safe = feeSafe;
+        proofs.push(proof);
         return { proofs, safe };
     }
 
     public applyFee(
         sumOfFee: BigNumber,
         feeReceiverID: number
-    ): ProofTransferFee {
+    ): { proof: SolStateMerkleProof; safe: boolean } {
         const state = this.states[feeReceiverID];
 
         if (state) {
@@ -206,16 +202,11 @@ export class StateTree {
             this.states[feeReceiverID] = state;
             this.stateTree.updateSingle(feeReceiverID, state.toStateLeaf());
             return {
-                feeReceiver: stateStruct,
-                feeReceiverWitness: witness,
+                proof: { state: stateStruct, witness: witness },
                 safe: true
             };
         } else {
-            return {
-                feeReceiver: EMPTY_STATE,
-                feeReceiverWitness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
-            };
+            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
         }
     }
 
@@ -287,25 +278,22 @@ export class StateTree {
         }
     }
 
-    public applyMassMigration(tx: TxMassMigration): ProofOfMassMigrationTx {
+    public applyMassMigration(
+        tx: TxMassMigration
+    ): { proof: SolStateMerkleProof; safe: boolean } {
         const senderID = tx.fromIndex;
         const senderState = this.states[senderID];
         const senderWitness = this.stateTree.witness(senderID).nodes;
         const senderStateStruct = senderState.toSolStruct();
-        if (senderState.balance.lt(tx.amount)) {
-            return {
-                state: EMPTY_STATE,
-                witness: PLACEHOLDER_PROOF_WITNESS,
-                safe: false
-            };
+        if (senderState.balance.lt(tx.amount.add(tx.fee))) {
+            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
         }
-        senderState.balance = senderState.balance.sub(tx.amount);
+        senderState.balance = senderState.balance.sub(tx.amount.add(tx.fee));
         senderState.nonce += 1;
         this.states[senderID] = senderState;
         this.stateTree.updateSingle(senderID, senderState.toStateLeaf());
         return {
-            state: senderStateStruct,
-            witness: senderWitness,
+            proof: { state: senderStateStruct, witness: senderWitness },
             safe: true
         };
     }

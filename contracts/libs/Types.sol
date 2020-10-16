@@ -141,6 +141,7 @@ library Types {
         bytes32 withdrawRoot;
         uint256 tokenID;
         uint256 amount;
+        uint256 feeReceiver;
         bytes txs;
     }
 
@@ -158,6 +159,7 @@ library Types {
                     body.withdrawRoot,
                     body.tokenID,
                     body.amount,
+                    body.feeReceiver,
                     body.txs
                 )
             );

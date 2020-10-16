@@ -357,33 +357,32 @@ contract Rollup is RollupHelpers {
     }
 
     /**
-     * @param meta is targetSpokeID, tokenID, and amount combined
+     * @param meta is targetSpokeID, tokenID, amount, and feeReceiver combined
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
     function submitMassMigration(
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
-        uint256[3][] calldata meta,
+        uint256[4][] calldata meta,
         bytes32[] calldata withdrawRoots,
         bytes[] calldata txss
     ) external payable onlyCoordinator {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
-        bytes32 bodyRoot;
         for (uint256 i = 0; i < stateRoots.length; i++) {
-            // This is MassMigrationBody toHash() but we don't want the overhead of struct
-            bodyRoot = keccak256(
-                abi.encodePacked(
-                    accountRoot,
-                    signatures[i],
-                    meta[i][0],
-                    withdrawRoots[i],
-                    meta[i][1],
-                    meta[i][2],
-                    txss[i]
-                )
+            Types.MassMigrationBody memory body = Types.MassMigrationBody(
+                accountRoot,
+                signatures[i],
+                meta[i][0],
+                withdrawRoots[i],
+                meta[i][1],
+                meta[i][2],
+                meta[i][3],
+                txss[i]
             );
-            leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
+            leaves[i] = keccak256(
+                abi.encodePacked(stateRoots[i], Types.toHash(body))
+            );
         }
         submitBatch(
             merkleUtils.getMerkleRootFromLeaves(leaves),
