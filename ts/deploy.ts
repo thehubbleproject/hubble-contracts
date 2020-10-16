@@ -143,7 +143,7 @@ export async function deployAll(
         "transfer",
         verbose,
         nameRegistry,
-        await paramManager.TRANSFER()
+        await paramManager.transferSimple()
     );
 
     // deploy POB contract

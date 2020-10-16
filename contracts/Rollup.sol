@@ -239,7 +239,7 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.accountRegistry())
         );
         transfer = Transfer(
-            nameRegistry.getContractDetails(ParamManager.transfer())
+            nameRegistry.getContractDetails(ParamManager.transferSimple())
         );
         massMigration = MassMigration(
             nameRegistry.getContractDetails(ParamManager.massMigration())

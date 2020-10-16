@@ -45,7 +45,7 @@ library ParamManager {
         return keccak256("token_registry");
     }
 
-    function transfer() public pure returns (bytes32) {
+    function transferSimple() public pure returns (bytes32) {
         return keccak256("transfer");
     }
 
