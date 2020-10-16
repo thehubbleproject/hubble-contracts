@@ -12,7 +12,7 @@ import { Rollup } from "./Rollup.sol";
 
 contract SubtreeQueue {
     // Each element of the queue is a root of a subtree of deposits.
-    mapping(uint256 => bytes32) queue;
+    mapping(uint256 => bytes32) public queue;
     uint256 public front = 1;
     uint256 public back = 0;
 
@@ -36,7 +36,7 @@ contract DepositCore is SubtreeQueue {
     bytes32[] public babyTrees;
     uint256 public depositCount = 0;
 
-    uint256 public MAX_SUBTREE_SIZE;
+    uint256 public govMaxSubtreeSize;
 
     function insertAndMerge(bytes32 depositLeaf)
         internal
@@ -64,7 +64,7 @@ contract DepositCore is SubtreeQueue {
             i >>= 1;
         }
         // Subtree is ready, send to SubtreeQueue
-        if (depositCount == MAX_SUBTREE_SIZE) {
+        if (depositCount == govMaxSubtreeSize) {
             readySubtree = babyTrees[0];
             enqueue(readySubtree);
             reset();
@@ -95,11 +95,11 @@ contract DepositManager is DepositCore {
     ITokenRegistry public tokenRegistry;
 
     // batchID => subtreeRoot
-    mapping(uint256 => bytes32) submittedSubtree;
+    mapping(uint256 => bytes32) public submittedSubtree;
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.POB())
+            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
         assert(msg.sender == pobContract.getCoordinator());
         _;
@@ -108,7 +108,7 @@ contract DepositManager is DepositCore {
     modifier onlyRollup() {
         assert(
             msg.sender ==
-                nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+                nameRegistry.getContractDetails(ParamManager.rollupCore())
         );
         _;
     }
@@ -116,14 +116,14 @@ contract DepositManager is DepositCore {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
+            nameRegistry.getContractDetails(ParamManager.governance())
         );
         tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
-        vault = nameRegistry.getContractDetails(ParamManager.VAULT());
-        MAX_SUBTREE_SIZE = 1 << governance.MAX_DEPOSIT_SUBTREE();
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
+        vault = nameRegistry.getContractDetails(ParamManager.vault());
+        govMaxSubtreeSize = 1 << governance.maxDepositSubtree();
     }
 
     /**

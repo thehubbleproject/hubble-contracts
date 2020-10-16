@@ -21,10 +21,10 @@ contract Vault {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
         spokes = SpokeRegistry(
-            nameRegistry.getContractDetails(ParamManager.SPOKE_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.spokeRegistry())
         );
     }
 
@@ -33,12 +33,12 @@ contract Vault {
      */
     function setRollupAddress() external {
         rollup = Rollup(
-            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+            nameRegistry.getContractDetails(ParamManager.rollupCore())
         );
     }
 
     function requestApproval(
-        uint256 batch_id,
+        uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
         require(
@@ -48,7 +48,7 @@ contract Vault {
                 ),
             "Vault: msg.sender should be the target spoke"
         );
-        Types.Batch memory batch = rollup.getBatch(batch_id);
+        Types.Batch memory batch = rollup.getBatch(batchID);
 
         require(
             block.number >= batch.finaliseOn(),

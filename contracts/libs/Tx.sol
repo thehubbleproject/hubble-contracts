@@ -5,9 +5,9 @@ import { BLS } from "./BLS.sol";
 
 library Tx {
     // Tx types in uint256
-    uint256 constant TRANSFER = 1;
-    uint256 constant CREATE2TRANSFER = 3;
-    uint256 constant MASS_MIGRATION = 5;
+    uint256 private constant TRANSFER = 1;
+    uint256 private constant CREATE2TRANSFER = 3;
+    uint256 private constant MASS_MIGRATION = 5;
 
     uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
@@ -70,7 +70,7 @@ library Tx {
 
     // Transfer
 
-    function transfer_hasExcessData(bytes memory txs)
+    function transferHasExcessData(bytes memory txs)
         internal
         pure
         returns (bool)
@@ -79,7 +79,7 @@ library Tx {
     }
 
     // num of txs in the bytes blob
-    function transfer_size(bytes memory txs) internal pure returns (uint256) {
+    function transferSize(bytes memory txs) internal pure returns (uint256) {
         return txs.length / TX_LEN_0;
     }
 
@@ -183,7 +183,7 @@ library Tx {
         return (exponent << 12) + x;
     }
 
-    function transfer_decode(bytes memory txs, uint256 index)
+    function transferDecode(bytes memory txs, uint256 index)
         internal
         pure
         returns (Transfer memory _tx)
@@ -215,7 +215,7 @@ library Tx {
         return Transfer(sender, receiver, amount, fee);
     }
 
-    function transfer_messageOf(Transfer memory _tx, uint256 nonce)
+    function transferMessageOf(Transfer memory _tx, uint256 nonce)
         internal
         pure
         returns (bytes memory)
@@ -231,7 +231,7 @@ library Tx {
             );
     }
 
-    function create2Transfer_hasExcessData(bytes memory txs)
+    function create2TransferHasExcessData(bytes memory txs)
         internal
         pure
         returns (bool)
@@ -239,7 +239,7 @@ library Tx {
         return txs.length % TX_LEN_1 != 0;
     }
 
-    function create2Transfer_size(bytes memory txs)
+    function create2TransferSize(bytes memory txs)
         internal
         pure
         returns (uint256)
@@ -247,7 +247,7 @@ library Tx {
         return txs.length / TX_LEN_1;
     }
 
-    function create2Transfer_decode(bytes memory txs, uint256 index)
+    function create2TransferDecode(bytes memory txs, uint256 index)
         internal
         pure
         returns (Create2Transfer memory _tx)
@@ -284,7 +284,7 @@ library Tx {
         return Create2Transfer(sender, receiver, receiverAccID, amount, fee);
     }
 
-    function create2Transfer_messageOf(
+    function create2TransferMessageOf(
         Create2Transfer memory _tx,
         uint256 nonce,
         uint256[4] memory from,
@@ -301,7 +301,7 @@ library Tx {
             );
     }
 
-    function massMigration_decode(bytes memory txs, uint256 index)
+    function massMigrationDecode(bytes memory txs, uint256 index)
         internal
         pure
         returns (MassMigration memory _tx)
@@ -328,7 +328,7 @@ library Tx {
         return MassMigration(sender, amount, fee);
     }
 
-    function massMigration_size(bytes memory txs)
+    function massMigrationSize(bytes memory txs)
         internal
         pure
         returns (uint256)
@@ -336,7 +336,7 @@ library Tx {
         return txs.length / TX_LEN_5;
     }
 
-    function massMigration_messageOf(
+    function massMigrationMessageOf(
         MassMigration memory _tx,
         uint256 nonce,
         uint256 spokeID

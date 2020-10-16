@@ -21,7 +21,7 @@ contract WithdrawManager {
     // withdrawRoot => accountRoot
     mapping(bytes32 => bytes32) private processed;
     ITokenRegistry public tokenRegistry;
-    bytes32 public APP_ID;
+    bytes32 public appID;
 
     /*********************
      * Constructor *
@@ -29,13 +29,13 @@ contract WithdrawManager {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
-        vault = Vault(nameRegistry.getContractDetails(ParamManager.VAULT()));
-        APP_ID = keccak256(
+        vault = Vault(nameRegistry.getContractDetails(ParamManager.vault()));
+        appID = keccak256(
             abi.encodePacked(
                 address(
-                    nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+                    nameRegistry.getContractDetails(ParamManager.rollupCore())
                 )
             )
         );
@@ -59,11 +59,11 @@ contract WithdrawManager {
         bitmap[withdrawRoot][wordIndex] |= (1 << bitIndex);
     }
 
-    function ProcessWithdrawCommitment(
-        uint256 _batch_id,
+    function processWithdrawCommitment(
+        uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
-        vault.requestApproval(_batch_id, commitmentMP);
+        vault.requestApproval(batchID, commitmentMP);
         IERC20 tokenContract = IERC20(
             tokenRegistry.safeGetAddress(commitmentMP.commitment.body.tokenID)
         );
@@ -82,7 +82,7 @@ contract WithdrawManager {
         );
     }
 
-    function ClaimTokens(
+    function claimTokens(
         bytes32 withdrawRoot,
         Types.StateMerkleProofWithPath calldata withdrawal,
         uint256[4] calldata pubkey,
@@ -120,7 +120,7 @@ contract WithdrawManager {
             BLS.verifySingle(
                 signature,
                 pubkey,
-                BLS.hashToPoint(APP_ID, abi.encodePacked(msg.sender))
+                BLS.hashToPoint(appID, abi.encodePacked(msg.sender))
             ),
             "WithdrawManager: Bad signature"
         );

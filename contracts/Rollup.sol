@@ -48,7 +48,7 @@ contract RollupSetup {
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.POB())
+            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
         assert(msg.sender == pobContract.getCoordinator());
         _;
@@ -63,14 +63,14 @@ contract RollupSetup {
         assert(invalidBatchMarker > 0);
         _;
     }
-    modifier isDisputable(uint256 _batch_id) {
+    modifier isDisputable(uint256 batchID) {
         require(
-            block.number < batches[_batch_id].finaliseOn(),
+            block.number < batches[batchID].finaliseOn(),
             "Batch already finalised"
         );
 
         require(
-            _batch_id < invalidBatchMarker || invalidBatchMarker == 0,
+            batchID < invalidBatchMarker || invalidBatchMarker == 0,
             "Already successfully disputed. Roll back in process"
         );
         _;
@@ -128,24 +128,24 @@ contract RollupHelpers is RollupSetup, StakeManager {
     /**
      * @notice Returns the batch
      */
-    function getBatch(uint256 _batch_id)
+    function getBatch(uint256 batchID)
         external
         view
         returns (Types.Batch memory batch)
     {
         require(
-            batches.length - 1 >= _batch_id,
+            batches.length - 1 >= batchID,
             "Batch id greater than total number of batches, invalid batch id"
         );
-        batch = batches[_batch_id];
+        batch = batches[batchID];
     }
 
     /**
-     * @notice SlashAndRollback slashes all the coordinator's who have built on top of the invalid batch
+     * @notice slashAndRollback slashes all the coordinator's who have built on top of the invalid batch
      * and rewards challengers. Also deletes all the batches after invalid batch
      * Its a public function because we will need to pause if we are not able to delete all batches in one tx
      */
-    function SlashAndRollback() public isRollingBack {
+    function slashAndRollback() public isRollingBack {
         uint256 totalSlashings = 0;
         uint256 initialBatchID = batches.length - 1;
 
@@ -157,7 +157,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
-            if (gasleft() <= governance.MIN_GAS_LIMIT_LEFT()) {
+            if (gasleft() <= governance.minGasLeft()) {
                 // exit loop gracefully
                 break;
             }
@@ -216,7 +216,7 @@ contract Rollup is RollupHelpers {
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
-    bytes32 public APP_ID;
+    bytes32 public appID;
 
     /*********************
      * Constructor *
@@ -224,28 +224,28 @@ contract Rollup is RollupHelpers {
     constructor(address _registryAddr, bytes32 genesisStateRoot) public {
         nameRegistry = Registry(_registryAddr);
 
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         depositManager = DepositManager(
-            nameRegistry.getContractDetails(ParamManager.DEPOSIT_MANAGER())
+            nameRegistry.getContractDetails(ParamManager.depositManager())
         );
 
         governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
+            nameRegistry.getContractDetails(ParamManager.governance())
         );
         merkleUtils = MerkleTreeUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+            nameRegistry.getContractDetails(ParamManager.merkleUtils())
         );
         accountRegistry = BLSAccountRegistry(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.accountRegistry())
         );
         transfer = Transfer(
-            nameRegistry.getContractDetails(ParamManager.TRANSFER())
+            nameRegistry.getContractDetails(ParamManager.transferSimple())
         );
         massMigration = MassMigration(
-            nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
+            nameRegistry.getContractDetails(ParamManager.massMigration())
         );
 
-        changeStakeAmount(governance.STAKE_AMOUNT());
+        changeStakeAmount(governance.stakeAmount());
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
@@ -269,7 +269,7 @@ contract Rollup is RollupHelpers {
             batches.length - 1,
             Types.Usage.Genesis
         );
-        APP_ID = keccak256(abi.encodePacked(address(this)));
+        appID = keccak256(abi.encodePacked(address(this)));
     }
 
     function submitBatch(
@@ -283,7 +283,7 @@ contract Rollup is RollupHelpers {
                 uint256(batchType),
                 commitmentLength,
                 msg.sender,
-                block.number + governance.TIME_TO_FINALISE()
+                block.number + governance.timeToFinalise()
             )
         });
         batches.push(newBatch);
@@ -442,17 +442,17 @@ contract Rollup is RollupHelpers {
      * @return Total number of batches submitted onchain
      */
     function disputeTransitionTransfer(
-        uint256 _batch_id,
+        uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
         Types.TransferCommitmentInclusionProof memory target,
         Types.StateMerkleProof[] memory proofs
     )
         public
-        isDisputable(_batch_id)
-        checkPreviousCommitment(_batch_id, previous, target.pathToCommitment)
+        isDisputable(batchID)
+        checkPreviousCommitment(batchID, previous, target.pathToCommitment)
     {
         require(
-            checkInclusion(batches[_batch_id].commitmentRoot, target),
+            checkInclusion(batches[batchID].commitmentRoot, target),
             "Target commitment is absent in the batch"
         );
 
@@ -471,24 +471,24 @@ contract Rollup is RollupHelpers {
         ) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
+            invalidBatchMarker = batchID;
+            slashAndRollback();
             return;
         }
     }
 
     function disputeTransitionMassMigration(
-        uint256 _batch_id,
+        uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
         Types.MMCommitmentInclusionProof memory target,
         Types.StateMerkleProof[] memory proofs
     )
         public
-        isDisputable(_batch_id)
-        checkPreviousCommitment(_batch_id, previous, target.pathToCommitment)
+        isDisputable(batchID)
+        checkPreviousCommitment(batchID, previous, target.pathToCommitment)
     {
         require(
-            checkInclusion(batches[_batch_id].commitmentRoot, target),
+            checkInclusion(batches[batchID].commitmentRoot, target),
             "Target commitment is absent in the batch"
         );
 
@@ -505,8 +505,8 @@ contract Rollup is RollupHelpers {
         ) {
             // before rolling back mark the batch invalid
             // so we can pause and unpause
-            invalidBatchMarker = _batch_id;
-            SlashAndRollback();
+            invalidBatchMarker = batchID;
+            slashAndRollback();
             return;
         }
     }
@@ -526,13 +526,13 @@ contract Rollup is RollupHelpers {
             signatureProof,
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
-            APP_ID,
+            appID,
             target.commitment.body.txs
         );
 
         if (result != Types.Result.Ok) {
             invalidBatchMarker = batchID;
-            SlashAndRollback();
+            slashAndRollback();
         }
     }
 
@@ -551,21 +551,21 @@ contract Rollup is RollupHelpers {
             signatureProof,
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
-            APP_ID,
+            appID,
             target.commitment.body.targetSpokeID,
             target.commitment.body.txs
         );
 
         if (result != Types.Result.Ok) {
             invalidBatchMarker = batchID;
-            SlashAndRollback();
+            slashAndRollback();
         }
     }
 
     /**
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
      */
-    function WithdrawStake(uint256 batchID) public {
+    function withdrawStake(uint256 batchID) public {
         require(
             msg.sender == batches[batchID].committer(),
             "You are not the correct committer for this batch"

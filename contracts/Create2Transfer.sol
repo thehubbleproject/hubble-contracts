@@ -21,10 +21,10 @@ contract Create2Transfer {
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        uint256 batchSize = txs.create2Transfer_size();
+        uint256 batchSize = txs.create2TransferSize();
         uint256[2][] memory messages = new uint256[2][](batchSize);
         for (uint256 i = 0; i < batchSize; i++) {
-            Tx.Create2Transfer memory _tx = txs.create2Transfer_decode(i);
+            Tx.Create2Transfer memory _tx = txs.create2TransferDecode(i);
 
             // check state inclustion
             require(
@@ -62,7 +62,7 @@ contract Create2Transfer {
             // construct the message
             require(proof.states[i].nonce > 0, "Rollup: zero nonce");
 
-            bytes memory txMsg = Tx.create2Transfer_messageOf(
+            bytes memory txMsg = Tx.create2TransferMessageOf(
                 _tx,
                 proof.states[i].nonce - 1,
                 proof.pubkeysSender[i],
@@ -89,12 +89,12 @@ contract Create2Transfer {
         uint256 tokenType,
         uint256 feeReceiver
     ) public pure returns (bytes32, Types.Result result) {
-        uint256 length = txs.create2Transfer_size();
+        uint256 length = txs.create2TransferSize();
         uint256 fees = 0;
         Tx.Create2Transfer memory _tx;
 
         for (uint256 i = 0; i < length; i++) {
-            _tx = txs.create2Transfer_decode(i);
+            _tx = txs.create2TransferDecode(i);
             (stateRoot, result) = processTx(
                 stateRoot,
                 _tx,

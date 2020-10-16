@@ -15,7 +15,7 @@ contract MassMigrationCore {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.UserState;
-    MerkleTreeUtils merkleTree;
+    MerkleTreeUtils public merkleTree;
 
     function checkSignature(
         uint256[2] memory signature,
@@ -26,10 +26,10 @@ contract MassMigrationCore {
         uint256 targetSpokeID,
         bytes memory txs
     ) public view returns (Types.Result) {
-        uint256 length = txs.massMigration_size();
+        uint256 length = txs.massMigrationSize();
         uint256[2][] memory messages = new uint256[2][](length);
         for (uint256 i = 0; i < length; i++) {
-            Tx.MassMigration memory _tx = txs.massMigration_decode(i);
+            Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
             // check state inclustion
             require(
                 MerkleTreeUtilsLib.verifyLeaf(
@@ -54,7 +54,7 @@ contract MassMigrationCore {
 
             // construct the message
             require(proof.states[i].nonce > 0, "Rollup: zero nonce");
-            bytes memory txMsg = Tx.massMigration_messageOf(
+            bytes memory txMsg = Tx.massMigrationMessageOf(
                 _tx,
                 proof.states[i].nonce - 1,
                 targetSpokeID
@@ -77,14 +77,14 @@ contract MassMigrationCore {
         Types.MassMigrationBody memory commitmentBody,
         Types.StateMerkleProof[] memory proofs
     ) public view returns (bytes32, Types.Result result) {
-        uint256 length = commitmentBody.txs.massMigration_size();
+        uint256 length = commitmentBody.txs.massMigrationSize();
         Tx.MassMigration memory _tx;
         uint256 totalAmount = 0;
         bytes memory freshState = "";
         bytes32[] memory withdrawLeaves = new bytes32[](length);
 
         for (uint256 i = 0; i < length; i++) {
-            _tx = commitmentBody.txs.massMigration_decode(i);
+            _tx = commitmentBody.txs.massMigrationDecode(i);
             (stateRoot, freshState, result) = processMassMigrationTx(
                 stateRoot,
                 _tx,
@@ -148,7 +148,7 @@ contract MassMigrationCore {
 contract MassMigration is MassMigrationCore {
     constructor(NameRegistry nameRegistry) public {
         merkleTree = MerkleTreeUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+            nameRegistry.getContractDetails(ParamManager.merkleUtils())
         );
     }
 }

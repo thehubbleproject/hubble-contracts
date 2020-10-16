@@ -7,7 +7,7 @@ import { Types } from "../libs/Types.sol";
 contract TestTx {
     using Tx for bytes;
 
-    function transfer_serialize(Tx.Transfer[] memory txs)
+    function transferSerialize(Tx.Transfer[] memory txs)
         public
         pure
         returns (bytes memory)
@@ -15,7 +15,7 @@ contract TestTx {
         return Tx.serialize(txs);
     }
 
-    function create2transfer_serialize(Tx.Create2Transfer[] memory txs)
+    function create2transferSerialize(Tx.Create2Transfer[] memory txs)
         public
         pure
         returns (bytes memory)
@@ -23,59 +23,59 @@ contract TestTx {
         return Tx.serialize(txs);
     }
 
-    function transfer_hasExcessData(bytes memory txs)
+    function transferHasExcessData(bytes memory txs)
         public
         pure
         returns (bool)
     {
-        return txs.transfer_hasExcessData();
+        return txs.transferHasExcessData();
     }
 
-    function create2transfer_hasExcessData(bytes memory txs)
+    function create2transferHasExcessData(bytes memory txs)
         public
         pure
         returns (bool)
     {
-        return txs.create2Transfer_hasExcessData();
+        return txs.create2TransferHasExcessData();
     }
 
-    function transfer_size(bytes memory txs) public pure returns (uint256) {
-        return txs.transfer_size();
+    function transferSize(bytes memory txs) public pure returns (uint256) {
+        return txs.transferSize();
     }
 
-    function create2transfer_size(bytes memory txs)
+    function create2transferSize(bytes memory txs)
         public
         pure
         returns (uint256)
     {
-        return txs.create2Transfer_size();
+        return txs.create2TransferSize();
     }
 
-    function transfer_decode(bytes memory txs, uint256 index)
+    function transferDecode(bytes memory txs, uint256 index)
         public
         pure
         returns (Tx.Transfer memory)
     {
-        return Tx.transfer_decode(txs, index);
+        return Tx.transferDecode(txs, index);
     }
 
-    function create2Transfer_decode(bytes memory txs, uint256 index)
+    function create2TransferDecode(bytes memory txs, uint256 index)
         public
         pure
         returns (Tx.Create2Transfer memory)
     {
-        return Tx.create2Transfer_decode(txs, index);
+        return Tx.create2TransferDecode(txs, index);
     }
 
-    function transfer_messageOf(
+    function transferMessageOf(
         bytes memory txs,
         uint256 index,
         uint256 nonce
     ) public pure returns (bytes memory) {
-        return Tx.transfer_messageOf(Tx.transfer_decode(txs, index), nonce);
+        return Tx.transferMessageOf(Tx.transferDecode(txs, index), nonce);
     }
 
-    function create2Transfer_messageOf(
+    function create2TransferMessageOf(
         bytes memory txs,
         uint256 index,
         uint256 nonce,
@@ -83,35 +83,31 @@ contract TestTx {
         uint256[4] memory to
     ) public pure returns (bytes memory) {
         return
-            Tx.create2Transfer_messageOf(
-                Tx.create2Transfer_decode(txs, index),
+            Tx.create2TransferMessageOf(
+                Tx.create2TransferDecode(txs, index),
                 nonce,
                 from,
                 to
             );
     }
 
-    function massMigration_decode(bytes memory txs, uint256 index)
+    function massMigrationDecode(bytes memory txs, uint256 index)
         public
         pure
         returns (Tx.MassMigration memory _tx)
     {
-        return txs.massMigration_decode(index);
+        return txs.massMigrationDecode(index);
     }
 
-    function massMigration_size(bytes memory txs)
-        public
-        pure
-        returns (uint256)
-    {
-        return txs.massMigration_size();
+    function massMigrationSize(bytes memory txs) public pure returns (uint256) {
+        return txs.massMigrationSize();
     }
 
-    function testMassMigration_messageOf(
+    function testMassMigrationMessageOf(
         Tx.MassMigration memory _tx,
         uint256 nonce,
         uint256 spokeID
     ) public pure returns (bytes memory) {
-        return Tx.massMigration_messageOf(_tx, nonce, spokeID);
+        return Tx.massMigrationMessageOf(_tx, nonce, spokeID);
     }
 }

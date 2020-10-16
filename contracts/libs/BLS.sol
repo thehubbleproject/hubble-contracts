@@ -1,24 +1,33 @@
 pragma solidity ^0.5.15;
 
-import { modexp_3064_fd54, modexp_c191_3f52 } from "./ModExp.sol";
+import { ModexpInverse, ModexpSqrt } from "./ModExp.sol";
 
 library BLS {
     // Field order
-    uint256 constant N = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
+    // prettier-ignore
+    uint256 private constant N = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
     // Negated genarator of G2
-    uint256 constant nG2x1 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
-    uint256 constant nG2x0 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
-    uint256 constant nG2y1 = 17805874995975841540914202342111839520379459829704422454583296818431106115052;
-    uint256 constant nG2y0 = 13392588948715843804641432497768002650278120570034223513918757245338268106653;
+    // prettier-ignore
+    uint256 private constant N_G2_X1 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
+    // prettier-ignore
+    uint256 private constant N_G2_X0 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
+    // prettier-ignore
+    uint256 private constant N_G2_Y1 = 17805874995975841540914202342111839520379459829704422454583296818431106115052;
+    // prettier-ignore
+    uint256 private constant N_G2_Y0 = 13392588948715843804641432497768002650278120570034223513918757245338268106653;
 
     // sqrt(-3)
-    uint256 constant z0 = 0x0000000000000000b3c4d79d41a91759a9e4c7e359b6b89eaec68e62effffffd;
+    // prettier-ignore
+    uint256 private constant Z0 = 0x0000000000000000b3c4d79d41a91759a9e4c7e359b6b89eaec68e62effffffd;
     // (sqrt(-3) - 1)  / 2
-    uint256 constant z1 = 0x000000000000000059e26bcea0d48bacd4f263f1acdb5c4f5763473177fffffe;
+    // prettier-ignore
+    uint256 private constant Z1 = 0x000000000000000059e26bcea0d48bacd4f263f1acdb5c4f5763473177fffffe;
 
-    uint256 constant T24 = 0x1000000000000000000000000000000000000000000000000;
-    uint256 constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
+    // prettier-ignore
+    uint256 private constant T24 = 0x1000000000000000000000000000000000000000000000000;
+    // prettier-ignore
+    uint256 private constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
 
     function verifySingle(
         uint256[2] memory signature,
@@ -28,10 +37,10 @@ library BLS {
         uint256[12] memory input = [
             signature[0],
             signature[1],
-            nG2x1,
-            nG2x0,
-            nG2y1,
-            nG2y0,
+            N_G2_X1,
+            N_G2_X0,
+            N_G2_Y1,
+            N_G2_Y0,
             message[0],
             message[1],
             pubkey[1],
@@ -68,10 +77,10 @@ library BLS {
         uint256[] memory input = new uint256[](inputSize);
         input[0] = signature[0];
         input[1] = signature[1];
-        input[2] = nG2x1;
-        input[3] = nG2x0;
-        input[4] = nG2y1;
-        input[5] = nG2y0;
+        input[2] = N_G2_X1;
+        input[3] = N_G2_X0;
+        input[4] = N_G2_Y1;
+        input[5] = N_G2_Y0;
         for (uint256 i = 0; i < size; i++) {
             input[i * 6 + 6] = messages[i][0];
             input[i * 6 + 7] = messages[i][1];
@@ -139,7 +148,7 @@ library BLS {
 
         uint256 a0 = mulmod(x, x, N);
         a0 = addmod(a0, 4, N);
-        uint256 a1 = mulmod(x, z0, N);
+        uint256 a1 = mulmod(x, Z0, N);
         uint256 a2 = mulmod(a1, a0, N);
         a2 = inverse(a2);
         a1 = mulmod(a1, a1, N);
@@ -147,7 +156,7 @@ library BLS {
 
         // x1
         a1 = mulmod(x, a1, N);
-        x = addmod(z1, N - a1, N);
+        x = addmod(Z1, N - a1, N);
         // check curve
         a1 = mulmod(x, x, N);
         a1 = mulmod(a1, x, N);
@@ -286,12 +295,12 @@ library BLS {
     }
 
     function sqrt(uint256 xx) internal pure returns (uint256 x, bool hasRoot) {
-        x = modexp_c191_3f52.run(xx);
+        x = ModexpSqrt.run(xx);
         hasRoot = mulmod(x, x, N) == xx;
     }
 
     function inverse(uint256 a) internal pure returns (uint256) {
-        return modexp_3064_fd54.run(a);
+        return ModexpInverse.run(a);
     }
 
     function hashToField(bytes32 domain, bytes memory messages)
@@ -333,10 +342,8 @@ library BLS {
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             let p := add(msg0, 96)
-
-            let z := 0
             for {
-
+                let z := 0
             } lt(z, t0) {
                 z := add(z, 32)
             } {

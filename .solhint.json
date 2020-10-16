@@ -1,0 +1,9 @@
+{
+  "extends": "solhint:recommended",
+  "rules": {
+    "reason-string": ["warn",{"maxLength":80}],
+    "var-name-mixedcase": ["error"],
+    "func-name-mixedcase": ["error"],
+    "no-inline-assembly": "off"
+  }
+}

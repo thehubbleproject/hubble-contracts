@@ -6,7 +6,7 @@ contract NameRegistry {
         address contractAddress;
     }
     event RegisteredNewContract(bytes32 name, address contractAddr);
-    mapping(bytes32 => ContractDetails) registry;
+    mapping(bytes32 => ContractDetails) public registry;
 
     function registerName(bytes32 name, address addr) external returns (bool) {
         ContractDetails memory info = registry[name];
@@ -24,10 +24,5 @@ contract NameRegistry {
 
     function getContractDetails(bytes32 name) external view returns (address) {
         return (registry[name].contractAddress);
-    }
-
-    function updateContractDetails(bytes32 name, address addr) external {
-        // TODO not sure if we should do this
-        // If we do we need a plan on how to remove this
     }
 }

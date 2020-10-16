@@ -29,7 +29,7 @@ describe("Mass Migrations", async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
         const { rollup, blsAccountRegistry } = contracts;
-        mcl.setDomainHex(await rollup.APP_ID());
+        mcl.setDomainHex(await rollup.appID());
 
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = blsAccountRegistry;
@@ -170,7 +170,7 @@ describe("Mass Migrations", async function() {
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
 
         await expect(
-            withdrawManager.ProcessWithdrawCommitment(batchId, batch.proof(0))
+            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0))
         ).revertedWith("Vault: Batch shoould be finalised");
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.TIME_TO_FINALISE);
@@ -179,7 +179,7 @@ describe("Mass Migrations", async function() {
         // Ideally the tokens of the vault should come from the deposits
         await testToken.transfer(vault.address, tx.amount);
 
-        const txProcess = await withdrawManager.ProcessWithdrawCommitment(
+        const txProcess = await withdrawManager.processWithdrawCommitment(
             batchId,
             batch.proof(0)
         );
@@ -205,7 +205,7 @@ describe("Mass Migrations", async function() {
         };
         const txClaim = await withdrawManager
             .connect(claimer)
-            .ClaimTokens(
+            .claimTokens(
                 commitment.withdrawRoot,
                 withdrawProof,
                 Alice.publicKey,
@@ -220,7 +220,7 @@ describe("Mass Migrations", async function() {
         await expect(
             withdrawManager
                 .connect(claimer)
-                .ClaimTokens(
+                .claimTokens(
                     commitment.withdrawRoot,
                     withdrawProof,
                     Alice.publicKey,

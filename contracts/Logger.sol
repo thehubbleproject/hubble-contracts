@@ -22,16 +22,16 @@ contract Logger {
         emit NewBatch(committer, updatedRoot, index, batchType);
     }
 
-    event StakeWithdraw(address committed, uint256 batch_id);
+    event StakeWithdraw(address committed, uint256 batchID);
 
-    function logStakeWithdraw(address committed, uint256 batch_id) public {
-        emit StakeWithdraw(committed, batch_id);
+    function logStakeWithdraw(address committed, uint256 batchID) public {
+        emit StakeWithdraw(committed, batchID);
     }
 
-    event BatchRollback(uint256 batch_id);
+    event BatchRollback(uint256 batchID);
 
-    function logBatchRollback(uint256 batch_id) public {
-        emit BatchRollback(batch_id);
+    function logBatchRollback(uint256 batchID) public {
+        emit BatchRollback(batchID);
     }
 
     event RollbackFinalisation(uint256 totalBatchesSlashed);
@@ -54,15 +54,15 @@ contract Logger {
         emit RegistrationRequest(tokenContract);
     }
 
-    event PubkeyRegistered(uint256[4] pubkey, uint256 accountID);
+    event PubkeyRegistered(uint256[4] pubkey, uint256 pubkeyID);
 
-    function logPubkeyRegistered(uint256[4] calldata pubkey, uint256 accountID)
+    function logPubkeyRegistered(uint256[4] calldata pubkey, uint256 pubkeyID)
         external
     {
-        emit PubkeyRegistered(pubkey, accountID);
+        emit PubkeyRegistered(pubkey, pubkeyID);
     }
 
-    event DepositQueued(uint256 AccountID, bytes data);
+    event DepositQueued(uint256 pubkeyID, bytes data);
 
     function logDepositQueued(uint256 accountID, bytes memory data) public {
         emit DepositQueued(accountID, data);

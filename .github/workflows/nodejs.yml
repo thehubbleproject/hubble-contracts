@@ -26,7 +26,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - run: npm ci
-    - run: npm run lint
+    - run: npm run lint && npm run solhint
     - run: npm run generate
     - run: npm run test
 

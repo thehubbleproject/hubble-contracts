@@ -4,7 +4,8 @@ pragma solidity ^0.5.15;
  * @title DataTypes
  */
 library Types {
-    uint256 constant addressMask = 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
+    // prettier-ignore
+    uint256 public constant ADDRESS_MASK = 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
     struct SignatureProof {
         Types.UserState[] states;
         bytes32[][] stateWitnesses;
@@ -73,7 +74,7 @@ library Types {
     }
 
     function committer(Batch memory batch) internal pure returns (address) {
-        return address((uint256(batch.meta) >> 80) & addressMask);
+        return address((uint256(batch.meta) >> 80) & ADDRESS_MASK);
     }
 
     function finaliseOn(Batch memory batch) internal pure returns (uint256) {
