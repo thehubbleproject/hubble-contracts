@@ -72,7 +72,7 @@ export async function deployAll(
         "governance",
         verbose,
         nameRegistry,
-        await paramManager.Governance()
+        await paramManager.governance()
     );
 
     // deploy logger
@@ -82,7 +82,7 @@ export async function deployAll(
         "logger",
         verbose,
         nameRegistry,
-        await paramManager.LOGGER()
+        await paramManager.logger()
     );
 
     const allLinkRefs = {
@@ -98,7 +98,7 @@ export async function deployAll(
         "merkleTreeUtils",
         verbose,
         nameRegistry,
-        await paramManager.MERKLE_UTILS()
+        await paramManager.merkleUtils()
     );
 
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
@@ -109,7 +109,7 @@ export async function deployAll(
         "blsAccountRegistry",
         verbose,
         nameRegistry,
-        await paramManager.ACCOUNT_REGISTRY()
+        await paramManager.accountRegistry()
     );
 
     // deploy Token registry contract
@@ -122,7 +122,7 @@ export async function deployAll(
         "tokenRegistry",
         verbose,
         nameRegistry,
-        await paramManager.TOKEN_REGISTRY()
+        await paramManager.tokenRegistry()
     );
 
     const massMigration = await new MassMigrationFactory(
@@ -134,7 +134,7 @@ export async function deployAll(
         "mass_migs",
         verbose,
         nameRegistry,
-        await paramManager.MASS_MIGS()
+        await paramManager.massMigration()
     );
 
     const transfer = await new TransferFactory(signer).deploy();
@@ -153,7 +153,7 @@ export async function deployAll(
         "pob",
         verbose,
         nameRegistry,
-        await paramManager.POB()
+        await paramManager.proofOfBurn()
     );
 
     // deploy test token
@@ -163,7 +163,7 @@ export async function deployAll(
         "testToken",
         verbose,
         nameRegistry,
-        await paramManager.TEST_TOKEN()
+        await paramManager.testToken()
     );
     await tokenRegistry.requestRegistration(testToken.address);
     await tokenRegistry.finaliseRegistration(testToken.address);
@@ -174,7 +174,7 @@ export async function deployAll(
         "spokeRegistry",
         verbose,
         nameRegistry,
-        await paramManager.SPOKE_REGISTRY()
+        await paramManager.spokeRegistry()
     );
 
     const vault = await new VaultFactory(allLinkRefs, signer).deploy(
@@ -185,7 +185,7 @@ export async function deployAll(
         "vault",
         verbose,
         nameRegistry,
-        await paramManager.VAULT()
+        await paramManager.vault()
     );
 
     // deploy deposit manager
@@ -198,7 +198,7 @@ export async function deployAll(
         "depositManager",
         verbose,
         nameRegistry,
-        await paramManager.DEPOSIT_MANAGER()
+        await paramManager.depositManager()
     );
 
     const root =
@@ -218,7 +218,7 @@ export async function deployAll(
         "rollup",
         verbose,
         nameRegistry,
-        await paramManager.ROLLUP_CORE()
+        await paramManager.rollupCore()
     );
     await vault.setRollupAddress();
 
@@ -231,7 +231,7 @@ export async function deployAll(
         "withdrawManager",
         verbose,
         nameRegistry,
-        await paramManager.WITHDRAW_MANAGER()
+        await paramManager.withdrawManager()
     );
     await spokeRegistry.registerSpoke(withdrawManager.address);
 

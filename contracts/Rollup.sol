@@ -48,7 +48,7 @@ contract RollupSetup {
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.POB())
+            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
         assert(msg.sender == pobContract.getCoordinator());
         _;
@@ -224,25 +224,25 @@ contract Rollup is RollupHelpers {
     constructor(address _registryAddr, bytes32 genesisStateRoot) public {
         nameRegistry = Registry(_registryAddr);
 
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         depositManager = DepositManager(
-            nameRegistry.getContractDetails(ParamManager.DEPOSIT_MANAGER())
+            nameRegistry.getContractDetails(ParamManager.depositManager())
         );
 
         governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
+            nameRegistry.getContractDetails(ParamManager.governance())
         );
         merkleUtils = MerkleTreeUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+            nameRegistry.getContractDetails(ParamManager.merkleUtils())
         );
         accountRegistry = BLSAccountRegistry(
-            nameRegistry.getContractDetails(ParamManager.ACCOUNT_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.accountRegistry())
         );
         transfer = Transfer(
-            nameRegistry.getContractDetails(ParamManager.TRANSFER())
+            nameRegistry.getContractDetails(ParamManager.transfer())
         );
         massMigration = MassMigration(
-            nameRegistry.getContractDetails(ParamManager.MASS_MIGS())
+            nameRegistry.getContractDetails(ParamManager.massMigration())
         );
 
         changeStakeAmount(governance.stakeAmount());

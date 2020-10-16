@@ -99,7 +99,7 @@ contract DepositManager is DepositCore {
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.POB())
+            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
         assert(msg.sender == pobContract.getCoordinator());
         _;
@@ -108,7 +108,7 @@ contract DepositManager is DepositCore {
     modifier onlyRollup() {
         assert(
             msg.sender ==
-                nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+                nameRegistry.getContractDetails(ParamManager.rollupCore())
         );
         _;
     }
@@ -116,13 +116,13 @@ contract DepositManager is DepositCore {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.Governance())
+            nameRegistry.getContractDetails(ParamManager.governance())
         );
         tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
-        vault = nameRegistry.getContractDetails(ParamManager.VAULT());
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
+        vault = nameRegistry.getContractDetails(ParamManager.vault());
         govMaxSubtreeSize = 1 << governance.maxDepositSubtree();
     }
 

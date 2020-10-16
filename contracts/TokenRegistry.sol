@@ -23,7 +23,7 @@ contract TokenRegistry is ITokenRegistry {
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.POB())
+            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
         assert(msg.sender == pobContract.getCoordinator());
         _;
@@ -33,7 +33,7 @@ contract TokenRegistry is ITokenRegistry {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
 
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.LOGGER()));
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
     }
 
     function safeGetAddress(uint256 tokenID) external view returns (address) {

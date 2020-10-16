@@ -29,13 +29,13 @@ contract WithdrawManager {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
-        vault = Vault(nameRegistry.getContractDetails(ParamManager.VAULT()));
+        vault = Vault(nameRegistry.getContractDetails(ParamManager.vault()));
         appID = keccak256(
             abi.encodePacked(
                 address(
-                    nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+                    nameRegistry.getContractDetails(ParamManager.rollupCore())
                 )
             )
         );

@@ -148,7 +148,7 @@ contract MassMigrationCore {
 contract MassMigration is MassMigrationCore {
     constructor(NameRegistry nameRegistry) public {
         merkleTree = MerkleTreeUtils(
-            nameRegistry.getContractDetails(ParamManager.MERKLE_UTILS())
+            nameRegistry.getContractDetails(ParamManager.merkleUtils())
         );
     }
 }

@@ -21,10 +21,10 @@ contract Vault {
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.TOKEN_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
         spokes = SpokeRegistry(
-            nameRegistry.getContractDetails(ParamManager.SPOKE_REGISTRY())
+            nameRegistry.getContractDetails(ParamManager.spokeRegistry())
         );
     }
 
@@ -33,7 +33,7 @@ contract Vault {
      */
     function setRollupAddress() external {
         rollup = Rollup(
-            nameRegistry.getContractDetails(ParamManager.ROLLUP_CORE())
+            nameRegistry.getContractDetails(ParamManager.rollupCore())
         );
     }
 
