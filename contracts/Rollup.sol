@@ -98,7 +98,7 @@ contract RollupSetup {
         if (targetPath == 0) {
             // target is the first commit in the batch, so the previous commit is in the previous batch
             expectedBatchID = batchID - 1;
-            previousPath = batches[expectedBatchID].commitmentLength() - 1;
+            previousPath = batches[expectedBatchID].size() - 1;
         } else {
             // target and previous commits are both in the current batch
             expectedBatchID = batchID;
@@ -270,14 +270,14 @@ contract Rollup is RollupHelpers {
 
     function submitBatch(
         bytes32 commitmentRoot,
-        uint256 commitmentLength,
+        uint256 size,
         Types.Usage batchType
     ) internal {
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
                 uint256(batchType),
-                commitmentLength,
+                size,
                 msg.sender,
                 block.number + governance.timeToFinalise()
             )
@@ -389,7 +389,7 @@ contract Rollup is RollupHelpers {
     ) public payable onlyCoordinator isNotRollingBack {
         uint256 preBatchID = batches.length - 1;
         require(
-            previous.path == batches[preBatchID].commitmentLength() - 1,
+            previous.path == batches[preBatchID].size() - 1,
             "previous commitment has wrong path"
         );
         require(
