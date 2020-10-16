@@ -13,13 +13,13 @@ interface SolStruct {
 
 interface CommitmentInclusionProof {
     commitment: CompressedStruct;
-    pathToCommitment: number;
+    path: number;
     witness: string[];
 }
 
 interface XCommitmentInclusionProof {
     commitment: SolStruct;
-    pathToCommitment: number;
+    path: number;
     witness: string[];
 }
 
@@ -189,14 +189,14 @@ export class Batch {
     proof(leafInfex: number): XCommitmentInclusionProof {
         return {
             commitment: this.commitments[leafInfex].toSolStruct(),
-            pathToCommitment: leafInfex,
+            path: leafInfex,
             witness: this.witness(leafInfex)
         };
     }
     proofCompressed(leafInfex: number): CommitmentInclusionProof {
         return {
             commitment: this.commitments[leafInfex].toCompressedStruct(),
-            pathToCommitment: leafInfex,
+            path: leafInfex,
             witness: this.witness(leafInfex)
         };
     }

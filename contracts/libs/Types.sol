@@ -181,19 +181,19 @@ library Types {
 
     struct CommitmentInclusionProof {
         Commitment commitment;
-        uint256 pathToCommitment;
+        uint256 path;
         bytes32[] witness;
     }
 
     struct TransferCommitmentInclusionProof {
         TransferCommitment commitment;
-        uint256 pathToCommitment;
+        uint256 path;
         bytes32[] witness;
     }
 
     struct MMCommitmentInclusionProof {
         MassMigrationCommitment commitment;
-        uint256 pathToCommitment;
+        uint256 path;
         bytes32[] witness;
     }
 

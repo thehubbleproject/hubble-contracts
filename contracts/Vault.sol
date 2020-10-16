@@ -59,7 +59,7 @@ contract Vault {
             MerkleTree.verify(
                 batch.commitmentRoot,
                 commitmentMP.commitment.toHash(),
-                commitmentMP.pathToCommitment,
+                commitmentMP.path,
                 commitmentMP.witness
             ),
             "Vault: Commitment is not present in batch"
