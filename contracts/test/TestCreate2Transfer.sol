@@ -40,7 +40,6 @@ contract TestCreate2Transfer is Create2Transfer {
         bytes32 stateRoot,
         bytes memory txs,
         Types.StateMerkleProof[] memory proofs,
-        uint256 tokenType,
         uint256 feeReceiver
     ) public returns (bytes32, uint256) {
         bytes32 newRoot;
@@ -49,7 +48,6 @@ contract TestCreate2Transfer is Create2Transfer {
             stateRoot,
             txs,
             proofs,
-            tokenType,
             feeReceiver
         );
         return (newRoot, operationCost - gasleft());
