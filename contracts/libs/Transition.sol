@@ -103,4 +103,18 @@ library Transition {
         });
         return (newReceiver, Types.Result.Ok);
     }
+
+    function createState(
+        uint256 pubkeyIndex,
+        uint256 tokenType,
+        uint256 amount
+    ) internal pure returns (bytes memory stateEncoded) {
+        Types.UserState memory state = Types.UserState({
+            pubkeyIndex: pubkeyIndex,
+            tokenType: tokenType,
+            balance: amount,
+            nonce: 0
+        });
+        return state.encode();
+    }
 }

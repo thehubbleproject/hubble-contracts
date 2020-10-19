@@ -152,7 +152,7 @@ contract Create2Transfer {
     function processCreate2TransferReceiver(
         bytes32 stateRoot,
         Tx.Create2Transfer memory _tx,
-        uint256 token,
+        uint256 tokenType,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
         // Validate we are creating on a zero state
@@ -165,13 +165,12 @@ contract Create2Transfer {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        Types.UserState memory newState = Types.UserState(
+        encodedState = Transition.createState(
             _tx.toAccID,
-            token,
-            _tx.amount,
-            0
+            tokenType,
+            _tx.amount
         );
-        encodedState = newState.encode();
+
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
             _tx.toIndex,
