@@ -5,6 +5,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Tx } from "../libs/Tx.sol";
 import { Types } from "../libs/Types.sol";
 import { Transition } from "../libs/Transition.sol";
+import { BLS } from "../libs/BLS.sol";
 import { Offchain } from "./Offchain.sol";
 
 contract ClientFrontend {
@@ -87,6 +88,76 @@ contract ClientFrontend {
             );
         }
         return Tx.serialize(txTxs);
+    }
+
+    function valiateTransfer(
+        Offchain.Transfer calldata _tx,
+        uint256[2] calldata signature,
+        uint256[4] calldata pubkey,
+        bytes32 domain
+    ) external view {
+        Tx.encodeDecimal(_tx.amount);
+        Tx.encodeDecimal(_tx.fee);
+        Tx.Transfer memory txTx = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount,
+            _tx.fee
+        );
+        bytes memory txMsg = Tx.transferMessageOf(txTx, _tx.nonce);
+        uint256[2] memory message = BLS.hashToPoint(domain, txMsg);
+        require(BLS.verifySingle(signature, pubkey, message), "Bad Signature");
+    }
+
+    function valiateMassMigration(
+        Offchain.MassMigration calldata _tx,
+        uint256[2] calldata signature,
+        uint256[4] calldata pubkey,
+        bytes32 domain
+    ) external view {
+        Tx.encodeDecimal(_tx.amount);
+        Tx.encodeDecimal(_tx.fee);
+        Tx.MassMigration memory txTx = Tx.MassMigration(
+            _tx.fromIndex,
+            _tx.amount,
+            _tx.fee
+        );
+        bytes memory txMsg = Tx.massMigrationMessageOf(
+            txTx,
+            _tx.nonce,
+            _tx.spokeID
+        );
+        uint256[2] memory message = BLS.hashToPoint(domain, txMsg);
+        require(BLS.verifySingle(signature, pubkey, message), "Bad Signature");
+    }
+
+    function valiateCreate2Transfer(
+        Offchain.Create2Transfer calldata _tx,
+        uint256[2] calldata signature,
+        uint256[4] calldata fromPubkey,
+        uint256[4] calldata toPubkey,
+        bytes32 domain
+    ) external view {
+        Tx.encodeDecimal(_tx.amount);
+        Tx.encodeDecimal(_tx.fee);
+        Tx.Create2Transfer memory txTx = Tx.Create2Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.toAccID,
+            _tx.amount,
+            _tx.fee
+        );
+        bytes memory txMsg = Tx.create2TransferMessageOf(
+            txTx,
+            _tx.nonce,
+            fromPubkey,
+            toPubkey
+        );
+        uint256[2] memory message = BLS.hashToPoint(domain, txMsg);
+        require(
+            BLS.verifySingle(signature, fromPubkey, message),
+            "Bad Signature"
+        );
     }
 
     function validateAndApplyTransfer(
