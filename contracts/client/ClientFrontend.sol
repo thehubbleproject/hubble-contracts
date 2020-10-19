@@ -36,7 +36,7 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
-    function validateAndApplyTransferTx(
+    function validateAndApplyTransfer(
         bytes calldata senderEncoded,
         bytes calldata receiverEncoded,
         Offchain.Transfer calldata _tx
@@ -65,5 +65,61 @@ contract ClientFrontend {
             receiver
         );
         return (sender.encode(), receiver.encode(), result);
+    }
+
+    function validateAndApplyMassMigration(
+        bytes calldata senderEncoded,
+        Offchain.MassMigration calldata _tx
+    )
+        external
+        pure
+        returns (
+            bytes memory newSender,
+            bytes memory withdrawState,
+            Types.Result result
+        )
+    {
+        Types.UserState memory sender = Types.decodeState(senderEncoded);
+        (sender, result) = Transition.validateAndApplySender(
+            sender.tokenType,
+            _tx.amount,
+            _tx.fee,
+            sender
+        );
+        if (result != Types.Result.Ok) return (sender.encode(), "", result);
+        withdrawState = Transition.createState(
+            sender.pubkeyIndex,
+            sender.tokenType,
+            _tx.amount
+        );
+        return (sender.encode(), withdrawState, Types.Result.Ok);
+    }
+
+    function validateAndApplyCreate2Transfer(
+        bytes calldata senderEncoded,
+        Offchain.Create2Transfer calldata _tx
+    )
+        external
+        pure
+        returns (
+            bytes memory newSender,
+            bytes memory newReceiver,
+            Types.Result result
+        )
+    {
+        Types.UserState memory sender = Types.decodeState(senderEncoded);
+        (sender, result) = Transition.validateAndApplySender(
+            sender.tokenType,
+            _tx.amount,
+            _tx.fee,
+            sender
+        );
+        if (result != Types.Result.Ok) return (sender.encode(), "", result);
+        newReceiver = Transition.createState(
+            _tx.toAccID,
+            sender.tokenType,
+            _tx.amount
+        );
+        return (sender.encode(), newReceiver, Types.Result.Ok);
     }
 }
