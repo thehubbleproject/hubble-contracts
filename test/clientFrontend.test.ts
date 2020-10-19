@@ -1,5 +1,10 @@
 import { assert } from "chai";
-import { TxCreate2Transfer, TxMassMigration, TxTransfer } from "../ts/tx";
+import {
+    serialize,
+    TxCreate2Transfer,
+    TxMassMigration,
+    TxTransfer
+} from "../ts/tx";
 import { ethers } from "@nomiclabs/buidler";
 import { ClientFrontend } from "../types/ethers-contracts/ClientFrontend";
 import { ClientFrontendFactory } from "../types/ethers-contracts";
@@ -11,7 +16,9 @@ describe("Client Frontend", async function() {
         contract = await new ClientFrontendFactory(signer).deploy();
     });
 
-    it("Decodes Transfer", async function() {
+    it("Transfer", async function() {
+        const txs = [];
+        const txsEncoded = [];
         for (let i = 0; i < 100; i++) {
             const tx = TxTransfer.rand();
             const _tx = await contract.decodeTransfer(tx.encodeOffchain());
@@ -20,9 +27,17 @@ describe("Client Frontend", async function() {
             assert.equal(_tx.amount.toString(), tx.amount.toString());
             assert.equal(_tx.fee.toString(), tx.fee.toString());
             assert.equal(_tx.nonce.toNumber(), tx.nonce);
+            txs.push(tx);
+            txsEncoded.push(_tx);
         }
+        assert.equal(
+            await contract.compressTransfer(txsEncoded),
+            serialize(txs)
+        );
     });
-    it("Decodes MassMigration", async function() {
+    it("MassMigration", async function() {
+        const txs = [];
+        const txsEncoded = [];
         for (let i = 0; i < 100; i++) {
             const tx = TxMassMigration.rand();
             const _tx = await contract.decodeMassMigration(tx.encodeOffchain());
@@ -31,9 +46,17 @@ describe("Client Frontend", async function() {
             assert.equal(_tx.fee.toString(), tx.fee.toString());
             assert.equal(_tx.spokeID.toNumber(), tx.spokeID);
             assert.equal(_tx.nonce.toNumber(), tx.nonce);
+            txs.push(tx);
+            txsEncoded.push(_tx);
         }
+        assert.equal(
+            await contract.compressMassMigration(txsEncoded),
+            serialize(txs)
+        );
     });
-    it("Decodes Create2Transfer", async function() {
+    it("Create2Transfer", async function() {
+        const txs = [];
+        const txsEncoded = [];
         for (let i = 0; i < 100; i++) {
             const tx = TxCreate2Transfer.rand();
             const _tx = await contract.decodeCreate2Transfer(
@@ -45,6 +68,12 @@ describe("Client Frontend", async function() {
             assert.equal(_tx.amount.toString(), tx.amount.toString());
             assert.equal(_tx.fee.toString(), tx.fee.toString());
             assert.equal(_tx.nonce.toNumber(), tx.nonce);
+            txs.push(tx);
+            txsEncoded.push(_tx);
         }
+        assert.equal(
+            await contract.compressCreate2Transfer(txsEncoded),
+            serialize(txs)
+        );
     });
 });
