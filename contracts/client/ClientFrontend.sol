@@ -36,62 +36,34 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
-    function processTransferTx(
-        bytes32 stateRoot,
-        bytes memory txBytes,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
+    function validateAndApplyTransferTx(
+        bytes calldata senderEncoded,
+        bytes calldata receiverEncoded,
+        Offchain.Transfer calldata _tx
     )
-        public
+        external
         pure
         returns (
-            bytes32 newRoot,
-            bytes memory senderState,
-            bytes memory receiverState,
+            bytes memory newSender,
+            bytes memory newReceiver,
             Types.Result result
         )
     {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(txBytes);
-        uint256 tokenType = from.state.tokenType;
-        (newRoot, senderState, result) = Transition.processSender(
-            stateRoot,
-            _tx.fromIndex,
+        Types.UserState memory sender = Types.decodeState(senderEncoded);
+        Types.UserState memory receiver = Types.decodeState(receiverEncoded);
+        uint256 tokenType = sender.tokenType;
+        (sender, result) = Transition.validateAndApplySender(
             tokenType,
             _tx.amount,
             _tx.fee,
-            from
+            sender
         );
-        if (result != Types.Result.Ok)
-            return (newRoot, senderState, "", result);
-        (newRoot, receiverState, result) = Transition.processReceiver(
-            newRoot,
-            _tx.toIndex,
-            _tx.amount,
+        if (result != Types.Result.Ok) return (sender.encode(), "", result);
+        (receiver, result) = Transition.validateAndApplyReceiver(
             tokenType,
-            to
+            _tx.amount,
+            receiver
         );
-        return (newRoot, senderState, receiverState, result);
-    }
-
-    function applyTransferTx(
-        bytes memory txBytes,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
-    )
-        public
-        pure
-        returns (bytes memory senderState, bytes memory receiverState)
-    {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(txBytes);
-        (senderState, ) = Transition.applySender(
-            from,
-            _tx.fromIndex,
-            _tx.amount.add(_tx.fee)
-        );
-        (receiverState, ) = Transition.applyReceiver(
-            to,
-            _tx.toIndex,
-            _tx.amount
-        );
+        return (sender.encode(), receiver.encode(), result);
     }
 }

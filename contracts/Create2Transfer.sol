@@ -106,7 +106,7 @@ contract Create2Transfer {
             // Only trust fees when the result is good
             fees = fees.add(_tx.fee);
         }
-        (stateRoot, , result) = Transition.processReceiver(
+        (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             feeReceiver,
             fees,
@@ -130,7 +130,7 @@ contract Create2Transfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) internal pure returns (bytes32 newRoot, Types.Result result) {
-        (newRoot, , result) = Transition.processSender(
+        (newRoot, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,

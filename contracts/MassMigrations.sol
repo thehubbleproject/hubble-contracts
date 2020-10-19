@@ -98,7 +98,7 @@ contract MassMigration {
             fees += _tx.fee;
             withdrawLeaves[i] = keccak256(freshState);
         }
-        (stateRoot, , result) = Transition.processReceiver(
+        (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             commitmentBody.feeReceiver,
             fees,
@@ -130,7 +130,7 @@ contract MassMigration {
             Types.Result result
         )
     {
-        (newRoot, , result) = Transition.processSender(
+        (newRoot, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
