@@ -83,6 +83,32 @@ library Tx {
         return txs.length / TX_LEN_0;
     }
 
+    function serialize(Transfer[] memory txs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        uint256 batchSize = txs.length;
+        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
+        for (uint256 i = 0; i < batchSize; i++) {
+            uint256 fromIndex = txs[i].fromIndex;
+            uint256 toIndex = txs[i].toIndex;
+            uint256 amount = encodeDecimal(txs[i].amount);
+            uint256 fee = encodeDecimal(txs[i].fee);
+            bytes memory _tx = abi.encodePacked(
+                uint32(fromIndex),
+                uint32(toIndex),
+                uint16(amount),
+                uint16(fee)
+            );
+            uint256 off = i * TX_LEN_0;
+            for (uint256 j = 0; j < TX_LEN_0; j++) {
+                serialized[j + off] = _tx[j];
+            }
+        }
+        return serialized;
+    }
+
     function serialize(Create2Transfer[] memory txs)
         internal
         pure
@@ -105,32 +131,6 @@ library Tx {
             );
             uint256 off = i * TX_LEN_1;
             for (uint256 j = 0; j < TX_LEN_1; j++) {
-                serialized[j + off] = _tx[j];
-            }
-        }
-        return serialized;
-    }
-
-    function serialize(Transfer[] memory txs)
-        internal
-        pure
-        returns (bytes memory)
-    {
-        uint256 batchSize = txs.length;
-        bytes memory serialized = new bytes(TX_LEN_0 * batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            uint256 fromIndex = txs[i].fromIndex;
-            uint256 toIndex = txs[i].toIndex;
-            uint256 amount = encodeDecimal(txs[i].amount);
-            uint256 fee = encodeDecimal(txs[i].fee);
-            bytes memory _tx = abi.encodePacked(
-                uint32(fromIndex),
-                uint32(toIndex),
-                uint16(amount),
-                uint16(fee)
-            );
-            uint256 off = i * TX_LEN_0;
-            for (uint256 j = 0; j < TX_LEN_0; j++) {
                 serialized[j + off] = _tx[j];
             }
         }
