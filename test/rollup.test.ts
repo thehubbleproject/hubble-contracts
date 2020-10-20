@@ -75,7 +75,7 @@ describe("Rollup", async function() {
         const signature = Alice.sign(tx);
 
         const rollup = contracts.rollup;
-        const { solProofs, safe } = stateTree.applyTransferBatch(
+        const { proofs, safe } = stateTree.applyTransferBatch(
             [tx],
             feeReceiver
         );
@@ -121,7 +121,7 @@ describe("Rollup", async function() {
             batchId,
             previousMP,
             commitmentMP,
-            solProofs
+            proofs
         );
         const receipt = await _tx.wait();
         console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());

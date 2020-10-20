@@ -5,7 +5,7 @@ import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountR
 
 import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { solProofFromTransfer, StateTree } from "../ts/stateTree";
+import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
@@ -120,9 +120,9 @@ describe("Rollup Transfer Commitment", () => {
         const txs = txTransferFactory(states, COMMIT_SIZE);
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const proof = stateTree.applyTxTransfer(tx);
-            const [senderProof, receiverProof] = solProofFromTransfer(proof);
-            assert.isTrue(proof.safe);
+            const { proofs, safe } = stateTree.processTransfer(tx);
+            const [senderProof, receiverProof] = proofs;
+            assert.isTrue(safe);
             const postRoot = stateTree.root;
             const { 0: processedRoot, 1: result } = await rollup.testProcessTx(
                 preRoot,
@@ -144,10 +144,7 @@ describe("Rollup Transfer Commitment", () => {
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { solProofs, safe } = stateTree.applyTransferBatch(
-            txs,
-            feeReceiver
-        );
+        const { proofs, safe } = stateTree.applyTransferBatch(txs, feeReceiver);
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
 
@@ -157,7 +154,7 @@ describe("Rollup Transfer Commitment", () => {
         } = await rollup.callStatic.testProcessTransferCommit(
             preStateRoot,
             serialize(txs),
-            solProofs,
+            proofs,
             feeReceiver
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());
