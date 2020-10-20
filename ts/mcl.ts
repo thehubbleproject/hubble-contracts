@@ -156,3 +156,5 @@ export function randG2(): solG2 {
     p.normalize();
     return g2ToHex(p);
 }
+
+export const getMclInstance = () => mcl;

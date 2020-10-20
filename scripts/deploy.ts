@@ -30,7 +30,7 @@ async function main() {
 
     const allContracts = await deployAll(signer, parameters, true);
     Object.keys(allContracts).forEach((contract: string) => {
-        console.log(contract, allContracts[contract].address);
+        console.log(contract, allContracts[contract as keyof typeof allContracts].address);
     });
 
     const accountRegistry = allContracts.blsAccountRegistry as BlsAccountRegistry;
