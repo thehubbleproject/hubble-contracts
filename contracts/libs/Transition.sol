@@ -60,7 +60,7 @@ library Transition {
             Types.Result result
         ) = validateAndApplyReceiver(tokenType, amount, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);
-        stateRoot = MerkleTree.computeRoot(
+        newRoot = MerkleTree.computeRoot(
             keccak256(newReceiver.encode()),
             receiverStateIndex,
             proof.witness
@@ -75,14 +75,15 @@ library Transition {
         Types.UserState memory sender
     ) internal pure returns (Types.UserState memory, Types.Result) {
         if (amount == 0) return (sender, Types.Result.InvalidTokenAmount);
-        if (sender.balance < amount.add(fee))
+        uint256 decrement = amount.add(fee);
+        if (sender.balance < decrement)
             return (sender, Types.Result.NotEnoughTokenBalance);
         if (sender.tokenType != tokenType)
             return (sender, Types.Result.BadFromTokenType);
         Types.UserState memory newSender = Types.UserState({
             pubkeyIndex: sender.pubkeyIndex,
             tokenType: sender.tokenType,
-            balance: sender.balance.sub(amount.add(fee)),
+            balance: sender.balance.sub(decrement),
             nonce: sender.nonce.add(1)
         });
         return (newSender, Types.Result.Ok);
@@ -99,7 +100,7 @@ library Transition {
             pubkeyIndex: receiver.pubkeyIndex,
             tokenType: receiver.tokenType,
             balance: receiver.balance.add(amount),
-            nonce: receiver.nonce.add(1)
+            nonce: receiver.nonce
         });
         return (newReceiver, Types.Result.Ok);
     }
