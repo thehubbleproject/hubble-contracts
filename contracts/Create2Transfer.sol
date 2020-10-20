@@ -109,8 +109,8 @@ contract Create2Transfer {
         (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             feeReceiver,
-            fees,
             tokenType,
+            fees,
             proofs[length * 2]
         );
 

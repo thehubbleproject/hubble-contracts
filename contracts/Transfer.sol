@@ -94,8 +94,8 @@ contract Transfer {
         (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             feeReceiver,
-            fees,
             tokenType,
+            fees,
             proofs[length * 2]
         );
 
@@ -127,8 +127,8 @@ contract Transfer {
         (newRoot, result) = Transition.processReceiver(
             newRoot,
             _tx.toIndex,
-            _tx.amount,
             tokenType,
+            _tx.amount,
             to
         );
         return (newRoot, result);

@@ -42,8 +42,8 @@ library Transition {
     function processReceiver(
         bytes32 stateRoot,
         uint256 receiverStateIndex,
-        uint256 amount,
         uint256 tokenType,
+        uint256 amount,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes32 newRoot, Types.Result) {
         require(

@@ -101,8 +101,8 @@ contract MassMigration {
         (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             commitmentBody.feeReceiver,
-            fees,
             commitmentBody.tokenID,
+            fees,
             proofs[length]
         );
         if (result != Types.Result.Ok) return (stateRoot, result);
