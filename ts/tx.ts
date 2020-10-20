@@ -20,6 +20,34 @@ export interface SignableTx extends Tx {
     message(): string;
 }
 
+export interface OffchainTransfer {
+    txType: string;
+    fromIndex: number;
+    toIndex: number;
+    amount: BigNumber;
+    fee: BigNumber;
+    nonce: number;
+}
+
+export interface OffchainMassMigration {
+    txType: string;
+    fromIndex: number;
+    amount: BigNumber;
+    fee: BigNumber;
+    spokeID: number;
+    nonce: number;
+}
+
+export interface OffchainCreate2Transfer {
+    txType: string;
+    fromIndex: number;
+    toIndex: number;
+    toAccID: number;
+    amount: BigNumber;
+    fee: BigNumber;
+    nonce: number;
+}
+
 export function serialize(txs: Tx[]): string {
     return hexlify(concat(txs.map(tx => tx.encode())));
 }
@@ -95,6 +123,17 @@ export class TxTransfer implements SignableTx {
         );
     }
 
+    public offchain(): OffchainTransfer {
+        return {
+            txType: this.TX_TYPE,
+            fromIndex: this.fromIndex,
+            toIndex: this.toIndex,
+            amount: this.amount,
+            fee: this.fee,
+            nonce: this.nonce
+        };
+    }
+
     public encode(): string {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
@@ -163,6 +202,17 @@ export class TxMassMigration implements SignableTx {
         );
     }
 
+    public offchain(): OffchainMassMigration {
+        return {
+            txType: this.TX_TYPE,
+            fromIndex: this.fromIndex,
+            amount: this.amount,
+            fee: this.fee,
+            spokeID: this.spokeID,
+            nonce: this.nonce
+        };
+    }
+
     public encode(): string {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
@@ -207,8 +257,8 @@ export class TxCreate2Transfer implements SignableTx {
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
-        public readonly fromPubkey: string[],
-        public readonly toPubkey: string[],
+        public fromPubkey: string[],
+        public toPubkey: string[],
         public readonly toAccID: number,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
@@ -261,6 +311,18 @@ export class TxCreate2Transfer implements SignableTx {
                 this.nonce
             ]
         );
+    }
+
+    public offchain(): OffchainCreate2Transfer {
+        return {
+            txType: this.TX_TYPE,
+            fromIndex: this.fromIndex,
+            toIndex: this.toIndex,
+            toAccID: this.toAccID,
+            amount: this.amount,
+            fee: this.fee,
+            nonce: this.nonce
+        };
     }
 
     public encode(): string {

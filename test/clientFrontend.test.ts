@@ -8,12 +8,18 @@ import {
 import { ethers } from "@nomiclabs/buidler";
 import { ClientFrontend } from "../types/ethers-contracts/ClientFrontend";
 import { ClientFrontendFactory } from "../types/ethers-contracts";
+import { State } from "../ts/state";
+import * as mcl from "../ts/mcl";
+import { randHex } from "../ts/utils";
 
+const DOMAIN = randHex(32);
 describe("Client Frontend", async function() {
     let contract: ClientFrontend;
     before(async function() {
         const [signer] = await ethers.getSigners();
         contract = await new ClientFrontendFactory(signer).deploy();
+        mcl.setDomainHex(DOMAIN);
+        await mcl.init();
     });
 
     it("Transfer", async function() {
@@ -74,6 +80,45 @@ describe("Client Frontend", async function() {
         assert.equal(
             await contract.compressCreate2Transfer(txsEncoded),
             serialize(txs)
+        );
+    });
+
+    it("Validate transfer", async function() {
+        const tx = TxTransfer.rand();
+        const user = State.new(0, 0, 0, 0).newKeyPair();
+        const signature = user.sign(tx);
+        await contract.valiateTransfer(
+            tx.offchain(),
+            mcl.g1ToHex(signature),
+            user.getPubkey(),
+            DOMAIN
+        );
+    });
+
+    it("Validate MassMigration", async function() {
+        const tx = TxMassMigration.rand();
+        const user = State.new(0, 0, 0, 0).newKeyPair();
+        const signature = user.sign(tx);
+        await contract.valiateMassMigration(
+            tx.offchain(),
+            mcl.g1ToHex(signature),
+            user.getPubkey(),
+            DOMAIN
+        );
+    });
+    it("Validate create2Transfer", async function() {
+        const tx = TxCreate2Transfer.rand();
+        const sender = State.new(0, 0, 0, 0).newKeyPair();
+        const receiver = State.new(0, 0, 0, 0).newKeyPair();
+        tx.fromPubkey = sender.getPubkey();
+        tx.toPubkey = receiver.getPubkey();
+        const signature = sender.sign(tx);
+        await contract.valiateCreate2Transfer(
+            tx.offchain(),
+            mcl.g1ToHex(signature),
+            tx.fromPubkey,
+            tx.toPubkey,
+            DOMAIN
         );
     });
 });
