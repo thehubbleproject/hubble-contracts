@@ -41,14 +41,14 @@ library Types {
 
     function encodeMeta(
         uint256 batchType,
-        uint256 commitmentLength,
+        uint256 size,
         address committer,
         uint256 finaliseOn
     ) internal pure returns (bytes32) {
         uint256 meta = 0;
         assembly {
             meta := or(shl(248, and(batchType, 0xff)), meta)
-            meta := or(shl(240, and(commitmentLength, 0xff)), meta)
+            meta := or(shl(240, and(size, 0xff)), meta)
             meta := or(
                 shl(
                     80,
@@ -65,11 +65,7 @@ library Types {
         return (uint256(batch.meta) >> 248) & 0xff;
     }
 
-    function commitmentLength(Batch memory batch)
-        internal
-        pure
-        returns (uint256)
-    {
+    function size(Batch memory batch) internal pure returns (uint256) {
         return (uint256(batch.meta) >> 240) & 0xff;
     }
 
@@ -135,7 +131,7 @@ library Types {
     struct MassMigrationBody {
         bytes32 accountRoot;
         uint256[2] signature;
-        uint256 targetSpokeID;
+        uint256 spokeID;
         bytes32 withdrawRoot;
         uint256 tokenID;
         uint256 amount;
@@ -153,7 +149,7 @@ library Types {
                 abi.encodePacked(
                     body.accountRoot,
                     body.signature,
-                    body.targetSpokeID,
+                    body.spokeID,
                     body.withdrawRoot,
                     body.tokenID,
                     body.amount,
@@ -181,19 +177,19 @@ library Types {
 
     struct CommitmentInclusionProof {
         Commitment commitment;
-        uint256 pathToCommitment;
+        uint256 path;
         bytes32[] witness;
     }
 
     struct TransferCommitmentInclusionProof {
         TransferCommitment commitment;
-        uint256 pathToCommitment;
+        uint256 path;
         bytes32[] witness;
     }
 
     struct MMCommitmentInclusionProof {
         MassMigrationCommitment commitment;
-        uint256 pathToCommitment;
+        uint256 path;
         bytes32[] witness;
     }
 

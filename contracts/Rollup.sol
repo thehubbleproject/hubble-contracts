@@ -83,7 +83,7 @@ contract RollupSetup {
             MerkleTree.verify(
                 root,
                 proof.commitment.toHash(),
-                proof.pathToCommitment,
+                proof.path,
                 proof.witness
             );
     }
@@ -91,21 +91,21 @@ contract RollupSetup {
     modifier checkPreviousCommitment(
         uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
-        uint256 targetPathToCommitment
+        uint256 targetPath
     ) {
         uint256 previousPath = 0;
         uint256 expectedBatchID = 0;
-        if (targetPathToCommitment == 0) {
+        if (targetPath == 0) {
             // target is the first commit in the batch, so the previous commit is in the previous batch
             expectedBatchID = batchID - 1;
-            previousPath = batches[expectedBatchID].commitmentLength() - 1;
+            previousPath = batches[expectedBatchID].size() - 1;
         } else {
             // target and previous commits are both in the current batch
             expectedBatchID = batchID;
-            previousPath = targetPathToCommitment - 1;
+            previousPath = targetPath - 1;
         }
         require(
-            previous.pathToCommitment == previousPath,
+            previous.path == previousPath,
             "previous commitment has wrong path"
         );
         require(
@@ -192,7 +192,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
             MerkleTree.verify(
                 root,
                 proof.commitment.toHash(),
-                proof.pathToCommitment,
+                proof.path,
                 proof.witness
             );
     }
@@ -205,7 +205,7 @@ contract RollupHelpers is RollupSetup, StakeManager {
             MerkleTree.verify(
                 root,
                 proof.commitment.toHash(),
-                proof.pathToCommitment,
+                proof.path,
                 proof.witness
             );
     }
@@ -270,14 +270,14 @@ contract Rollup is RollupHelpers {
 
     function submitBatch(
         bytes32 commitmentRoot,
-        uint256 commitmentLength,
+        uint256 size,
         Types.Usage batchType
     ) internal {
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
                 uint256(batchType),
-                commitmentLength,
+                size,
                 msg.sender,
                 block.number + governance.timeToFinalise()
             )
@@ -349,7 +349,7 @@ contract Rollup is RollupHelpers {
     }
 
     /**
-     * @param meta is targetSpokeID, tokenID, amount, and feeReceiver combined
+     * @param meta is spokeID, tokenID, amount, and feeReceiver combined
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
     function submitMassMigration(
@@ -389,8 +389,7 @@ contract Rollup is RollupHelpers {
     ) public payable onlyCoordinator isNotRollingBack {
         uint256 preBatchID = batches.length - 1;
         require(
-            previous.pathToCommitment ==
-                batches[preBatchID].commitmentLength() - 1,
+            previous.path == batches[preBatchID].size() - 1,
             "previous commitment has wrong path"
         );
         require(
@@ -440,7 +439,7 @@ contract Rollup is RollupHelpers {
     )
         public
         isDisputable(batchID)
-        checkPreviousCommitment(batchID, previous, target.pathToCommitment)
+        checkPreviousCommitment(batchID, previous, target.path)
     {
         require(
             checkInclusion(batches[batchID].commitmentRoot, target),
@@ -475,7 +474,7 @@ contract Rollup is RollupHelpers {
     )
         public
         isDisputable(batchID)
-        checkPreviousCommitment(batchID, previous, target.pathToCommitment)
+        checkPreviousCommitment(batchID, previous, target.path)
     {
         require(
             checkInclusion(batches[batchID].commitmentRoot, target),
@@ -542,7 +541,7 @@ contract Rollup is RollupHelpers {
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
             appID,
-            target.commitment.body.targetSpokeID,
+            target.commitment.body.spokeID,
             target.commitment.body.txs
         );
 

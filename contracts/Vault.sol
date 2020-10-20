@@ -43,9 +43,7 @@ contract Vault {
     ) public {
         require(
             msg.sender ==
-                spokes.getSpokeAddress(
-                    commitmentMP.commitment.body.targetSpokeID
-                ),
+                spokes.getSpokeAddress(commitmentMP.commitment.body.spokeID),
             "Vault: msg.sender should be the target spoke"
         );
         Types.Batch memory batch = rollup.getBatch(batchID);
@@ -59,7 +57,7 @@ contract Vault {
             MerkleTree.verify(
                 batch.commitmentRoot,
                 commitmentMP.commitment.toHash(),
-                commitmentMP.pathToCommitment,
+                commitmentMP.path,
                 commitmentMP.witness
             ),
             "Vault: Commitment is not present in batch"

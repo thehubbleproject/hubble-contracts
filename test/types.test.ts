@@ -14,25 +14,25 @@ describe("Type testing", function() {
     it("encode and decode meta fields", async function() {
         const expected = {
             batchType: randomNum(1),
-            commitmentLength: randomNum(1),
+            size: randomNum(1),
             committer: getAddress(randHex(20)),
             finaliseOn: randomNum(4)
         };
 
         const meta = await contract.encodeMeta(
             expected.batchType,
-            expected.commitmentLength,
+            expected.size,
             expected.committer,
             expected.finaliseOn
         );
         const {
             batchType,
-            commitmentLength,
+            size,
             committer,
             finaliseOn
         } = await contract.decodeMeta(meta);
         assert.equal(batchType.toNumber(), expected.batchType);
-        assert.equal(commitmentLength.toNumber(), expected.commitmentLength);
+        assert.equal(size.toNumber(), expected.size);
         assert.equal(committer, expected.committer);
         assert.equal(finaliseOn.toNumber(), expected.finaliseOn);
     });

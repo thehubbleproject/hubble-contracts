@@ -26,7 +26,7 @@ contract TestTypes {
         pure
         returns (
             uint256 batchType,
-            uint256 commitmentLength,
+            uint256 size,
             address committer,
             uint256 finaliseOn
         )
@@ -36,7 +36,7 @@ contract TestTypes {
             meta: meta
         });
         batchType = batch.batchType();
-        commitmentLength = batch.commitmentLength();
+        size = batch.size();
         committer = batch.committer();
         finaliseOn = batch.finaliseOn();
     }

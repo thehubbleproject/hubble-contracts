@@ -22,7 +22,7 @@ contract MassMigration {
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 domain,
-        uint256 targetSpokeID,
+        uint256 spokeID,
         bytes memory txs
     ) public view returns (Types.Result) {
         uint256 length = txs.massMigrationSize();
@@ -56,7 +56,7 @@ contract MassMigration {
             bytes memory txMsg = Tx.massMigrationMessageOf(
                 _tx,
                 proof.states[i].nonce - 1,
-                targetSpokeID
+                spokeID
             );
             // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
