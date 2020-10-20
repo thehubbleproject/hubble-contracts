@@ -13,7 +13,9 @@
     "lib": ["es2015", "esnext.asynciterable"],
     "sourceMap": true,
     "typeRoots": ["./node_modules/@types", "./types"],
-    "types": ["node"]
+    "types": ["node"],
+    "outDir": "dist/",
+    "declaration": true,
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "example", "build"],

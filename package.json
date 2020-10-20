@@ -2,7 +2,8 @@
   "name": "hubble-contracts",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "buidler test",
     "solhint": "solhint \"contracts/**/*.sol\" -f unix",
@@ -14,7 +15,8 @@
     "deploy": "ts-node ./scripts/deploy.ts",
     "add-pubkeys": "node ./scripts/addPubkeys.js",
     "bench": "buidler run ./scripts/benchmark.ts",
-    "slither": "slither ."
+    "slither": "slither .",
+    "build": "rm -rf dist/ && tsc"
   },
   "repository": {
     "type": "git",
