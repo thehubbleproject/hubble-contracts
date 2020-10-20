@@ -36,6 +36,59 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
+    function compressTransfer(Offchain.Transfer[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        Tx.Transfer[] memory txTxs = new Tx.Transfer[](txs.length);
+        for (uint256 i = 0; i < txs.length; i++) {
+            txTxs[i] = Tx.Transfer(
+                txs[i].fromIndex,
+                txs[i].toIndex,
+                txs[i].amount,
+                txs[i].fee
+            );
+        }
+        return Tx.serialize(txTxs);
+    }
+
+    function compressMassMigration(Offchain.MassMigration[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](txs.length);
+        for (uint256 i = 0; i < txs.length; i++) {
+            txTxs[i] = Tx.MassMigration(
+                txs[i].fromIndex,
+                txs[i].amount,
+                txs[i].fee
+            );
+        }
+        return Tx.serialize(txTxs);
+    }
+
+    function compressCreate2Transfer(Offchain.Create2Transfer[] calldata txs)
+        external
+        pure
+        returns (bytes memory)
+    {
+        Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](
+            txs.length
+        );
+        for (uint256 i = 0; i < txs.length; i++) {
+            txTxs[i] = Tx.Create2Transfer(
+                txs[i].fromIndex,
+                txs[i].toIndex,
+                txs[i].toAccID,
+                txs[i].amount,
+                txs[i].fee
+            );
+        }
+        return Tx.serialize(txTxs);
+    }
+
     function validateAndApplyTransfer(
         bytes calldata senderEncoded,
         bytes calldata receiverEncoded,
