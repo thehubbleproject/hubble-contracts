@@ -16,137 +16,106 @@ library Transition {
         uint256 amount,
         uint256 fee,
         Types.StateMerkleProof memory proof
-    )
-        internal
-        pure
-        returns (
-            bytes32 newRoot,
-            bytes memory newToState,
-            Types.Result
-        )
-    {
-        Types.Result result = validateSender(
-            stateRoot,
-            senderStateIndex,
-            tokenType,
-            amount,
-            fee,
-            proof
+    ) internal pure returns (bytes32 newRoot, Types.Result) {
+        require(
+            MerkleTree.verify(
+                stateRoot,
+                keccak256(proof.state.encode()),
+                senderStateIndex,
+                proof.witness
+            ),
+            "Transition: Sender does not exist"
         );
-        if (result != Types.Result.Ok) return (bytes32(0), "", result);
-        (newToState, newRoot) = applySender(
-            proof,
+        (
+            Types.UserState memory newSender,
+            Types.Result result
+        ) = validateAndApplySender(tokenType, amount, fee, proof.state);
+        if (result != Types.Result.Ok) return (bytes32(0), result);
+        newRoot = MerkleTree.computeRoot(
+            keccak256(newSender.encode()),
             senderStateIndex,
-            amount.add(fee)
+            proof.witness
         );
-        return (newRoot, newToState, Types.Result.Ok);
+        return (newRoot, Types.Result.Ok);
     }
 
     function processReceiver(
         bytes32 stateRoot,
         uint256 receiverStateIndex,
-        uint256 amount,
         uint256 tokenType,
+        uint256 amount,
         Types.StateMerkleProof memory proof
-    )
-        internal
-        pure
-        returns (
-            bytes32 newRoot,
-            bytes memory newToState,
-            Types.Result
-        )
-    {
-        Types.Result result = validateReceiver(
-            stateRoot,
-            receiverStateIndex,
-            tokenType,
-            proof
-        );
-        if (result != Types.Result.Ok) return (bytes32(0), "", result);
-        (newToState, newRoot) = applyReceiver(
-            proof,
-            receiverStateIndex,
-            amount
-        );
-        return (newRoot, newToState, Types.Result.Ok);
-    }
-
-    function validateSender(
-        bytes32 stateRoot,
-        uint256 senderIndex,
-        uint256 tokenType,
-        uint256 amount,
-        uint256 fee,
-        Types.StateMerkleProof memory sender
-    ) internal pure returns (Types.Result) {
+    ) internal pure returns (bytes32 newRoot, Types.Result) {
         require(
             MerkleTree.verify(
                 stateRoot,
-                keccak256(sender.state.encode()),
-                senderIndex,
-                sender.witness
-            ),
-            "Transition: Sender does not exist"
-        );
-        // We can only trust and validate the state after the merkle check
-        if (amount == 0) return Types.Result.InvalidTokenAmount;
-        if (sender.state.balance < amount.add(fee))
-            return Types.Result.NotEnoughTokenBalance;
-        if (sender.state.tokenType != tokenType)
-            return Types.Result.BadFromTokenType;
-        return Types.Result.Ok;
-    }
-
-    function validateReceiver(
-        bytes32 stateRoot,
-        uint256 receiverIndex,
-        uint256 tokenType,
-        Types.StateMerkleProof memory receiver
-    ) internal pure returns (Types.Result) {
-        require(
-            MerkleTree.verify(
-                stateRoot,
-                keccak256(receiver.state.encode()),
-                receiverIndex,
-                receiver.witness
+                keccak256(proof.state.encode()),
+                receiverStateIndex,
+                proof.witness
             ),
             "Transition: receiver does not exist"
         );
-        // We can only trust and validate the state after the merkle check
-        if (receiver.state.tokenType != tokenType)
-            return Types.Result.BadToTokenType;
-        return Types.Result.Ok;
-    }
-
-    function applySender(
-        Types.StateMerkleProof memory proof,
-        uint256 senderStateIndex,
-        uint256 decrement
-    ) internal pure returns (bytes memory newState, bytes32 stateRoot) {
-        Types.UserState memory state = proof.state;
-        state.balance = state.balance.sub(decrement);
-        state.nonce++;
-        newState = state.encode();
-        stateRoot = MerkleTree.computeRoot(
-            keccak256(newState),
-            senderStateIndex,
-            proof.witness
-        );
-    }
-
-    function applyReceiver(
-        Types.StateMerkleProof memory proof,
-        uint256 receiverStateIndex,
-        uint256 increment
-    ) internal pure returns (bytes memory newState, bytes32 stateRoot) {
-        Types.UserState memory state = proof.state;
-        state.balance = state.balance.add(increment);
-        newState = state.encode();
-        stateRoot = MerkleTree.computeRoot(
-            keccak256(newState),
+        (
+            Types.UserState memory newReceiver,
+            Types.Result result
+        ) = validateAndApplyReceiver(tokenType, amount, proof.state);
+        if (result != Types.Result.Ok) return (bytes32(0), result);
+        newRoot = MerkleTree.computeRoot(
+            keccak256(newReceiver.encode()),
             receiverStateIndex,
             proof.witness
         );
+        return (newRoot, Types.Result.Ok);
+    }
+
+    function validateAndApplySender(
+        uint256 tokenType,
+        uint256 amount,
+        uint256 fee,
+        Types.UserState memory sender
+    ) internal pure returns (Types.UserState memory, Types.Result) {
+        if (amount == 0) return (sender, Types.Result.InvalidTokenAmount);
+        uint256 decrement = amount.add(fee);
+        if (sender.balance < decrement)
+            return (sender, Types.Result.NotEnoughTokenBalance);
+        if (sender.tokenType != tokenType)
+            return (sender, Types.Result.BadFromTokenType);
+        Types.UserState memory newSender = Types.UserState({
+            pubkeyIndex: sender.pubkeyIndex,
+            tokenType: sender.tokenType,
+            balance: sender.balance.sub(decrement),
+            nonce: sender.nonce.add(1)
+        });
+        return (newSender, Types.Result.Ok);
+    }
+
+    function validateAndApplyReceiver(
+        uint256 tokenType,
+        uint256 amount,
+        Types.UserState memory receiver
+    ) internal pure returns (Types.UserState memory newReceiver, Types.Result) {
+        if (receiver.tokenType != tokenType)
+            return (receiver, Types.Result.BadToTokenType);
+        newReceiver = Types.UserState({
+            pubkeyIndex: receiver.pubkeyIndex,
+            tokenType: receiver.tokenType,
+            balance: receiver.balance.add(amount),
+            nonce: receiver.nonce
+        });
+        return (newReceiver, Types.Result.Ok);
+    }
+
+    function createState(
+        uint256 pubkeyIndex,
+        uint256 tokenType,
+        uint256 amount
+    ) internal pure returns (bytes memory stateEncoded) {
+        Types.UserState memory state = Types.UserState({
+            pubkeyIndex: pubkeyIndex,
+            tokenType: tokenType,
+            balance: amount,
+            nonce: 0
+        });
+        return state.encode();
     }
 }

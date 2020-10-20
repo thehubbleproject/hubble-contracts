@@ -98,11 +98,11 @@ contract MassMigration {
             fees += _tx.fee;
             withdrawLeaves[i] = keccak256(freshState);
         }
-        (stateRoot, , result) = Transition.processReceiver(
+        (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             commitmentBody.feeReceiver,
-            fees,
             commitmentBody.tokenID,
+            fees,
             proofs[length]
         );
         if (result != Types.Result.Ok) return (stateRoot, result);
@@ -130,7 +130,7 @@ contract MassMigration {
             Types.Result result
         )
     {
-        (newRoot, , result) = Transition.processSender(
+        (newRoot, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -139,14 +139,11 @@ contract MassMigration {
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);
-
-        Types.UserState memory fresh = Types.UserState({
-            pubkeyIndex: from.state.pubkeyIndex,
-            tokenType: tokenType,
-            balance: _tx.amount,
-            nonce: 0
-        });
-        freshState = fresh.encode();
+        freshState = Transition.createState(
+            from.state.pubkeyIndex,
+            tokenType,
+            _tx.amount
+        );
 
         return (newRoot, freshState, Types.Result.Ok);
     }

@@ -221,6 +221,15 @@ library Types {
             );
     }
 
+    function decodeState(bytes memory encoded)
+        internal
+        pure
+        returns (Types.UserState memory state)
+    {
+        (state.pubkeyIndex, state.tokenType, state.balance, state.nonce) = abi
+            .decode(encoded, (uint256, uint256, uint256, uint256));
+    }
+
     struct StateMerkleProof {
         UserState state;
         bytes32[] witness;

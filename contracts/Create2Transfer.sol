@@ -106,11 +106,11 @@ contract Create2Transfer {
             // Only trust fees when the result is good
             fees = fees.add(_tx.fee);
         }
-        (stateRoot, , result) = Transition.processReceiver(
+        (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             feeReceiver,
-            fees,
             tokenType,
+            fees,
             proofs[length * 2]
         );
 
@@ -130,7 +130,7 @@ contract Create2Transfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) internal pure returns (bytes32 newRoot, Types.Result result) {
-        (newRoot, , result) = Transition.processSender(
+        (newRoot, result) = Transition.processSender(
             stateRoot,
             _tx.fromIndex,
             tokenType,
@@ -152,7 +152,7 @@ contract Create2Transfer {
     function processCreate2TransferReceiver(
         bytes32 stateRoot,
         Tx.Create2Transfer memory _tx,
-        uint256 token,
+        uint256 tokenType,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
         // Validate we are creating on a zero state
@@ -165,13 +165,12 @@ contract Create2Transfer {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        Types.UserState memory newState = Types.UserState(
+        encodedState = Transition.createState(
             _tx.toAccID,
-            token,
-            _tx.amount,
-            0
+            tokenType,
+            _tx.amount
         );
-        encodedState = newState.encode();
+
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
             _tx.toIndex,

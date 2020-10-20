@@ -36,62 +36,90 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
-    function processTransferTx(
-        bytes32 stateRoot,
-        bytes memory txBytes,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
+    function validateAndApplyTransfer(
+        bytes calldata senderEncoded,
+        bytes calldata receiverEncoded,
+        Offchain.Transfer calldata _tx
     )
-        public
+        external
         pure
         returns (
-            bytes32 newRoot,
-            bytes memory senderState,
-            bytes memory receiverState,
+            bytes memory newSender,
+            bytes memory newReceiver,
             Types.Result result
         )
     {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(txBytes);
-        uint256 tokenType = from.state.tokenType;
-        (newRoot, senderState, result) = Transition.processSender(
-            stateRoot,
-            _tx.fromIndex,
+        Types.UserState memory sender = Types.decodeState(senderEncoded);
+        Types.UserState memory receiver = Types.decodeState(receiverEncoded);
+        uint256 tokenType = sender.tokenType;
+        (sender, result) = Transition.validateAndApplySender(
             tokenType,
             _tx.amount,
             _tx.fee,
-            from
+            sender
         );
-        if (result != Types.Result.Ok)
-            return (newRoot, senderState, "", result);
-        (newRoot, receiverState, result) = Transition.processReceiver(
-            newRoot,
-            _tx.toIndex,
-            _tx.amount,
+        if (result != Types.Result.Ok) return (sender.encode(), "", result);
+        (receiver, result) = Transition.validateAndApplyReceiver(
             tokenType,
-            to
+            _tx.amount,
+            receiver
         );
-        return (newRoot, senderState, receiverState, result);
+        return (sender.encode(), receiver.encode(), result);
     }
 
-    function applyTransferTx(
-        bytes memory txBytes,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
+    function validateAndApplyMassMigration(
+        bytes calldata senderEncoded,
+        Offchain.MassMigration calldata _tx
     )
-        public
+        external
         pure
-        returns (bytes memory senderState, bytes memory receiverState)
+        returns (
+            bytes memory newSender,
+            bytes memory withdrawState,
+            Types.Result result
+        )
     {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(txBytes);
-        (senderState, ) = Transition.applySender(
-            from,
-            _tx.fromIndex,
-            _tx.amount.add(_tx.fee)
+        Types.UserState memory sender = Types.decodeState(senderEncoded);
+        (sender, result) = Transition.validateAndApplySender(
+            sender.tokenType,
+            _tx.amount,
+            _tx.fee,
+            sender
         );
-        (receiverState, ) = Transition.applyReceiver(
-            to,
-            _tx.toIndex,
+        if (result != Types.Result.Ok) return (sender.encode(), "", result);
+        withdrawState = Transition.createState(
+            sender.pubkeyIndex,
+            sender.tokenType,
             _tx.amount
         );
+        return (sender.encode(), withdrawState, Types.Result.Ok);
+    }
+
+    function validateAndApplyCreate2Transfer(
+        bytes calldata senderEncoded,
+        Offchain.Create2Transfer calldata _tx
+    )
+        external
+        pure
+        returns (
+            bytes memory newSender,
+            bytes memory newReceiver,
+            Types.Result result
+        )
+    {
+        Types.UserState memory sender = Types.decodeState(senderEncoded);
+        (sender, result) = Transition.validateAndApplySender(
+            sender.tokenType,
+            _tx.amount,
+            _tx.fee,
+            sender
+        );
+        if (result != Types.Result.Ok) return (sender.encode(), "", result);
+        newReceiver = Transition.createState(
+            _tx.toAccID,
+            sender.tokenType,
+            _tx.amount
+        );
+        return (sender.encode(), newReceiver, Types.Result.Ok);
     }
 }
