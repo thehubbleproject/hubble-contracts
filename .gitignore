@@ -9,4 +9,3 @@ test-blockchain/data
 commitments.json
 cache/
 artifacts/
-dist/

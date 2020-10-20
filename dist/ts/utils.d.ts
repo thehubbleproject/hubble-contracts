@@ -1,0 +1,16 @@
+import { ethers } from "ethers";
+import { BigNumber } from "ethers";
+export declare const FIELD_ORDER: ethers.BigNumber;
+export declare const ZERO: ethers.BigNumber;
+export declare const ONE: ethers.BigNumber;
+export declare const TWO: ethers.BigNumber;
+export declare function randHex(n: number): string;
+export declare function sum(xs: BigNumber[]): BigNumber;
+export declare function to32Hex(n: BigNumber): string;
+export declare function randFs(): BigNumber;
+export declare function randomNum(numBytes: number): number;
+export declare function randomLeaves(num: number): string[];
+export declare function mineBlocks(provider: ethers.providers.JsonRpcProvider, numOfBlocks: number): Promise<void>;
+export declare function getParentLeaf(left: string, right: string): string;
+export declare function defaultHashes(depth: number): string[];
+export declare function merklise(dataLeaves: string[], maxDepth: number): Promise<string>;
