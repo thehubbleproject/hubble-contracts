@@ -349,7 +349,7 @@ contract Rollup is RollupHelpers {
     }
 
     /**
-     * @param meta is targetSpokeID, tokenID, amount, and feeReceiver combined
+     * @param meta is spokeID, tokenID, amount, and feeReceiver combined
      * @dev This function should be highly optimized so that it can include as many commitments as possible
      */
     function submitMassMigration(
@@ -541,7 +541,7 @@ contract Rollup is RollupHelpers {
             target.commitment.stateRoot,
             target.commitment.body.accountRoot,
             appID,
-            target.commitment.body.targetSpokeID,
+            target.commitment.body.spokeID,
             target.commitment.body.txs
         );
 

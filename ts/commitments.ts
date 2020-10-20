@@ -95,7 +95,7 @@ export class MassMigrationCommitment extends Commitment {
         stateRoot: BytesLike = ethers.constants.HashZero,
         accountRoot: BytesLike = ethers.constants.HashZero,
         signature: BigNumberish[] = [0, 0],
-        targetSpokeID: BigNumberish = 0,
+        spokeID: BigNumberish = 0,
         withdrawRoot: BytesLike = ethers.constants.HashZero,
         tokenID: BigNumberish = 0,
         amount: BigNumberish = 0,
@@ -106,7 +106,7 @@ export class MassMigrationCommitment extends Commitment {
             stateRoot,
             accountRoot,
             signature,
-            targetSpokeID,
+            spokeID,
             withdrawRoot,
             tokenID,
             amount,
@@ -118,7 +118,7 @@ export class MassMigrationCommitment extends Commitment {
         public stateRoot: BytesLike,
         public accountRoot: BytesLike,
         public signature: BigNumberish[],
-        public targetSpokeID: BigNumberish,
+        public spokeID: BigNumberish,
         public withdrawRoot: BytesLike,
         public tokenID: BigNumberish,
         public amount: BigNumberish,
@@ -143,7 +143,7 @@ export class MassMigrationCommitment extends Commitment {
             [
                 this.accountRoot,
                 this.signature,
-                this.targetSpokeID,
+                this.spokeID,
                 this.withdrawRoot,
                 this.tokenID,
                 this.amount,
@@ -158,7 +158,7 @@ export class MassMigrationCommitment extends Commitment {
             body: {
                 accountRoot: this.accountRoot,
                 signature: this.signature,
-                targetSpokeID: this.targetSpokeID,
+                spokeID: this.spokeID,
                 withdrawRoot: this.withdrawRoot,
                 tokenID: this.tokenID,
                 amount: this.amount,
@@ -227,7 +227,7 @@ export class MassMigrationBatch extends Batch {
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => [
-                c.targetSpokeID,
+                c.spokeID,
                 c.tokenID,
                 c.amount,
                 c.feeReceiver

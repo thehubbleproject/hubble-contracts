@@ -11,7 +11,7 @@ contract TestMassMigration is MassMigration {
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 domain,
-        uint256 targetSpokeID,
+        uint256 spokeID,
         bytes memory txs
     ) public view returns (uint256 gasCost, Types.Result result) {
         gasCost = gasleft();
@@ -21,7 +21,7 @@ contract TestMassMigration is MassMigration {
             stateRoot,
             accountRoot,
             domain,
-            targetSpokeID,
+            spokeID,
             txs
         );
         gasCost = gasCost - gasleft();

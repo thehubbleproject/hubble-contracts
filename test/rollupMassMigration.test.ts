@@ -123,7 +123,7 @@ describe("Rollup Mass Migration", () => {
         const commitmentBody = {
             accountRoot: constants.HashZero,
             signature: [0, 0],
-            targetSpokeID: spokeID,
+            spokeID,
             withdrawRoot,
             tokenID,
             amount: sum(txs.map(tx => tx.amount)),

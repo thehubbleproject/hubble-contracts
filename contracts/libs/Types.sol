@@ -131,7 +131,7 @@ library Types {
     struct MassMigrationBody {
         bytes32 accountRoot;
         uint256[2] signature;
-        uint256 targetSpokeID;
+        uint256 spokeID;
         bytes32 withdrawRoot;
         uint256 tokenID;
         uint256 amount;
@@ -149,7 +149,7 @@ library Types {
                 abi.encodePacked(
                     body.accountRoot,
                     body.signature,
-                    body.targetSpokeID,
+                    body.spokeID,
                     body.withdrawRoot,
                     body.tokenID,
                     body.amount,
