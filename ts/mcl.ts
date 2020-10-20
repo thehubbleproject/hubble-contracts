@@ -3,6 +3,7 @@ import { BigNumber, ethers } from "ethers";
 import { FIELD_ORDER, randHex } from "./utils";
 import { hashToField } from "./hashToField";
 import { arrayify, hexlify } from "ethers/lib/utils";
+import { encodeUTF8, fromHexString } from "./encoding"
 
 export type mclG2 = any;
 export type mclG1 = any;
@@ -29,11 +30,11 @@ export async function init() {
 }
 
 export function setDomain(domain: string) {
-    DOMAIN = Uint8Array.from(Buffer.from(domain, "utf8"));
+    DOMAIN = encodeUTF8(domain);
 }
 
 export function setDomainHex(domain: string) {
-    DOMAIN = Uint8Array.from(Buffer.from(domain.slice(2), "hex"));
+    DOMAIN = Uint8Array.from(fromHexString(domain.slice(2)));
     if (DOMAIN.length != 32) {
         throw new Error("bad domain length");
     }

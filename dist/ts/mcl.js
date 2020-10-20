@@ -6,6 +6,7 @@ const ethers_1 = require("ethers");
 const utils_1 = require("./utils");
 const hashToField_1 = require("./hashToField");
 const utils_2 = require("ethers/lib/utils");
+const encoding_1 = require("./encoding");
 let DOMAIN;
 async function init() {
     await mcl.init(mcl.BN_SNARK1);
@@ -13,11 +14,11 @@ async function init() {
 }
 exports.init = init;
 function setDomain(domain) {
-    DOMAIN = Uint8Array.from(Buffer.from(domain, "utf8"));
+    DOMAIN = encoding_1.encodeUTF8(domain);
 }
 exports.setDomain = setDomain;
 function setDomainHex(domain) {
-    DOMAIN = Uint8Array.from(Buffer.from(domain.slice(2), "hex"));
+    DOMAIN = Uint8Array.from(encoding_1.fromHexString(domain.slice(2)));
     if (DOMAIN.length != 32) {
         throw new Error("bad domain length");
     }
