@@ -66,7 +66,7 @@ export class StateTree {
         return this.states[stateID];
     }
 
-    public applyTransferBatch(
+    public processTransferCommit(
         txs: TxTransfer[],
         feeReceiverID: number
     ): {
@@ -101,7 +101,7 @@ export class StateTree {
         return { proofs, safe };
     }
 
-    public applyCreate2TransferBatch(
+    public processCreate2TransferCommit(
         txs: TxCreate2Transfer[],
         feeReceiverID: number
     ): {
@@ -136,7 +136,7 @@ export class StateTree {
         return { proofs, safe };
     }
 
-    public applyMassMigrationBatch(
+    public processMassMigrationCommit(
         txs: TxMassMigration[],
         feeReceiverID: number
     ): {

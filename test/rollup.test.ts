@@ -75,7 +75,7 @@ describe("Rollup", async function() {
         const signature = Alice.sign(tx);
 
         const rollup = contracts.rollup;
-        const { proofs, safe } = stateTree.applyTransferBatch(
+        const { proofs, safe } = stateTree.processTransferCommit(
             [tx],
             feeReceiver
         );

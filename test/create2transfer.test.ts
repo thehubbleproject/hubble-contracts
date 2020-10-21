@@ -76,7 +76,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         const pubkeyWitnessesSender = [];
         const pubkeyWitnessesReceiver = [];
 
-        const stateTransitionProof = stateTree.applyCreate2TransferBatch(
+        const stateTransitionProof = stateTree.processCreate2TransferCommit(
             txs,
             0
         );

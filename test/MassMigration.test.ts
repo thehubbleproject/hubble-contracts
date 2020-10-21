@@ -64,7 +64,7 @@ describe("Mass Migrations", async function() {
         );
         const signature = Alice.sign(tx);
         const stateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.applyMassMigrationBatch(
+        const { proofs, safe } = stateTree.processMassMigrationCommit(
             [tx],
             feeReceiver
         );
@@ -156,7 +156,10 @@ describe("Mass Migrations", async function() {
             0
         ).toStateLeaf();
         const withdrawTree = Tree.merklize([leaf]);
-        const { safe } = stateTree.applyMassMigrationBatch([tx], feeReceiver);
+        const { safe } = stateTree.processMassMigrationCommit(
+            [tx],
+            feeReceiver
+        );
         assert.isTrue(safe);
 
         const commitment = MassMigrationCommitment.new(

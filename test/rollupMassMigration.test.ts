@@ -64,7 +64,7 @@ describe("Rollup Mass Migration", () => {
             signatures.push(sender.sign(tx));
         }
         const signature = mcl.aggreagate(signatures);
-        const { safe } = stateTree.applyMassMigrationBatch(txs, 0);
+        const { safe } = stateTree.processMassMigrationCommit(txs, 0);
         assert.isTrue(safe);
         const serialized = serialize(txs);
 
@@ -103,7 +103,7 @@ describe("Rollup Mass Migration", () => {
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.applyMassMigrationBatch(
+        const { proofs, safe } = stateTree.processMassMigrationCommit(
             txs,
             feeReceiver
         );

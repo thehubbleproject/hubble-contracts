@@ -63,8 +63,8 @@ describe("Rollup Transfer Commitment", () => {
             signatures.push(sender.sign(tx));
         }
         const signature = mcl.aggreagate(signatures);
-        const stateTransitionProof = stateTree.applyTransferBatch(txs, 0);
-        assert.isTrue(stateTransitionProof.safe);
+        const { safe } = stateTree.processTransferCommit(txs, 0);
+        assert.isTrue(safe);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
@@ -144,7 +144,10 @@ describe("Rollup Transfer Commitment", () => {
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.applyTransferBatch(txs, feeReceiver);
+        const { proofs, safe } = stateTree.processTransferCommit(
+            txs,
+            feeReceiver
+        );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
 
