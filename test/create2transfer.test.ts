@@ -2,9 +2,9 @@ import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TestCreate2TransferFactory } from "../types/ethers-contracts/TestCreate2TransferFactory";
 import { TestCreate2Transfer } from "../types/ethers-contracts/TestCreate2Transfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
-import { serialize, TxCreate2Transfer } from "../ts/tx";
+import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
-import { StateTree, solProofFromCreate2Transfer } from "../ts/stateTree";
+import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
@@ -13,7 +13,6 @@ import { randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { TestBls } from "../types/ethers-contracts/TestBls";
-import { USDT } from "../ts/decimal";
 import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
 
 const DOMAIN_HEX = randHex(32);
@@ -77,7 +76,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         const pubkeyWitnessesSender = [];
         const pubkeyWitnessesReceiver = [];
 
-        const stateTransitionProof = stateTree.applyCreate2TransferBatch(
+        const stateTransitionProof = stateTree.processCreate2TransferCommit(
             txs,
             0
         );
@@ -172,11 +171,9 @@ describe("Rollup Create2Transfer Commitment", () => {
 
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const proof = stateTree.applyTxCreate2Transfer(tx);
-            const [senderProof, receiverProof] = solProofFromCreate2Transfer(
-                proof
-            );
-            assert.isTrue(proof.safe);
+            const { proofs, safe } = stateTree.processCreate2Transfer(tx);
+            const [senderProof, receiverProof] = proofs;
+            assert.isTrue(safe);
             const postRoot = stateTree.root;
             const { 0: processedRoot, 1: result } = await rollup.testProcessTx(
                 preRoot,
