@@ -18,9 +18,9 @@ library Authenticity {
         bytes32 domain,
         bytes memory txs
     ) internal view returns (Types.Result) {
-        uint256 batchSize = txs.transferSize();
-        uint256[2][] memory messages = new uint256[2][](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
+        uint256 size = txs.transferSize();
+        uint256[2][] memory messages = new uint256[2][](size);
+        for (uint256 i = 0; i < size; i++) {
             Tx.Transfer memory _tx = txs.transferDecode(i);
             // check state inclustion
             require(
@@ -68,9 +68,9 @@ library Authenticity {
         uint256 spokeID,
         bytes memory txs
     ) internal view returns (Types.Result) {
-        uint256 length = txs.massMigrationSize();
-        uint256[2][] memory messages = new uint256[2][](length);
-        for (uint256 i = 0; i < length; i++) {
+        uint256 size = txs.massMigrationSize();
+        uint256[2][] memory messages = new uint256[2][](size);
+        for (uint256 i = 0; i < size; i++) {
             Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
             // check state inclustion
             require(
@@ -118,9 +118,9 @@ library Authenticity {
         bytes32 domain,
         bytes memory txs
     ) internal view returns (Types.Result) {
-        uint256 batchSize = txs.create2TransferSize();
-        uint256[2][] memory messages = new uint256[2][](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
+        uint256 size = txs.create2TransferSize();
+        uint256[2][] memory messages = new uint256[2][](size);
+        for (uint256 i = 0; i < size; i++) {
             Tx.Create2Transfer memory _tx = txs.create2TransferDecode(i);
 
             // check state inclustion
