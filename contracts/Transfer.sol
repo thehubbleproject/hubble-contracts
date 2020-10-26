@@ -80,7 +80,7 @@ contract Transfer {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = txs.transferDecode(i);
-            (stateRoot, result) = processTx(
+            (stateRoot, result) = Transition.processTransfer(
                 stateRoot,
                 _tx,
                 tokenType,
@@ -100,37 +100,5 @@ contract Transfer {
         );
 
         return (stateRoot, result);
-    }
-
-    /**
-     * @notice processTx processes a transactions and returns the updated balance tree
-     *  and the updated leaves
-     * conditions in require mean that the dispute be declared invalid
-     * if conditons evaluate if the coordinator was at fault
-     */
-    function processTx(
-        bytes32 stateRoot,
-        Tx.Transfer memory _tx,
-        uint256 tokenType,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
-    ) internal pure returns (bytes32 newRoot, Types.Result result) {
-        (newRoot, result) = Transition.processSender(
-            stateRoot,
-            _tx.fromIndex,
-            tokenType,
-            _tx.amount,
-            _tx.fee,
-            from
-        );
-        if (result != Types.Result.Ok) return (newRoot, result);
-        (newRoot, result) = Transition.processReceiver(
-            newRoot,
-            _tx.toIndex,
-            tokenType,
-            _tx.amount,
-            to
-        );
-        return (newRoot, result);
     }
 }

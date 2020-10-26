@@ -95,7 +95,7 @@ contract Create2Transfer {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = txs.create2TransferDecode(i);
-            (stateRoot, result) = processTx(
+            (stateRoot, result) = Transition.processCreate2Transfer(
                 stateRoot,
                 _tx,
                 tokenType,
@@ -115,67 +115,5 @@ contract Create2Transfer {
         );
 
         return (stateRoot, result);
-    }
-
-    /**
-     * @notice processTx processes a transactions and returns the updated balance tree
-     *  and the updated leaves
-     * conditions in require mean that the dispute be declared invalid
-     * if conditons evaluate if the coordinator was at fault
-     */
-    function processTx(
-        bytes32 stateRoot,
-        Tx.Create2Transfer memory _tx,
-        uint256 tokenType,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
-    ) internal pure returns (bytes32 newRoot, Types.Result result) {
-        (newRoot, result) = Transition.processSender(
-            stateRoot,
-            _tx.fromIndex,
-            tokenType,
-            _tx.amount,
-            _tx.fee,
-            from
-        );
-        if (result != Types.Result.Ok) return (newRoot, result);
-        (, newRoot) = processCreate2TransferReceiver(
-            newRoot,
-            _tx,
-            from.state.tokenType,
-            to
-        );
-
-        return (newRoot, Types.Result.Ok);
-    }
-
-    function processCreate2TransferReceiver(
-        bytes32 stateRoot,
-        Tx.Create2Transfer memory _tx,
-        uint256 tokenType,
-        Types.StateMerkleProof memory proof
-    ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
-        // Validate we are creating on a zero state
-        require(
-            MerkleTree.verify(
-                stateRoot,
-                keccak256(abi.encode(0)),
-                _tx.toIndex,
-                proof.witness
-            ),
-            "Create2Transfer: receiver proof invalid"
-        );
-        encodedState = Transition.createState(
-            _tx.toAccID,
-            tokenType,
-            _tx.amount
-        );
-
-        newRoot = MerkleTree.computeRoot(
-            keccak256(encodedState),
-            _tx.toIndex,
-            proof.witness
-        );
-        return (encodedState, newRoot);
     }
 }
