@@ -22,7 +22,7 @@ library Authenticity {
         uint256[2][] memory messages = new uint256[2][](size);
         for (uint256 i = 0; i < size; i++) {
             Tx.Transfer memory _tx = txs.transferDecode(i);
-            // check state inclustion
+            // check state inclusion
             require(
                 MerkleTree.verify(
                     stateRoot,
@@ -72,7 +72,7 @@ library Authenticity {
         uint256[2][] memory messages = new uint256[2][](size);
         for (uint256 i = 0; i < size; i++) {
             Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
-            // check state inclustion
+            // check state inclusion
             require(
                 MerkleTree.verify(
                     stateRoot,
@@ -123,7 +123,7 @@ library Authenticity {
         for (uint256 i = 0; i < size; i++) {
             Tx.Create2Transfer memory _tx = txs.create2TransferDecode(i);
 
-            // check state inclustion
+            // check state inclusion
             require(
                 MerkleTree.verify(
                     stateRoot,
