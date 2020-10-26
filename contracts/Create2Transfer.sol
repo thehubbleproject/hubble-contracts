@@ -2,14 +2,12 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
-import { MerkleTree } from "./libs/MerkleTree.sol";
-import { BLS } from "./libs/BLS.sol";
 import { Tx } from "./libs/Tx.sol";
+import { Authenticity } from "./libs/Authenticity.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract Create2Transfer {
     using Tx for bytes;
-    using Types for Types.UserState;
     using SafeMath for uint256;
 
     function checkSignature(
@@ -20,62 +18,15 @@ contract Create2Transfer {
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        uint256 batchSize = txs.create2TransferSize();
-        uint256[2][] memory messages = new uint256[2][](batchSize);
-        for (uint256 i = 0; i < batchSize; i++) {
-            Tx.Create2Transfer memory _tx = txs.create2TransferDecode(i);
-
-            // check state inclustion
-            require(
-                MerkleTree.verify(
-                    stateRoot,
-                    keccak256(proof.states[i].encode()),
-                    _tx.fromIndex,
-                    proof.stateWitnesses[i]
-                ),
-                "Rollup: state inclusion signer"
+        return
+            Authenticity.verifyCreate2Transfer(
+                signature,
+                proof,
+                stateRoot,
+                accountRoot,
+                domain,
+                txs
             );
-
-            // check pubkey inclusion
-            require(
-                MerkleTree.verify(
-                    accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeysSender[i])),
-                    proof.states[i].pubkeyIndex,
-                    proof.pubkeyWitnessesSender[i]
-                ),
-                "Rollup: from account does not exists"
-            );
-
-            // check receiver pubkye inclusion at committed accID
-            require(
-                MerkleTree.verify(
-                    accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
-                    _tx.toAccID,
-                    proof.pubkeyWitnessesReceiver[i]
-                ),
-                "Rollup: to account does not exists"
-            );
-
-            // construct the message
-            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
-
-            bytes memory txMsg = Tx.create2TransferMessageOf(
-                _tx,
-                proof.states[i].nonce - 1,
-                proof.pubkeysSender[i],
-                proof.pubkeysReceiver[i]
-            );
-
-            // make the message
-            messages[i] = BLS.hashToPoint(domain, txMsg);
-        }
-
-        if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
-            return Types.Result.BadSignature;
-        }
-        return Types.Result.Ok;
     }
 
     /**

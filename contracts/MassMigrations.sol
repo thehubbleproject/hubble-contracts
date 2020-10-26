@@ -5,16 +5,12 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Transition } from "./libs/Transition.sol";
 import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
-
-import { BLS } from "./libs/BLS.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
-import { NameRegistry } from "./NameRegistry.sol";
+import { Authenticity } from "./libs/Authenticity.sol";
 
 contract MassMigration {
     using SafeMath for uint256;
     using Tx for bytes;
-    using Types for Types.UserState;
 
     function checkSignature(
         uint256[2] memory signature,
@@ -25,46 +21,16 @@ contract MassMigration {
         uint256 spokeID,
         bytes memory txs
     ) public view returns (Types.Result) {
-        uint256 length = txs.massMigrationSize();
-        uint256[2][] memory messages = new uint256[2][](length);
-        for (uint256 i = 0; i < length; i++) {
-            Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
-            // check state inclustion
-            require(
-                MerkleTree.verify(
-                    stateRoot,
-                    keccak256(proof.states[i].encode()),
-                    _tx.fromIndex,
-                    proof.stateWitnesses[i]
-                ),
-                "Rollup: state inclusion signer"
+        return
+            Authenticity.verifyMassMigration(
+                signature,
+                proof,
+                stateRoot,
+                accountRoot,
+                domain,
+                spokeID,
+                txs
             );
-
-            // check pubkey inclusion
-            require(
-                MerkleTree.verify(
-                    accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeys[i])),
-                    proof.states[i].pubkeyIndex,
-                    proof.pubkeyWitnesses[i]
-                ),
-                "Rollup: account does not exists"
-            );
-
-            // construct the message
-            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
-            bytes memory txMsg = Tx.massMigrationMessageOf(
-                _tx,
-                proof.states[i].nonce - 1,
-                spokeID
-            );
-            // make the message
-            messages[i] = BLS.hashToPoint(domain, txMsg);
-        }
-        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
-            return Types.Result.BadSignature;
-        }
-        return Types.Result.Ok;
     }
 
     /**
