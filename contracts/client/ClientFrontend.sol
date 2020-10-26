@@ -5,6 +5,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Tx } from "../libs/Tx.sol";
 import { Types } from "../libs/Types.sol";
 import { Transition } from "../libs/Transition.sol";
+import { Authenticity } from "../libs/Authenticity.sol";
 import { BLS } from "../libs/BLS.sol";
 import { Offchain } from "./Offchain.sol";
 
@@ -288,6 +289,65 @@ contract ClientFrontend {
                 tokenType,
                 from,
                 to
+            );
+    }
+
+    function checkSignatureTransfer(
+        uint256[2] memory signature,
+        Types.SignatureProof memory proof,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 domain,
+        bytes memory txs
+    ) public view returns (Types.Result) {
+        return
+            Authenticity.verifyTransfer(
+                signature,
+                proof,
+                stateRoot,
+                accountRoot,
+                domain,
+                txs
+            );
+    }
+
+    function checkSignatureMassMigration(
+        uint256[2] memory signature,
+        Types.SignatureProof memory proof,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 domain,
+        uint256 spokeID,
+        bytes memory txs
+    ) public view returns (Types.Result) {
+        return
+            Authenticity.verifyMassMigration(
+                signature,
+                proof,
+                stateRoot,
+                accountRoot,
+                domain,
+                spokeID,
+                txs
+            );
+    }
+
+    function checkSignatureCreate2Transfer(
+        uint256[2] memory signature,
+        Types.SignatureProofWithReceiver memory proof,
+        bytes32 stateRoot,
+        bytes32 accountRoot,
+        bytes32 domain,
+        bytes memory txs
+    ) public view returns (Types.Result) {
+        return
+            Authenticity.verifyCreate2Transfer(
+                signature,
+                proof,
+                stateRoot,
+                accountRoot,
+                domain,
+                txs
             );
     }
 
