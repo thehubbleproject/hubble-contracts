@@ -30,7 +30,7 @@ library Authenticity {
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
-                "Rollup: state inclusion signer"
+                "Authenticity: state inclusion signer"
             );
 
             // check pubkey inclusion
@@ -41,16 +41,15 @@ library Authenticity {
                     proof.states[i].pubkeyIndex,
                     proof.pubkeyWitnesses[i]
                 ),
-                "Rollup: account does not exists"
+                "Authenticity: account does not exists"
             );
 
             // construct the message
-            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
             bytes memory txMsg = Tx.transferMessageOf(
                 _tx,
                 proof.states[i].nonce - 1
             );
-            // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
@@ -80,7 +79,7 @@ library Authenticity {
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
-                "Rollup: state inclusion signer"
+                "Authenticity: state inclusion signer"
             );
 
             // check pubkey inclusion
@@ -91,17 +90,16 @@ library Authenticity {
                     proof.states[i].pubkeyIndex,
                     proof.pubkeyWitnesses[i]
                 ),
-                "Rollup: account does not exists"
+                "Authenticity: account does not exists"
             );
 
             // construct the message
-            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
             bytes memory txMsg = Tx.massMigrationMessageOf(
                 _tx,
                 proof.states[i].nonce - 1,
                 spokeID
             );
-            // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
@@ -131,7 +129,7 @@ library Authenticity {
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
-                "Rollup: state inclusion signer"
+                "Authenticity: state inclusion signer"
             );
 
             // check pubkey inclusion
@@ -142,10 +140,10 @@ library Authenticity {
                     proof.states[i].pubkeyIndex,
                     proof.pubkeyWitnessesSender[i]
                 ),
-                "Rollup: from account does not exists"
+                "Authenticity: from account does not exists"
             );
 
-            // check receiver pubkye inclusion at committed accID
+            // check receiver pubkey inclusion at committed accID
             require(
                 MerkleTree.verify(
                     accountRoot,
@@ -153,11 +151,11 @@ library Authenticity {
                     _tx.toAccID,
                     proof.pubkeyWitnessesReceiver[i]
                 ),
-                "Rollup: to account does not exists"
+                "Authenticity: to account does not exists"
             );
 
             // construct the message
-            require(proof.states[i].nonce > 0, "Rollup: zero nonce");
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
             bytes memory txMsg = Tx.create2TransferMessageOf(
                 _tx,
@@ -166,7 +164,6 @@ library Authenticity {
                 proof.pubkeysReceiver[i]
             );
 
-            // make the message
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
 
