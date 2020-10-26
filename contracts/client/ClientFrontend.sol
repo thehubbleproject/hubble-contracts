@@ -246,4 +246,20 @@ contract ClientFrontend {
         );
         return (sender.encode(), newReceiver, Types.Result.Ok);
     }
+
+    function encode(Types.UserState calldata state)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Types.encode(state);
+    }
+
+    function decodeState(bytes calldata stateBytes)
+        external
+        pure
+        returns (Types.UserState memory state)
+    {
+        return Types.decodeState(stateBytes);
+    }
 }
