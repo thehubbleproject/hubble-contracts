@@ -110,4 +110,8 @@ contract TestTx {
     ) public pure returns (bytes memory) {
         return Tx.massMigrationMessageOf(_tx, nonce, spokeID);
     }
+
+    function testEncodeDecimal(uint256 amount) external pure returns (uint256) {
+        return Tx.encodeDecimal(amount);
+    }
 }
