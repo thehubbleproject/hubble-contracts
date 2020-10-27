@@ -279,7 +279,6 @@ contract ClientFrontend {
             offchainTx.amount,
             offchainTx.fee
         );
-        // TODO convert to Tx.Tranfer post decode
         return Transition.processTransfer(stateRoot, _tx, tokenType, from, to);
     }
 
@@ -297,7 +296,6 @@ contract ClientFrontend {
             Types.Result result
         )
     {
-        // TODO convert to Tx.MassMigration
         Offchain.MassMigration memory offchainTx = Offchain.decodeMassMigration(
             encodedTx
         );
