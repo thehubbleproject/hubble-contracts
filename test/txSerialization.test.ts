@@ -11,6 +11,8 @@ import { assert } from "chai";
 import { ethers } from "@nomiclabs/buidler";
 import { COMMIT_SIZE } from "../ts/constants";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
+import { USDT } from "../ts/decimal";
+import { BigNumber } from "ethers";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -137,6 +139,28 @@ describe("Tx Serialization", async () => {
                 txs[i].message(),
                 "message should be the same"
             );
+        }
+    });
+    it("encodeDecimal", async function() {
+        const edgeCases = [
+            "4095000000",
+            "4095",
+            "409500000000",
+            "0",
+            "4095000000000000000"
+        ];
+        const fuzzCases = [];
+        for (let i = 0; i < 100; i++) {
+            fuzzCases.push(USDT.randInt().toString());
+        }
+        for (const caseN of edgeCases.concat(fuzzCases)) {
+            const expect = BigNumber.from(USDT.encodeInt(caseN)).toString();
+            try {
+                const actual = await c.testEncodeDecimal(caseN);
+                assert.equal(actual.toString(), expect);
+            } catch (error) {
+                assert.fail(`Fail to encode ${caseN}, reason: ${error}`);
+            }
         }
     });
 });

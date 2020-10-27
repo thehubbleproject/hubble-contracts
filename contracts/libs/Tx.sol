@@ -173,7 +173,7 @@ library Tx {
                 break;
             }
         }
-        require(x < 0x0fff, "Bad input");
+        require(x <= 0x0fff, "Bad input");
         return (exponent << 12) + x;
     }
 
