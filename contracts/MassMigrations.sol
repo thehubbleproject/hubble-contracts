@@ -85,7 +85,7 @@ contract MassMigration {
 
         for (uint256 i = 0; i < length; i++) {
             _tx = commitmentBody.txs.massMigrationDecode(i);
-            (stateRoot, freshState, result) = processMassMigrationTx(
+            (stateRoot, freshState, result) = Transition.processMassMigration(
                 stateRoot,
                 _tx,
                 commitmentBody.tokenID,
@@ -114,37 +114,5 @@ contract MassMigration {
             return (stateRoot, Types.Result.BadWithdrawRoot);
 
         return (stateRoot, result);
-    }
-
-    function processMassMigrationTx(
-        bytes32 stateRoot,
-        Tx.MassMigration memory _tx,
-        uint256 tokenType,
-        Types.StateMerkleProof memory from
-    )
-        internal
-        pure
-        returns (
-            bytes32 newRoot,
-            bytes memory freshState,
-            Types.Result result
-        )
-    {
-        (newRoot, result) = Transition.processSender(
-            stateRoot,
-            _tx.fromIndex,
-            tokenType,
-            _tx.amount,
-            _tx.fee,
-            from
-        );
-        if (result != Types.Result.Ok) return (newRoot, "", result);
-        freshState = Transition.createState(
-            from.state.pubkeyIndex,
-            tokenType,
-            _tx.amount
-        );
-
-        return (newRoot, freshState, Types.Result.Ok);
     }
 }

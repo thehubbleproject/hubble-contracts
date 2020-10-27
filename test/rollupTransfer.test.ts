@@ -124,7 +124,10 @@ describe("Rollup Transfer Commitment", () => {
             const [senderProof, receiverProof] = proofs;
             assert.isTrue(safe);
             const postRoot = stateTree.root;
-            const { 0: processedRoot, 1: result } = await rollup.testProcessTx(
+            const {
+                0: processedRoot,
+                1: result
+            } = await rollup.testProcessTransfer(
                 preRoot,
                 tx,
                 states[0].tokenType,

@@ -247,6 +247,50 @@ contract ClientFrontend {
         return (sender.encode(), newReceiver, Types.Result.Ok);
     }
 
+    function processTransfer(
+        bytes32 stateRoot,
+        Tx.Transfer memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory from,
+        Types.StateMerkleProof memory to
+    ) public pure returns (bytes32 newRoot, Types.Result result) {
+        return Transition.processTransfer(stateRoot, _tx, tokenType, from, to);
+    }
+
+    function processMassMigration(
+        bytes32 stateRoot,
+        Tx.MassMigration memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory from
+    )
+        public
+        pure
+        returns (
+            bytes32 newRoot,
+            bytes memory freshState,
+            Types.Result result
+        )
+    {
+        return Transition.processMassMigration(stateRoot, _tx, tokenType, from);
+    }
+
+    function processCreate2Transfer(
+        bytes32 stateRoot,
+        Tx.Create2Transfer memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory from,
+        Types.StateMerkleProof memory to
+    ) public pure returns (bytes32 newRoot, Types.Result result) {
+        return
+            Transition.processCreate2Transfer(
+                stateRoot,
+                _tx,
+                tokenType,
+                from,
+                to
+            );
+    }
+
     function encode(Types.UserState calldata state)
         external
         pure

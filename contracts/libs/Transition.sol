@@ -4,10 +4,117 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "./Types.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
+import { Tx } from "./Tx.sol";
 
 library Transition {
     using SafeMath for uint256;
     using Types for Types.UserState;
+
+    function processTransfer(
+        bytes32 stateRoot,
+        Tx.Transfer memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory from,
+        Types.StateMerkleProof memory to
+    ) internal pure returns (bytes32 newRoot, Types.Result result) {
+        (newRoot, result) = processSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
+            _tx.amount,
+            _tx.fee,
+            from
+        );
+        if (result != Types.Result.Ok) return (newRoot, result);
+        (newRoot, result) = processReceiver(
+            newRoot,
+            _tx.toIndex,
+            tokenType,
+            _tx.amount,
+            to
+        );
+        return (newRoot, result);
+    }
+
+    function processMassMigration(
+        bytes32 stateRoot,
+        Tx.MassMigration memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory from
+    )
+        internal
+        pure
+        returns (
+            bytes32 newRoot,
+            bytes memory freshState,
+            Types.Result result
+        )
+    {
+        (newRoot, result) = processSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
+            _tx.amount,
+            _tx.fee,
+            from
+        );
+        if (result != Types.Result.Ok) return (newRoot, "", result);
+        freshState = createState(from.state.pubkeyIndex, tokenType, _tx.amount);
+
+        return (newRoot, freshState, Types.Result.Ok);
+    }
+
+    function processCreate2Transfer(
+        bytes32 stateRoot,
+        Tx.Create2Transfer memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory from,
+        Types.StateMerkleProof memory to
+    ) internal pure returns (bytes32 newRoot, Types.Result result) {
+        (newRoot, result) = processSender(
+            stateRoot,
+            _tx.fromIndex,
+            tokenType,
+            _tx.amount,
+            _tx.fee,
+            from
+        );
+        if (result != Types.Result.Ok) return (newRoot, result);
+        (, newRoot) = processCreate2TransferReceiver(
+            newRoot,
+            _tx,
+            from.state.tokenType,
+            to
+        );
+
+        return (newRoot, Types.Result.Ok);
+    }
+
+    function processCreate2TransferReceiver(
+        bytes32 stateRoot,
+        Tx.Create2Transfer memory _tx,
+        uint256 tokenType,
+        Types.StateMerkleProof memory proof
+    ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
+        // Validate we are creating on a zero state
+        require(
+            MerkleTree.verify(
+                stateRoot,
+                keccak256(abi.encode(0)),
+                _tx.toIndex,
+                proof.witness
+            ),
+            "Create2Transfer: receiver proof invalid"
+        );
+        encodedState = createState(_tx.toAccID, tokenType, _tx.amount);
+
+        newRoot = MerkleTree.computeRoot(
+            keccak256(encodedState),
+            _tx.toIndex,
+            proof.witness
+        );
+        return (encodedState, newRoot);
+    }
 
     function processSender(
         bytes32 stateRoot,

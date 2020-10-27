@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import { Create2Transfer } from "../Create2Transfer.sol";
 import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
+import { Transition } from "../libs/Transition.sol";
 
 contract TestCreate2Transfer is Create2Transfer {
     function _checkSignature(
@@ -26,14 +27,21 @@ contract TestCreate2Transfer is Create2Transfer {
         return (operationCost - gasleft(), err);
     }
 
-    function testProcessTx(
+    function testProcessCreate2Transfer(
         bytes32 _balanceRoot,
         Tx.Create2Transfer memory _tx,
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32, Types.Result) {
-        return processTx(_balanceRoot, _tx, tokenType, from, to);
+        return
+            Transition.processCreate2Transfer(
+                _balanceRoot,
+                _tx,
+                tokenType,
+                from,
+                to
+            );
     }
 
     function testProcessCreate2TransferCommit(
