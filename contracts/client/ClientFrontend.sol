@@ -45,7 +45,9 @@ contract ClientFrontend {
     {
         Tx.Transfer[] memory txTxs = new Tx.Transfer[](encodedTxs.length);
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTxs[i]);
+            Offchain.Transfer memory _tx = Offchain.decodeTransfer(
+                encodedTxs[i]
+            );
             txTxs[i] = Tx.Transfer(
                 _tx.fromIndex,
                 _tx.toIndex,
@@ -61,14 +63,14 @@ contract ClientFrontend {
         pure
         returns (bytes memory)
     {
-        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](encodedTxs.length);
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](
+            encodedTxs.length
+        );
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(encodedTxs[i]);
-            txTxs[i] = Tx.MassMigration(
-                _tx.fromIndex,
-                _tx.amount,
-                _tx.fee
+            Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+                encodedTxs[i]
             );
+            txTxs[i] = Tx.MassMigration(_tx.fromIndex, _tx.amount, _tx.fee);
         }
         return Tx.serialize(txTxs);
     }
@@ -82,7 +84,8 @@ contract ClientFrontend {
             encodedTxs.length
         );
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(encodedTxs[i]);
+            Offchain.Create2Transfer memory _tx = Offchain
+                .decodeCreate2Transfer(encodedTxs[i]);
             txTxs[i] = Tx.Create2Transfer(
                 _tx.fromIndex,
                 _tx.toIndex,

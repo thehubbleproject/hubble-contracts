@@ -27,7 +27,7 @@ describe("Client Frontend", async function() {
         const txsEncoded = [];
         for (let i = 0; i < 100; i++) {
             const tx = TxTransfer.rand();
-            const encodedTx = tx.encodeOffchain()
+            const encodedTx = tx.encodeOffchain();
             const _tx = await contract.decodeTransfer(encodedTx);
             assert.equal(_tx.fromIndex.toNumber(), tx.fromIndex);
             assert.equal(_tx.toIndex.toNumber(), tx.toIndex);
@@ -47,7 +47,7 @@ describe("Client Frontend", async function() {
         const txsEncoded = [];
         for (let i = 0; i < 100; i++) {
             const tx = TxMassMigration.rand();
-            const encodedTx = tx.encodeOffchain()
+            const encodedTx = tx.encodeOffchain();
             const _tx = await contract.decodeMassMigration(tx.encodeOffchain());
             assert.equal(_tx.fromIndex.toNumber(), tx.fromIndex);
             assert.equal(_tx.amount.toString(), tx.amount.toString());
@@ -67,10 +67,8 @@ describe("Client Frontend", async function() {
         const txsEncoded = [];
         for (let i = 0; i < 100; i++) {
             const tx = TxCreate2Transfer.rand();
-            const encodedTx = tx.encodeOffchain()
-            const _tx = await contract.decodeCreate2Transfer(
-                encodedTx
-            );
+            const encodedTx = tx.encodeOffchain();
+            const _tx = await contract.decodeCreate2Transfer(encodedTx);
             assert.equal(_tx.fromIndex.toNumber(), tx.fromIndex);
             assert.equal(_tx.toIndex.toNumber(), tx.toIndex);
             assert.equal(_tx.toAccID.toNumber(), tx.toAccID);
