@@ -38,54 +38,57 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
-    function compressTransfer(Offchain.Transfer[] calldata txs)
+    function compressTransfer(bytes[] calldata encodedTxs)
         external
         pure
         returns (bytes memory)
     {
-        Tx.Transfer[] memory txTxs = new Tx.Transfer[](txs.length);
-        for (uint256 i = 0; i < txs.length; i++) {
+        Tx.Transfer[] memory txTxs = new Tx.Transfer[](encodedTxs.length);
+        for (uint256 i = 0; i < txTxs.length; i++) {
+            Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTxs[i]);
             txTxs[i] = Tx.Transfer(
-                txs[i].fromIndex,
-                txs[i].toIndex,
-                txs[i].amount,
-                txs[i].fee
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                _tx.fee
             );
         }
         return Tx.serialize(txTxs);
     }
 
-    function compressMassMigration(Offchain.MassMigration[] calldata txs)
+    function compressMassMigration(bytes[] calldata encodedTxs)
         external
         pure
         returns (bytes memory)
     {
-        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](txs.length);
-        for (uint256 i = 0; i < txs.length; i++) {
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](encodedTxs.length);
+        for (uint256 i = 0; i < txTxs.length; i++) {
+            Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(encodedTxs[i]);
             txTxs[i] = Tx.MassMigration(
-                txs[i].fromIndex,
-                txs[i].amount,
-                txs[i].fee
+                _tx.fromIndex,
+                _tx.amount,
+                _tx.fee
             );
         }
         return Tx.serialize(txTxs);
     }
 
-    function compressCreate2Transfer(Offchain.Create2Transfer[] calldata txs)
+    function compressCreate2Transfer(bytes[] calldata encodedTxs)
         external
         pure
         returns (bytes memory)
     {
         Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](
-            txs.length
+            encodedTxs.length
         );
-        for (uint256 i = 0; i < txs.length; i++) {
+        for (uint256 i = 0; i < txTxs.length; i++) {
+            Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(encodedTxs[i]);
             txTxs[i] = Tx.Create2Transfer(
-                txs[i].fromIndex,
-                txs[i].toIndex,
-                txs[i].toAccID,
-                txs[i].amount,
-                txs[i].fee
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.toAccID,
+                _tx.amount,
+                _tx.fee
             );
         }
         return Tx.serialize(txTxs);
