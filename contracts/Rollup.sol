@@ -270,9 +270,8 @@ contract Rollup is RollupHelpers {
             )
         });
         batches.push(newBatch);
-        uint256 batchID = batches.length - 1;
-        stake(batchID);
-        logger.logNewBatch(msg.sender, batchID, batchType);
+        stake(batches.length - 1);
+        logger.logNewBatch(msg.sender, batches.length - 1, batchType);
     }
 
     /**
