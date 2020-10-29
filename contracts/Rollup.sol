@@ -287,6 +287,10 @@ contract Rollup is RollupHelpers {
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
         for (uint256 i = 0; i < stateRoots.length; i++) {
+            require(
+                !txss[i].transferHasExcessData(),
+                "Rollup: transfer has excess data"
+            );
             // This is TransferBody toHash() but we don't want the overhead of struct
             bodyRoot = keccak256(
                 abi.encodePacked(
@@ -318,6 +322,10 @@ contract Rollup is RollupHelpers {
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
         for (uint256 i = 0; i < stateRoots.length; i++) {
+            require(
+                !txss[i].create2TransferHasExcessData(),
+                "Rollup: Create2Transfer has excess data"
+            );
             // This is TransferBody toHash() but we don't want the overhead of struct
             bodyRoot = keccak256(
                 abi.encodePacked(
@@ -350,6 +358,10 @@ contract Rollup is RollupHelpers {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         for (uint256 i = 0; i < stateRoots.length; i++) {
+            require(
+                !txss[i].massMigrationHasExcessData(),
+                "Rollup: MassMigration has excess data"
+            );
             Types.MassMigrationBody memory body = Types.MassMigrationBody(
                 accountRoot,
                 signatures[i],
