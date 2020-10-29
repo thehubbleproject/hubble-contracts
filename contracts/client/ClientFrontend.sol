@@ -38,65 +38,100 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
+<<<<<<< HEAD
+    function encodeTransfer(Offchain.Transfer calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeTransfer(_tx);
+    }
+
+    function encodeMassMigration(Offchain.MassMigration calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeMassMigration(_tx);
+    }
+
+    function encodeCreate2Transfer(Offchain.Create2Transfer calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeCreate2Transfer(_tx);
+    }
+
     function compressTransfer(Offchain.Transfer[] calldata txs)
+=======
+    function compressTransfer(bytes[] calldata encodedTxs)
+>>>>>>> 88b98b7d96e1dc2d2c3e2820b661f92de71215d5
         external
         pure
         returns (bytes memory)
     {
-        Tx.Transfer[] memory txTxs = new Tx.Transfer[](txs.length);
-        for (uint256 i = 0; i < txs.length; i++) {
+        Tx.Transfer[] memory txTxs = new Tx.Transfer[](encodedTxs.length);
+        for (uint256 i = 0; i < txTxs.length; i++) {
+            Offchain.Transfer memory _tx = Offchain.decodeTransfer(
+                encodedTxs[i]
+            );
             txTxs[i] = Tx.Transfer(
-                txs[i].fromIndex,
-                txs[i].toIndex,
-                txs[i].amount,
-                txs[i].fee
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                _tx.fee
             );
         }
         return Tx.serialize(txTxs);
     }
 
-    function compressMassMigration(Offchain.MassMigration[] calldata txs)
+    function compressMassMigration(bytes[] calldata encodedTxs)
         external
         pure
         returns (bytes memory)
     {
-        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](txs.length);
-        for (uint256 i = 0; i < txs.length; i++) {
-            txTxs[i] = Tx.MassMigration(
-                txs[i].fromIndex,
-                txs[i].amount,
-                txs[i].fee
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](
+            encodedTxs.length
+        );
+        for (uint256 i = 0; i < txTxs.length; i++) {
+            Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+                encodedTxs[i]
             );
+            txTxs[i] = Tx.MassMigration(_tx.fromIndex, _tx.amount, _tx.fee);
         }
         return Tx.serialize(txTxs);
     }
 
-    function compressCreate2Transfer(Offchain.Create2Transfer[] calldata txs)
+    function compressCreate2Transfer(bytes[] calldata encodedTxs)
         external
         pure
         returns (bytes memory)
     {
         Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](
-            txs.length
+            encodedTxs.length
         );
-        for (uint256 i = 0; i < txs.length; i++) {
+        for (uint256 i = 0; i < txTxs.length; i++) {
+            Offchain.Create2Transfer memory _tx = Offchain
+                .decodeCreate2Transfer(encodedTxs[i]);
             txTxs[i] = Tx.Create2Transfer(
-                txs[i].fromIndex,
-                txs[i].toIndex,
-                txs[i].toAccID,
-                txs[i].amount,
-                txs[i].fee
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.toAccID,
+                _tx.amount,
+                _tx.fee
             );
         }
         return Tx.serialize(txTxs);
     }
 
     function valiateTransfer(
-        Offchain.Transfer calldata _tx,
+        bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
         bytes32 domain
     ) external view {
+        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
         Tx.Transfer memory txTx = Tx.Transfer(
@@ -111,11 +146,14 @@ contract ClientFrontend {
     }
 
     function valiateMassMigration(
-        Offchain.MassMigration calldata _tx,
+        bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
         bytes32 domain
     ) external view {
+        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+            encodedTx
+        );
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
         Tx.MassMigration memory txTx = Tx.MassMigration(
@@ -133,12 +171,15 @@ contract ClientFrontend {
     }
 
     function valiateCreate2Transfer(
-        Offchain.Create2Transfer calldata _tx,
+        bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata fromPubkey,
         uint256[4] calldata toPubkey,
         bytes32 domain
     ) external view {
+        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
+            encodedTx
+        );
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
         Tx.Create2Transfer memory txTx = Tx.Create2Transfer(
@@ -164,7 +205,7 @@ contract ClientFrontend {
     function validateAndApplyTransfer(
         bytes calldata senderEncoded,
         bytes calldata receiverEncoded,
-        Offchain.Transfer calldata _tx
+        bytes calldata encodedTx
     )
         external
         pure
@@ -174,6 +215,7 @@ contract ClientFrontend {
             Types.Result result
         )
     {
+        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         Types.UserState memory receiver = Types.decodeState(receiverEncoded);
         uint256 tokenType = sender.tokenType;
@@ -194,7 +236,7 @@ contract ClientFrontend {
 
     function validateAndApplyMassMigration(
         bytes calldata senderEncoded,
-        Offchain.MassMigration calldata _tx
+        bytes calldata encodedTx
     )
         external
         pure
@@ -204,6 +246,9 @@ contract ClientFrontend {
             Types.Result result
         )
     {
+        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+            encodedTx
+        );
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         (sender, result) = Transition.validateAndApplySender(
             sender.tokenType,
@@ -222,7 +267,7 @@ contract ClientFrontend {
 
     function validateAndApplyCreate2Transfer(
         bytes calldata senderEncoded,
-        Offchain.Create2Transfer calldata _tx
+        bytes calldata encodedTx
     )
         external
         pure
@@ -232,6 +277,10 @@ contract ClientFrontend {
             Types.Result result
         )
     {
+        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
+            encodedTx
+        );
+
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         (sender, result) = Transition.validateAndApplySender(
             sender.tokenType,
@@ -250,17 +299,26 @@ contract ClientFrontend {
 
     function processTransfer(
         bytes32 stateRoot,
-        Tx.Transfer memory _tx,
+        bytes memory encodedTx,
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32 newRoot, Types.Result result) {
+        Offchain.Transfer memory offchainTx = Offchain.decodeTransfer(
+            encodedTx
+        );
+        Tx.Transfer memory _tx = Tx.Transfer(
+            offchainTx.fromIndex,
+            offchainTx.toIndex,
+            offchainTx.amount,
+            offchainTx.fee
+        );
         return Transition.processTransfer(stateRoot, _tx, tokenType, from, to);
     }
 
     function processMassMigration(
         bytes32 stateRoot,
-        Tx.MassMigration memory _tx,
+        bytes memory encodedTx,
         uint256 tokenType,
         Types.StateMerkleProof memory from
     )
@@ -272,16 +330,34 @@ contract ClientFrontend {
             Types.Result result
         )
     {
+        Offchain.MassMigration memory offchainTx = Offchain.decodeMassMigration(
+            encodedTx
+        );
+        Tx.MassMigration memory _tx = Tx.MassMigration(
+            offchainTx.fromIndex,
+            offchainTx.amount,
+            offchainTx.fee
+        );
         return Transition.processMassMigration(stateRoot, _tx, tokenType, from);
     }
 
     function processCreate2Transfer(
         bytes32 stateRoot,
-        Tx.Create2Transfer memory _tx,
+        bytes memory encodedTx,
         uint256 tokenType,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32 newRoot, Types.Result result) {
+        Offchain.Create2Transfer memory offchainTx = Offchain
+            .decodeCreate2Transfer(encodedTx);
+        Tx.Create2Transfer memory _tx = Tx.Create2Transfer(
+            offchainTx.fromIndex,
+            offchainTx.toIndex,
+            offchainTx.toAccID,
+            offchainTx.amount,
+            offchainTx.fee
+        );
+
         return
             Transition.processCreate2Transfer(
                 stateRoot,
