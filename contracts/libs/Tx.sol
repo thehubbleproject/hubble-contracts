@@ -322,6 +322,14 @@ library Tx {
         return MassMigration(sender, amount, fee);
     }
 
+    function massMigrationHasExcessData(bytes memory txs)
+        internal
+        pure
+        returns (bool)
+    {
+        return txs.length % TX_LEN_5 != 0;
+    }
+
     function massMigrationSize(bytes memory txs)
         internal
         pure
