@@ -38,8 +38,6 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
     function encodeTransfer(Offchain.Transfer calldata _tx)
         external
         pure
@@ -64,13 +62,7 @@ contract ClientFrontend {
         return Offchain.encodeCreate2Transfer(_tx);
     }
 
-    function compressTransfer(Offchain.Transfer[] calldata txs)
-=======
     function compressTransfer(bytes[] calldata encodedTxs)
->>>>>>> 88b98b7d96e1dc2d2c3e2820b661f92de71215d5
-=======
-    function compressTransfer(bytes[] calldata encodedTxs)
->>>>>>> 88b98b7d96e1dc2d2c3e2820b661f92de71215d5
         external
         pure
         returns (bytes memory)

@@ -31,6 +31,22 @@ library Offchain {
         );
     }
 
+    function encodeTransfer(Transfer memory _tx)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                _tx.txType,
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.amount,
+                _tx.fee,
+                _tx.nonce
+            );
+    }
+
     struct MassMigration {
         uint256 txType;
         uint256 fromIndex;
@@ -56,6 +72,22 @@ library Offchain {
             encodedTx,
             (uint256, uint256, uint256, uint256, uint256, uint256)
         );
+    }
+
+    function encodeMassMigration(MassMigration memory _tx)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                _tx.txType,
+                _tx.fromIndex,
+                _tx.amount,
+                _tx.fee,
+                _tx.spokeID,
+                _tx.nonce
+            );
     }
 
     struct Create2Transfer {
@@ -85,5 +117,22 @@ library Offchain {
             encodedTx,
             (uint256, uint256, uint256, uint256, uint256, uint256, uint256)
         );
+    }
+
+    function encodeCreate2Transfer(Create2Transfer memory _tx)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                _tx.txType,
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.toAccID,
+                _tx.amount,
+                _tx.fee,
+                _tx.nonce
+            );
     }
 }
