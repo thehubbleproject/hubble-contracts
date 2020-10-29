@@ -251,12 +251,7 @@ contract Rollup is RollupHelpers {
             )
         });
         batches.push(newBatch);
-        logger.logNewBatch(
-            msg.sender,
-            genesisStateRoot,
-            batches.length - 1,
-            Types.Usage.Genesis
-        );
+        logger.logNewBatch(msg.sender, batches.length - 1, Types.Usage.Genesis);
         appID = keccak256(abi.encodePacked(address(this)));
     }
 
@@ -275,7 +270,9 @@ contract Rollup is RollupHelpers {
             )
         });
         batches.push(newBatch);
-        stake(batches.length - 1);
+        uint256 batchID = batches.length - 1;
+        stake(batchID);
+        logger.logNewBatch(msg.sender, batchID, batchType);
     }
 
     /**
