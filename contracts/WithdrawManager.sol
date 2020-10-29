@@ -9,6 +9,7 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Vault } from "./Vault.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
+import { Bitmap } from "./libs/Bitmap.sol";
 
 contract WithdrawManager {
     using Tx for bytes;
@@ -39,24 +40,6 @@ contract WithdrawManager {
                 )
             )
         );
-    }
-
-    function isClaimed(bytes32 withdrawRoot, uint256 pubkeyIndex)
-        public
-        view
-        returns (bool)
-    {
-        uint256 wordIndex = pubkeyIndex / 256;
-        uint256 bitIndex = pubkeyIndex % 256;
-        uint256 word = bitmap[withdrawRoot][wordIndex];
-        uint256 mask = (1 << bitIndex);
-        return word & mask == mask;
-    }
-
-    function setClaimed(bytes32 withdrawRoot, uint256 pubkeyIndex) private {
-        uint256 wordIndex = pubkeyIndex / 256;
-        uint256 bitIndex = pubkeyIndex % 256;
-        bitmap[withdrawRoot][wordIndex] |= (1 << bitIndex);
     }
 
     function processWithdrawCommitment(
@@ -104,7 +87,10 @@ contract WithdrawManager {
             "WithdrawManager: state should be in the withdrawRoot"
         );
         require(
-            !isClaimed(withdrawRoot, withdrawal.state.pubkeyIndex),
+            !Bitmap.isClaimed(
+                withdrawal.state.pubkeyIndex,
+                bitmap[withdrawRoot]
+            ),
             "WithdrawManager: Token has been claimed"
         );
         require(
@@ -128,7 +114,7 @@ contract WithdrawManager {
         IERC20 tokenContract = IERC20(
             tokenRegistry.safeGetAddress(withdrawal.state.tokenType)
         );
-        setClaimed(withdrawRoot, withdrawal.state.pubkeyIndex);
+        Bitmap.setClaimed(withdrawal.state.pubkeyIndex, bitmap[withdrawRoot]);
         // transfer tokens from vault
         require(
             tokenContract.transfer(msg.sender, withdrawal.state.balance),

@@ -1,12 +1,14 @@
 pragma solidity ^0.5.15;
 import { Bitmap } from "../libs/Bitmap.sol";
 
-contract TestBitmap is Bitmap {
+contract TestBitmap {
+    mapping(uint256 => uint256) private bitmap;
+
     function testIsClaimed(uint256 index) public view returns (bool) {
-        return isClaimed(index);
+        return Bitmap.isClaimed(index, bitmap);
     }
 
     function testSetClaimed(uint256 index) public {
-        setClaimed(index);
+        Bitmap.setClaimed(index, bitmap);
     }
 }

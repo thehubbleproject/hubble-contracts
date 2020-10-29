@@ -10,7 +10,7 @@ import { Types } from "./libs/Types.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
 import { SpokeRegistry } from "./SpokeRegistry.sol";
 
-contract Vault is Bitmap {
+contract Vault {
     using Types for Types.MassMigrationCommitment;
     using Types for Types.Batch;
 
@@ -18,6 +18,8 @@ contract Vault is Bitmap {
     Registry public nameRegistry;
     SpokeRegistry public spokes;
     ITokenRegistry public tokenRegistry;
+
+    mapping(uint256 => uint256) private bitmap;
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
@@ -39,7 +41,7 @@ contract Vault is Bitmap {
     }
 
     function isBatchApproved(uint256 batchID) public view returns (bool) {
-        return isClaimed(batchID);
+        return Bitmap.isClaimed(batchID, bitmap);
     }
 
     function requestApproval(
@@ -70,7 +72,7 @@ contract Vault is Bitmap {
         IERC20 tokenContract = IERC20(
             tokenRegistry.safeGetAddress(commitmentMP.commitment.body.tokenID)
         );
-        setClaimed(batchID);
+        Bitmap.setClaimed(batchID, bitmap);
         require(
             tokenContract.approve(
                 msg.sender,
