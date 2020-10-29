@@ -23,9 +23,6 @@ contract WithdrawManager {
     ITokenRegistry public tokenRegistry;
     bytes32 public appID;
 
-    /*********************
-     * Constructor *
-     ********************/
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
         tokenRegistry = ITokenRegistry(

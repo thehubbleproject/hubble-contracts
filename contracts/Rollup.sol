@@ -24,21 +24,16 @@ contract RollupSetup {
     using Types for Types.TransferCommitment;
     using Types for Types.MassMigrationCommitment;
 
-    /*********************
-     * Variable Declarations *
-     ********************/
-
     // External contracts
     DepositManager public depositManager;
     BLSAccountRegistry public accountRegistry;
     Logger public logger;
     Registry public nameRegistry;
-    Types.Batch[] public batches;
-
+    Governance public governance;
     Transfer public transfer;
     MassMigration public massMigration;
 
-    Governance public governance;
+    Types.Batch[] public batches;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
@@ -217,9 +212,6 @@ contract Rollup is RollupHelpers {
 
     bytes32 public appID;
 
-    /*********************
-     * Constructor *
-     ********************/
     constructor(address _registryAddr, bytes32 genesisStateRoot) public {
         nameRegistry = Registry(_registryAddr);
 
