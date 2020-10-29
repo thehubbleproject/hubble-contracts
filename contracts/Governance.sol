@@ -27,10 +27,10 @@ contract Governance {
         return govMinGasLeft;
     }
 
-    uint256 public govMaxTxsPerBatch = 32;
+    uint256 public govMaxTxsPerCommit = 32;
 
-    function maxTxsPerBatch() public view returns (uint256) {
-        return govMaxTxsPerBatch;
+    function maxTxsPerCommit() public view returns (uint256) {
+        return govMaxTxsPerCommit;
     }
 
     uint256 public govStakeAmount = 0.1 ether;

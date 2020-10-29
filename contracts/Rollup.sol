@@ -211,6 +211,7 @@ contract Rollup is RollupHelpers {
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     bytes32 public appID;
+    uint256 public govMaxTxsPerCommit = 0;
 
     constructor(address _registryAddr, bytes32 genesisStateRoot) public {
         nameRegistry = Registry(_registryAddr);
@@ -237,6 +238,8 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
+        govMaxTxsPerCommit = governance.maxTxsPerCommit();
+
         // Same effect as `MerkleTree.merklise`
         bytes32 commitmentRoot = keccak256(
             abi.encode(genesisCommitment, ZERO_BYTES32)
@@ -291,6 +294,10 @@ contract Rollup is RollupHelpers {
                 !txss[i].transferHasExcessData(),
                 "Rollup: transfer has excess data"
             );
+            require(
+                txss[i].transferSize() <= govMaxTxsPerCommit,
+                "Rollup: commit too many transfer"
+            );
             // This is TransferBody toHash() but we don't want the overhead of struct
             bodyRoot = keccak256(
                 abi.encodePacked(
@@ -325,6 +332,10 @@ contract Rollup is RollupHelpers {
             require(
                 !txss[i].create2TransferHasExcessData(),
                 "Rollup: Create2Transfer has excess data"
+            );
+            require(
+                txss[i].massMigrationSize() <= govMaxTxsPerCommit,
+                "Rollup: commit too many Create2Transfer"
             );
             // This is TransferBody toHash() but we don't want the overhead of struct
             bodyRoot = keccak256(
@@ -361,6 +372,10 @@ contract Rollup is RollupHelpers {
             require(
                 !txss[i].massMigrationHasExcessData(),
                 "Rollup: MassMigration has excess data"
+            );
+            require(
+                txss[i].massMigrationSize() <= govMaxTxsPerCommit,
+                "Rollup: commit too many MassMigration"
             );
             Types.MassMigrationBody memory body = Types.MassMigrationBody(
                 accountRoot,
