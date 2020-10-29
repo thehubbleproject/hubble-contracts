@@ -3,20 +3,14 @@ pragma solidity ^0.5.15;
 import { Types } from "./libs/Types.sol";
 
 contract Logger {
-    event NewBatch(
-        address committer,
-        bytes32 updatedRoot,
-        uint256 index,
-        Types.Usage batchType
-    );
+    event NewBatch(address committer, uint256 index, Types.Usage batchType);
 
     function logNewBatch(
         address committer,
-        bytes32 updatedRoot,
         uint256 index,
         Types.Usage batchType
     ) public {
-        emit NewBatch(committer, updatedRoot, index, batchType);
+        emit NewBatch(committer, index, batchType);
     }
 
     event StakeWithdraw(address committed, uint256 batchID);
