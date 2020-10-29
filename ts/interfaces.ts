@@ -14,13 +14,10 @@ export enum Usage {
 
 export enum Result {
     Ok,
-    InvalidTokenAddress,
     InvalidTokenAmount,
     NotEnoughTokenBalance,
     BadFromTokenType,
     BadToTokenType,
-    BadFromIndex,
-    NotOnDesignatedStateLeaf,
     BadSignature,
     MismatchedAmount,
     BadWithdrawRoot
