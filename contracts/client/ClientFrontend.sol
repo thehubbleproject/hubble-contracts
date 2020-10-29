@@ -121,6 +121,45 @@ contract ClientFrontend {
         return Tx.serialize(txTxs);
     }
 
+    function decompressTransfer(bytes calldata txs)
+        external
+        pure
+        returns (Tx.Transfer[] memory txTxs)
+    {
+        uint256 size = txs.transferSize();
+        Tx.Transfer[] memory txTxs = new Tx.Transfer[](size);
+        for (uint256 i = 0; i < size; i++) {
+            txTxs[i] = txs.transferDecode(i);
+        }
+        return txTxs;
+    }
+
+    function decompressMassMigration(bytes calldata txs)
+        external
+        pure
+        returns (Tx.MassMigration[] memory txTxs)
+    {
+        uint256 size = txs.massMigrationSize();
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](size);
+        for (uint256 i = 0; i < size; i++) {
+            txTxs[i] = txs.massMigrationDecode(i);
+        }
+        return txTxs;
+    }
+
+    function decompressCreate2Transfer(bytes calldata txs)
+        external
+        pure
+        returns (Tx.Create2Transfer[] memory txTxs)
+    {
+        uint256 size = txs.create2TransferSize();
+        Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](size);
+        for (uint256 i = 0; i < size; i++) {
+            txTxs[i] = txs.create2TransferDecode(i);
+        }
+        return txTxs;
+    }
+
     function valiateTransfer(
         bytes calldata encodedTx,
         uint256[2] calldata signature,
