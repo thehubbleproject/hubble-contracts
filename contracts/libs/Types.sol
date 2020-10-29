@@ -245,13 +245,10 @@ library Types {
 
     enum Result {
         Ok,
-        InvalidTokenAddress,
         InvalidTokenAmount,
         NotEnoughTokenBalance,
         BadFromTokenType,
         BadToTokenType,
-        BadFromIndex,
-        NotOnDesignatedStateLeaf,
         BadSignature,
         MismatchedAmount,
         BadWithdrawRoot
