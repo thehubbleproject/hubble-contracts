@@ -38,6 +38,30 @@ contract ClientFrontend {
         return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
+    function encodeTransfer(Offchain.Transfer calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeTransfer(_tx);
+    }
+
+    function encodeMassMigration(Offchain.MassMigration calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeMassMigration(_tx);
+    }
+
+    function encodeCreate2Transfer(Offchain.Create2Transfer calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeCreate2Transfer(_tx);
+    }
+
     function compressTransfer(bytes[] calldata encodedTxs)
         external
         pure
