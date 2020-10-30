@@ -1,6 +1,13 @@
 import { constants, ethers } from "ethers";
 import { BigNumber } from "ethers";
-import { randomBytes, hexlify, hexZeroPad, keccak256 } from "ethers/lib/utils";
+import {
+    randomBytes,
+    hexlify,
+    hexZeroPad,
+    keccak256,
+    parseEther
+} from "ethers/lib/utils";
+import { Wei } from "./interfaces";
 
 export const FIELD_ORDER = BigNumber.from(
     "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
@@ -20,6 +27,10 @@ export function sum(xs: BigNumber[]): BigNumber {
 
 export function to32Hex(n: BigNumber): string {
     return hexZeroPad(n.toHexString(), 32);
+}
+
+export function toWei(ether: string): Wei {
+    return parseEther(ether) as Wei;
 }
 
 export function randFs(): BigNumber {
