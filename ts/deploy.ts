@@ -170,6 +170,7 @@ export async function deployAll(
         nameRegistry,
         await paramManager.depositManager()
     );
+    depositManager.setMaxSubtreeSize(2 ** parameters.MAX_DEPOSIT_SUBTREE_DEPTH);
 
     const root =
         parameters.GENESIS_STATE_ROOT ||
@@ -187,6 +188,11 @@ export async function deployAll(
         nameRegistry,
         await paramManager.rollupCore()
     );
+    await rollup.setStakeAmount(parameters.STAKE_AMOUNT);
+    await rollup.setBlocksToFinalise(parameters.BLOCKS_TO_FINALISE);
+    await rollup.setMinGasLeft(parameters.MIN_GAS_LEFT);
+    await rollup.setMaxTxsPerCommit(parameters.MAX_DEPOSIT_SUBTREE_DEPTH);
+
     await vault.setRollupAddress();
 
     const withdrawManager = await new WithdrawManagerFactory(

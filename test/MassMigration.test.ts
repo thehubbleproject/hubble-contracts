@@ -184,7 +184,7 @@ describe("Mass Migrations", async function() {
             withdrawManager.processWithdrawCommitment(batchId, batch.proof(0))
         ).revertedWith("Vault: Batch shoould be finalised");
 
-        await mineBlocks(ethers.provider, TESTING_PARAMS.TIME_TO_FINALISE);
+        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
 
         // We cheat here a little bit by sending token to the vault manually.
         // Ideally the tokens of the vault should come from the deposits

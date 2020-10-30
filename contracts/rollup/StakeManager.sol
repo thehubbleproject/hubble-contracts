@@ -7,10 +7,7 @@ contract StakeManager {
     mapping(uint256 => uint256) private stakes;
 
     function stake(uint256 batchID, uint256 stakeAmount) internal {
-        require(
-            msg.value == stakeAmount,
-            "StakeManager: not enough stake committed"
-        );
+        require(msg.value == stakeAmount, "StakeManager: wrong stake amount");
         stakes[batchID] = stakeAmount;
     }
 

@@ -1,5 +1,6 @@
 import { BigNumberish, BytesLike, ethers } from "ethers";
 import { Rollup } from "../types/ethers-contracts/Rollup";
+import { Wei } from "./interfaces";
 import { Tree } from "./tree";
 
 interface CompressedStruct {
@@ -207,13 +208,13 @@ export class TransferBatch extends Batch {
         super(commitments);
     }
 
-    async submit(rollup: Rollup, stakingAmount: string) {
+    async submit(rollup: Rollup, stakingAmount: Wei) {
         return await rollup.submitTransfer(
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => c.feeReceiver),
             this.commitments.map(c => c.txs),
-            { value: ethers.utils.parseEther(stakingAmount) }
+            { value: stakingAmount }
         );
     }
 }
@@ -222,7 +223,7 @@ export class MassMigrationBatch extends Batch {
     constructor(public readonly commitments: MassMigrationCommitment[]) {
         super(commitments);
     }
-    async submit(rollup: Rollup, stakingAmount: string) {
+    async submit(rollup: Rollup, stakingAmount: Wei) {
         return await rollup.submitMassMigration(
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
@@ -234,7 +235,7 @@ export class MassMigrationBatch extends Batch {
             ]),
             this.commitments.map(c => c.withdrawRoot),
             this.commitments.map(c => c.txs),
-            { value: ethers.utils.parseEther(stakingAmount) }
+            { value: stakingAmount }
         );
     }
 }
