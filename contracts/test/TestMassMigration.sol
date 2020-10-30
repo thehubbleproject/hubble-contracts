@@ -29,6 +29,7 @@ contract TestMassMigration is MassMigration {
 
     function testProcessMassMigrationCommit(
         bytes32 stateRoot,
+        uint256 maxTxSize,
         Types.MassMigrationBody memory commitmentBody,
         Types.StateMerkleProof[] memory proofs
     )
@@ -43,6 +44,7 @@ contract TestMassMigration is MassMigration {
         gasCost = gasleft();
         (bytes32 postRoot, Types.Result result) = processMassMigrationCommit(
             stateRoot,
+            maxTxSize,
             commitmentBody,
             proofs
         );

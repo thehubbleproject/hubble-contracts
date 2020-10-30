@@ -290,14 +290,6 @@ contract Rollup is RollupHelpers {
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
         for (uint256 i = 0; i < stateRoots.length; i++) {
-            require(
-                !txss[i].transferHasExcessData(),
-                "Rollup: transfer has excess data"
-            );
-            require(
-                txss[i].transferSize() <= govMaxTxsPerCommit,
-                "Rollup: commit too many transfer"
-            );
             // This is TransferBody toHash() but we don't want the overhead of struct
             bodyRoot = keccak256(
                 abi.encodePacked(
@@ -329,14 +321,6 @@ contract Rollup is RollupHelpers {
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
         for (uint256 i = 0; i < stateRoots.length; i++) {
-            require(
-                !txss[i].create2TransferHasExcessData(),
-                "Rollup: Create2Transfer has excess data"
-            );
-            require(
-                txss[i].massMigrationSize() <= govMaxTxsPerCommit,
-                "Rollup: commit too many Create2Transfer"
-            );
             // This is TransferBody toHash() but we don't want the overhead of struct
             bodyRoot = keccak256(
                 abi.encodePacked(
@@ -369,14 +353,6 @@ contract Rollup is RollupHelpers {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         for (uint256 i = 0; i < stateRoots.length; i++) {
-            require(
-                !txss[i].massMigrationHasExcessData(),
-                "Rollup: MassMigration has excess data"
-            );
-            require(
-                txss[i].massMigrationSize() <= govMaxTxsPerCommit,
-                "Rollup: commit too many MassMigration"
-            );
             Types.MassMigrationBody memory body = Types.MassMigrationBody(
                 accountRoot,
                 signatures[i],
@@ -464,9 +440,10 @@ contract Rollup is RollupHelpers {
         (bytes32 processedStateRoot, Types.Result result) = transfer
             .processTransferCommit(
             previous.commitment.stateRoot,
+            govMaxTxsPerCommit,
+            target.commitment.body.feeReceiver,
             target.commitment.body.txs,
-            proofs,
-            target.commitment.body.feeReceiver
+            proofs
         );
 
         if (
@@ -499,6 +476,7 @@ contract Rollup is RollupHelpers {
         (bytes32 processedStateRoot, Types.Result result) = massMigration
             .processMassMigrationCommit(
             previous.commitment.stateRoot,
+            govMaxTxsPerCommit,
             target.commitment.body,
             proofs
         );

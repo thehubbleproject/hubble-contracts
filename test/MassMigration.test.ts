@@ -1,5 +1,5 @@
 import { deployAll } from "../ts/deploy";
-import { TESTING_PARAMS } from "../ts/constants";
+import { COMMIT_SIZE, TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "@nomiclabs/buidler";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
@@ -97,6 +97,7 @@ describe("Mass Migrations", async function() {
             1: result
         } = await massMigration.processMassMigrationCommit(
             stateRoot,
+            COMMIT_SIZE,
             commitment.toSolStruct().body,
             proofs
         );
