@@ -8,19 +8,19 @@ contract Parameters is Ownable {
     uint256 public paramMinGasLeft = 10000;
     uint256 public paramMaxTxsPerCommit = 32;
 
-    function setStakeAmount(uint256 stakeAmount) external {
+    function setStakeAmount(uint256 stakeAmount) external onlyOwner {
         paramStakeAmount = stakeAmount;
     }
 
-    function setBlocksToFinalise(uint256 blocksToFinalise) external {
+    function setBlocksToFinalise(uint256 blocksToFinalise) external onlyOwner {
         paramBlocksToFinalise = blocksToFinalise;
     }
 
-    function setMinGasLeft(uint256 minGasLeft) external {
+    function setMinGasLeft(uint256 minGasLeft) external onlyOwner {
         paramMinGasLeft = minGasLeft;
     }
 
-    function setMaxTxsPerCommit(uint256 maxTxsPerCommit) external {
+    function setMaxTxsPerCommit(uint256 maxTxsPerCommit) external onlyOwner {
         paramMaxTxsPerCommit = maxTxsPerCommit;
     }
 }
