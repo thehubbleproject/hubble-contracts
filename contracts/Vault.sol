@@ -4,7 +4,7 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { Bitmap } from "./libs/Bitmap.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Rollup } from "./Rollup.sol";
+import { Rollup } from "./rollup/Rollup.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
