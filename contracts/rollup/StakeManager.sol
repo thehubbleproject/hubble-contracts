@@ -3,16 +3,15 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract StakeManager {
     using SafeMath for uint256;
-    uint256 public govStakeAmount;
 
     mapping(uint256 => uint256) private stakes;
 
-    function stake(uint256 batchID) internal {
+    function stake(uint256 batchID, uint256 stakeAmount) internal {
         require(
-            msg.value == govStakeAmount,
+            msg.value == stakeAmount,
             "StakeManager: not enough stake committed"
         );
-        stakes[batchID] = govStakeAmount;
+        stakes[batchID] = stakeAmount;
     }
 
     function rewardAndBurn(
@@ -41,9 +40,5 @@ contract StakeManager {
         uint256 amount = stakes[batchID];
         delete stakes[batchID];
         staker.transfer(amount);
-    }
-
-    function changeStakeAmount(uint256 _stakeAmount) internal {
-        govStakeAmount = _stakeAmount;
     }
 }
