@@ -232,7 +232,6 @@ contract Rollup is RollupHelpers {
             nameRegistry.getContractDetails(ParamManager.massMigration())
         );
 
-        changeStakeAmount(governance.stakeAmount());
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
@@ -271,7 +270,7 @@ contract Rollup is RollupHelpers {
             )
         });
         batches.push(newBatch);
-        stake(batches.length - 1);
+        stake(batches.length - 1, paramStakeAmount);
         logger.logNewBatch(msg.sender, batches.length - 1, batchType);
     }
 
