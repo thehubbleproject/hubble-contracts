@@ -8,7 +8,7 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
 import { Governance } from "./Governance.sol";
-import { Rollup } from "./Rollup.sol";
+import { Rollup } from "./rollup/Rollup.sol";
 
 contract SubtreeQueue {
     // Each element of the queue is a root of a subtree of deposits.

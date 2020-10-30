@@ -2,19 +2,20 @@ pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
-import { Types } from "./libs/Types.sol";
-import { Tx } from "./libs/Tx.sol";
-import { BLSAccountRegistry } from "./BLSAccountRegistry.sol";
-import { Logger } from "./Logger.sol";
-import { POB } from "./POB.sol";
-import { MerkleTree } from "./libs/MerkleTree.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
-import { Governance } from "./Governance.sol";
-import { DepositManager } from "./DepositManager.sol";
-import { Transfer } from "./Transfer.sol";
-import { MassMigration } from "./MassMigrations.sol";
+import { ParamManager } from "../libs/ParamManager.sol";
+import { Types } from "../libs/Types.sol";
+import { Tx } from "../libs/Tx.sol";
+import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
+import { Logger } from "../Logger.sol";
+import { POB } from "../POB.sol";
+import { MerkleTree } from "../libs/MerkleTree.sol";
+import { NameRegistry as Registry } from "../NameRegistry.sol";
+import { Governance } from "../Governance.sol";
+import { DepositManager } from "../DepositManager.sol";
+import { Transfer } from "../Transfer.sol";
+import { MassMigration } from "../MassMigrations.sol";
 import { StakeManager } from "./StakeManager.sol";
+import { Parameters } from "./Parameters.sol";
 
 contract RollupSetup {
     using SafeMath for uint256;
@@ -111,7 +112,7 @@ contract RollupSetup {
     }
 }
 
-contract RollupHelpers is RollupSetup, StakeManager {
+contract RollupHelpers is RollupSetup, StakeManager, Parameters {
     /**
      * @notice Returns the total number of batches submitted
      */
@@ -151,11 +152,8 @@ contract RollupHelpers is RollupSetup, StakeManager {
             // if gas left is low we would like to do all the transfers
             // and persist intermediate states so someone else can send another tx
             // and rollback remaining batches
-            if (gasleft() <= governance.minGasLeft()) {
-                // exit loop gracefully
-                break;
-            }
-            // delete batch
+            if (gasleft() <= paramMinGasLeft) break;
+
             delete batches[batchID];
 
             // queue deposits again
@@ -269,7 +267,7 @@ contract Rollup is RollupHelpers {
                 uint256(batchType),
                 size,
                 msg.sender,
-                block.number + governance.timeToFinalise()
+                block.number + paramBlocksToFinalise
             )
         });
         batches.push(newBatch);
