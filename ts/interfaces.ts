@@ -20,5 +20,7 @@ export enum Result {
     BadToTokenType,
     BadSignature,
     MismatchedAmount,
-    BadWithdrawRoot
+    BadWithdrawRoot,
+    BadCompression,
+    TooManyTx
 }

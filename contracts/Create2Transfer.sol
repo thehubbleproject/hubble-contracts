@@ -34,17 +34,22 @@ contract Create2Transfer {
      * */
     function processCreate2TransferCommit(
         bytes32 stateRoot,
+        uint256 maxTxSize,
+        uint256 feeReceiver,
         bytes memory txs,
-        Types.StateMerkleProof[] memory proofs,
-        uint256 feeReceiver
+        Types.StateMerkleProof[] memory proofs
     ) public pure returns (bytes32, Types.Result result) {
-        uint256 length = txs.create2TransferSize();
+        if (txs.create2TransferHasExcessData())
+            return (stateRoot, Types.Result.BadCompression);
+        uint256 size = txs.create2TransferSize();
+        if (size > maxTxSize) return (stateRoot, Types.Result.TooManyTx);
+
         uint256 fees = 0;
         // tokenType should be the same for all states in this commit
         uint256 tokenType = proofs[0].state.tokenType;
         Tx.Create2Transfer memory _tx;
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < size; i++) {
             _tx = txs.create2TransferDecode(i);
             (stateRoot, result) = Transition.processCreate2Transfer(
                 stateRoot,
@@ -62,7 +67,7 @@ contract Create2Transfer {
             feeReceiver,
             tokenType,
             fees,
-            proofs[length * 2]
+            proofs[size * 2]
         );
 
         return (stateRoot, result);

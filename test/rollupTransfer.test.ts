@@ -159,9 +159,10 @@ describe("Rollup Transfer Commitment", () => {
             1: gasCost
         } = await rollup.callStatic.testProcessTransferCommit(
             preStateRoot,
+            COMMIT_SIZE,
+            feeReceiver,
             serialize(txs),
-            proofs,
-            feeReceiver
+            proofs
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());
         assert.equal(postRoot, postStateRoot, "Mismatch post state root");

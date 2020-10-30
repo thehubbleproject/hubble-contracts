@@ -46,17 +46,19 @@ contract TestCreate2Transfer is Create2Transfer {
 
     function testProcessCreate2TransferCommit(
         bytes32 stateRoot,
+        uint256 maxTxSize,
+        uint256 feeReceiver,
         bytes memory txs,
-        Types.StateMerkleProof[] memory proofs,
-        uint256 feeReceiver
+        Types.StateMerkleProof[] memory proofs
     ) public returns (bytes32, uint256) {
         bytes32 newRoot;
         uint256 operationCost = gasleft();
         (newRoot, ) = processCreate2TransferCommit(
             stateRoot,
+            maxTxSize,
+            feeReceiver,
             txs,
-            proofs,
-            feeReceiver
+            proofs
         );
         return (newRoot, operationCost - gasleft());
     }

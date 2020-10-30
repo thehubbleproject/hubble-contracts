@@ -251,6 +251,8 @@ library Types {
         BadToTokenType,
         BadSignature,
         MismatchedAmount,
-        BadWithdrawRoot
+        BadWithdrawRoot,
+        BadCompression,
+        TooManyTx
     }
 }

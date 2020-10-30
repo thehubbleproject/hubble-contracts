@@ -39,22 +39,28 @@ contract MassMigration {
      * */
     function processMassMigrationCommit(
         bytes32 stateRoot,
-        Types.MassMigrationBody memory commitmentBody,
+        uint256 maxTxSize,
+        Types.MassMigrationBody memory committed,
         Types.StateMerkleProof[] memory proofs
     ) public view returns (bytes32, Types.Result result) {
-        uint256 length = commitmentBody.txs.massMigrationSize();
+        if (committed.txs.massMigrationHasExcessData())
+            return (stateRoot, Types.Result.BadCompression);
+
+        uint256 size = committed.txs.massMigrationSize();
+        if (size > maxTxSize) return (stateRoot, Types.Result.TooManyTx);
+
         Tx.MassMigration memory _tx;
         uint256 totalAmount = 0;
         uint256 fees = 0;
         bytes memory freshState = "";
-        bytes32[] memory withdrawLeaves = new bytes32[](length);
+        bytes32[] memory withdrawLeaves = new bytes32[](size);
 
-        for (uint256 i = 0; i < length; i++) {
-            _tx = commitmentBody.txs.massMigrationDecode(i);
+        for (uint256 i = 0; i < size; i++) {
+            _tx = committed.txs.massMigrationDecode(i);
             (stateRoot, freshState, result) = Transition.processMassMigration(
                 stateRoot,
                 _tx,
-                commitmentBody.tokenID,
+                committed.tokenID,
                 proofs[i]
             );
             if (result != Types.Result.Ok) return (stateRoot, result);
@@ -66,17 +72,17 @@ contract MassMigration {
         }
         (stateRoot, result) = Transition.processReceiver(
             stateRoot,
-            commitmentBody.feeReceiver,
-            commitmentBody.tokenID,
+            committed.feeReceiver,
+            committed.tokenID,
             fees,
-            proofs[length]
+            proofs[size]
         );
         if (result != Types.Result.Ok) return (stateRoot, result);
 
-        if (totalAmount != commitmentBody.amount)
+        if (totalAmount != committed.amount)
             return (stateRoot, Types.Result.MismatchedAmount);
 
-        if (MerkleTree.merklise(withdrawLeaves) != commitmentBody.withdrawRoot)
+        if (MerkleTree.merklise(withdrawLeaves) != committed.withdrawRoot)
             return (stateRoot, Types.Result.BadWithdrawRoot);
 
         return (stateRoot, result);

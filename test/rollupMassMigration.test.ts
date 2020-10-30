@@ -137,6 +137,7 @@ describe("Rollup Mass Migration", () => {
             2: result
         } = await rollup.callStatic.testProcessMassMigrationCommit(
             preStateRoot,
+            COMMIT_SIZE,
             commitmentBody,
             proofs
         );

@@ -35,18 +35,23 @@ contract Transfer {
      * */
     function processTransferCommit(
         bytes32 stateRoot,
+        uint256 maxTxSize,
+        uint256 feeReceiver,
         bytes memory txs,
-        Types.StateMerkleProof[] memory proofs,
-        uint256 feeReceiver
+        Types.StateMerkleProof[] memory proofs
     ) public pure returns (bytes32, Types.Result result) {
-        uint256 length = txs.transferSize();
+        if (txs.transferHasExcessData())
+            return (stateRoot, Types.Result.BadCompression);
+
+        uint256 size = txs.transferSize();
+        if (size > maxTxSize) return (stateRoot, Types.Result.TooManyTx);
 
         uint256 fees = 0;
         // tokenType should be the same for all states in this commit
         uint256 tokenType = proofs[0].state.tokenType;
         Tx.Transfer memory _tx;
 
-        for (uint256 i = 0; i < length; i++) {
+        for (uint256 i = 0; i < size; i++) {
             _tx = txs.transferDecode(i);
             (stateRoot, result) = Transition.processTransfer(
                 stateRoot,
@@ -64,7 +69,7 @@ contract Transfer {
             feeReceiver,
             tokenType,
             fees,
-            proofs[length * 2]
+            proofs[size * 2]
         );
 
         return (stateRoot, result);
