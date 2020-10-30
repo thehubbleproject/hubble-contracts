@@ -10,7 +10,6 @@ import { Logger } from "../Logger.sol";
 import { POB } from "../POB.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "../NameRegistry.sol";
-import { Governance } from "../Governance.sol";
 import { DepositManager } from "../DepositManager.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
@@ -30,7 +29,6 @@ contract RollupSetup {
     BLSAccountRegistry public accountRegistry;
     Logger public logger;
     Registry public nameRegistry;
-    Governance public governance;
     Transfer public transfer;
     MassMigration public massMigration;
 
@@ -217,10 +215,6 @@ contract Rollup is RollupHelpers {
         logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         depositManager = DepositManager(
             nameRegistry.getContractDetails(ParamManager.depositManager())
-        );
-
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.governance())
         );
         accountRegistry = BLSAccountRegistry(
             nameRegistry.getContractDetails(ParamManager.accountRegistry())
