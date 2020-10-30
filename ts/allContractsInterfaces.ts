@@ -1,6 +1,5 @@
 import { ParamManager } from "../types/ethers-contracts/ParamManager";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
-import { Governance } from "../types/ethers-contracts/Governance";
 import { Logger } from "../types/ethers-contracts/Logger";
 import { TokenRegistry } from "../types/ethers-contracts/TokenRegistry";
 import { Pob } from "../types/ethers-contracts/Pob";
@@ -19,7 +18,6 @@ export interface allContracts {
     paramManager: ParamManager;
     clientFrondend: ClientFrontend;
     nameRegistry: NameRegistry;
-    governance: Governance;
     logger: Logger;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
