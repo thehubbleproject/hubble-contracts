@@ -1,7 +1,6 @@
 import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFactory";
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
-import { GovernanceFactory } from "../types/ethers-contracts/GovernanceFactory";
 import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { PobFactory } from "../types/ethers-contracts/PobFactory";
@@ -60,19 +59,6 @@ export async function deployAll(
     // deploy name registry
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
     await waitAndRegister(nameRegistry, "nameRegistry", verbose);
-
-    // deploy governance
-    const governance = await new GovernanceFactory(signer).deploy(
-        parameters.MAX_DEPOSIT_SUBTREE_DEPTH,
-        parameters.TIME_TO_FINALISE
-    );
-    await waitAndRegister(
-        governance,
-        "governance",
-        verbose,
-        nameRegistry,
-        await paramManager.governance()
-    );
 
     // deploy logger
     const logger = await new LoggerFactory(signer).deploy();
@@ -220,7 +206,6 @@ export async function deployAll(
         paramManager,
         clientFrondend,
         nameRegistry,
-        governance,
         logger,
         blsAccountRegistry,
         tokenRegistry,

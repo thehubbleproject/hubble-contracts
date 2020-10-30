@@ -17,10 +17,6 @@ library ParamManager {
         return keccak256("pob");
     }
 
-    function governance() public pure returns (bytes32) {
-        return keccak256("governance");
-    }
-
     function rollupCore() public pure returns (bytes32) {
         return keccak256("rollup_core");
     }
