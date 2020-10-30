@@ -1,8 +1,14 @@
+import { BigNumber } from "ethers";
+
+export type Wei = BigNumber;
+
 export interface DeploymentParameters {
     MAX_DEPTH: number;
     MAX_DEPOSIT_SUBTREE_DEPTH: number;
-    STAKE_AMOUNT: string;
-    TIME_TO_FINALISE: number;
+    STAKE_AMOUNT: Wei;
+    BLOCKS_TO_FINALISE: number;
+    MIN_GAS_LEFT: number;
+    MAX_TXS_PER_COMMIT: number;
     GENESIS_STATE_ROOT?: string;
 }
 
