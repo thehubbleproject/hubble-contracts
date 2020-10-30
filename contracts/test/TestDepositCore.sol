@@ -4,7 +4,7 @@ import { DepositCore } from "../DepositManager.sol";
 
 contract TestDepositCore is DepositCore {
     constructor(uint256 maxSubtreeDepth) public {
-        govMaxSubtreeSize = 1 << maxSubtreeDepth;
+        paramMaxSubtreeSize = 1 << maxSubtreeDepth;
     }
 
     function testInsertAndMerge(bytes32 depositLeaf)

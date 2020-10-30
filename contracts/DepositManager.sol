@@ -5,9 +5,9 @@ import { Logger } from "./Logger.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
-import { Governance } from "./Governance.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
 contract SubtreeQueue {
@@ -36,7 +36,7 @@ contract DepositCore is SubtreeQueue {
     bytes32[] public babyTrees;
     uint256 public depositCount = 0;
 
-    uint256 public govMaxSubtreeSize;
+    uint256 public paramMaxSubtreeSize = 2;
 
     function insertAndMerge(bytes32 depositLeaf)
         internal
@@ -64,7 +64,7 @@ contract DepositCore is SubtreeQueue {
             i >>= 1;
         }
         // Subtree is ready, send to SubtreeQueue
-        if (depositCount == govMaxSubtreeSize) {
+        if (depositCount == paramMaxSubtreeSize) {
             readySubtree = babyTrees[0];
             enqueue(readySubtree);
             reset();
@@ -85,12 +85,11 @@ contract DepositCore is SubtreeQueue {
     }
 }
 
-contract DepositManager is DepositCore {
+contract DepositManager is DepositCore, Ownable {
     using Types for Types.UserState;
     Registry public nameRegistry;
     address public vault;
 
-    Governance public governance;
     Logger public logger;
     ITokenRegistry public tokenRegistry;
 
@@ -115,15 +114,15 @@ contract DepositManager is DepositCore {
 
     constructor(address _registryAddr) public {
         nameRegistry = Registry(_registryAddr);
-        governance = Governance(
-            nameRegistry.getContractDetails(ParamManager.governance())
-        );
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         vault = nameRegistry.getContractDetails(ParamManager.vault());
-        govMaxSubtreeSize = 1 << governance.maxDepositSubtree();
+    }
+
+    function setMaxSubtreeSize(uint256 maxSubtreeSize) external onlyOwner {
+        paramMaxSubtreeSize = maxSubtreeSize;
     }
 
     /**
