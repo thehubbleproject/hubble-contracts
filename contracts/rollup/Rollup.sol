@@ -15,8 +15,9 @@ import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
 import { StakeManager } from "./StakeManager.sol";
 import { Parameters } from "./Parameters.sol";
+import { BatchManager } from "./BatchManager.sol";
 
-contract RollupSetup {
+contract Rollup is StakeManager, Parameters, BatchManager {
     using SafeMath for uint256;
     using Tx for bytes;
     using Types for Types.Batch;
@@ -32,13 +33,6 @@ contract RollupSetup {
     Transfer public transfer;
     MassMigration public massMigration;
 
-    Types.Batch[] public batches;
-
-    // this variable will be greater than 0 if
-    // there is rollback in progress
-    // will be reset to 0 once rollback is completed
-    uint256 public invalidBatchMarker;
-
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.proofOfBurn())
@@ -47,90 +41,9 @@ contract RollupSetup {
         _;
     }
 
-    modifier isNotRollingBack() {
-        assert(invalidBatchMarker == 0);
-        _;
-    }
-
-    modifier isRollingBack() {
-        assert(invalidBatchMarker > 0);
-        _;
-    }
-    modifier isDisputable(uint256 batchID) {
-        require(
-            block.number < batches[batchID].finaliseOn(),
-            "Batch already finalised"
-        );
-
-        require(
-            batchID < invalidBatchMarker || invalidBatchMarker == 0,
-            "Already successfully disputed. Roll back in process"
-        );
-        _;
-    }
-
-    function checkInclusion(
-        bytes32 root,
-        Types.CommitmentInclusionProof memory proof
-    ) internal pure returns (bool) {
-        return
-            MerkleTree.verify(
-                root,
-                proof.commitment.toHash(),
-                proof.path,
-                proof.witness
-            );
-    }
-
-    modifier checkPreviousCommitment(
-        uint256 batchID,
-        Types.CommitmentInclusionProof memory previous,
-        uint256 targetPath
-    ) {
-        uint256 previousPath = 0;
-        uint256 expectedBatchID = 0;
-        if (targetPath == 0) {
-            // target is the first commit in the batch, so the previous commit is in the previous batch
-            expectedBatchID = batchID - 1;
-            previousPath = batches[expectedBatchID].size() - 1;
-        } else {
-            // target and previous commits are both in the current batch
-            expectedBatchID = batchID;
-            previousPath = targetPath - 1;
-        }
-        require(
-            previous.path == previousPath,
-            "previous commitment has wrong path"
-        );
-        require(
-            checkInclusion(batches[expectedBatchID].commitmentRoot, previous),
-            "previous commitment is absent in the current batch"
-        );
-        _;
-    }
-}
-
-contract RollupHelpers is RollupSetup, StakeManager, Parameters {
-    /**
-     * @notice Returns the total number of batches submitted
-     */
-    function numOfBatchesSubmitted() public view returns (uint256) {
-        return batches.length;
-    }
-
-    /**
-     * @notice Returns the batch
-     */
-    function getBatch(uint256 batchID)
-        external
-        view
-        returns (Types.Batch memory batch)
-    {
-        require(
-            batches.length - 1 >= batchID,
-            "Batch id greater than total number of batches, invalid batch id"
-        );
-        batch = batches[batchID];
+    function startSlash(uint256 batchID) internal {
+        invalidBatchMarker = batchID;
+        keepSlashAndRollback();
     }
 
     /**
@@ -138,18 +51,11 @@ contract RollupHelpers is RollupSetup, StakeManager, Parameters {
      * and rewards challengers. Also deletes all the batches after invalid batch
      * Its a public function because we will need to pause if we are not able to delete all batches in one tx
      */
-    function slashAndRollback() public isRollingBack {
+    function keepSlashAndRollback() public isRollingBack {
         uint256 totalSlashings = 0;
-        uint256 initialBatchID = batches.length - 1;
+        uint256 batchID = batches.length - 1;
 
-        for (
-            uint256 batchID = initialBatchID;
-            batchID >= invalidBatchMarker;
-            batchID--
-        ) {
-            // if gas left is low we would like to do all the transfers
-            // and persist intermediate states so someone else can send another tx
-            // and rollback remaining batches
+        for (; batchID >= invalidBatchMarker; batchID--) {
             if (gasleft() <= paramMinGasLeft) break;
 
             delete batches[batchID];
@@ -160,14 +66,9 @@ contract RollupHelpers is RollupSetup, StakeManager, Parameters {
             totalSlashings++;
 
             logger.logBatchRollback(batchID);
-
-            if (batchID == invalidBatchMarker) {
-                // we have completed rollback
-                // update the marker
-                invalidBatchMarker = 0;
-                break;
-            }
         }
+        // if rollback is completed, update the marker
+        if (batchID == invalidBatchMarker) invalidBatchMarker = 0;
         rewardAndBurn(msg.sender, initialBatchID, totalSlashings);
         // resize batches length
         batches.length = batches.length.sub(totalSlashings);
@@ -175,34 +76,6 @@ contract RollupHelpers is RollupSetup, StakeManager, Parameters {
         logger.logRollbackFinalisation(totalSlashings);
     }
 
-    function checkInclusion(
-        bytes32 root,
-        Types.TransferCommitmentInclusionProof memory proof
-    ) internal pure returns (bool) {
-        return
-            MerkleTree.verify(
-                root,
-                proof.commitment.toHash(),
-                proof.path,
-                proof.witness
-            );
-    }
-
-    function checkInclusion(
-        bytes32 root,
-        Types.MMCommitmentInclusionProof memory proof
-    ) internal pure returns (bool) {
-        return
-            MerkleTree.verify(
-                root,
-                proof.commitment.toHash(),
-                proof.path,
-                proof.witness
-            );
-    }
-}
-
-contract Rollup is RollupHelpers {
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
@@ -436,13 +309,7 @@ contract Rollup is RollupHelpers {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) {
-            // before rolling back mark the batch invalid
-            // so we can pause and unpause
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-            return;
-        }
+        ) startSlash(batchID);
     }
 
     function disputeTransitionMassMigration(
@@ -470,13 +337,7 @@ contract Rollup is RollupHelpers {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) {
-            // before rolling back mark the batch invalid
-            // so we can pause and unpause
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-            return;
-        }
+        ) startSlash(batchID);
     }
 
     function disputeSignatureTransfer(
@@ -498,10 +359,7 @@ contract Rollup is RollupHelpers {
             target.commitment.body.txs
         );
 
-        if (result != Types.Result.Ok) {
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-        }
+        if (result != Types.Result.Ok) startSlash(batchID);
     }
 
     function disputeSignatureMassMigration(
@@ -524,23 +382,20 @@ contract Rollup is RollupHelpers {
             target.commitment.body.txs
         );
 
-        if (result != Types.Result.Ok) {
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-        }
+        if (result != Types.Result.Ok) startSlash(batchID);
     }
 
     /**
-     * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
+     * @notice coordinators can withdraw their stake after the batch has been finalised
      */
-    function withdrawStake(uint256 batchID) public {
+    function withdrawStake(uint256 batchID) external {
         require(
             msg.sender == batches[batchID].committer(),
-            "You are not the correct committer for this batch"
+            "Incorrect committer"
         );
         require(
             block.number > batches[batchID].finaliseOn(),
-            "This batch is not yet finalised, check back soon!"
+            "Not finalised yet"
         );
         withdraw(msg.sender, batchID);
         logger.logStakeWithdraw(msg.sender, batchID);
