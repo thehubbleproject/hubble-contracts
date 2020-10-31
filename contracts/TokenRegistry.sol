@@ -25,7 +25,7 @@ contract TokenRegistry is ITokenRegistry {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
-        assert(msg.sender == pobContract.getCoordinator());
+        require(msg.sender == pobContract.getCoordinator());
         _;
     }
     Registry public nameRegistry;

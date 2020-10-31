@@ -43,17 +43,17 @@ contract RollupSetup {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
-        assert(msg.sender == pobContract.getCoordinator());
+        require(msg.sender == pobContract.getCoordinator());
         _;
     }
 
     modifier isNotRollingBack() {
-        assert(invalidBatchMarker == 0);
+        require(invalidBatchMarker == 0);
         _;
     }
 
     modifier isRollingBack() {
-        assert(invalidBatchMarker > 0);
+        require(invalidBatchMarker > 0);
         _;
     }
     modifier isDisputable(uint256 batchID) {

@@ -100,12 +100,12 @@ contract DepositManager is DepositCore, Ownable {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
-        assert(msg.sender == pobContract.getCoordinator());
+        require(msg.sender == pobContract.getCoordinator());
         _;
     }
 
     modifier onlyRollup() {
-        assert(
+        require(
             msg.sender ==
                 nameRegistry.getContractDetails(ParamManager.rollupCore())
         );
