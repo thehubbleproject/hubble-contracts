@@ -21,16 +21,7 @@ library Types {
         bytes32[][] pubkeyWitnessesReceiver;
     }
 
-    // We define Usage for a batch or for a tx
-    // to check if the usage of a batch and all txs in it are the same
-    enum Usage {
-        Genesis, // The Genesis type is only applicable to batch but not tx
-        Transfer,
-        MassMigration,
-        Create2Transfer,
-        // Only applicable to batch and not tx
-        Deposit
-    }
+    enum Usage { Genesis, Transfer, MassMigration, Create2Transfer, Deposit }
 
     // Batch represents the batch submitted periodically to the ethereum chain
     struct Batch {

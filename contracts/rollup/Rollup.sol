@@ -402,7 +402,7 @@ contract Rollup is RollupHelpers {
         );
         // Same effect as `MerkleTree.merklise`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
-        submitBatch(root, 1, Types.Usage.MassMigration);
+        submitBatch(root, 1, Types.Usage.Deposit);
     }
 
     /**
