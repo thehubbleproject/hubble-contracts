@@ -207,7 +207,6 @@ contract Rollup is RollupHelpers {
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     bytes32 public appID;
-    uint256 public govMaxTxsPerCommit = 0;
 
     constructor(address _registryAddr, bytes32 genesisStateRoot) public {
         nameRegistry = Registry(_registryAddr);
@@ -229,7 +228,6 @@ contract Rollup is RollupHelpers {
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
-        govMaxTxsPerCommit = governance.maxTxsPerCommit();
 
         // Same effect as `MerkleTree.merklise`
         bytes32 commitmentRoot = keccak256(
@@ -431,7 +429,7 @@ contract Rollup is RollupHelpers {
         (bytes32 processedStateRoot, Types.Result result) = transfer
             .processTransferCommit(
             previous.commitment.stateRoot,
-            govMaxTxsPerCommit,
+            paramMaxTxsPerCommit,
             target.commitment.body.feeReceiver,
             target.commitment.body.txs,
             proofs
@@ -467,7 +465,7 @@ contract Rollup is RollupHelpers {
         (bytes32 processedStateRoot, Types.Result result) = massMigration
             .processMassMigrationCommit(
             previous.commitment.stateRoot,
-            govMaxTxsPerCommit,
+            paramMaxTxsPerCommit,
             target.commitment.body,
             proofs
         );
