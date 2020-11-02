@@ -12,7 +12,6 @@
     "compile": "buidler compile",
     "node": "buidler node",
     "deploy": "ts-node ./scripts/deploy.ts",
-    "add-pubkeys": "node ./scripts/addPubkeys.js",
     "bench": "buidler run ./scripts/benchmark.ts",
     "slither": "slither ."
   },
