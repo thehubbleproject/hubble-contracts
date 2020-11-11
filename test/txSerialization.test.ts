@@ -8,7 +8,7 @@ import {
     TxCreate2Transfer
 } from "../ts/tx";
 import { assert } from "chai";
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { COMMIT_SIZE } from "../ts/constants";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { USDT } from "../ts/decimal";

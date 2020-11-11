@@ -1,4 +1,4 @@
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { assert } from "chai";
 import { getAddress } from "ethers/lib/utils";
 import { randHex, randomNum } from "../ts/utils";

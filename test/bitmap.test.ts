@@ -1,4 +1,4 @@
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { assert } from "chai";
 import { TestBitmapFactory } from "../types/ethers-contracts";
 import { TestBitmap } from "../types/ethers-contracts/TestBitmap";

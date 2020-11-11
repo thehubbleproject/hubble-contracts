@@ -1,4 +1,4 @@
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { assert, expect } from "chai";
 import { constants } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";

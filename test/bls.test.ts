@@ -4,7 +4,7 @@ import { assert } from "chai";
 import { randHex, randFs, to32Hex } from "../ts/utils";
 
 import * as mcl from "../ts/mcl";
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { randomBytes, hexlify, arrayify } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../ts/hashToField";
 import { BigNumber, utils } from "ethers";
