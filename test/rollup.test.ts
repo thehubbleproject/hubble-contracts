@@ -1,6 +1,6 @@
 import { deployAll } from "../ts/deploy";
 import { TESTING_PARAMS } from "../ts/constants";
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";

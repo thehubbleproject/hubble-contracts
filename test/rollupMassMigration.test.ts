@@ -1,4 +1,4 @@
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { AccountRegistry } from "../ts/accountTree";
 import { txMassMigrationFactory, UserStateFactory } from "../ts/factory";
 import { State } from "../ts/state";

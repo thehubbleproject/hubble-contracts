@@ -1,4 +1,4 @@
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { TransferBatch, TransferCommitment } from "../ts/commitments";
 import { TESTING_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";

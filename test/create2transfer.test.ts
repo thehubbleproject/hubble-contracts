@@ -8,7 +8,7 @@ import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";

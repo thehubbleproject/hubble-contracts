@@ -1,6 +1,6 @@
 import { randomLeaves } from "../ts/utils";
 import { assert } from "chai";
-import { ethers } from "@nomiclabs/buidler";
+import { ethers } from "hardhat";
 import { Tree } from "../ts/tree";
 import { TestMerkleTreeFactory } from "../types/ethers-contracts/TestMerkleTreeFactory";
 import { TestMerkleTree } from "../types/ethers-contracts/TestMerkleTree";
