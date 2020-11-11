@@ -33,7 +33,7 @@ library BLS {
         uint256[2] memory signature,
         uint256[4] memory pubkey,
         uint256[2] memory message
-    ) internal view returns (bool) {
+    ) internal view returns (bool, bool) {
         uint256[12] memory input = [
             signature[0],
             signature[1],
@@ -49,24 +49,30 @@ library BLS {
             pubkey[2]
         ];
         uint256[1] memory out;
-        bool success;
+        uint256 precompileGasCost = pairingPrecompileCallGasCost(2);
+        bool callSuccess;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            success := staticcall(sub(gas(), 2000), 8, input, 384, out, 0x20)
-            switch success
-                case 0 {
-                    invalid()
-                }
+            callSuccess := staticcall(
+                precompileGasCost,
+                8,
+                input,
+                384,
+                out,
+                0x20
+            )
         }
-        require(success, "BLS: pairing call failed");
-        return out[0] != 0;
+        if (!callSuccess) {
+            return (false, false);
+        }
+        return (out[0] != 0, true);
     }
 
     function verifyMultiple(
         uint256[2] memory signature,
         uint256[4][] memory pubkeys,
         uint256[2][] memory messages
-    ) internal view returns (bool) {
+    ) internal view returns (bool checkResult, bool callSuccess) {
         uint256 size = pubkeys.length;
         require(size > 0, "BLS: number of public key is zero");
         require(
@@ -90,24 +96,32 @@ library BLS {
             input[i * 6 + 11] = pubkeys[i][2];
         }
         uint256[1] memory out;
-        bool success;
+        uint256 precompileGasCost = pairingPrecompileCallGasCost(size);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            success := staticcall(
-                sub(gas(), 2000),
+            callSuccess := staticcall(
+                precompileGasCost,
                 8,
                 add(input, 0x20),
                 mul(inputSize, 0x20),
                 out,
                 0x20
             )
-            switch success
-                case 0 {
-                    invalid()
-                }
         }
-        require(success, "BLS: pairing call failed");
-        return out[0] != 0;
+        if (!callSuccess) {
+            return (false, false);
+        }
+        return (out[0] != 0, true);
+    }
+
+    function pairingPrecompileCallGasCost(uint256 pubkeyLen)
+        internal
+        pure
+        returns (uint256)
+    {
+        uint256 base = 34000;
+        uint256 pair = 45000;
+        return base + pair * pubkeyLen;
     }
 
     function hashToPoint(bytes32 domain, bytes memory message)

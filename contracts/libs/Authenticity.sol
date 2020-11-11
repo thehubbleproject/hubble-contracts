@@ -52,7 +52,17 @@ library Authenticity {
             );
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
-        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifyMultiple(
+            signature,
+            proof.pubkeys,
+            messages
+        );
+        if (!callSuccess) {
+            return Types.Result.BadPrecompileCall;
+        }
+        if (!checkSuccess) {
             return Types.Result.BadSignature;
         }
         return Types.Result.Ok;
@@ -102,9 +112,20 @@ library Authenticity {
             );
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
-        if (!BLS.verifyMultiple(signature, proof.pubkeys, messages)) {
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifyMultiple(
+            signature,
+            proof.pubkeys,
+            messages
+        );
+        if (!callSuccess) {
+            return Types.Result.BadPrecompileCall;
+        }
+        if (!checkSuccess) {
             return Types.Result.BadSignature;
         }
+
         return Types.Result.Ok;
     }
 
@@ -166,8 +187,17 @@ library Authenticity {
 
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
-
-        if (!BLS.verifyMultiple(signature, proof.pubkeysSender, messages)) {
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifyMultiple(
+            signature,
+            proof.pubkeysSender,
+            messages
+        );
+        if (!callSuccess) {
+            return Types.Result.BadPrecompileCall;
+        }
+        if (!checkSuccess) {
             return Types.Result.BadSignature;
         }
         return Types.Result.Ok;

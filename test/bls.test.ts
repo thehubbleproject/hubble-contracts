@@ -7,9 +7,17 @@ import * as mcl from "../ts/mcl";
 import { ethers } from "@nomiclabs/buidler";
 import { randomBytes, hexlify, arrayify } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../ts/hashToField";
+import { BigNumber, utils } from "ethers";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = arrayify(DOMAIN_HEX);
+
+const g2PointOnIncorrectSubgroup = [
+    "0x1ef4bf0d452e71f1fb23948695fa0a87a10f3d9dce9d32fadb94711f22566fb5",
+    "0x237536b6a72ac2e447e7b34a684a81d8e63929a4d670ce1541730a7e03c3f0f2",
+    "0x0a63f14620a64dd39394b6e89c48679d3f2ce0c46a1ef052ee3df0bd66c198cb",
+    "0x0fe4020ece1b2849af46d308e9f201ac58230a45e124997f52c65d28fe3cf8f1"
+];
 
 describe("BLS", async () => {
     let bls: TestBls;
@@ -69,15 +77,136 @@ describe("BLS", async () => {
             signatures.push(signature);
         }
         const aggSignature = mcl.aggreagate(signatures);
+        const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
+        assert.isTrue(res[0]);
+        assert.isTrue(res[1]);
+    });
+    it("verify aggregated signature: fail bad signature", async function() {
+        const n = 10;
+        const messages = [];
+        const pubkeys = [];
+        const signatures = [];
+        for (let i = 0; i < n; i++) {
+            const message = randHex(12);
+            const { pubkey, secret } = mcl.newKeyPair();
+            const { signature, M } = mcl.sign(message, secret);
+            messages.push(M);
+            pubkeys.push(pubkey);
+            if (i != 0) {
+                signatures.push(signature);
+            }
+        }
+        const aggSignature = mcl.aggreagate(signatures);
+        const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
+        assert.isFalse(res[0]);
+        assert.isTrue(res[1]);
+    });
+    it("verify aggregated signature: fail signature is not on curve", async function() {
+        const n = 10;
+        const messages = [];
+        const pubkeys = [];
+        for (let i = 0; i < n; i++) {
+            const message = randHex(12);
+            const { pubkey, secret } = mcl.newKeyPair();
+            const { signature, M } = mcl.sign(message, secret);
+            messages.push(M);
+            pubkeys.push(pubkey);
+        }
+        const aggSignature = [100, 100];
         let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
-        assert.isTrue(res);
+        assert.isFalse(res[0]);
+        assert.isFalse(res[1]);
+    });
+    it("verify aggregated signature: fail pubkey is not on curve", async function() {
+        const n = 10;
+        const messages = [];
+        const pubkeys = [];
+        const signatures = [];
+        for (let i = 0; i < n; i++) {
+            const message = randHex(12);
+            const { pubkey, secret } = mcl.newKeyPair();
+            const { signature, M } = mcl.sign(message, secret);
+            messages.push(M);
+            if (i == 0) {
+                pubkeys.push([3, 3, 3, 3]);
+            } else {
+                pubkeys.push(pubkey);
+            }
+            signatures.push(signature);
+        }
+        const aggSignature = mcl.aggreagate(signatures);
+        const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
+        assert.isFalse(res[0]);
+        assert.isFalse(res[1]);
+    });
+    it("verify aggregated signature: fail pubkey is not on correct subgroup", async function() {
+        const n = 10;
+        const messages = [];
+        const pubkeys = [];
+        const signatures = [];
+
+        for (let i = 0; i < n; i++) {
+            const message = randHex(12);
+            const { pubkey, secret } = mcl.newKeyPair();
+            const { signature, M } = mcl.sign(message, secret);
+            messages.push(M);
+            if (i == 0) {
+                pubkeys.push(g2PointOnIncorrectSubgroup);
+                assert.isTrue(await bls.isOnCurveG2(pubkeys[i]));
+            } else {
+                pubkeys.push(pubkey);
+            }
+            signatures.push(signature);
+        }
+        const aggSignature = mcl.aggreagate(signatures);
+        let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
+        assert.isFalse(res[0]);
+        assert.isFalse(res[1]);
     });
     it("verify single signature", async function() {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, M } = mcl.sign(message, secret);
         let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
-        assert.isTrue(res);
+        assert.isTrue(res[0]);
+        assert.isTrue(res[1]);
+    });
+    it("verify single signature: fail bad signature", async function() {
+        const message = randHex(12);
+        const { pubkey } = mcl.newKeyPair();
+        const { secret } = mcl.newKeyPair();
+        const { signature, M } = mcl.sign(message, secret);
+        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        assert.isFalse(res[0]);
+        assert.isTrue(res[1]);
+    });
+    it("verify single signature: fail pubkey is not on curve", async function() {
+        const message = randHex(12);
+        const { secret } = mcl.newKeyPair();
+        const { M, signature } = mcl.sign(message, secret);
+        const pubkey = [3, 3, 3, 3];
+        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        assert.isFalse(res[0]);
+        assert.isFalse(res[1]);
+    });
+    it("verify single signature: fail signature is not on curve", async function() {
+        const message = randHex(12);
+        const { pubkey, secret } = mcl.newKeyPair();
+        const { M } = mcl.sign(message, secret);
+        const signature = [3, 3];
+        let res = await bls.verifySingle(signature, pubkey, M);
+        assert.isFalse(res[0]);
+        assert.isFalse(res[1]);
+    });
+    it("verify single signature: fail pubkey is not on correct subgroup", async function() {
+        const message = randHex(12);
+        const { secret } = mcl.newKeyPair();
+        const { M, signature } = mcl.sign(message, secret);
+        const pubkey = g2PointOnIncorrectSubgroup;
+        assert.isTrue(await bls.isOnCurveG2(pubkey));
+        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        assert.isFalse(res[0]);
+        assert.isFalse(res[1]);
     });
     it("is on curve g1", async function() {
         for (let i = 0; i < 20; i++) {

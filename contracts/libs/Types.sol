@@ -244,6 +244,7 @@ library Types {
         MismatchedAmount,
         BadWithdrawRoot,
         BadCompression,
-        TooManyTx
+        TooManyTx,
+        BadPrecompileCall
     }
 }
