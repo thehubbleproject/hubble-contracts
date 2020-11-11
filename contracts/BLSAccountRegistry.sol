@@ -12,10 +12,6 @@ contract BLSAccountRegistry is AccountTree {
     }
 
     function register(uint256[4] calldata pubkey) external returns (uint256) {
-        require(
-            BLS.isValidPublicKey(pubkey),
-            "BLSAccountTree: invalid pub key"
-        );
         bytes32 leaf = keccak256(abi.encodePacked(pubkey));
         uint256 accountID = _updateSingle(leaf);
         logger.logPubkeyRegistered(pubkey, accountID);
@@ -28,10 +24,6 @@ contract BLSAccountRegistry is AccountTree {
     {
         bytes32[BATCH_SIZE] memory leafs;
         for (uint256 i = 0; i < BATCH_SIZE; i++) {
-            require(
-                BLS.isValidPublicKey(pubkeys[i]),
-                "BLSAccountTree: invalid pub key"
-            );
             logger.logPubkeyRegistered(
                 pubkeys[i],
                 leafIndexRight + SET_SIZE + i

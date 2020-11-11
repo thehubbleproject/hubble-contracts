@@ -7,7 +7,7 @@ contract TestBLS {
         uint256[2] calldata signature,
         uint256[4][] calldata pubkeys,
         uint256[2][] calldata messages
-    ) external view returns (bool) {
+    ) external view returns (bool, bool) {
         return BLS.verifyMultiple(signature, pubkeys, messages);
     }
 
@@ -15,7 +15,7 @@ contract TestBLS {
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
         uint256[2] calldata message
-    ) external view returns (bool) {
+    ) external view returns (bool, bool) {
         return BLS.verifySingle(signature, pubkey, message);
     }
 
@@ -69,10 +69,15 @@ contract TestBLS {
         uint256[2][] calldata messages
     ) external returns (uint256) {
         uint256 g = gasleft();
-        require(
-            BLS.verifyMultiple(signature, pubkeys, messages),
-            "BLSTest: expect succesful verification"
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifyMultiple(
+            signature,
+            pubkeys,
+            messages
         );
+        require(callSuccess, "BLSTest: expect succesful precompile call");
+        require(checkSuccess, "BLSTest: expect succesful verification");
         return g - gasleft();
     }
 
@@ -82,10 +87,16 @@ contract TestBLS {
         uint256[2] calldata message
     ) external returns (uint256) {
         uint256 g = gasleft();
-        require(
-            BLS.verifySingle(signature, pubkey, message),
-            "BLSTest: expect succesful verification"
+
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifySingle(
+            signature,
+            pubkey,
+            message
         );
+        require(callSuccess, "BLSTest: expect succesful call");
+        require(checkSuccess, "BLSTest: expect succesful verification");
         return g - gasleft();
     }
 

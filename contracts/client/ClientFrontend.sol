@@ -79,8 +79,16 @@ contract ClientFrontend {
             _tx.fee
         );
         bytes memory txMsg = Tx.transferMessageOf(txTx, _tx.nonce);
-        uint256[2] memory message = BLS.hashToPoint(domain, txMsg);
-        require(BLS.verifySingle(signature, pubkey, message), "Bad Signature");
+
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifySingle(
+            signature,
+            pubkey,
+            BLS.hashToPoint(domain, txMsg)
+        );
+        require(callSuccess, "Precompile call failed");
+        require(checkSuccess, "Bad signature");
     }
 
     function validateAndApplyTransfer(

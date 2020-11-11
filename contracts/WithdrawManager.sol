@@ -99,14 +99,16 @@ contract WithdrawManager {
             ),
             "WithdrawManager: Public key should be in the Registry"
         );
-        require(
-            BLS.verifySingle(
-                signature,
-                pubkey,
-                BLS.hashToPoint(appID, abi.encodePacked(msg.sender))
-            ),
-            "WithdrawManager: Bad signature"
+
+        bool callSuccess;
+        bool checkSuccess;
+        (checkSuccess, callSuccess) = BLS.verifySingle(
+            signature,
+            pubkey,
+            BLS.hashToPoint(appID, abi.encodePacked(msg.sender))
         );
+        require(callSuccess, "WithdrawManager: Precompile call failed");
+        require(checkSuccess, "WithdrawManager: Bad signature");
 
         IERC20 tokenContract = IERC20(
             tokenRegistry.safeGetAddress(withdrawal.state.tokenType)
