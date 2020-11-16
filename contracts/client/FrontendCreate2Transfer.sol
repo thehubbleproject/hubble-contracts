@@ -63,6 +63,30 @@ contract FrontendCreate2Transfer {
         return txTxs;
     }
 
+    function signBytes(
+        bytes calldata encodedTx,
+        uint256[4] calldata pubkeySender,
+        uint256[4] calldata pubkeyReceiver
+    ) external pure returns (bytes memory) {
+        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
+            encodedTx
+        );
+        Tx.Create2Transfer memory txTx = Tx.Create2Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.toAccID,
+            _tx.amount,
+            _tx.fee
+        );
+        return
+            Tx.create2TransferMessageOf(
+                txTx,
+                _tx.nonce,
+                pubkeySender,
+                pubkeyReceiver
+            );
+    }
+
     function validate(
         bytes calldata encodedTx,
         uint256[2] calldata signature,

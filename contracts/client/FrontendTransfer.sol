@@ -61,6 +61,21 @@ contract FrontendTransfer {
         return txTxs;
     }
 
+    function signBytes(bytes calldata encodedTx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
+        Tx.Transfer memory txTx = Tx.Transfer(
+            _tx.fromIndex,
+            _tx.toIndex,
+            _tx.amount,
+            _tx.fee
+        );
+        return Tx.transferMessageOf(txTx, _tx.nonce);
+    }
+
     function validate(
         bytes calldata encodedTx,
         uint256[2] calldata signature,

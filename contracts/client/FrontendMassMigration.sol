@@ -58,11 +58,26 @@ contract FrontendMassMigration {
         return txTxs;
     }
 
+    function signBytes(bytes calldata encodedTx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+            encodedTx
+        );
+        Tx.MassMigration memory txTx = Tx.MassMigration(
+            _tx.fromIndex,
+            _tx.amount,
+            _tx.fee
+        );
+        return Tx.massMigrationMessageOf(txTx, _tx.nonce, _tx.spokeID);
+    }
+
     function validate(
         bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
-        uint256 spokeID,
         bytes32 domain
     ) external view {
         Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
@@ -78,7 +93,7 @@ contract FrontendMassMigration {
         bytes memory txMsg = Tx.massMigrationMessageOf(
             txTx,
             _tx.nonce,
-            spokeID
+            _tx.spokeID
         );
 
         bool callSuccess;
