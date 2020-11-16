@@ -42,7 +42,7 @@ contract MassMigration {
         uint256 maxTxSize,
         Types.MassMigrationBody memory committed,
         Types.StateMerkleProof[] memory proofs
-    ) public view returns (bytes32, Types.Result result) {
+    ) public pure returns (bytes32, Types.Result result) {
         if (committed.txs.massMigrationHasExcessData())
             return (stateRoot, Types.Result.BadCompression);
 
