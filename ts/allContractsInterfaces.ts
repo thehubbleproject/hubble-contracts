@@ -12,11 +12,17 @@ import { MassMigration } from "../types/ethers-contracts/MassMigration";
 import { Vault } from "../types/ethers-contracts/Vault";
 import { WithdrawManager } from "../types/ethers-contracts/WithdrawManager";
 import { SpokeRegistry } from "../types/ethers-contracts/SpokeRegistry";
-import { ClientFrontend } from "../types/ethers-contracts/ClientFrontend";
+import { FrontendGeneric } from "../types/ethers-contracts/FrontendGeneric";
+import { FrontendTransfer } from "../types/ethers-contracts/FrontendTransfer";
+import { FrontendMassMigration } from "../types/ethers-contracts/FrontendMassMigration";
+import { FrontendCreate2Transfer } from "../types/ethers-contracts/FrontendCreate2Transfer";
 
 export interface allContracts {
     paramManager: ParamManager;
-    clientFrondend: ClientFrontend;
+    frontendGeneric: FrontendGeneric;
+    frontendTransfer: FrontendTransfer;
+    frontendMassMigration: FrontendMassMigration;
+    frontendCreate2Transfer: FrontendCreate2Transfer;
     nameRegistry: NameRegistry;
     logger: Logger;
     blsAccountRegistry: BlsAccountRegistry;
