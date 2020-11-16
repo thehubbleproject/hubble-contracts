@@ -8,24 +8,24 @@ import { Authenticity } from "../libs/Authenticity.sol";
 import { BLS } from "../libs/BLS.sol";
 import { Offchain } from "./Offchain.sol";
 
-contract FrontendTransfer {
+contract FrontendCreate2Transfer {
     using Tx for bytes;
     using Types for Types.UserState;
 
     function decode(bytes calldata encodedTx)
         external
         pure
-        returns (Offchain.Transfer memory _tx)
+        returns (Offchain.Create2Transfer memory _tx)
     {
-        return Offchain.decodeTransfer(encodedTx);
+        return Offchain.decodeCreate2Transfer(encodedTx);
     }
 
-    function encode(Offchain.Transfer calldata _tx)
+    function encode(Offchain.Create2Transfer calldata _tx)
         external
         pure
         returns (bytes memory)
     {
-        return Offchain.encodeTransfer(_tx);
+        return Offchain.encodeCreate2Transfer(_tx);
     }
 
     function compress(bytes[] calldata encodedTxs)
@@ -33,14 +33,16 @@ contract FrontendTransfer {
         pure
         returns (bytes memory)
     {
-        Tx.Transfer[] memory txTxs = new Tx.Transfer[](encodedTxs.length);
+        Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](
+            encodedTxs.length
+        );
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.Transfer memory _tx = Offchain.decodeTransfer(
-                encodedTxs[i]
-            );
-            txTxs[i] = Tx.Transfer(
+            Offchain.Create2Transfer memory _tx = Offchain
+                .decodeCreate2Transfer(encodedTxs[i]);
+            txTxs[i] = Tx.Create2Transfer(
                 _tx.fromIndex,
                 _tx.toIndex,
+                _tx.toAccID,
                 _tx.amount,
                 _tx.fee
             );
@@ -51,12 +53,12 @@ contract FrontendTransfer {
     function decompress(bytes calldata txs)
         external
         pure
-        returns (Tx.Transfer[] memory)
+        returns (Tx.Create2Transfer[] memory)
     {
-        uint256 size = txs.transferSize();
-        Tx.Transfer[] memory txTxs = new Tx.Transfer[](size);
+        uint256 size = txs.create2TransferSize();
+        Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](size);
         for (uint256 i = 0; i < size; i++) {
-            txTxs[i] = txs.transferDecode(i);
+            txTxs[i] = txs.create2TransferDecode(i);
         }
         return txTxs;
     }
@@ -64,25 +66,34 @@ contract FrontendTransfer {
     function valiate(
         bytes calldata encodedTx,
         uint256[2] calldata signature,
-        uint256[4] calldata pubkey,
+        uint256[4] calldata pubkeySender,
+        uint256[4] calldata pubkeyReceiver,
         bytes32 domain
     ) external view {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
+        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
+            encodedTx
+        );
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
-        Tx.Transfer memory txTx = Tx.Transfer(
+        Tx.Create2Transfer memory txTx = Tx.Create2Transfer(
             _tx.fromIndex,
             _tx.toIndex,
+            _tx.toAccID,
             _tx.amount,
             _tx.fee
         );
-        bytes memory txMsg = Tx.transferMessageOf(txTx, _tx.nonce);
+        bytes memory txMsg = Tx.create2TransferMessageOf(
+            txTx,
+            _tx.nonce,
+            pubkeySender,
+            pubkeyReceiver
+        );
 
         bool callSuccess;
         bool checkSuccess;
         (checkSuccess, callSuccess) = BLS.verifySingle(
             signature,
-            pubkey,
+            pubkeySender,
             BLS.hashToPoint(domain, txMsg)
         );
         require(callSuccess, "Precompile call failed");
@@ -102,7 +113,9 @@ contract FrontendTransfer {
             Types.Result result
         )
     {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
+        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
+            encodedTx
+        );
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         Types.UserState memory receiver = Types.decodeState(receiverEncoded);
         uint256 tokenType = sender.tokenType;
@@ -128,28 +141,35 @@ contract FrontendTransfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32 newRoot, Types.Result result) {
-        Offchain.Transfer memory offchainTx = Offchain.decodeTransfer(
-            encodedTx
-        );
-        Tx.Transfer memory _tx = Tx.Transfer(
+        Offchain.Create2Transfer memory offchainTx = Offchain
+            .decodeCreate2Transfer(encodedTx);
+        Tx.Create2Transfer memory _tx = Tx.Create2Transfer(
             offchainTx.fromIndex,
             offchainTx.toIndex,
+            offchainTx.toAccID,
             offchainTx.amount,
             offchainTx.fee
         );
-        return Transition.processTransfer(stateRoot, _tx, tokenType, from, to);
+        return
+            Transition.processCreate2Transfer(
+                stateRoot,
+                _tx,
+                tokenType,
+                from,
+                to
+            );
     }
 
     function checkSignature(
         uint256[2] memory signature,
-        Types.SignatureProof memory proof,
+        Types.SignatureProofWithReceiver memory proof,
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
         return
-            Authenticity.verifyTransfer(
+            Authenticity.verifyCreate2Transfer(
                 signature,
                 proof,
                 stateRoot,

@@ -8,24 +8,24 @@ import { Authenticity } from "../libs/Authenticity.sol";
 import { BLS } from "../libs/BLS.sol";
 import { Offchain } from "./Offchain.sol";
 
-contract FrontendTransfer {
+contract FrontendMassMigration {
     using Tx for bytes;
     using Types for Types.UserState;
 
     function decode(bytes calldata encodedTx)
         external
         pure
-        returns (Offchain.Transfer memory _tx)
+        returns (Offchain.MassMigration memory _tx)
     {
-        return Offchain.decodeTransfer(encodedTx);
+        return Offchain.decodeMassMigration(encodedTx);
     }
 
-    function encode(Offchain.Transfer calldata _tx)
+    function encode(Offchain.MassMigration calldata _tx)
         external
         pure
         returns (bytes memory)
     {
-        return Offchain.encodeTransfer(_tx);
+        return Offchain.encodeMassMigration(_tx);
     }
 
     function compress(bytes[] calldata encodedTxs)
@@ -33,17 +33,14 @@ contract FrontendTransfer {
         pure
         returns (bytes memory)
     {
-        Tx.Transfer[] memory txTxs = new Tx.Transfer[](encodedTxs.length);
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](
+            encodedTxs.length
+        );
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.Transfer memory _tx = Offchain.decodeTransfer(
+            Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
                 encodedTxs[i]
             );
-            txTxs[i] = Tx.Transfer(
-                _tx.fromIndex,
-                _tx.toIndex,
-                _tx.amount,
-                _tx.fee
-            );
+            txTxs[i] = Tx.MassMigration(_tx.fromIndex, _tx.amount, _tx.fee);
         }
         return Tx.serialize(txTxs);
     }
@@ -51,12 +48,12 @@ contract FrontendTransfer {
     function decompress(bytes calldata txs)
         external
         pure
-        returns (Tx.Transfer[] memory)
+        returns (Tx.MassMigration[] memory)
     {
-        uint256 size = txs.transferSize();
-        Tx.Transfer[] memory txTxs = new Tx.Transfer[](size);
+        uint256 size = txs.massMigrationSize();
+        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](size);
         for (uint256 i = 0; i < size; i++) {
-            txTxs[i] = txs.transferDecode(i);
+            txTxs[i] = txs.massMigrationDecode(i);
         }
         return txTxs;
     }
@@ -65,18 +62,24 @@ contract FrontendTransfer {
         bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
+        uint256 spokeID,
         bytes32 domain
     ) external view {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
+        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+            encodedTx
+        );
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
-        Tx.Transfer memory txTx = Tx.Transfer(
+        Tx.MassMigration memory txTx = Tx.MassMigration(
             _tx.fromIndex,
-            _tx.toIndex,
             _tx.amount,
             _tx.fee
         );
-        bytes memory txMsg = Tx.transferMessageOf(txTx, _tx.nonce);
+        bytes memory txMsg = Tx.massMigrationMessageOf(
+            txTx,
+            _tx.nonce,
+            spokeID
+        );
 
         bool callSuccess;
         bool checkSuccess;
@@ -102,7 +105,9 @@ contract FrontendTransfer {
             Types.Result result
         )
     {
-        Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
+        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
+            encodedTx
+        );
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         Types.UserState memory receiver = Types.decodeState(receiverEncoded);
         uint256 tokenType = sender.tokenType;
@@ -125,19 +130,25 @@ contract FrontendTransfer {
         bytes32 stateRoot,
         bytes memory encodedTx,
         uint256 tokenType,
-        Types.StateMerkleProof memory from,
-        Types.StateMerkleProof memory to
-    ) public pure returns (bytes32 newRoot, Types.Result result) {
-        Offchain.Transfer memory offchainTx = Offchain.decodeTransfer(
+        Types.StateMerkleProof memory from
+    )
+        public
+        pure
+        returns (
+            bytes32 newRoot,
+            bytes memory freshState,
+            Types.Result result
+        )
+    {
+        Offchain.MassMigration memory offchainTx = Offchain.decodeMassMigration(
             encodedTx
         );
-        Tx.Transfer memory _tx = Tx.Transfer(
+        Tx.MassMigration memory _tx = Tx.MassMigration(
             offchainTx.fromIndex,
-            offchainTx.toIndex,
             offchainTx.amount,
             offchainTx.fee
         );
-        return Transition.processTransfer(stateRoot, _tx, tokenType, from, to);
+        return Transition.processMassMigration(stateRoot, _tx, tokenType, from);
     }
 
     function checkSignature(
@@ -146,15 +157,17 @@ contract FrontendTransfer {
         bytes32 stateRoot,
         bytes32 accountRoot,
         bytes32 domain,
+        uint256 spokeID,
         bytes memory txs
     ) public view returns (Types.Result) {
         return
-            Authenticity.verifyTransfer(
+            Authenticity.verifyMassMigration(
                 signature,
                 proof,
                 stateRoot,
                 accountRoot,
                 domain,
+                spokeID,
                 txs
             );
     }
