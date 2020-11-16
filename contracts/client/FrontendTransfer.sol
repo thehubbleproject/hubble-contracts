@@ -1,7 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Tx } from "../libs/Tx.sol";
 import { Types } from "../libs/Types.sol";
 import { Transition } from "../libs/Transition.sol";
@@ -9,8 +8,7 @@ import { Authenticity } from "../libs/Authenticity.sol";
 import { BLS } from "../libs/BLS.sol";
 import { Offchain } from "./Offchain.sol";
 
-contract ClientFrontend {
-    using SafeMath for uint256;
+contract FrontendTransfer {
     using Tx for bytes;
     using Types for Types.UserState;
 
@@ -159,21 +157,5 @@ contract ClientFrontend {
                 domain,
                 txs
             );
-    }
-
-    function encode(Types.UserState calldata state)
-        external
-        pure
-        returns (bytes memory)
-    {
-        return Types.encode(state);
-    }
-
-    function decodeState(bytes calldata stateBytes)
-        external
-        pure
-        returns (Types.UserState memory state)
-    {
-        return Types.decodeState(stateBytes);
     }
 }
