@@ -15,7 +15,10 @@ import { Signer, Contract } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
 import {
-    ClientFrontendFactory,
+    FrontendGenericFactory,
+    FrontendTransferFactory,
+    FrontendMassMigrationFactory,
+    FrontendCreate2TransferFactory,
     SpokeRegistryFactory,
     VaultFactory,
     WithdrawManagerFactory
@@ -53,8 +56,29 @@ export async function deployAll(
     const paramManager = await new ParamManagerFactory(signer).deploy();
     await waitAndRegister(paramManager, "paramManager", verbose);
 
-    const clientFrondend = await new ClientFrontendFactory(signer).deploy();
-    await waitAndRegister(clientFrondend, "clientFrondend", verbose);
+    const frontendGeneric = await new FrontendGenericFactory(signer).deploy();
+    await waitAndRegister(frontendGeneric, "frontendGeneric", verbose);
+
+    const frontendTransfer = await new FrontendTransferFactory(signer).deploy();
+    await waitAndRegister(frontendTransfer, "frontendTransfer", verbose);
+
+    const frontendMassMigration = await new FrontendMassMigrationFactory(
+        signer
+    ).deploy();
+    await waitAndRegister(
+        frontendMassMigration,
+        "frontendMassMigration",
+        verbose
+    );
+
+    const frontendCreate2Transfer = await new FrontendCreate2TransferFactory(
+        signer
+    ).deploy();
+    await waitAndRegister(
+        frontendCreate2Transfer,
+        "frontendCreate2Transfer",
+        verbose
+    );
 
     // deploy name registry
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
@@ -210,7 +234,10 @@ export async function deployAll(
 
     return {
         paramManager,
-        clientFrondend,
+        frontendGeneric,
+        frontendTransfer,
+        frontendMassMigration,
+        frontendCreate2Transfer,
         nameRegistry,
         logger,
         blsAccountRegistry,
