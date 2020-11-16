@@ -12,7 +12,7 @@ contract FrontendTransfer {
     using Tx for bytes;
     using Types for Types.UserState;
 
-    function decodeTransfer(bytes calldata encodedTx)
+    function decode(bytes calldata encodedTx)
         external
         pure
         returns (Offchain.Transfer memory _tx)
@@ -20,7 +20,7 @@ contract FrontendTransfer {
         return Offchain.decodeTransfer(encodedTx);
     }
 
-    function encodeTransfer(Offchain.Transfer calldata _tx)
+    function encode(Offchain.Transfer calldata _tx)
         external
         pure
         returns (bytes memory)
@@ -28,7 +28,7 @@ contract FrontendTransfer {
         return Offchain.encodeTransfer(_tx);
     }
 
-    function compressTransfer(bytes[] calldata encodedTxs)
+    function compress(bytes[] calldata encodedTxs)
         external
         pure
         returns (bytes memory)
@@ -48,7 +48,7 @@ contract FrontendTransfer {
         return Tx.serialize(txTxs);
     }
 
-    function decompressTransfer(bytes calldata txs)
+    function decompress(bytes calldata txs)
         external
         pure
         returns (Tx.Transfer[] memory txTxs)
@@ -61,7 +61,7 @@ contract FrontendTransfer {
         return txTxs;
     }
 
-    function valiateTransfer(
+    function valiate(
         bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
@@ -89,7 +89,7 @@ contract FrontendTransfer {
         require(checkSuccess, "Bad signature");
     }
 
-    function validateAndApplyTransfer(
+    function validateAndApply(
         bytes calldata senderEncoded,
         bytes calldata receiverEncoded,
         bytes calldata encodedTx
@@ -121,7 +121,7 @@ contract FrontendTransfer {
         return (sender.encode(), receiver.encode(), result);
     }
 
-    function processTransfer(
+    function process(
         bytes32 stateRoot,
         bytes memory encodedTx,
         uint256 tokenType,
@@ -140,7 +140,7 @@ contract FrontendTransfer {
         return Transition.processTransfer(stateRoot, _tx, tokenType, from, to);
     }
 
-    function checkSignatureTransfer(
+    function checkSignature(
         uint256[2] memory signature,
         Types.SignatureProof memory proof,
         bytes32 stateRoot,
