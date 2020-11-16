@@ -30,21 +30,4 @@ jobs:
     - run: npm run generate
     - run: npm run test
 
-    - name: Download previous benchmark data
-      id: benchmark-cache
-      uses: actions/cache@v2
-      with:
-        path: baseline.txt
-        key: ${{ runner.os }}-benchmark
-
-    - name: "Show previous run"
-      if:  steps.benchmark-cache.outputs.cache-hit == 'true'
-      run: cat baseline.txt
-
-    - name: "[only PR] Run PR benchmark"
-      if: github.ref != 'refs/heads/master'
-      run: npm run bench
-
-    - name: "[only master] Run master benchmark"
-      if: github.ref == 'refs/heads/master'
-      run: npm run bench | tee baseline.txt
+    - run: npm run bench
