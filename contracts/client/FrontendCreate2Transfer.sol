@@ -63,7 +63,7 @@ contract FrontendCreate2Transfer {
         return txTxs;
     }
 
-    function valiate(
+    function validate(
         bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkeySender,
