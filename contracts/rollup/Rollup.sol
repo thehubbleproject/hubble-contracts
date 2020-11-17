@@ -208,7 +208,14 @@ contract Rollup is RollupHelpers {
 
     bytes32 public appID;
 
-    constructor(address _registryAddr, bytes32 genesisStateRoot) public {
+    constructor(
+        address _registryAddr,
+        bytes32 genesisStateRoot,
+        uint256 stakeAmount,
+        uint256 blocksToFinalise,
+        uint256 minGasLeft,
+        uint256 maxTxsPerCommit
+    ) public {
         nameRegistry = Registry(_registryAddr);
 
         logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
@@ -224,6 +231,10 @@ contract Rollup is RollupHelpers {
         massMigration = MassMigration(
             nameRegistry.getContractDetails(ParamManager.massMigration())
         );
+        paramStakeAmount = stakeAmount;
+        paramBlocksToFinalise = blocksToFinalise;
+        paramMinGasLeft = minGasLeft;
+        paramMaxTxsPerCommit = maxTxsPerCommit;
 
         bytes32 genesisCommitment = keccak256(
             abi.encode(genesisStateRoot, ZERO_BYTES32)
