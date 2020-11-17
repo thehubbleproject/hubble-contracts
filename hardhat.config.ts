@@ -1,5 +1,4 @@
 import "@nomiclabs/hardhat-ethers";
-import "@nomiclabs/hardhat-waffle";
 
 module.exports = {
     defaultNetwork: "hardhat",
@@ -11,11 +10,11 @@ module.exports = {
     },
     solidity: {
         version: "0.5.15",
-        settings:{
+        settings: {
             optimizer: {
                 enabled: true,
                 runs: 200
-            },
+            }
         }
     },
     paths: {
