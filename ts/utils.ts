@@ -8,6 +8,8 @@ import {
     parseEther
 } from "ethers/lib/utils";
 import { Wei } from "./interfaces";
+import { ContractTransaction } from "ethers";
+import { assert, expect } from "chai";
 
 export const FIELD_ORDER = BigNumber.from(
     "0x30644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd47"
@@ -102,4 +104,18 @@ export async function merklise(dataLeaves: string[], maxDepth: number) {
         level += 1;
     }
     return nodes[0];
+}
+
+export async function expectRevert(
+    tx: Promise<ContractTransaction>,
+    revertReason: string
+) {
+    await tx.then(
+        () => {
+            assert.fail(`Expect tx to fail with reason: ${revertReason}`);
+        },
+        error => {
+            expect(error.message).to.have.string(revertReason);
+        }
+    );
 }

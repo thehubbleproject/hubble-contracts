@@ -7,12 +7,13 @@ import { State } from "../ts/state";
 import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
-import { assert, expect } from "chai";
+import { assert } from "chai";
 import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
 import { Tree } from "../ts/tree";
 import { mineBlocks } from "../ts/utils";
+import { expectRevert } from "../ts/utils";
 
 describe("Mass Migrations", async function() {
     const tokenID = 1;
@@ -180,9 +181,10 @@ describe("Mass Migrations", async function() {
 
         const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
 
-        await expect(
-            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0))
-        ).revertedWith("Vault: Batch shoould be finalised");
+        await expectRevert(
+            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
+            "Vault: Batch shoould be finalised"
+        );
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
 
@@ -228,7 +230,7 @@ describe("Mass Migrations", async function() {
             "Transaction cost: claiming a token",
             receiptClaim.gasUsed.toNumber()
         );
-        await expect(
+        await expectRevert(
             withdrawManager
                 .connect(claimer)
                 .claimTokens(
@@ -237,7 +239,8 @@ describe("Mass Migrations", async function() {
                     Alice.publicKey,
                     mcl.g1ToHex(signature),
                     registry.witness(Alice.pubkeyIndex)
-                )
-        ).revertedWith("WithdrawManager: Token has been claimed");
+                ),
+            "WithdrawManager: Token has been claimed"
+        );
     });
 });
