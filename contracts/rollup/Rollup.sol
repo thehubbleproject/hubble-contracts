@@ -5,7 +5,7 @@ import { ParamManager } from "../libs/ParamManager.sol";
 import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
 import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
-import { POB } from "../POB.sol";
+import { Chooser } from "../proposers/Chooser.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "../NameRegistry.sol";
 import { Transfer } from "../Transfer.sol";
@@ -26,6 +26,7 @@ contract RollupCore is BatchManager {
     Transfer public transfer;
     MassMigration public massMigration;
     Create2Transfer public create2Transfer;
+    Chooser public chooser;
 
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
@@ -35,12 +36,9 @@ contract RollupCore is BatchManager {
     event DepositsFinalised(bytes32 depositSubTreeRoot, uint256 pathToSubTree);
 
     modifier onlyCoordinator() {
-        POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
-        );
         require(
-            msg.sender == pobContract.getCoordinator(),
-            "Rollup: Not coordinator"
+            msg.sender == chooser.getProposer(),
+            "Rollup: Not the proposer"
         );
         _;
     }
