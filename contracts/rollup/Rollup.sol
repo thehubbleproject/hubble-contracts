@@ -13,8 +13,8 @@ import { NameRegistry as Registry } from "../NameRegistry.sol";
 import { DepositManager } from "../DepositManager.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
-import { StakeManager } from "./StakeManager.sol";
 import { Parameters } from "./Parameters.sol";
+import { Bitmap } from "../libs/Bitmap.sol";
 
 contract RollupSetup {
     using SafeMath for uint256;
@@ -33,6 +33,9 @@ contract RollupSetup {
     MassMigration public massMigration;
 
     Types.Batch[] public batches;
+
+    // batchID -> hasWithdrawn
+    mapping(uint256 => uint256) public withdrawalBitmap;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
@@ -110,7 +113,7 @@ contract RollupSetup {
     }
 }
 
-contract RollupHelpers is RollupSetup, StakeManager, Parameters {
+contract RollupHelpers is RollupSetup, Parameters {
     /**
      * @notice Returns the total number of batches submitted
      */
@@ -152,6 +155,8 @@ contract RollupHelpers is RollupSetup, StakeManager, Parameters {
             // and rollback remaining batches
             if (gasleft() <= paramMinGasLeft) break;
 
+            totalSlashings += paramStakeAmount;
+
             delete batches[batchID];
 
             // queue deposits again
@@ -168,7 +173,10 @@ contract RollupHelpers is RollupSetup, StakeManager, Parameters {
                 break;
             }
         }
-        rewardAndBurn(msg.sender, initialBatchID, totalSlashings);
+        uint256 reward = totalSlashings.mul(2).div(3);
+        uint256 burn = totalSlashings.sub(reward);
+        msg.sender.transfer(reward);
+        address(0).transfer(burn);
         // resize batches length
         batches.length = batches.length.sub(totalSlashings);
 
@@ -263,6 +271,7 @@ contract Rollup is RollupHelpers {
         uint256 size,
         Types.Usage batchType
     ) internal {
+        require(msg.value >= paramStakeAmount, "Rollup: wrong stake amount");
         Types.Batch memory newBatch = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
@@ -273,7 +282,6 @@ contract Rollup is RollupHelpers {
             )
         });
         batches.push(newBatch);
-        stake(batches.length - 1, paramStakeAmount);
         logger.logNewBatch(msg.sender, batches.length - 1, batchType);
     }
 
@@ -556,7 +564,13 @@ contract Rollup is RollupHelpers {
             block.number > batches[batchID].finaliseOn(),
             "This batch is not yet finalised, check back soon!"
         );
-        withdraw(msg.sender, batchID);
+        require(
+            !Bitmap.isClaimed(batchID, withdrawalBitmap),
+            "Rollup: Already withdrawn"
+        );
+        Bitmap.setClaimed(batchID, withdrawalBitmap);
+
+        msg.sender.transfer(paramStakeAmount);
         logger.logStakeWithdraw(msg.sender, batchID);
     }
 }
