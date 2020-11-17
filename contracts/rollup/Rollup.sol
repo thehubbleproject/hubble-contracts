@@ -155,8 +155,8 @@ contract RollupHelpers is RollupSetup, Parameters {
             // and rollback remaining batches
             if (gasleft() <= paramMinGasLeft) break;
 
+            Bitmap.setClaimed(batchID, withdrawalBitmap);
             totalSlashings += paramStakeAmount;
-
             delete batches[batchID];
 
             // queue deposits again
