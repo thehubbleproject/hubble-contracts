@@ -1,5 +1,4 @@
 pragma solidity ^0.5.15;
-import { POB } from "./POB.sol";
 
 interface ITokenRegistry {
     event RegisteredToken(uint256 tokenType, address tokenContract);

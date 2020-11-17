@@ -5,7 +5,6 @@ import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
-import { POB } from "./POB.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
 interface IDepositManager {
