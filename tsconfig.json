@@ -18,8 +18,6 @@
   "include": ["**/*.ts"],
   "exclude": ["node_modules", "example", "build"],
   "files": [
-    "./hardhat.config.ts",
-    "./node_modules/@nomiclabs/hardhat-ethers/src/type-extensions.d.ts",
-    "./node_modules/@nomiclabs/hardhat-waffle/src/type-extensions.d.ts"
+    "./hardhat.config.ts"
   ]
 }
