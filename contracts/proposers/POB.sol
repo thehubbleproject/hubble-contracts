@@ -1,16 +1,15 @@
 pragma solidity ^0.5.15;
 
-/*
-POB contract handles all the proof of burn related functionality
-*/
-contract POB {
+import { Chooser } from "./Chooser.sol";
+
+contract ProofOfBurn is Chooser {
     address public coordinator;
 
     constructor() public {
         coordinator = msg.sender;
     }
 
-    function getCoordinator() public view returns (address) {
+    function getProposer() public view returns (address) {
         return coordinator;
     }
 }
