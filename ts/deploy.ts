@@ -203,7 +203,11 @@ export async function deployAll(
     // deploy Rollup core
     const rollup = await new RollupFactory(allLinkRefs, signer).deploy(
         nameRegistry.address,
-        root
+        root,
+        parameters.STAKE_AMOUNT,
+        parameters.BLOCKS_TO_FINALISE,
+        parameters.MIN_GAS_LEFT,
+        parameters.MAX_DEPOSIT_SUBTREE_DEPTH
     );
     await waitAndRegister(
         rollup,
@@ -212,10 +216,6 @@ export async function deployAll(
         nameRegistry,
         await paramManager.rollupCore()
     );
-    await rollup.setStakeAmount(parameters.STAKE_AMOUNT);
-    await rollup.setBlocksToFinalise(parameters.BLOCKS_TO_FINALISE);
-    await rollup.setMinGasLeft(parameters.MIN_GAS_LEFT);
-    await rollup.setMaxTxsPerCommit(parameters.MAX_DEPOSIT_SUBTREE_DEPTH);
 
     await vault.setRollupAddress();
 
