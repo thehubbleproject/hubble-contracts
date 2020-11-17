@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { assert, expect } from "chai";
+import { assert } from "chai";
 import { constants } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
 import { allContracts } from "../ts/allContractsInterfaces";
@@ -78,28 +78,37 @@ describe("DepositManager", async function() {
             [deposit0.toStateLeaf(), deposit1.toStateLeaf()]
         );
 
-        const gasCost0 = await depositManager.estimateGas.depositFor(
-            0,
-            10,
-            tokenType
+        const txDeposit0 = await depositManager.depositFor(0, 10, tokenType);
+        console.log(
+            "Deposit 0 transaction cost",
+            (await txDeposit0.wait()).gasUsed.toNumber()
         );
-        console.log("Deposit 0 transaction cost", gasCost0.toNumber());
 
-        await expect(depositManager.depositFor(0, 10, tokenType))
-            .to.emit(logger, "DepositQueued")
-            .withArgs(0, deposit0.encode());
-
-        const gasCost1 = await depositManager.estimateGas.depositFor(
-            1,
-            10,
-            tokenType
+        const [event0] = await logger.queryFilter(
+            logger.filters.DepositQueued(null, null),
+            txDeposit0.blockHash
         );
-        console.log("Deposit 1 transaction cost", gasCost1.toNumber());
 
-        await expect(depositManager.depositFor(1, 10, tokenType))
-            .to.emit(logger, "DepositQueued")
-            .withArgs(1, deposit1.encode())
-            .and.to.emit(logger, "DepositSubTreeReady")
-            .withArgs(pendingDeposit);
+        assert.equal(event0.args?.pubkeyID.toNumber(), 0);
+        assert.equal(event0.args?.data, deposit0.encode());
+
+        const txDeposit1 = await depositManager.depositFor(1, 10, tokenType);
+        console.log(
+            "Deposit 1 transaction cost",
+            (await txDeposit1.wait()).gasUsed.toNumber()
+        );
+        const [event1] = await logger.queryFilter(
+            logger.filters.DepositQueued(null, null),
+            txDeposit1.blockHash
+        );
+
+        assert.equal(event1.args?.pubkeyID.toNumber(), 1);
+        assert.equal(event1.args?.data, deposit1.encode());
+
+        const [eventReady] = await logger.queryFilter(
+            logger.filters.DepositSubTreeReady(null),
+            txDeposit1.blockHash
+        );
+        assert.equal(eventReady.args?.root, pendingDeposit);
     });
 });
