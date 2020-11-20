@@ -136,27 +136,22 @@ contract RollupHelpers is RollupSetup, Parameters {
         batch = batches[batchID];
     }
 
-    /**
-     * @notice slashAndRollback slashes all the coordinator's who have built on top of the invalid batch
-     * and rewards challengers. Also deletes all the batches after invalid batch
-     * Its a public function because we will need to pause if we are not able to delete all batches in one tx
-     */
-    function slashAndRollback() public isRollingBack {
-        uint256 totalSlashings = 0;
-        uint256 initialBatchID = batches.length - 1;
+    function startRollingBack(uint256 invalidBatchID) internal {
+        require(
+            invalidBatchMarker == 0 || invalidBatchID < invalidBatchMarker,
+            "Rollup: Not a better rollback"
+        );
+        invalidBatchMarker = invalidBatchID;
+        rollback();
+    }
 
-        for (
-            uint256 batchID = initialBatchID;
-            batchID >= invalidBatchMarker;
-            batchID--
-        ) {
-            // if gas left is low we would like to do all the transfers
-            // and persist intermediate states so someone else can send another tx
-            // and rollback remaining batches
+    function rollback() internal {
+        uint256 totalSlashings = 0;
+        uint256 batchID = batches.length - 1;
+        for (; batchID >= invalidBatchMarker; batchID--) {
             if (gasleft() <= paramMinGasLeft) break;
 
             Bitmap.setClaimed(batchID, withdrawalBitmap);
-            totalSlashings += paramStakeAmount;
             delete batches[batchID];
 
             // queue deposits again
@@ -165,22 +160,22 @@ contract RollupHelpers is RollupSetup, Parameters {
             totalSlashings++;
 
             logger.logBatchRollback(batchID);
-
-            if (batchID == invalidBatchMarker) {
-                // we have completed rollback
-                // update the marker
-                invalidBatchMarker = 0;
-                break;
-            }
         }
-        uint256 reward = totalSlashings.mul(2).div(3);
-        uint256 burn = totalSlashings.sub(reward);
+        if (batchID == invalidBatchMarker) invalidBatchMarker = 0;
+
+        uint256 slashedAmount = totalSlashings.mul(paramStakeAmount);
+        uint256 reward = slashedAmount.mul(2).div(3);
+        uint256 burn = slashedAmount.sub(reward);
         msg.sender.transfer(reward);
         address(0).transfer(burn);
         // resize batches length
         batches.length = batches.length.sub(totalSlashings);
 
         logger.logRollbackFinalisation(totalSlashings);
+    }
+
+    function keepRollingBack() external isRollingBack {
+        rollback();
     }
 
     function checkInclusion(
@@ -293,7 +288,7 @@ contract Rollup is RollupHelpers {
         uint256[2][] calldata signatures,
         uint256[] calldata feeReceivers,
         bytes[] calldata txss
-    ) external payable onlyCoordinator {
+    ) external payable onlyCoordinator isNotRollingBack {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
@@ -324,7 +319,7 @@ contract Rollup is RollupHelpers {
         uint256[2][] calldata signatures,
         uint256[] calldata feeReceivers,
         bytes[] calldata txss
-    ) external payable onlyCoordinator {
+    ) external payable onlyCoordinator isNotRollingBack {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
@@ -357,7 +352,7 @@ contract Rollup is RollupHelpers {
         uint256[4][] calldata meta,
         bytes32[] calldata withdrawRoots,
         bytes[] calldata txss
-    ) external payable onlyCoordinator {
+    ) external payable onlyCoordinator isNotRollingBack {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         for (uint256 i = 0; i < stateRoots.length; i++) {
@@ -457,13 +452,7 @@ contract Rollup is RollupHelpers {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) {
-            // before rolling back mark the batch invalid
-            // so we can pause and unpause
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-            return;
-        }
+        ) startRollingBack(batchID);
     }
 
     function disputeTransitionMassMigration(
@@ -492,13 +481,7 @@ contract Rollup is RollupHelpers {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) {
-            // before rolling back mark the batch invalid
-            // so we can pause and unpause
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-            return;
-        }
+        ) startRollingBack(batchID);
     }
 
     function disputeSignatureTransfer(
@@ -520,10 +503,7 @@ contract Rollup is RollupHelpers {
             target.commitment.body.txs
         );
 
-        if (result != Types.Result.Ok) {
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-        }
+        if (result != Types.Result.Ok) startRollingBack(batchID);
     }
 
     function disputeSignatureMassMigration(
@@ -546,10 +526,7 @@ contract Rollup is RollupHelpers {
             target.commitment.body.txs
         );
 
-        if (result != Types.Result.Ok) {
-            invalidBatchMarker = batchID;
-            slashAndRollback();
-        }
+        if (result != Types.Result.Ok) startRollingBack(batchID);
     }
 
     /**
