@@ -55,16 +55,15 @@ describe("Rollback", function() {
         console.log("Gas usage out of the loop", gasleft.toNumber());
     });
 
-    for (const gasLimit of [500000, 1000000, 2000000, 3000000]) {
-        it(`Test a long rollback with gasLimit ${gasLimit}`, async function() {
-            const batchID = await getTipBatchID();
-            await rollup.testRollback(1, { gasLimit });
-            console.log(
-                `Number of batch you can revert with ${gasLimit} gas`,
-                batchID - (await getTipBatchID())
-            );
-        });
-    }
+    it("Test a long rollback", async function() {
+        const nBatches = await getTipBatchID();
+        const tx = await rollup.testRollback(1, { gasLimit: 9500000 });
+        // Want to roll all the way to the start
+        assert.equal(await getTipBatchID(), 0);
+        const gasUsed = (await tx.wait()).gasUsed.toNumber();
+        console.log(`Rolled back ${nBatches} batches with ${gasUsed} gas`);
+        console.log("gas per batch rolled back", gasUsed / nBatches);
+    });
     it("Test keep rolling back", async function() {
         const tipBatchID = numOfBatches - 1;
         const badBatchID = tipBatchID - 20;
