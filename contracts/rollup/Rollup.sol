@@ -1,7 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ParamManager } from "../libs/ParamManager.sol";
 import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
@@ -13,13 +12,10 @@ import { NameRegistry as Registry } from "../NameRegistry.sol";
 import { DepositManager } from "../DepositManager.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
-import { Parameters } from "./Parameters.sol";
-import { Bitmap } from "../libs/Bitmap.sol";
+import { BatchManager } from "./BatchManager.sol";
 
-contract RollupSetup {
-    using SafeMath for uint256;
+contract RollupCore is BatchManager {
     using Tx for bytes;
-    using Types for Types.Batch;
     using Types for Types.Commitment;
     using Types for Types.TransferCommitment;
     using Types for Types.MassMigrationCommitment;
@@ -27,48 +23,20 @@ contract RollupSetup {
     // External contracts
     DepositManager public depositManager;
     BLSAccountRegistry public accountRegistry;
-    Logger public logger;
     Registry public nameRegistry;
     Transfer public transfer;
     MassMigration public massMigration;
 
-    Types.Batch[] public batches;
+    bytes32
+        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
-    // batchID -> hasWithdrawn
-    mapping(uint256 => uint256) public withdrawalBitmap;
-
-    // this variable will be greater than 0 if
-    // there is rollback in progress
-    // will be reset to 0 once rollback is completed
-    uint256 public invalidBatchMarker;
+    bytes32 public appID;
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
         require(msg.sender == pobContract.getCoordinator());
-        _;
-    }
-
-    modifier isNotRollingBack() {
-        require(invalidBatchMarker == 0);
-        _;
-    }
-
-    modifier isRollingBack() {
-        require(invalidBatchMarker > 0);
-        _;
-    }
-    modifier isDisputable(uint256 batchID) {
-        require(
-            block.number < batches[batchID].finaliseOn(),
-            "Batch already finalised"
-        );
-
-        require(
-            batchID < invalidBatchMarker || invalidBatchMarker == 0,
-            "Already successfully disputed. Roll back in process"
-        );
         _;
     }
 
@@ -111,72 +79,6 @@ contract RollupSetup {
         );
         _;
     }
-}
-
-contract RollupHelpers is RollupSetup, Parameters {
-    /**
-     * @notice Returns the total number of batches submitted
-     */
-    function numOfBatchesSubmitted() public view returns (uint256) {
-        return batches.length;
-    }
-
-    /**
-     * @notice Returns the batch
-     */
-    function getBatch(uint256 batchID)
-        external
-        view
-        returns (Types.Batch memory batch)
-    {
-        require(
-            batches.length - 1 >= batchID,
-            "Batch id greater than total number of batches, invalid batch id"
-        );
-        batch = batches[batchID];
-    }
-
-    function startRollingBack(uint256 invalidBatchID) internal {
-        require(
-            invalidBatchMarker == 0 || invalidBatchID < invalidBatchMarker,
-            "Rollup: Not a better rollback"
-        );
-        invalidBatchMarker = invalidBatchID;
-        rollback();
-    }
-
-    function rollback() internal {
-        uint256 totalSlashings = 0;
-        uint256 batchID = batches.length - 1;
-        for (; batchID >= invalidBatchMarker; batchID--) {
-            if (gasleft() <= paramMinGasLeft) break;
-
-            Bitmap.setClaimed(batchID, withdrawalBitmap);
-            delete batches[batchID];
-
-            // queue deposits again
-            depositManager.tryReenqueue(batchID);
-
-            totalSlashings++;
-
-            logger.logBatchRollback(batchID);
-        }
-        if (batchID == invalidBatchMarker) invalidBatchMarker = 0;
-
-        uint256 slashedAmount = totalSlashings.mul(paramStakeAmount);
-        uint256 reward = slashedAmount.mul(2).div(3);
-        uint256 burn = slashedAmount.sub(reward);
-        msg.sender.transfer(reward);
-        address(0).transfer(burn);
-        // resize batches length
-        batches.length = batches.length.sub(totalSlashings);
-
-        logger.logRollbackFinalisation(totalSlashings);
-    }
-
-    function keepRollingBack() external isRollingBack {
-        rollback();
-    }
 
     function checkInclusion(
         bytes32 root,
@@ -202,82 +104,6 @@ contract RollupHelpers is RollupSetup, Parameters {
                 proof.path,
                 proof.witness
             );
-    }
-}
-
-contract Rollup is RollupHelpers {
-    bytes32
-        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
-
-    bytes32 public appID;
-
-    constructor(
-        address _registryAddr,
-        bytes32 genesisStateRoot,
-        uint256 stakeAmount,
-        uint256 blocksToFinalise,
-        uint256 minGasLeft,
-        uint256 maxTxsPerCommit
-    ) public {
-        nameRegistry = Registry(_registryAddr);
-
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
-        depositManager = DepositManager(
-            nameRegistry.getContractDetails(ParamManager.depositManager())
-        );
-        accountRegistry = BLSAccountRegistry(
-            nameRegistry.getContractDetails(ParamManager.accountRegistry())
-        );
-        transfer = Transfer(
-            nameRegistry.getContractDetails(ParamManager.transferSimple())
-        );
-        massMigration = MassMigration(
-            nameRegistry.getContractDetails(ParamManager.massMigration())
-        );
-        paramStakeAmount = stakeAmount;
-        paramBlocksToFinalise = blocksToFinalise;
-        paramMinGasLeft = minGasLeft;
-        paramMaxTxsPerCommit = maxTxsPerCommit;
-
-        bytes32 genesisCommitment = keccak256(
-            abi.encode(genesisStateRoot, ZERO_BYTES32)
-        );
-
-        // Same effect as `MerkleTree.merklise`
-        bytes32 commitmentRoot = keccak256(
-            abi.encode(genesisCommitment, ZERO_BYTES32)
-        );
-        Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: commitmentRoot,
-            meta: Types.encodeMeta(
-                uint256(Types.Usage.Genesis),
-                1,
-                msg.sender,
-                block.number // genesis finalise instantly
-            )
-        });
-        batches.push(newBatch);
-        logger.logNewBatch(msg.sender, batches.length - 1, Types.Usage.Genesis);
-        appID = keccak256(abi.encodePacked(address(this)));
-    }
-
-    function submitBatch(
-        bytes32 commitmentRoot,
-        uint256 size,
-        Types.Usage batchType
-    ) internal {
-        require(msg.value >= paramStakeAmount, "Rollup: wrong stake amount");
-        Types.Batch memory newBatch = Types.Batch({
-            commitmentRoot: commitmentRoot,
-            meta: Types.encodeMeta(
-                uint256(batchType),
-                size,
-                msg.sender,
-                block.number + paramBlocksToFinalise
-            )
-        });
-        batches.push(newBatch);
-        logger.logNewBatch(msg.sender, batches.length - 1, batchType);
     }
 
     /**
@@ -528,26 +354,56 @@ contract Rollup is RollupHelpers {
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
     }
+}
 
-    /**
-     * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
-     */
-    function withdrawStake(uint256 batchID) public {
-        require(
-            msg.sender == batches[batchID].committer(),
-            "You are not the correct committer for this batch"
-        );
-        require(
-            block.number > batches[batchID].finaliseOn(),
-            "This batch is not yet finalised, check back soon!"
-        );
-        require(
-            !Bitmap.isClaimed(batchID, withdrawalBitmap),
-            "Rollup: Already withdrawn"
-        );
-        Bitmap.setClaimed(batchID, withdrawalBitmap);
+contract Rollup is RollupCore {
+    constructor(
+        address _registryAddr,
+        bytes32 genesisStateRoot,
+        uint256 stakeAmount,
+        uint256 blocksToFinalise,
+        uint256 minGasLeft,
+        uint256 maxTxsPerCommit
+    ) public {
+        nameRegistry = Registry(_registryAddr);
 
-        msg.sender.transfer(paramStakeAmount);
-        logger.logStakeWithdraw(msg.sender, batchID);
+        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
+        depositManager = DepositManager(
+            nameRegistry.getContractDetails(ParamManager.depositManager())
+        );
+        accountRegistry = BLSAccountRegistry(
+            nameRegistry.getContractDetails(ParamManager.accountRegistry())
+        );
+        transfer = Transfer(
+            nameRegistry.getContractDetails(ParamManager.transferSimple())
+        );
+        massMigration = MassMigration(
+            nameRegistry.getContractDetails(ParamManager.massMigration())
+        );
+        paramStakeAmount = stakeAmount;
+        paramBlocksToFinalise = blocksToFinalise;
+        paramMinGasLeft = minGasLeft;
+        paramMaxTxsPerCommit = maxTxsPerCommit;
+
+        bytes32 genesisCommitment = keccak256(
+            abi.encode(genesisStateRoot, ZERO_BYTES32)
+        );
+
+        // Same effect as `MerkleTree.merklise`
+        bytes32 commitmentRoot = keccak256(
+            abi.encode(genesisCommitment, ZERO_BYTES32)
+        );
+        Types.Batch memory newBatch = Types.Batch({
+            commitmentRoot: commitmentRoot,
+            meta: Types.encodeMeta(
+                uint256(Types.Usage.Genesis),
+                1,
+                msg.sender,
+                block.number // genesis finalise instantly
+            )
+        });
+        batches.push(newBatch);
+        logger.logNewBatch(msg.sender, batches.length - 1, Types.Usage.Genesis);
+        appID = keccak256(abi.encodePacked(address(this)));
     }
 }
