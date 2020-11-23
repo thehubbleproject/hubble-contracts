@@ -72,8 +72,11 @@ contract BatchManager is Parameters {
 
     function rollback() internal {
         uint256 totalSlashings = 0;
-        uint256 batchID = batches.length - 1;
-        for (; batchID >= invalidBatchMarker; batchID--) {
+        for (
+            uint256 batchID = batches.length - 1;
+            batchID >= invalidBatchMarker;
+            batchID--
+        ) {
             if (gasleft() <= paramMinGasLeft) break;
 
             Bitmap.setClaimed(batchID, withdrawalBitmap);
@@ -83,18 +86,17 @@ contract BatchManager is Parameters {
             // depositManager.tryReenqueue(batchID);
 
             totalSlashings++;
+            batches.length--;
 
             logger.logBatchRollback(batchID);
         }
-        if (batchID == invalidBatchMarker) invalidBatchMarker = 0;
+        if (batches.length == invalidBatchMarker) invalidBatchMarker = 0;
 
         uint256 slashedAmount = totalSlashings.mul(paramStakeAmount);
         uint256 reward = slashedAmount.mul(2).div(3);
         uint256 burn = slashedAmount.sub(reward);
         msg.sender.transfer(reward);
         address(0).transfer(burn);
-        // resize batches length
-        batches.length = batches.length.sub(totalSlashings);
 
         logger.logRollbackFinalisation(totalSlashings);
     }
