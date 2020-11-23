@@ -9,10 +9,10 @@ import { Logger } from "../Logger.sol";
 import { POB } from "../POB.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "../NameRegistry.sol";
-import { DepositManager } from "../DepositManager.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
 import { BatchManager } from "./BatchManager.sol";
+import { IDepositManager } from "../DepositManager.sol";
 
 contract RollupCore is BatchManager {
     using Tx for bytes;
@@ -21,7 +21,6 @@ contract RollupCore is BatchManager {
     using Types for Types.MassMigrationCommitment;
 
     // External contracts
-    DepositManager public depositManager;
     BLSAccountRegistry public accountRegistry;
     Registry public nameRegistry;
     Transfer public transfer;
@@ -225,11 +224,10 @@ contract RollupCore is BatchManager {
             ),
             "Rollup: State subtree is not vacant"
         );
+        bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit();
         uint256 postBatchID = preBatchID + 1;
         // This deposit subtree is included in the batch whose ID is postBatchID
-        bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit(
-            postBatchID
-        );
+        deposits[postBatchID] = depositSubTreeRoot;
         logger.logDepositFinalised(depositSubTreeRoot, vacant.pathAtDepth);
 
         bytes32 newRoot = MerkleTree.computeRoot(
@@ -368,7 +366,7 @@ contract Rollup is RollupCore {
         nameRegistry = Registry(_registryAddr);
 
         logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
-        depositManager = DepositManager(
+        depositManager = IDepositManager(
             nameRegistry.getContractDetails(ParamManager.depositManager())
         );
         accountRegistry = BLSAccountRegistry(

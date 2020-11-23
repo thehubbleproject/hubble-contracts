@@ -1,11 +1,18 @@
 import { assert, expect } from "chai";
 import { ethers } from "hardhat";
 import { TESTING_PARAMS } from "../ts/constants";
-import { LoggerFactory, TestRollupFactory } from "../types/ethers-contracts";
+import { randHex } from "../ts/utils";
+import {
+    LoggerFactory,
+    MockDepositManagerFactory,
+    TestRollupFactory
+} from "../types/ethers-contracts";
+import { MockDepositManager } from "../types/ethers-contracts/MockDepositManager";
 import { TestRollup } from "../types/ethers-contracts/TestRollup";
 
 describe("Rollback", function() {
     let rollup: TestRollup;
+    let depositManager: MockDepositManager;
     const param = TESTING_PARAMS;
     const numOfBatches = 250;
 
@@ -16,14 +23,22 @@ describe("Rollback", function() {
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
         const logger = await new LoggerFactory(signer).deploy();
+        depositManager = await new MockDepositManagerFactory(signer).deploy();
         rollup = await new TestRollupFactory(signer).deploy(
             logger.address,
+            depositManager.address,
             param.STAKE_AMOUNT,
             param.BLOCKS_TO_FINALISE,
             param.MIN_GAS_LEFT
         );
         for (let i = 0; i < numOfBatches; i++) {
-            await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
+            if (i % 2 == 0) {
+                await rollup.submitDeposits(randHex(32), {
+                    value: param.STAKE_AMOUNT
+                });
+            } else {
+                await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
+            }
         }
     });
     it("Test rollback exactly 1 batch", async function() {
@@ -62,5 +77,28 @@ describe("Rollback", function() {
         assert.equal(Number(await rollup.invalidBatchMarker()), 0);
         assert.equal(await getTipBatchID(), goodBatchID);
     });
-    it("Test rollback with deposits");
+    it("Test rollback with deposits", async function() {
+        const badBatchID = await getTipBatchID();
+        const [subtree1, subtree2, subtree3] = [
+            randHex(32),
+            randHex(32),
+            randHex(32)
+        ];
+        await rollup.submitDeposits(subtree1, { value: param.STAKE_AMOUNT });
+        await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
+        await rollup.submitDeposits(subtree2, { value: param.STAKE_AMOUNT });
+        await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
+        await rollup.submitDeposits(subtree3, { value: param.STAKE_AMOUNT });
+        const tx = await rollup.testRollback(badBatchID, { gasLimit: 1000000 });
+        const events = await depositManager.queryFilter(
+            depositManager.filters.EnqueSubtree(null),
+            tx.blockHash
+        );
+        assert.equal(events.length, 3);
+        const [event1, event2, event3] = events;
+        // Since we are rolling "back", the events are emitted in reverse order
+        assert.equal(event1.args?.subtreeRoot, subtree3);
+        assert.equal(event2.args?.subtreeRoot, subtree2);
+        assert.equal(event3.args?.subtreeRoot, subtree1);
+    });
 });

@@ -6,14 +6,20 @@ import { Types } from "../libs/Types.sol";
 import { Logger } from "../Logger.sol";
 import { Parameters } from "./Parameters.sol";
 import { Bitmap } from "../libs/Bitmap.sol";
+import { IDepositManager } from "../DepositManager.sol";
 
 contract BatchManager is Parameters {
     using SafeMath for uint256;
     using Types for Types.Batch;
 
+    // External contracts
     Logger public logger;
+    IDepositManager public depositManager;
 
     Types.Batch[] public batches;
+
+    // batchID -> depositSubtreeRoot
+    mapping(uint256 => bytes32) public deposits;
 
     // batchID -> hasWithdrawn
     mapping(uint256 => uint256) public withdrawalBitmap;
@@ -71,6 +77,7 @@ contract BatchManager is Parameters {
     }
 
     function rollback() internal {
+        bytes32 depositSubTreeRoot;
         uint256 totalSlashings = 0;
         for (
             uint256 batchID = batches.length - 1;
@@ -82,8 +89,9 @@ contract BatchManager is Parameters {
             Bitmap.setClaimed(batchID, withdrawalBitmap);
             delete batches[batchID];
 
-            // TODO: queue deposits again
-            // depositManager.tryReenqueue(batchID);
+            depositSubTreeRoot = deposits[batchID];
+            if (depositSubTreeRoot != bytes32(0))
+                depositManager.reenqueue(depositSubTreeRoot);
 
             totalSlashings++;
             batches.length--;
