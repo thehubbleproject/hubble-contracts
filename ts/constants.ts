@@ -6,7 +6,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
     MAX_DEPOSIT_SUBTREE_DEPTH: 1,
     STAKE_AMOUNT: toWei("0.1"),
     BLOCKS_TO_FINALISE: 5,
-    MIN_GAS_LEFT: 10000,
+    MIN_GAS_LEFT: 300000,
     MAX_TXS_PER_COMMIT: 32
 };
 
