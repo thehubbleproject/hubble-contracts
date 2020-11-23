@@ -68,10 +68,6 @@ contract BatchManager is Parameters {
     }
 
     function startRollingBack(uint256 invalidBatchID) internal {
-        require(
-            invalidBatchMarker == 0 || invalidBatchID < invalidBatchMarker,
-            "Rollup: Not a better rollback"
-        );
         invalidBatchMarker = invalidBatchID;
         rollback();
     }
