@@ -10,6 +10,12 @@ import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
+interface IDepositManager {
+    function dequeueToSubmit() external returns (bytes32 subtreeRoot);
+
+    function reenqueue(bytes32 subtreeRoot) external;
+}
+
 contract SubtreeQueue {
     // Each element of the queue is a root of a subtree of deposits.
     mapping(uint256 => bytes32) public queue;
@@ -85,16 +91,13 @@ contract DepositCore is SubtreeQueue {
     }
 }
 
-contract DepositManager is DepositCore, Ownable {
+contract DepositManager is DepositCore, IDepositManager, Ownable {
     using Types for Types.UserState;
     Registry public nameRegistry;
     address public vault;
 
     Logger public logger;
     ITokenRegistry public tokenRegistry;
-
-    // batchID => subtreeRoot
-    mapping(uint256 => bytes32) public submittedSubtree;
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -163,21 +166,15 @@ contract DepositManager is DepositCore, Ownable {
         }
     }
 
-    function dequeueToSubmit(uint256 batchID)
+    function dequeueToSubmit()
         external
         onlyRollup
-        returns (bytes32)
+        returns (bytes32 subtreeRoot)
     {
-        bytes32 subtreeRoot = dequeue();
-        submittedSubtree[batchID] = subtreeRoot;
-        return subtreeRoot;
+        return dequeue();
     }
 
-    function tryReenqueue(uint256 batchID) external onlyRollup {
-        bytes32 subtreeRoot = submittedSubtree[batchID];
-        if (subtreeRoot != bytes32(0)) {
-            enqueue(subtreeRoot);
-            delete submittedSubtree[batchID];
-        }
+    function reenqueue(bytes32 subtreeRoot) external onlyRollup {
+        enqueue(subtreeRoot);
     }
 }
