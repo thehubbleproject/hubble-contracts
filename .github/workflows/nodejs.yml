@@ -31,3 +31,11 @@ jobs:
     - run: npm run test
 
     - run: npm run bench
+
+  cloc:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: sudo apt install cloc -y
+    - run: cloc --exclude-dir test ./contracts
