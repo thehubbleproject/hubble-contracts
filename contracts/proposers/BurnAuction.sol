@@ -1,8 +1,9 @@
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
 import { Bitmap } from "../libs/Bitmap.sol";
+import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
 
-contract BurnAuction {
+contract BurnAuction is Chooser, Ownable {
     uint32 constant BLOCKS_PER_SLOT = 100;
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
@@ -24,8 +25,6 @@ contract BurnAuction {
     // slot -> hasProposed
     mapping(uint256 => uint256) public hasProposed;
 
-    address public rollup;
-
     /**
      * @dev Event called when an operator beat the bestBid of the ongoing auction
      */
@@ -35,11 +34,8 @@ contract BurnAuction {
      * @dev RollupBurnAuction constructor
      * Set first block where the slot will begin
      * Initializes auction for first slot
-     * @param _rollup rollup main smart contract address
      */
-    constructor(address _rollup) public {
-        require(_rollup != address(0), "Address 0 inserted");
-        rollup = _rollup;
+    constructor() public {
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
     }
 
@@ -63,8 +59,7 @@ contract BurnAuction {
         emit newBestBid(auctionSlot, msg.sender, uint128(msg.value));
     }
 
-    function checkOffProposer() external returns (address) {
-        require(msg.sender == rollup, "not a call from the rollup contract");
+    function checkOffProposer() external onlyOwner returns (address) {
         uint32 _currentSlot = currentSlot();
         require(
             auction[_currentSlot].initialized,
