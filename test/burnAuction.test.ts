@@ -14,6 +14,7 @@ const BLOCKS_PER_SLOT = 100;
 const DELTA_BLOCKS_INITIAL_SLOT = 1000;
 const badBidMessage = "Your bid doesn't beat the current best";
 const badForgeMessage = "Invalid proposer";
+const doubleForgeMessage = "Slot fulfilled";
 const uninitializedAuctionMessage = "Auction has not been initialized";
 
 describe("BurnAuction", function() {
@@ -105,6 +106,9 @@ describe("BurnAuction", function() {
 
         it("slot 2 - Successfully forges batch", async () =>
             await successForge(signer2));
+
+        it("slot 2 - Fails double batch", async () =>
+            await failForge(signer2, doubleForgeMessage));
 
         it("slot 2 - Bids nBids times on the current auction (slot 4), forward 2 slots and check status. Note that there will be a slot that wont receive bids", async () => {
             // Do nBids
