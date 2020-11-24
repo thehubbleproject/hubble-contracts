@@ -186,7 +186,7 @@ export async function deployAll(
     const depositManager = await new DepositManagerFactory(
         allLinkRefs,
         signer
-    ).deploy(nameRegistry.address);
+    ).deploy(nameRegistry.address, parameters.MAX_DEPOSIT_SUBTREE_DEPTH);
     await waitAndRegister(
         depositManager,
         "depositManager",
@@ -194,7 +194,6 @@ export async function deployAll(
         nameRegistry,
         await paramManager.depositManager()
     );
-    depositManager.setMaxSubtreeSize(2 ** parameters.MAX_DEPOSIT_SUBTREE_DEPTH);
 
     const root =
         parameters.GENESIS_STATE_ROOT ||

@@ -5,7 +5,6 @@ import { Logger } from "./Logger.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
 import { ParamManager } from "./libs/ParamManager.sol";
 import { POB } from "./POB.sol";
 import { Rollup } from "./rollup/Rollup.sol";
@@ -91,7 +90,7 @@ contract DepositCore is SubtreeQueue {
     }
 }
 
-contract DepositManager is DepositCore, IDepositManager, Ownable {
+contract DepositManager is DepositCore, IDepositManager {
     using Types for Types.UserState;
     Registry public nameRegistry;
     address public vault;
@@ -115,17 +114,14 @@ contract DepositManager is DepositCore, IDepositManager, Ownable {
         _;
     }
 
-    constructor(address _registryAddr) public {
+    constructor(address _registryAddr, uint256 maxSubtreeDepth) public {
         nameRegistry = Registry(_registryAddr);
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
         logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         vault = nameRegistry.getContractDetails(ParamManager.vault());
-    }
-
-    function setMaxSubtreeSize(uint256 maxSubtreeSize) external onlyOwner {
-        paramMaxSubtreeSize = maxSubtreeSize;
+        paramMaxSubtreeSize = 1 << maxSubtreeDepth;
     }
 
     /**
