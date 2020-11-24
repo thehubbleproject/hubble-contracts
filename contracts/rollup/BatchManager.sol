@@ -6,6 +6,7 @@ import { Types } from "../libs/Types.sol";
 import { Parameters } from "./Parameters.sol";
 import { Bitmap } from "../libs/Bitmap.sol";
 import { IDepositManager } from "../DepositManager.sol";
+import { Chooser } from "../proposers/Chooser.sol";
 
 contract BatchManager is Parameters {
     using SafeMath for uint256;
@@ -13,6 +14,7 @@ contract BatchManager is Parameters {
 
     // External contracts
     IDepositManager public depositManager;
+    Chooser public chooser;
 
     // batchID -> Batch
     mapping(uint256 => Types.Batch) public batches;

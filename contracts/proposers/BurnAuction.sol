@@ -57,7 +57,7 @@ contract BurnAuction is Chooser {
         emit newBestBid(auctionSlot, msg.sender, uint128(msg.value));
     }
 
-    function getProposer() external view returns (address) {
+    function checkOffProposer() external returns (address) {
         require(
             auction[currentSlot()].initialized,
             "Auction has not been initialized"
