@@ -29,6 +29,7 @@ async function main() {
         BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
         MIN_GAS_LEFT: 10000,
         MAX_TXS_PER_COMMIT: 32,
+        USE_BURN_AUCTION: true,
         GENESIS_STATE_ROOT: argv.root
     };
 

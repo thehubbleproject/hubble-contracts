@@ -9,6 +9,7 @@ export interface DeploymentParameters {
     BLOCKS_TO_FINALISE: number;
     MIN_GAS_LEFT: number;
     MAX_TXS_PER_COMMIT: number;
+    USE_BURN_AUCTION: boolean;
     GENESIS_STATE_ROOT?: string;
 }
 

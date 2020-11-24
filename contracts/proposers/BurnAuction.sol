@@ -1,7 +1,7 @@
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
 
-contract BurnAuction is Chooser {
+contract BurnAuction {
     uint32 constant BLOCKS_PER_SLOT = 100;
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
