@@ -323,8 +323,10 @@ contract Rollup is RollupHelpers {
         bytes32[] calldata stateRoots,
         uint256[2][] calldata signatures,
         uint256[] calldata feeReceivers,
-        bytes[] calldata txss
+        bytes[] calldata txss, 
+        uint256[4][1024] calldata pubkeys
     ) external payable onlyCoordinator {
+        accountRegistry.registerBatch(pubkeys)
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         bytes32 bodyRoot;
