@@ -16,6 +16,7 @@ import { FrontendTransfer } from "../types/ethers-contracts/FrontendTransfer";
 import { FrontendMassMigration } from "../types/ethers-contracts/FrontendMassMigration";
 import { FrontendCreate2Transfer } from "../types/ethers-contracts/FrontendCreate2Transfer";
 import { Create2Transfer } from "../types/ethers-contracts/Create2Transfer";
+import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 
 export interface allContracts {
     paramManager: ParamManager;
@@ -29,7 +30,7 @@ export interface allContracts {
     transfer: Transfer;
     massMigration: MassMigration;
     create2Transfer: Create2Transfer;
-    pob: Pob;
+    chooser: Pob | BurnAuction;
     testToken: TestToken;
     spokeRegistry: SpokeRegistry;
     vault: Vault;

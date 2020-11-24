@@ -2,7 +2,6 @@ import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFacto
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
-import { PobFactory } from "../types/ethers-contracts/PobFactory";
 import { TransferFactory } from "../types/ethers-contracts/TransferFactory";
 import { MassMigrationFactory } from "../types/ethers-contracts/MassMigrationFactory";
 import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
@@ -25,6 +24,10 @@ import {
 } from "../types/ethers-contracts";
 import { State } from "./state";
 import { merklise } from "./utils";
+import { BurnAuctionFactory } from "../types/ethers-contracts/BurnAuctionFactory";
+import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
+import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
+import { ProofOfBurn } from "../types/ethers-contracts/ProofOfBurn";
 
 async function waitAndRegister(
     contract: Contract,
@@ -84,6 +87,21 @@ export async function deployAll(
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
     await waitAndRegister(nameRegistry, "nameRegistry", verbose);
 
+    // deploy a chooser
+    let chooser: ProofOfBurn | BurnAuction;
+    if (parameters.USE_BURN_AUCTION) {
+        chooser = await new BurnAuctionFactory(signer).deploy();
+    } else {
+        chooser = await new ProofOfBurnFactory(signer).deploy();
+    }
+    await waitAndRegister(
+        chooser,
+        "chooser",
+        verbose,
+        nameRegistry,
+        await paramManager.chooser()
+    );
+
     const allLinkRefs = {
         __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address
     };
@@ -134,16 +152,6 @@ export async function deployAll(
         verbose,
         nameRegistry,
         await paramManager.create2Transfer()
-    );
-
-    // deploy POB contract
-    const pob = await new PobFactory(signer).deploy();
-    await waitAndRegister(
-        pob,
-        "pob",
-        verbose,
-        nameRegistry,
-        await paramManager.chooser()
     );
 
     // deploy test token
@@ -212,6 +220,9 @@ export async function deployAll(
         await paramManager.rollupCore()
     );
 
+    if (parameters.USE_BURN_AUCTION)
+        await chooser.transferOwnership(rollup.address);
+
     await vault.setRollupAddress();
 
     const withdrawManager = await new WithdrawManagerFactory(
@@ -239,7 +250,7 @@ export async function deployAll(
         transfer,
         massMigration,
         create2Transfer,
-        pob,
+        chooser,
         testToken,
         spokeRegistry,
         vault,

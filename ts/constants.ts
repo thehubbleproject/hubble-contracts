@@ -7,6 +7,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
     STAKE_AMOUNT: toWei("0.1"),
     BLOCKS_TO_FINALISE: 5,
     MIN_GAS_LEFT: 300000,
+    USE_BURN_AUCTION: false,
     MAX_TXS_PER_COMMIT: 32
 };
 
