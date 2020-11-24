@@ -143,7 +143,7 @@ export async function deployAll(
         "pob",
         verbose,
         nameRegistry,
-        await paramManager.proofOfBurn()
+        await paramManager.chooser()
     );
 
     // deploy test token

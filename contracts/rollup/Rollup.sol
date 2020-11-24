@@ -26,7 +26,6 @@ contract RollupCore is BatchManager {
     Transfer public transfer;
     MassMigration public massMigration;
     Create2Transfer public create2Transfer;
-    Chooser public chooser;
 
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
@@ -37,8 +36,8 @@ contract RollupCore is BatchManager {
 
     modifier onlyCoordinator() {
         require(
-            msg.sender == chooser.getProposer(),
-            "Rollup: Not the proposer"
+            msg.sender == chooser.checkOffProposer(),
+            "Rollup: Invalid proposer"
         );
         _;
     }
@@ -414,6 +413,10 @@ contract Rollup is RollupCore {
         uint256 maxTxsPerCommit
     ) public {
         nameRegistry = Registry(_registryAddr);
+
+        chooser = Chooser(
+            nameRegistry.getContractDetails(ParamManager.chooser())
+        );
         depositManager = IDepositManager(
             nameRegistry.getContractDetails(ParamManager.depositManager())
         );

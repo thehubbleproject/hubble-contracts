@@ -13,8 +13,8 @@ library ParamManager {
         return keccak256("test_token");
     }
 
-    function proofOfBurn() public pure returns (bytes32) {
-        return keccak256("pob");
+    function chooser() public pure returns (bytes32) {
+        return keccak256("chooser");
     }
 
     function rollupCore() public pure returns (bytes32) {
