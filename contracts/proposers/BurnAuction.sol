@@ -1,5 +1,6 @@
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
+import { Bitmap } from "../libs/Bitmap.sol";
 
 contract BurnAuction {
     uint32 constant BLOCKS_PER_SLOT = 100;
@@ -20,6 +21,10 @@ contract BurnAuction {
 
     // auction is a relation of the best bid for each slot
     mapping(uint32 => Bid) public auction;
+    // slot -> hasProposed
+    mapping(uint256 => uint256) public hasProposed;
+
+    address public rollup;
 
     /**
      * @dev Event called when an operator beat the bestBid of the ongoing auction
@@ -34,6 +39,7 @@ contract BurnAuction {
      */
     constructor(address _rollup) public {
         require(_rollup != address(0), "Address 0 inserted");
+        rollup = _rollup;
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
     }
 
@@ -58,11 +64,18 @@ contract BurnAuction {
     }
 
     function checkOffProposer() external returns (address) {
+        require(msg.sender == rollup, "not a call from the rollup contract");
+        uint32 _currentSlot = currentSlot();
         require(
-            auction[currentSlot()].initialized,
+            auction[_currentSlot].initialized,
             "Auction has not been initialized"
         );
-        return auction[currentSlot()].operator;
+        require(
+            !Bitmap.isClaimed(uint256(_currentSlot), hasProposed),
+            "Slot fulfilled"
+        );
+        Bitmap.setClaimed(uint256(_currentSlot), hasProposed);
+        return auction[_currentSlot].operator;
     }
 
     /**
