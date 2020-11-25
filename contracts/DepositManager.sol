@@ -99,18 +99,11 @@ contract DepositManager is DepositCore, IDepositManager {
 
     ITokenRegistry public tokenRegistry;
 
-    modifier onlyCoordinator() {
-        POB pobContract = POB(
-            nameRegistry.getContractDetails(ParamManager.proofOfBurn())
-        );
-        require(msg.sender == pobContract.getCoordinator());
-        _;
-    }
-
     modifier onlyRollup() {
         require(
             msg.sender ==
-                nameRegistry.getContractDetails(ParamManager.rollupCore())
+                nameRegistry.getContractDetails(ParamManager.rollupCore()),
+            "DepositManager: sender is not Rollup contract"
         );
         _;
     }
