@@ -16,7 +16,7 @@ describe("Rollback", function() {
     const numOfBatches = 250;
 
     async function getTipBatchID() {
-        return Number(await rollup.numOfBatchesSubmitted()) - 1;
+        return Number(await rollup.nextBatchID()) - 1;
     }
 
     beforeEach(async function() {

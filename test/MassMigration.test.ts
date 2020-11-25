@@ -114,7 +114,7 @@ describe("Mass Migrations", async function() {
 
         await targetBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
 
-        const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
+        const batchId = Number(await rollup.nextBatchID()) - 1;
         const rootOnchain = await registry.registry.root();
         assert.equal(root, rootOnchain, "mismatch pubkey tree root");
         const batch = await rollup.getBatch(batchId);
@@ -179,7 +179,7 @@ describe("Mass Migrations", async function() {
         const batch = commitment.toBatch();
         await batch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
 
-        const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
+        const batchId = Number(await rollup.nextBatchID()) - 1;
 
         await expectRevert(
             withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
