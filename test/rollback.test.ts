@@ -3,7 +3,6 @@ import { ethers } from "hardhat";
 import { TESTING_PARAMS } from "../ts/constants";
 import { randHex } from "../ts/utils";
 import {
-    LoggerFactory,
     MockDepositManagerFactory,
     TestRollupFactory
 } from "../types/ethers-contracts";
@@ -22,10 +21,8 @@ describe("Rollback", function() {
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        const logger = await new LoggerFactory(signer).deploy();
         depositManager = await new MockDepositManagerFactory(signer).deploy();
         rollup = await new TestRollupFactory(signer).deploy(
-            logger.address,
             depositManager.address,
             param.STAKE_AMOUNT,
             param.BLOCKS_TO_FINALISE,

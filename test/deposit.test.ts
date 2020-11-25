@@ -70,7 +70,7 @@ describe("DepositManager", async function() {
         await testToken.approve(depositManager.address, LARGE_AMOUNT_OF_TOKEN);
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
-        const { depositManager, logger } = contracts;
+        const { depositManager } = contracts;
         const deposit0 = State.new(0, tokenType, 10, 0);
         const deposit1 = State.new(1, tokenType, 10, 0);
         const pendingDeposit = solidityKeccak256(
@@ -84,8 +84,8 @@ describe("DepositManager", async function() {
             (await txDeposit0.wait()).gasUsed.toNumber()
         );
 
-        const [event0] = await logger.queryFilter(
-            logger.filters.DepositQueued(null, null),
+        const [event0] = await depositManager.queryFilter(
+            depositManager.filters.DepositQueued(null, null),
             txDeposit0.blockHash
         );
 
@@ -97,16 +97,16 @@ describe("DepositManager", async function() {
             "Deposit 1 transaction cost",
             (await txDeposit1.wait()).gasUsed.toNumber()
         );
-        const [event1] = await logger.queryFilter(
-            logger.filters.DepositQueued(null, null),
+        const [event1] = await depositManager.queryFilter(
+            depositManager.filters.DepositQueued(null, null),
             txDeposit1.blockHash
         );
 
         assert.equal(event1.args?.pubkeyID.toNumber(), 1);
         assert.equal(event1.args?.data, deposit1.encode());
 
-        const [eventReady] = await logger.queryFilter(
-            logger.filters.DepositSubTreeReady(null),
+        const [eventReady] = await depositManager.queryFilter(
+            depositManager.filters.DepositSubTreeReady(null),
             txDeposit1.blockHash
         );
         assert.equal(eventReady.args?.root, pendingDeposit);

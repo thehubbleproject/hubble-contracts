@@ -1,7 +1,6 @@
 import { ParamManagerFactory } from "../types/ethers-contracts/ParamManagerFactory";
 import { NameRegistryFactory } from "../types/ethers-contracts/NameRegistryFactory";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
-import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { PobFactory } from "../types/ethers-contracts/PobFactory";
 import { TransferFactory } from "../types/ethers-contracts/TransferFactory";
@@ -84,23 +83,13 @@ export async function deployAll(
     const nameRegistry = await new NameRegistryFactory(signer).deploy();
     await waitAndRegister(nameRegistry, "nameRegistry", verbose);
 
-    // deploy logger
-    const logger = await new LoggerFactory(signer).deploy();
-    await waitAndRegister(
-        logger,
-        "logger",
-        verbose,
-        nameRegistry,
-        await paramManager.logger()
-    );
-
     const allLinkRefs = {
         __$b941c30c0f5422d8b714f571f17d94a5fd$__: paramManager.address
     };
 
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
         signer
-    ).deploy(logger.address);
+    ).deploy();
     await waitAndRegister(
         blsAccountRegistry,
         "blsAccountRegistry",
@@ -110,10 +99,7 @@ export async function deployAll(
     );
 
     // deploy Token registry contract
-    const tokenRegistry = await new TokenRegistryFactory(
-        allLinkRefs,
-        signer
-    ).deploy(nameRegistry.address);
+    const tokenRegistry = await new TokenRegistryFactory(signer).deploy();
     await waitAndRegister(
         tokenRegistry,
         "tokenRegistry",
@@ -238,7 +224,6 @@ export async function deployAll(
         frontendMassMigration,
         frontendCreate2Transfer,
         nameRegistry,
-        logger,
         blsAccountRegistry,
         tokenRegistry,
         transfer,

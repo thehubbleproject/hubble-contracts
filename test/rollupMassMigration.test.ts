@@ -5,7 +5,6 @@ import { State } from "../ts/state";
 import { StateTree } from "../ts/stateTree";
 import { randHex, sum } from "../ts/utils";
 import {
-    LoggerFactory,
     BlsAccountRegistryFactory,
     TestMassMigrationFactory
 } from "../types/ethers-contracts";
@@ -33,10 +32,9 @@ describe("Rollup Mass Migration", () => {
         await mcl.init();
         mcl.setDomainHex(DOMAIN_HEX);
         const [signer] = await ethers.getSigners();
-        const logger = await new LoggerFactory(signer).deploy();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
-        ).deploy(logger.address);
+        ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
         states = UserStateFactory.buildList(STATE_SIZE);

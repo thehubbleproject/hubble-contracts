@@ -1,6 +1,5 @@
 import { ParamManager } from "../types/ethers-contracts/ParamManager";
 import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
-import { Logger } from "../types/ethers-contracts/Logger";
 import { TokenRegistry } from "../types/ethers-contracts/TokenRegistry";
 import { Pob } from "../types/ethers-contracts/Pob";
 import { Transfer } from "../types/ethers-contracts/Transfer";
@@ -24,7 +23,6 @@ export interface allContracts {
     frontendMassMigration: FrontendMassMigration;
     frontendCreate2Transfer: FrontendCreate2Transfer;
     nameRegistry: NameRegistry;
-    logger: Logger;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
     transfer: Transfer;

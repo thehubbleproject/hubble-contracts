@@ -1,4 +1,3 @@
-import { LoggerFactory } from "../types/ethers-contracts/LoggerFactory";
 import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFactory";
 import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
@@ -31,10 +30,9 @@ describe("Rollup Transfer Commitment", () => {
         await mcl.init();
         mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
-        const logger = await new LoggerFactory(signer).deploy();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
-        ).deploy(logger.address);
+        ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
         states = UserStateFactory.buildList(STATE_SIZE);
