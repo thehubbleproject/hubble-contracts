@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "../libs/Types.sol";
 import { Parameters } from "./Parameters.sol";
+import { Bitmap } from "../libs/Bitmap.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
 contract BatchManager is Parameters {
@@ -20,6 +21,9 @@ contract BatchManager is Parameters {
 
     // batchID -> depositSubtreeRoot
     mapping(uint256 => bytes32) public deposits;
+
+    // batchID -> hasWithdrawn
+    mapping(uint256 => uint256) public withdrawalBitmap;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
@@ -129,9 +133,6 @@ contract BatchManager is Parameters {
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
      */
     function withdrawStake(uint256 batchID) public {
-        // A valid batch should have non-zero meta
-        // We use this to check if a stake has been withdrawn
-        require(batches[batchID].meta != bytes32(0), "Rollup: No such batch");
         require(
             msg.sender == batches[batchID].committer(),
             "You are not the correct committer for this batch"
@@ -140,8 +141,11 @@ contract BatchManager is Parameters {
             block.number > batches[batchID].finaliseOn(),
             "This batch is not yet finalised, check back soon!"
         );
-        // delete the batch to mark the stake has been withdrawn
-        delete batches[batchID];
+        require(
+            !Bitmap.isClaimed(batchID, withdrawalBitmap),
+            "Rollup: Already withdrawn"
+        );
+        Bitmap.setClaimed(batchID, withdrawalBitmap);
 
         msg.sender.transfer(paramStakeAmount);
         emit StakeWithdraw(msg.sender, batchID);
