@@ -8,7 +8,7 @@
     "solhint": "solhint \"contracts/**/*.sol\" -f unix",
     "lint": "prettier --check \"**/*.{sol,ts,js}\"",
     "prettier": "prettier --write \"**/*.{sol,ts,js}\"",
-    "generate": "hardhat compile && typechain --target ethers-v5 './build/contracts/**/!(*.dbg).json'",
+    "generate": "hardhat compile && typechain --target ethers-v5 './artifacts/contracts/**/!(*.dbg).json'",
     "compile": "hardhat compile",
     "node": "hardhat node",
     "deploy": "ts-node ./scripts/deploy.ts",
