@@ -10,6 +10,7 @@ import { MerkleTree } from "../libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "../NameRegistry.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
+import { Create2Transfer } from "../Create2Transfer.sol";
 import { BatchManager } from "./BatchManager.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
@@ -24,6 +25,7 @@ contract RollupCore is BatchManager {
     Registry public nameRegistry;
     Transfer public transfer;
     MassMigration public massMigration;
+    Create2Transfer public create2Transfer;
 
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
@@ -247,12 +249,6 @@ contract RollupCore is BatchManager {
         submitBatch(root, 1, Types.Usage.Deposit);
     }
 
-    /**
-     *  disputeBatch processes a transactions and returns the updated balance tree
-     *  and the updated leaves.
-     * @notice Gives the number of batches submitted on-chain
-     * @return Total number of batches submitted onchain
-     */
     function disputeTransitionTransfer(
         uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
@@ -312,6 +308,36 @@ contract RollupCore is BatchManager {
         ) startRollingBack(batchID);
     }
 
+    function disputeTransitionCreate2Transfer(
+        uint256 batchID,
+        Types.CommitmentInclusionProof memory previous,
+        Types.TransferCommitmentInclusionProof memory target,
+        Types.StateMerkleProof[] memory proofs
+    )
+        public
+        isDisputable(batchID)
+        checkPreviousCommitment(batchID, previous, target.path)
+    {
+        require(
+            checkInclusion(batches[batchID].commitmentRoot, target),
+            "Target commitment is absent in the batch"
+        );
+
+        (bytes32 processedStateRoot, Types.Result result) = create2Transfer
+            .processCreate2TransferCommit(
+            previous.commitment.stateRoot,
+            paramMaxTxsPerCommit,
+            target.commitment.body.feeReceiver,
+            target.commitment.body.txs,
+            proofs
+        );
+
+        if (
+            result != Types.Result.Ok ||
+            (processedStateRoot != target.commitment.stateRoot)
+        ) startRollingBack(batchID);
+    }
+
     function disputeSignatureTransfer(
         uint256 batchID,
         Types.TransferCommitmentInclusionProof memory target,
@@ -356,6 +382,28 @@ contract RollupCore is BatchManager {
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
     }
+
+    function disputeSignatureCreate2Transfer(
+        uint256 batchID,
+        Types.TransferCommitmentInclusionProof memory target,
+        Types.SignatureProofWithReceiver memory signatureProof
+    ) public isDisputable(batchID) {
+        require(
+            checkInclusion(batches[batchID].commitmentRoot, target),
+            "Rollup: Commitment not present in batch"
+        );
+
+        Types.Result result = create2Transfer.checkSignature(
+            target.commitment.body.signature,
+            signatureProof,
+            target.commitment.stateRoot,
+            target.commitment.body.accountRoot,
+            appID,
+            target.commitment.body.txs
+        );
+
+        if (result != Types.Result.Ok) startRollingBack(batchID);
+    }
 }
 
 contract Rollup is RollupCore {
@@ -379,6 +427,9 @@ contract Rollup is RollupCore {
         );
         massMigration = MassMigration(
             nameRegistry.getContractDetails(ParamManager.massMigration())
+        );
+        create2Transfer = Create2Transfer(
+            nameRegistry.getContractDetails(ParamManager.create2Transfer())
         );
         paramStakeAmount = stakeAmount;
         paramBlocksToFinalise = blocksToFinalise;

@@ -45,6 +45,10 @@ library ParamManager {
         return keccak256("mass_migs");
     }
 
+    function create2Transfer() public pure returns (bytes32) {
+        return keccak256("create2transfer");
+    }
+
     function spokeRegistry() public pure returns (bytes32) {
         return keccak256("spoke_registry");
     }
