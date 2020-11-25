@@ -36,12 +36,12 @@ contract BatchManager is Parameters {
     event RollbackFinalisation(uint256 totalBatchesSlashed);
 
     modifier isNotRollingBack() {
-        require(invalidBatchMarker == 0);
+        require(invalidBatchMarker == 0, "BatchManager: Is rolling back");
         _;
     }
 
     modifier isRollingBack() {
-        require(invalidBatchMarker > 0);
+        require(invalidBatchMarker > 0, "BatchManager: Is not rolling back");
         _;
     }
     modifier isDisputable(uint256 batchID) {

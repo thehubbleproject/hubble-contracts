@@ -36,7 +36,10 @@ contract RollupCore is BatchManager {
         POB pobContract = POB(
             nameRegistry.getContractDetails(ParamManager.proofOfBurn())
         );
-        require(msg.sender == pobContract.getCoordinator());
+        require(
+            msg.sender == pobContract.getCoordinator(),
+            "Rollup: Not coordinator"
+        );
         _;
     }
 
