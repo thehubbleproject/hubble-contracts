@@ -4,7 +4,6 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "../libs/Types.sol";
 import { Parameters } from "./Parameters.sol";
-import { Bitmap } from "../libs/Bitmap.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
 contract BatchManager is Parameters {
@@ -14,13 +13,13 @@ contract BatchManager is Parameters {
     // External contracts
     IDepositManager public depositManager;
 
-    Types.Batch[] public batches;
+    // batchID -> Batch
+    mapping(uint256 => Types.Batch) public batches;
+    // nextBatchID also represents how many batches in `batches`
+    uint256 public nextBatchID = 0;
 
     // batchID -> depositSubtreeRoot
     mapping(uint256 => bytes32) public deposits;
-
-    // batchID -> hasWithdrawn
-    mapping(uint256 => uint256) public withdrawalBitmap;
 
     // this variable will be greater than 0 if
     // there is rollback in progress
@@ -54,17 +53,13 @@ contract BatchManager is Parameters {
         _;
     }
 
-    function numOfBatchesSubmitted() public view returns (uint256) {
-        return batches.length;
-    }
-
     function getBatch(uint256 batchID)
         external
         view
         returns (Types.Batch memory batch)
     {
         require(
-            batches.length - 1 >= batchID,
+            batches[batchID].meta != bytes32(0),
             "Batch id greater than total number of batches, invalid batch id"
         );
         batch = batches[batchID];
@@ -79,13 +74,12 @@ contract BatchManager is Parameters {
         bytes32 depositSubTreeRoot;
         uint256 totalSlashings = 0;
         for (
-            uint256 batchID = batches.length - 1;
+            uint256 batchID = nextBatchID - 1;
             batchID >= invalidBatchMarker;
             batchID--
         ) {
             if (gasleft() <= paramMinGasLeft) break;
 
-            Bitmap.setClaimed(batchID, withdrawalBitmap);
             delete batches[batchID];
 
             depositSubTreeRoot = deposits[batchID];
@@ -93,11 +87,11 @@ contract BatchManager is Parameters {
                 depositManager.reenqueue(depositSubTreeRoot);
 
             totalSlashings++;
-            batches.length--;
+            nextBatchID--;
 
             emit BatchRollback(batchID);
         }
-        if (batches.length == invalidBatchMarker) invalidBatchMarker = 0;
+        if (nextBatchID == invalidBatchMarker) invalidBatchMarker = 0;
 
         uint256 slashedAmount = totalSlashings.mul(paramStakeAmount);
         uint256 reward = slashedAmount.mul(2).div(3);
@@ -118,7 +112,7 @@ contract BatchManager is Parameters {
         Types.Usage batchType
     ) internal {
         require(msg.value >= paramStakeAmount, "Rollup: wrong stake amount");
-        Types.Batch memory newBatch = Types.Batch({
+        batches[nextBatchID] = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
                 uint256(batchType),
@@ -127,14 +121,17 @@ contract BatchManager is Parameters {
                 block.number + paramBlocksToFinalise
             )
         });
-        batches.push(newBatch);
-        emit NewBatch(msg.sender, batches.length - 1, batchType);
+        emit NewBatch(msg.sender, nextBatchID, batchType);
+        nextBatchID++;
     }
 
     /**
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
      */
     function withdrawStake(uint256 batchID) public {
+        // A valid batch should have non-zero meta
+        // We use this to check if a stake has been withdrawn
+        require(batches[batchID].meta != bytes32(0), "Rollup: No such batch");
         require(
             msg.sender == batches[batchID].committer(),
             "You are not the correct committer for this batch"
@@ -143,11 +140,8 @@ contract BatchManager is Parameters {
             block.number > batches[batchID].finaliseOn(),
             "This batch is not yet finalised, check back soon!"
         );
-        require(
-            !Bitmap.isClaimed(batchID, withdrawalBitmap),
-            "Rollup: Already withdrawn"
-        );
-        Bitmap.setClaimed(batchID, withdrawalBitmap);
+        // delete the batch to mark the stake has been withdrawn
+        delete batches[batchID];
 
         msg.sender.transfer(paramStakeAmount);
         emit StakeWithdraw(msg.sender, batchID);

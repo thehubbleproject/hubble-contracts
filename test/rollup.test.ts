@@ -106,7 +106,7 @@ describe("Rollup", async function() {
             await (await _txSubmit.wait()).gasUsed.toNumber()
         );
 
-        const batchId = Number(await rollup.numOfBatchesSubmitted()) - 1;
+        const batchId = Number(await rollup.nextBatchID()) - 1;
         const batch = await rollup.getBatch(batchId);
 
         assert.equal(

@@ -207,7 +207,7 @@ contract RollupCore is BatchManager {
         Types.CommitmentInclusionProof memory previous,
         Types.SubtreeVacancyProof memory vacant
     ) public payable onlyCoordinator isNotRollingBack {
-        uint256 preBatchID = batches.length - 1;
+        uint256 preBatchID = nextBatchID - 1;
         require(
             previous.path == batches[preBatchID].size() - 1,
             "previous commitment has wrong path"
@@ -390,7 +390,7 @@ contract Rollup is RollupCore {
         bytes32 commitmentRoot = keccak256(
             abi.encode(genesisCommitment, ZERO_BYTES32)
         );
-        Types.Batch memory newBatch = Types.Batch({
+        batches[nextBatchID] = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
                 uint256(Types.Usage.Genesis),
@@ -399,8 +399,8 @@ contract Rollup is RollupCore {
                 block.number // genesis finalise instantly
             )
         });
-        batches.push(newBatch);
-        emit NewBatch(msg.sender, batches.length - 1, Types.Usage.Genesis);
+        emit NewBatch(msg.sender, nextBatchID, Types.Usage.Genesis);
+        nextBatchID++;
         appID = keccak256(abi.encodePacked(address(this)));
     }
 }
