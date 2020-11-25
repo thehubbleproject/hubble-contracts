@@ -5,7 +5,6 @@ import { ParamManager } from "../libs/ParamManager.sol";
 import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
 import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
-import { Logger } from "../Logger.sol";
 import { POB } from "../POB.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
 import { NameRegistry as Registry } from "../NameRegistry.sol";
@@ -30,6 +29,8 @@ contract RollupCore is BatchManager {
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     bytes32 public appID;
+
+    event DepositsFinalised(bytes32 depositSubTreeRoot, uint256 pathToSubTree);
 
     modifier onlyCoordinator() {
         POB pobContract = POB(
@@ -228,7 +229,7 @@ contract RollupCore is BatchManager {
         uint256 postBatchID = preBatchID + 1;
         // This deposit subtree is included in the batch whose ID is postBatchID
         deposits[postBatchID] = depositSubTreeRoot;
-        logger.logDepositFinalised(depositSubTreeRoot, vacant.pathAtDepth);
+        emit DepositsFinalised(depositSubTreeRoot, vacant.pathAtDepth);
 
         bytes32 newRoot = MerkleTree.computeRoot(
             depositSubTreeRoot,
@@ -364,8 +365,6 @@ contract Rollup is RollupCore {
         uint256 maxTxsPerCommit
     ) public {
         nameRegistry = Registry(_registryAddr);
-
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         depositManager = IDepositManager(
             nameRegistry.getContractDetails(ParamManager.depositManager())
         );
@@ -401,7 +400,7 @@ contract Rollup is RollupCore {
             )
         });
         batches.push(newBatch);
-        logger.logNewBatch(msg.sender, batches.length - 1, Types.Usage.Genesis);
+        emit NewBatch(msg.sender, batches.length - 1, Types.Usage.Genesis);
         appID = keccak256(abi.encodePacked(address(this)));
     }
 }

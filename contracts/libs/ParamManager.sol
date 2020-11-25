@@ -25,10 +25,6 @@ library ParamManager {
         return keccak256("account_registry");
     }
 
-    function logger() public pure returns (bytes32) {
-        return keccak256("logger");
-    }
-
     function merkleUtils() public pure returns (bytes32) {
         return keccak256("merkle_lib");
     }

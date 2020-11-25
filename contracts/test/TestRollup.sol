@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import { BatchManager } from "../rollup/BatchManager.sol";
 import { Types } from "../libs/Types.sol";
-import { Logger } from "../Logger.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
 contract MockDepositManager is IDepositManager {
@@ -20,13 +19,11 @@ contract MockDepositManager is IDepositManager {
 
 contract TestRollup is BatchManager {
     constructor(
-        Logger _logger,
         IDepositManager _depositManager,
         uint256 stakeAmount,
         uint256 blocksToFinalise,
         uint256 minGasLeft
     ) public {
-        logger = _logger;
         depositManager = _depositManager;
         paramStakeAmount = stakeAmount;
         paramBlocksToFinalise = blocksToFinalise;

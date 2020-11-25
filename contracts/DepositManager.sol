@@ -1,7 +1,6 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
-import { Logger } from "./Logger.sol";
 import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -10,6 +9,9 @@ import { POB } from "./POB.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
 interface IDepositManager {
+    event DepositQueued(uint256 pubkeyID, bytes data);
+    event DepositSubTreeReady(bytes32 root);
+
     function dequeueToSubmit() external returns (bytes32 subtreeRoot);
 
     function reenqueue(bytes32 subtreeRoot) external;
@@ -95,7 +97,6 @@ contract DepositManager is DepositCore, IDepositManager {
     Registry public nameRegistry;
     address public vault;
 
-    Logger public logger;
     ITokenRegistry public tokenRegistry;
 
     modifier onlyCoordinator() {
@@ -119,7 +120,6 @@ contract DepositManager is DepositCore, IDepositManager {
         tokenRegistry = ITokenRegistry(
             nameRegistry.getContractDetails(ParamManager.tokenRegistry())
         );
-        logger = Logger(nameRegistry.getContractDetails(ParamManager.logger()));
         vault = nameRegistry.getContractDetails(ParamManager.vault());
         paramMaxSubtreeSize = 1 << maxSubtreeDepth;
     }
@@ -155,10 +155,10 @@ contract DepositManager is DepositCore, IDepositManager {
         );
         // get new state hash
         bytes memory encodedState = newState.encode();
-        logger.logDepositQueued(accountID, encodedState);
+        emit DepositQueued(accountID, encodedState);
         bytes32 readySubtree = insertAndMerge(keccak256(encodedState));
         if (readySubtree != bytes32(0)) {
-            logger.logDepositSubTreeReady(readySubtree);
+            emit DepositSubTreeReady(readySubtree);
         }
     }
 
