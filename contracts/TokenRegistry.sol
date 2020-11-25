@@ -33,7 +33,7 @@ contract TokenRegistry is ITokenRegistry {
      */
     function requestRegistration(address tokenContract) public {
         require(
-            pendingRegistrations[tokenContract] == false,
+            !pendingRegistrations[tokenContract],
             "Token already registered."
         );
         pendingRegistrations[tokenContract] = true;

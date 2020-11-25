@@ -1,5 +1,5 @@
 {
     "compile_force_framework": "hardhat",
-    "filter_paths": "./contracts/test/|./node_modules/",
+    "filter_paths": "./contracts/test/|./contracts/client/|./node_modules/",
     "detectors_to_exclude": "assembly"
 }

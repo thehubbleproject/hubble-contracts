@@ -16,8 +16,5 @@ module.exports = {
                 runs: 200
             }
         }
-    },
-    paths: {
-        artifacts: "./build"
     }
 };
