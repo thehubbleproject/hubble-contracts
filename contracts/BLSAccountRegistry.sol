@@ -2,19 +2,14 @@ pragma solidity ^0.5.15;
 
 import { AccountTree } from "./AccountTree.sol";
 import { BLS } from "./libs/BLS.sol";
-import { Logger } from "./Logger.sol";
 
 contract BLSAccountRegistry is AccountTree {
-    Logger public logger;
-
-    constructor(address _logger) public AccountTree() {
-        logger = Logger(_logger);
-    }
+    event PubkeyRegistered(uint256[4] pubkey, uint256 pubkeyID);
 
     function register(uint256[4] calldata pubkey) external returns (uint256) {
         bytes32 leaf = keccak256(abi.encodePacked(pubkey));
         uint256 accountID = _updateSingle(leaf);
-        logger.logPubkeyRegistered(pubkey, accountID);
+        emit PubkeyRegistered(pubkey, accountID);
         return accountID;
     }
 
@@ -24,10 +19,7 @@ contract BLSAccountRegistry is AccountTree {
     {
         bytes32[BATCH_SIZE] memory leafs;
         for (uint256 i = 0; i < BATCH_SIZE; i++) {
-            logger.logPubkeyRegistered(
-                pubkeys[i],
-                leafIndexRight + SET_SIZE + i
-            );
+            emit PubkeyRegistered(pubkeys[i], leafIndexRight + SET_SIZE + i);
             bytes32 leaf = keccak256(abi.encodePacked(pubkeys[i]));
             leafs[i] = leaf;
         }

@@ -3,7 +3,6 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "../libs/Types.sol";
-import { Logger } from "../Logger.sol";
 import { Parameters } from "./Parameters.sol";
 import { Bitmap } from "../libs/Bitmap.sol";
 import { IDepositManager } from "../DepositManager.sol";
@@ -13,7 +12,6 @@ contract BatchManager is Parameters {
     using Types for Types.Batch;
 
     // External contracts
-    Logger public logger;
     IDepositManager public depositManager;
 
     Types.Batch[] public batches;
@@ -28,6 +26,11 @@ contract BatchManager is Parameters {
     // there is rollback in progress
     // will be reset to 0 once rollback is completed
     uint256 public invalidBatchMarker;
+
+    event NewBatch(address committer, uint256 index, Types.Usage batchType);
+    event StakeWithdraw(address committed, uint256 batchID);
+    event BatchRollback(uint256 batchID);
+    event RollbackFinalisation(uint256 totalBatchesSlashed);
 
     modifier isNotRollingBack() {
         require(invalidBatchMarker == 0);
@@ -92,7 +95,7 @@ contract BatchManager is Parameters {
             totalSlashings++;
             batches.length--;
 
-            logger.logBatchRollback(batchID);
+            emit BatchRollback(batchID);
         }
         if (batches.length == invalidBatchMarker) invalidBatchMarker = 0;
 
@@ -102,7 +105,7 @@ contract BatchManager is Parameters {
         msg.sender.transfer(reward);
         address(0).transfer(burn);
 
-        logger.logRollbackFinalisation(totalSlashings);
+        emit RollbackFinalisation(totalSlashings);
     }
 
     function keepRollingBack() external isRollingBack {
@@ -125,7 +128,7 @@ contract BatchManager is Parameters {
             )
         });
         batches.push(newBatch);
-        logger.logNewBatch(msg.sender, batches.length - 1, batchType);
+        emit NewBatch(msg.sender, batches.length - 1, batchType);
     }
 
     /**
@@ -147,6 +150,6 @@ contract BatchManager is Parameters {
         Bitmap.setClaimed(batchID, withdrawalBitmap);
 
         msg.sender.transfer(paramStakeAmount);
-        logger.logStakeWithdraw(msg.sender, batchID);
+        emit StakeWithdraw(msg.sender, batchID);
     }
 }
