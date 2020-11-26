@@ -28,6 +28,22 @@ contract FrontendCreate2Transfer {
         return Offchain.encodeCreate2Transfer(_tx);
     }
 
+     function decodeWithPub(bytes calldata encodedTx)
+        external
+        pure
+        returns (Offchain.Create2TransferWithPub memory _tx)
+    {
+        return Offchain.decodeCreate2TransferWithPub(encodedTx);
+    }
+
+    function encodeWithPub(Offchain.Create2TransferWithPub calldata _tx)
+        external
+        pure
+        returns (bytes memory)
+    {
+        return Offchain.encodeCreate2TransferWithPub(_tx);
+    }
+
     function compress(bytes[] calldata encodedTxs)
         external
         pure
