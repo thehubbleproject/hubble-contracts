@@ -49,7 +49,6 @@ contract BurnAuction is Chooser, Ownable {
             "Your bid doesn't beat the current best"
         );
         // refund, check 0 case (it means no bids yet for the auction, so no refund)
-        // DISCUSSION: should we refund?
         if (auction[auctionSlot].initialized && auction[auctionSlot].amount > 0)
             auction[auctionSlot].operator.transfer(auction[auctionSlot].amount);
         // set new best bider
