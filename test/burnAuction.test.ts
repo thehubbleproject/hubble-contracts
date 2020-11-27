@@ -69,7 +69,7 @@ describe("BurnAuction", function() {
             // check winner of first auction (@ slot 2)
             const slot = await getAuction(2);
             expect(slot).to.eql({
-                operator: await signer2.getAddress(),
+                coordinator: await signer2.getAddress(),
                 amount: "2000000100000000000",
                 initialized: true
             });
@@ -88,12 +88,12 @@ describe("BurnAuction", function() {
             const slots = [await getAuction(2), await getAuction(3)];
             expect(slots).to.eql([
                 {
-                    operator: await signer2.getAddress(),
+                    coordinator: await signer2.getAddress(),
                     amount: "2000000100000000000",
                     initialized: true
                 },
                 {
-                    operator: await signer1.getAddress(),
+                    coordinator: await signer1.getAddress(),
                     amount: "1000000000000000000",
                     initialized: true
                 }
@@ -101,7 +101,7 @@ describe("BurnAuction", function() {
             expect(await getSmartContractBalance()).to.be.equal(3.0000001);
         });
 
-        it("slot 2 - Fails Forging batch (unauthorized operator)", async () =>
+        it("slot 2 - Fails Forging batch (unauthorized coordinator)", async () =>
             await failForge(signer1, badForgeMessage));
 
         it("slot 2 - Successfully forges batch", async () =>
@@ -154,17 +154,17 @@ describe("BurnAuction", function() {
             // Check results
             expect(slots).to.eql([
                 {
-                    operator: bestBid.addr,
+                    coordinator: bestBid.addr,
                     amount: bestBidAmount.toString(),
                     initialized: true
                 },
                 {
-                    operator: defaultAddress,
+                    coordinator: defaultAddress,
                     amount: "0",
                     initialized: false
                 },
                 {
-                    operator: await signer1.getAddress(),
+                    coordinator: await signer1.getAddress(),
                     amount: "100000000000",
                     initialized: true
                 }
@@ -204,7 +204,9 @@ describe("BurnAuction", function() {
         const bidWei = toWei(bid);
         const newBidderPrevBalance = await signer.getBalance();
         const prevBestBid = await getCurrentAuction();
-        const oldBidderPrevBalnce = await getEtherBalance(prevBestBid.operator);
+        const oldBidderPrevBalnce = await getEtherBalance(
+            prevBestBid.coordinator
+        );
 
         // Bid and get updated balance
         const tx = await burnAuction.connect(signer).bid({ value: bidWei });
@@ -219,14 +221,16 @@ describe("BurnAuction", function() {
             await ethers.provider.getGasPrice()
         );
         const newBidderNxtBalance = await signer.getBalance();
-        const oldBidderNxtBalance = await getEtherBalance(prevBestBid.operator);
+        const oldBidderNxtBalance = await getEtherBalance(
+            prevBestBid.coordinator
+        );
 
         expect(event.args?.amount.toString()).to.be.equal(bidWei.toString());
 
         // If the previous bidder and the current bidder are the same
-        if ((await signer.getAddress()) === prevBestBid.operator) {
+        if ((await signer.getAddress()) === prevBestBid.coordinator) {
             // Ignore address 0
-            if (prevBestBid.operator !== defaultAddress) {
+            if (prevBestBid.coordinator !== defaultAddress) {
                 let prevBid = "0";
                 // if the previous auction and the current auction are the same (same slot) (refund situation)
                 if (prevBestBid.slot == event.args?.slot)
@@ -249,7 +253,7 @@ describe("BurnAuction", function() {
             // if the previous auction and the current auction are the same (same slot ==> refund) + Ignore address 0
             if (
                 prevBestBid.slot == event.args?.slot &&
-                prevBestBid.operator !== defaultAddress
+                prevBestBid.coordinator !== defaultAddress
             ) {
                 const prevBid = prevBestBid.amount;
                 expect(
@@ -300,7 +304,7 @@ describe("BurnAuction", function() {
         return {
             amount: auction.amount.toString(),
             initialized: auction.initialized,
-            operator: auction.operator
+            coordinator: auction.coordinator
         };
     }
 

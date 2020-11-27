@@ -11,11 +11,11 @@ contract BurnAuction is Chooser, Ownable {
     uint256 public genesisBlock;
 
     // Bid is a structure indicating that
-    // "operator" is willing to burn certain
+    // "coordinator" is willing to burn certain
     // "amount" of ether in order to forge a slot.
     // "initialized" is used to indicate that the bid is valid (used to differenciate an empty bid)
     struct Bid {
-        address payable operator;
+        address payable coordinator;
         uint128 amount;
         bool initialized;
     }
@@ -26,9 +26,9 @@ contract BurnAuction is Chooser, Ownable {
     mapping(uint256 => uint256) public hasProposed;
 
     /**
-     * @dev Event called when an operator beat the bestBid of the ongoing auction
+     * @dev Event called when an coordinator beat the bestBid of the ongoing auction
      */
-    event newBestBid(uint32 slot, address operator, uint128 amount);
+    event newBestBid(uint32 slot, address coordinator, uint128 amount);
 
     /**
      * @dev RollupBurnAuction constructor
@@ -40,7 +40,7 @@ contract BurnAuction is Chooser, Ownable {
     }
 
     /**
-     * @dev Receive a bid from an operator. If the bid is higher than the current bid it replace the existing bid
+     * @dev Receive a bid from an coordinator. If the bid is higher than the current bid it replace the existing bid
      */
     function bid() external payable {
         uint32 auctionSlot = currentSlot() + 2;
@@ -50,9 +50,11 @@ contract BurnAuction is Chooser, Ownable {
         );
         // refund, check 0 case (it means no bids yet for the auction, so no refund)
         if (auction[auctionSlot].initialized && auction[auctionSlot].amount > 0)
-            auction[auctionSlot].operator.transfer(auction[auctionSlot].amount);
+            auction[auctionSlot].coordinator.transfer(
+                auction[auctionSlot].amount
+            );
         // set new best bider
-        auction[auctionSlot].operator = msg.sender;
+        auction[auctionSlot].coordinator = msg.sender;
         auction[auctionSlot].amount = uint128(msg.value);
         auction[auctionSlot].initialized = true;
         emit newBestBid(auctionSlot, msg.sender, uint128(msg.value));
@@ -69,7 +71,7 @@ contract BurnAuction is Chooser, Ownable {
             "Slot fulfilled"
         );
         Bitmap.setClaimed(uint256(_currentSlot), hasProposed);
-        return auction[_currentSlot].operator;
+        return auction[_currentSlot].coordinator;
     }
 
     /**
