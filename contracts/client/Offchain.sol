@@ -135,4 +135,47 @@ library Offchain {
                 _tx.nonce
             );
     }
+
+    struct Create2TransferWithPub {
+        uint256 txType;
+        uint256 fromIndex;
+        uint256[4] toPubkey;
+        uint256 amount;
+        uint256 fee;
+        uint256 nonce;
+    }
+
+    function decodeCreate2TransferWithPub(bytes memory encodedTx)
+        internal
+        pure
+        returns (Create2TransferWithPub memory _tx)
+    {
+        (
+            _tx.txType,
+            _tx.fromIndex,
+            _tx.toPubkey,
+            _tx.amount,
+            _tx.fee,
+            _tx.nonce
+        ) = abi.decode(
+            encodedTx,
+            (uint256, uint256, uint256[4], uint256, uint256, uint256)
+        );
+    }
+
+    function encodeCreate2TransferWithPub(Create2TransferWithPub memory _tx)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encode(
+                _tx.txType,
+                _tx.fromIndex,
+                _tx.toPubkey,
+                _tx.amount,
+                _tx.fee,
+                _tx.nonce
+            );
+    }
 }
