@@ -20,7 +20,8 @@ import {
     FrontendCreate2TransferFactory,
     SpokeRegistryFactory,
     VaultFactory,
-    WithdrawManagerFactory
+    WithdrawManagerFactory,
+    Create2TransferFactory
 } from "../types/ethers-contracts";
 import { State } from "./state";
 import { merklise } from "./utils";
@@ -126,6 +127,15 @@ export async function deployAll(
         await paramManager.transferSimple()
     );
 
+    const create2Transfer = await new Create2TransferFactory(signer).deploy();
+    await waitAndRegister(
+        create2Transfer,
+        "create2transfer",
+        verbose,
+        nameRegistry,
+        await paramManager.create2Transfer()
+    );
+
     // deploy POB contract
     const pob = await new PobFactory(signer).deploy();
     await waitAndRegister(
@@ -228,6 +238,7 @@ export async function deployAll(
         tokenRegistry,
         transfer,
         massMigration,
+        create2Transfer,
         pob,
         testToken,
         spokeRegistry,

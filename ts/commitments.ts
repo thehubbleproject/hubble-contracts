@@ -173,6 +173,12 @@ export class MassMigrationCommitment extends Commitment {
     }
 }
 
+export class Create2TransferCommitment extends TransferCommitment {
+    public toBatch(): Create2TransferBatch {
+        return new Create2TransferBatch([this]);
+    }
+}
+
 export class Batch {
     private tree: Tree;
     constructor(public readonly commitments: Commitment[]) {
@@ -234,6 +240,22 @@ export class MassMigrationBatch extends Batch {
                 c.feeReceiver
             ]),
             this.commitments.map(c => c.withdrawRoot),
+            this.commitments.map(c => c.txs),
+            { value: stakingAmount }
+        );
+    }
+}
+
+export class Create2TransferBatch extends Batch {
+    constructor(public readonly commitments: TransferCommitment[]) {
+        super(commitments);
+    }
+
+    async submit(rollup: Rollup, stakingAmount: Wei) {
+        return await rollup.submitCreate2Transfer(
+            this.commitments.map(c => c.stateRoot),
+            this.commitments.map(c => c.signature),
+            this.commitments.map(c => c.feeReceiver),
             this.commitments.map(c => c.txs),
             { value: stakingAmount }
         );
