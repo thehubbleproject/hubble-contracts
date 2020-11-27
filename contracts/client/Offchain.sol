@@ -150,8 +150,14 @@ library Offchain {
         pure
         returns (Create2TransferWithPub memory _tx)
     {
-        (_tx.txType, _tx.fromIndex, _tx.toPubkey, _tx.amount, _tx.fee, _tx.nonce) = abi
-            .decode(
+        (
+            _tx.txType,
+            _tx.fromIndex,
+            _tx.toPubkey,
+            _tx.amount,
+            _tx.fee,
+            _tx.nonce
+        ) = abi.decode(
             encodedTx,
             (uint256, uint256, uint256[4], uint256, uint256, uint256)
         );
