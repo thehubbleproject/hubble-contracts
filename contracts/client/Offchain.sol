@@ -138,8 +138,8 @@ library Offchain {
 
     struct Create2TransferWithPub {
         uint256 txType;
-        uint256[4] from;
-        uint256[4] to;
+        uint256 fromIndex;
+        uint256[4] toPubkey;
         uint256 amount;
         uint256 fee;
         uint256 nonce;
@@ -150,10 +150,10 @@ library Offchain {
         pure
         returns (Create2TransferWithPub memory _tx)
     {
-        (_tx.txType, _tx.from, _tx.to, _tx.amount, _tx.fee, _tx.nonce) = abi
+        (_tx.txType, _tx.fromIndex, _tx.toPubkey, _tx.amount, _tx.fee, _tx.nonce) = abi
             .decode(
             encodedTx,
-            (uint256, uint256[4], uint256[4], uint256, uint256, uint256)
+            (uint256, uint256, uint256[4], uint256, uint256, uint256)
         );
     }
 
@@ -165,8 +165,8 @@ library Offchain {
         return
             abi.encode(
                 _tx.txType,
-                _tx.from,
-                _tx.to,
+                _tx.fromIndex,
+                _tx.toPubkey,
                 _tx.amount,
                 _tx.fee,
                 _tx.nonce
