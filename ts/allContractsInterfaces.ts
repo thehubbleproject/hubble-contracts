@@ -15,6 +15,7 @@ import { FrontendGeneric } from "../types/ethers-contracts/FrontendGeneric";
 import { FrontendTransfer } from "../types/ethers-contracts/FrontendTransfer";
 import { FrontendMassMigration } from "../types/ethers-contracts/FrontendMassMigration";
 import { FrontendCreate2Transfer } from "../types/ethers-contracts/FrontendCreate2Transfer";
+import { Create2Transfer } from "../types/ethers-contracts/Create2Transfer";
 
 export interface allContracts {
     paramManager: ParamManager;
@@ -27,6 +28,7 @@ export interface allContracts {
     tokenRegistry: TokenRegistry;
     transfer: Transfer;
     massMigration: MassMigration;
+    create2Transfer: Create2Transfer;
     pob: Pob;
     testToken: TestToken;
     spokeRegistry: SpokeRegistry;
