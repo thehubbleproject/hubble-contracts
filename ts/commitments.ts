@@ -55,9 +55,12 @@ export class GenesisCommitment extends Commitment {
     public toBatch(): Batch {
         return new Batch([this]);
     }
-    static getProof(stateRoot: BytesLike): CommitmentInclusionProof {
-        return new GenesisCommitment(stateRoot).toBatch().proofCompressed(0);
-    }
+}
+
+export function getGenesisProof(
+    stateRoot: BytesLike
+): CommitmentInclusionProof {
+    return new GenesisCommitment(stateRoot).toBatch().proofCompressed(0);
 }
 
 export class TransferCommitment extends Commitment {
