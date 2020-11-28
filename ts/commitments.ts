@@ -1,5 +1,6 @@
 import { BigNumberish, BytesLike, ethers } from "ethers";
 import { Rollup } from "../types/ethers-contracts/Rollup";
+import { ZERO_BYTES32 } from "./constants";
 import { Wei } from "./interfaces";
 import { Tree } from "./tree";
 
@@ -41,6 +42,21 @@ abstract class Commitment {
             stateRoot: this.stateRoot,
             bodyRoot: this.bodyRoot
         };
+    }
+}
+
+export class GenesisCommitment extends Commitment {
+    get bodyRoot() {
+        return ZERO_BYTES32;
+    }
+    public toSolStruct() {
+        return { stateRoot: this.stateRoot, body: {} };
+    }
+    public toBatch(): Batch {
+        return new Batch([this]);
+    }
+    static getProof(stateRoot: BytesLike): CommitmentInclusionProof {
+        return new GenesisCommitment(stateRoot).toBatch().proofCompressed(0);
     }
 }
 
