@@ -38,6 +38,20 @@ export class StateTree {
         return this.stateTree.witness(stateID).nodes;
     }
 
+    public getVacancyProof(mergeOffsetLower: number, subtreeDepth: number) {
+        const witness = this.stateTree.witnessForBatch(
+            mergeOffsetLower,
+            subtreeDepth
+        );
+        const pathAtDepth = mergeOffsetLower >> subtreeDepth;
+
+        return {
+            witness: witness.nodes,
+            depth: subtreeDepth,
+            pathAtDepth
+        };
+    }
+
     public depth() {
         return this.stateTree.depth;
     }
