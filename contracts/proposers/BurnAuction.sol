@@ -1,3 +1,4 @@
+// Modified from https://github.com/iden3/rollup/blob/master/contracts/RollupBurnAuction.sol
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
 
@@ -24,7 +25,7 @@ contract BurnAuction is Chooser {
     /**
      * @dev Event called when an coordinator beat the bestBid of the ongoing auction
      */
-    event newBestBid(uint32 slot, address coordinator, uint128 amount);
+    event NewBestBid(uint32 slot, address coordinator, uint128 amount);
 
     /**
      * @dev RollupBurnAuction constructor
@@ -53,7 +54,7 @@ contract BurnAuction is Chooser {
         auction[auctionSlot].coordinator = msg.sender;
         auction[auctionSlot].amount = uint128(msg.value);
         auction[auctionSlot].initialized = true;
-        emit newBestBid(auctionSlot, msg.sender, uint128(msg.value));
+        emit NewBestBid(auctionSlot, msg.sender, uint128(msg.value));
     }
 
     function getProposer() external view returns (address) {

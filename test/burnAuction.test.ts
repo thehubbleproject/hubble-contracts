@@ -211,7 +211,7 @@ describe("BurnAuction", function() {
         const receipt = await tx.wait();
 
         const [event] = await burnAuction.queryFilter(
-            burnAuction.filters.newBestBid(null, null, null),
+            burnAuction.filters.NewBestBid(null, null, null),
             tx.blockHash
         );
 
