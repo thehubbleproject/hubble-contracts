@@ -14,7 +14,6 @@ const BLOCKS_PER_SLOT = 100;
 const DELTA_BLOCKS_INITIAL_SLOT = 1000;
 const badBidMessage = "Your bid doesn't beat the current best";
 const badForgeMessage = "Invalid proposer";
-const doubleForgeMessage = "Slot fulfilled";
 const uninitializedAuctionMessage = "Auction has not been initialized";
 
 describe("BurnAuction", function() {
@@ -30,7 +29,6 @@ describe("BurnAuction", function() {
         rollup = await new MockRollupFactory(signer).deploy(
             burnAuction.address
         );
-        await burnAuction.transferOwnership(rollup.address);
         // mine blocks till the first slot begins
         await mineBlocksTillInitialSlot();
     });
@@ -104,11 +102,11 @@ describe("BurnAuction", function() {
         it("slot 2 - Fails Forging batch (unauthorized coordinator)", async () =>
             await failForge(signer1, badForgeMessage));
 
-        it("slot 2 - Successfully forges batch", async () =>
-            await successForge(signer2));
-
-        it("slot 2 - Fails double batch", async () =>
-            await failForge(signer2, doubleForgeMessage));
+        it("slot 2 - Successfully forges batch", async () => {
+            await successForge(signer2);
+            // Winner can forge as many batches as they like in the slot
+            await successForge(signer2);
+        });
 
         it("slot 2 - Bids nBids times on the current auction (slot 4), forward 2 slots and check status. Note that there will be a slot that wont receive bids", async () => {
             // Do nBids
