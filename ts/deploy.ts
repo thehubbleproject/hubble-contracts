@@ -22,8 +22,6 @@ import {
     WithdrawManagerFactory,
     Create2TransferFactory
 } from "../types/ethers-contracts";
-import { State } from "./state";
-import { merklise } from "./utils";
 import { BurnAuctionFactory } from "../types/ethers-contracts/BurnAuctionFactory";
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
@@ -199,14 +197,12 @@ export async function deployAll(
         await paramManager.depositManager()
     );
 
-    const root =
-        parameters.GENESIS_STATE_ROOT ||
-        (await getMerkleRootWithCoordinatorAccount(parameters));
-
+    if (!parameters.GENESIS_STATE_ROOT)
+        throw Error("GENESIS_STATE_ROOT not specified!");
     // deploy Rollup core
     const rollup = await new RollupFactory(allLinkRefs, signer).deploy(
         nameRegistry.address,
-        root,
+        parameters.GENESIS_STATE_ROOT,
         parameters.STAKE_AMOUNT,
         parameters.BLOCKS_TO_FINALISE,
         parameters.MIN_GAS_LEFT,
@@ -255,19 +251,4 @@ export async function deployAll(
         rollup,
         withdrawManager
     };
-}
-
-async function getMerkleRootWithCoordinatorAccount(
-    parameters: DeploymentParameters
-) {
-    const state0 = State.new(0, 0, 0, 0);
-    const state1 = State.new(1, 0, 0, 0);
-    const dataLeaves = [state0.toStateLeaf(), state1.toStateLeaf()];
-    const ZERO_BYTES32 =
-        "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
-    for (let i = dataLeaves.length; i < 2 ** parameters.MAX_DEPTH; i++) {
-        dataLeaves[i] = ZERO_BYTES32;
-    }
-    const result = await merklise(dataLeaves, parameters.MAX_DEPTH);
-    return result;
 }
