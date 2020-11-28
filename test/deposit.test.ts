@@ -10,6 +10,8 @@ import { Tree } from "../ts/tree";
 import { randomLeaves } from "../ts/utils";
 import { TestDepositCore } from "../types/ethers-contracts/TestDepositCore";
 import { TestDepositCoreFactory } from "../types/ethers-contracts/TestDepositCoreFactory";
+import { TransferCommitment } from "../ts/commitments";
+import { StateTree } from "../ts/stateTree";
 
 describe("Deposit Core", async function() {
     let contract: TestDepositCore;
@@ -110,5 +112,42 @@ describe("DepositManager", async function() {
             txDeposit1.blockHash
         );
         assert.equal(eventReady.args?.root, pendingDeposit);
+    });
+
+    it("submit a deposit Batch to rollup", async function() {
+        const { depositManager, rollup, blsAccountRegistry } = contracts;
+
+        const stateTree = StateTree.new(TESTING_PARAMS.MAX_DEPTH);
+
+        const vacancyProof = stateTree.getVacancyProof(
+            0,
+            TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
+        );
+
+        const initialCommitment = TransferCommitment.new(
+            stateTree.root,
+            await blsAccountRegistry.root()
+        );
+        const initialBatch = initialCommitment.toBatch();
+        await initialBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
+        const amount = 10;
+
+        const stateLeaves = [];
+        const nDeposits = 1 << TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
+
+        for (let i = 0; i < nDeposits; i++) {
+            await depositManager.depositFor(i, amount, tokenType);
+            const state = State.new(i, tokenType, amount, 0);
+            stateLeaves.push(state.toStateLeaf());
+        }
+        await rollup.submitDeposits(
+            initialBatch.proofCompressed(0),
+            vacancyProof,
+            { value: TESTING_PARAMS.STAKE_AMOUNT }
+        );
+        const batchID = Number(await rollup.nextBatchID()) - 1;
+        const depositSubTreeRoot = await rollup.deposits(batchID);
+        const root = Tree.merklize(stateLeaves).root;
+        assert.equal(depositSubTreeRoot, root);
     });
 });
