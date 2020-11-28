@@ -36,7 +36,7 @@ contract RollupCore is BatchManager {
 
     modifier onlyCoordinator() {
         require(
-            msg.sender == chooser.checkOffProposer(),
+            msg.sender == chooser.getProposer(),
             "Rollup: Invalid proposer"
         );
         _;

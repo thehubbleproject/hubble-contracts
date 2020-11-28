@@ -9,7 +9,7 @@ contract ProofOfBurn is Chooser {
         coordinator = msg.sender;
     }
 
-    function checkOffProposer() public returns (address) {
+    function getProposer() external view returns (address) {
         return coordinator;
     }
 }

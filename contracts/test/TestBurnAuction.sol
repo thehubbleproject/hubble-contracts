@@ -11,7 +11,7 @@ contract MockRollup {
     }
 
     function submitBatch() external {
-        require(chooser.checkOffProposer() == msg.sender, "Invalid proposer");
+        require(chooser.getProposer() == msg.sender, "Invalid proposer");
     }
 }
 

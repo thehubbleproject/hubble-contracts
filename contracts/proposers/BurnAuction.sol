@@ -1,9 +1,7 @@
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
-import { Bitmap } from "../libs/Bitmap.sol";
-import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
 
-contract BurnAuction is Chooser, Ownable {
+contract BurnAuction is Chooser {
     uint32 constant BLOCKS_PER_SLOT = 100;
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
@@ -22,8 +20,6 @@ contract BurnAuction is Chooser, Ownable {
 
     // auction is a relation of the best bid for each slot
     mapping(uint32 => Bid) public auction;
-    // slot -> hasProposed
-    mapping(uint256 => uint256) public hasProposed;
 
     /**
      * @dev Event called when an coordinator beat the bestBid of the ongoing auction
@@ -60,17 +56,12 @@ contract BurnAuction is Chooser, Ownable {
         emit newBestBid(auctionSlot, msg.sender, uint128(msg.value));
     }
 
-    function checkOffProposer() external onlyOwner returns (address) {
+    function getProposer() external view returns (address) {
         uint32 _currentSlot = currentSlot();
         require(
             auction[_currentSlot].initialized,
             "Auction has not been initialized"
         );
-        require(
-            !Bitmap.isClaimed(uint256(_currentSlot), hasProposed),
-            "Slot fulfilled"
-        );
-        Bitmap.setClaimed(uint256(_currentSlot), hasProposed);
         return auction[_currentSlot].coordinator;
     }
 

@@ -220,9 +220,6 @@ export async function deployAll(
         await paramManager.rollupCore()
     );
 
-    if (parameters.USE_BURN_AUCTION)
-        await chooser.transferOwnership(rollup.address);
-
     await vault.setRollupAddress();
 
     const withdrawManager = await new WithdrawManagerFactory(
