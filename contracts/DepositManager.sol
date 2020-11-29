@@ -11,6 +11,12 @@ interface IDepositManager {
     event DepositQueued(uint256 pubkeyID, bytes data);
     event DepositSubTreeReady(bytes32 root);
 
+    function depositFor(
+        uint256 accountID,
+        uint256 amount,
+        uint256 tokenID
+    ) external;
+
     function dequeueToSubmit() external returns (bytes32 subtreeRoot);
 
     function reenqueue(bytes32 subtreeRoot) external;
@@ -118,31 +124,31 @@ contract DepositManager is DepositCore, IDepositManager {
 
     /**
      * @notice Adds a deposit for an address to the deposit queue
-     * @param _amount Number of tokens that user wants to deposit
-     * @param _tokenType Type of token user is depositing
+     * @param amount Number of tokens that user wants to deposit
+     * @param tokenID Type of token user is depositing
      */
     function depositFor(
         uint256 accountID,
-        uint256 _amount,
-        uint256 _tokenType
-    ) public {
+        uint256 amount,
+        uint256 tokenID
+    ) external {
         // check amount is greater than 0
-        require(_amount > 0, "token deposit must be greater than 0");
-        IERC20 tokenContract = IERC20(tokenRegistry.safeGetAddress(_tokenType));
+        require(amount > 0, "token deposit must be greater than 0");
+        IERC20 tokenContract = IERC20(tokenRegistry.safeGetAddress(tokenID));
         // transfer from msg.sender to vault
         require(
-            tokenContract.allowance(msg.sender, address(this)) >= _amount,
+            tokenContract.allowance(msg.sender, address(this)) >= amount,
             "token allowance not approved"
         );
         require(
-            tokenContract.transferFrom(msg.sender, vault, _amount),
+            tokenContract.transferFrom(msg.sender, vault, amount),
             "token transfer not approved"
         );
         // create a new state
         Types.UserState memory newState = Types.UserState(
             accountID,
-            _tokenType,
-            _amount,
+            tokenID,
+            amount,
             0
         );
         // get new state hash
