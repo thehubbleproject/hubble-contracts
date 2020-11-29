@@ -11,12 +11,6 @@ interface IDepositManager {
     event DepositQueued(uint256 pubkeyID, bytes data);
     event DepositSubTreeReady(bytes32 root);
 
-    function depositFor(
-        uint256 accountID,
-        uint256 amount,
-        uint256 tokenID
-    ) external;
-
     function dequeueToSubmit() external returns (bytes32 subtreeRoot);
 
     function reenqueue(bytes32 subtreeRoot) external;
