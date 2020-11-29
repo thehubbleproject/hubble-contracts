@@ -4,7 +4,7 @@ contract AccountTree {
     uint256 public constant DEPTH = 31;
     uint256 public constant WITNESS_LENGTH = DEPTH;
     uint256 public constant SET_SIZE = 1 << DEPTH;
-    uint256 public constant BATCH_DEPTH = 10;
+    uint256 public constant BATCH_DEPTH = 4;
     uint256 public constant BATCH_SIZE = 1 << BATCH_DEPTH;
 
     bytes32 public rootLeft;
@@ -64,7 +64,6 @@ contract AccountTree {
             leafIndexRight < SET_SIZE - 1 - BATCH_SIZE,
             "AccountTree: right set is full "
         );
-        // require(leafs.length == BATCH_SIZE, "AccountTree: invalid batch size");
 
         // Fill the subtree
         for (uint256 i = 0; i < BATCH_DEPTH; i++) {
