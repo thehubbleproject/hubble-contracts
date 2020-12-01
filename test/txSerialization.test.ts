@@ -101,7 +101,6 @@ describe("Tx Serialization", async () => {
                 serialized,
                 i,
                 txs[i].nonce,
-                txs[i].fromPubkey,
                 txs[i].toPubkey
             );
             assert.equal(message, txs[i].message());

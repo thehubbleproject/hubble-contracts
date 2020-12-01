@@ -281,13 +281,12 @@ library Tx {
     function create2TransferMessageOf(
         Create2Transfer memory _tx,
         uint256 nonce,
-        uint256[4] memory from,
         uint256[4] memory to
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(
                 CREATE2TRANSFER,
-                from,
+                _tx.fromIndex,
                 to,
                 nonce,
                 _tx.amount,

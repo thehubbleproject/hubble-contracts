@@ -273,7 +273,7 @@ export class TxCreate2Transfer implements SignableTx {
         return solidityPack(
             [
                 "uint256",
-                "uint256[4]",
+                "uint256",
                 "uint256[4]",
                 "uint256",
                 "uint256",
@@ -281,7 +281,7 @@ export class TxCreate2Transfer implements SignableTx {
             ],
             [
                 this.TX_TYPE,
-                this.fromPubkey,
+                this.fromIndex,
                 this.toPubkey,
                 this.nonce,
                 this.amount,
