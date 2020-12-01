@@ -85,7 +85,7 @@ contract FrontendCreate2Transfer {
         returns (bytes memory)
     {
         Offchain.Create2TransferWithPub memory _tx = Offchain
-            .decodeCreate2TransferWithPub(encodedTx);
+            .decodeCreate2TransferWithPub(encodedTxWithPub);
         Tx.Create2Transfer memory txTx;
         txTx.fromIndex = _tx.fromIndex;
         txTx.amount = _tx.amount;
