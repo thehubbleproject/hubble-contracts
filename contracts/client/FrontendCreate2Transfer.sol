@@ -80,8 +80,7 @@ contract FrontendCreate2Transfer {
     }
 
     function signBytes(
-        bytes calldata encodedTx,
-        uint256[4] calldata pubkeySender
+        bytes calldata encodedTx
     ) external pure returns (bytes memory) {
         Offchain.Create2TransferWithPub memory _tx = Offchain
             .decodeCreate2TransferWithPub(encodedTx);
