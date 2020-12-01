@@ -181,7 +181,6 @@ library Authenticity {
             bytes memory txMsg = Tx.create2TransferMessageOf(
                 _tx,
                 proof.states[i].nonce - 1,
-                proof.pubkeysSender[i],
                 proof.pubkeysReceiver[i]
             );
 
