@@ -1,9 +1,11 @@
-import { ethers, providers } from "ethers";
+import { ethers } from "ethers";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { deployAll } from "../ts/deploy";
 import { DeploymentParameters } from "../ts/interfaces";
 import { toWei } from "../ts/utils";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
+import fs from "fs";
+import { PRODUCTION_PARAMS } from "../ts/constants";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root", "pubkeys"]
@@ -22,28 +24,31 @@ async function main() {
     //     "0xyourprivatekeyhere"
     // ).connect(provider);
 
-    const parameters: DeploymentParameters = {
-        MAX_DEPTH: 20,
-        MAX_DEPOSIT_SUBTREE_DEPTH: 1,
-        STAKE_AMOUNT: toWei("0.1"),
-        BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
-        MIN_GAS_LEFT: 10000,
-        MAX_TXS_PER_COMMIT: 32,
-        USE_BURN_AUCTION: true,
-        GENESIS_STATE_ROOT: argv.root
-    };
+    const parameters = PRODUCTION_PARAMS;
+    parameters.GENESIS_STATE_ROOT = argv.root;
 
     const contracts = await deployAll(signer, parameters, true);
-    Object.keys(contracts).forEach((contract: string) => {
-        console.log(
-            contract,
-            contracts[contract as keyof allContracts].address
-        );
+    let addresses: { [key: string]: string } = {};
+    Object.keys(contracts).map((contract: string) => {
+        addresses[contract] = contracts[contract as keyof allContracts].address;
     });
+    const configs = { parameters, addresses };
+    console.log("Writing genesis.json");
+    fs.writeFileSync("genesis.json", JSON.stringify(configs, null, 4));
+    console.log("Successsfully deployed", configs);
 
-    console.log("argv.pubkeys", argv.pubkeys.split(","));
+    if (argv.pubkeys) {
+        const pubkeys = argv.pubkeys.split(",");
+        await registerPublicKeys(contracts.blsAccountRegistry, pubkeys);
+    }
+}
 
-    for (const pubkeyRaw of argv.pubkeys.split(",")) {
+async function registerPublicKeys(
+    blsAccountRegistry: BlsAccountRegistry,
+    pubkeys: string[]
+) {
+    console.log(`Registering ${pubkeys.length} public keys`);
+    for (const pubkeyRaw of pubkeys) {
         const parsedPubkey = [
             pubkeyRaw.slice(64, 128),
             pubkeyRaw.slice(0, 64),
@@ -51,10 +56,10 @@ async function main() {
             pubkeyRaw.slice(128, 192)
         ].map(_ => "0x" + _);
         console.log("Registering", parsedPubkey);
-        const tx = await contracts.blsAccountRegistry.register(parsedPubkey);
-        tx.wait().then(_ =>
-            console.log("Done registering pubkey", pubkeyRaw.slice(0, 5))
-        );
+        const tx = await blsAccountRegistry.register(parsedPubkey);
+        await tx.wait();
+        console.log("Done registering pubkey", pubkeyRaw.slice(0, 5));
     }
 }
+
 main();

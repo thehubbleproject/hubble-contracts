@@ -32,7 +32,7 @@ export function to32Hex(n: BigNumber): string {
 }
 
 export function toWei(ether: string): Wei {
-    return parseEther(ether) as Wei;
+    return parseEther(ether).toString();
 }
 
 export function randFs(): BigNumber {

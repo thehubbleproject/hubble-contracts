@@ -11,6 +11,16 @@ export const TESTING_PARAMS: DeploymentParameters = {
     MAX_TXS_PER_COMMIT: 32
 };
 
+export const PRODUCTION_PARAMS: DeploymentParameters = {
+    MAX_DEPTH: 20,
+    MAX_DEPOSIT_SUBTREE_DEPTH: 1,
+    STAKE_AMOUNT: toWei("0.1"),
+    BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
+    MIN_GAS_LEFT: 10000,
+    MAX_TXS_PER_COMMIT: 32,
+    USE_BURN_AUCTION: true
+};
+
 export const COMMIT_SIZE = 32;
 export const STATE_TREE_DEPTH = 32;
 

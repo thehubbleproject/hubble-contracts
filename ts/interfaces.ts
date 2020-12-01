@@ -1,6 +1,4 @@
-import { BigNumber } from "ethers";
-
-export type Wei = BigNumber;
+export type Wei = string;
 
 export interface DeploymentParameters {
     MAX_DEPTH: number;
