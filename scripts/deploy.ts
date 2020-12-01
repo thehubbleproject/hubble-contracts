@@ -5,6 +5,7 @@ import { DeploymentParameters } from "../ts/interfaces";
 import { toWei } from "../ts/utils";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import fs from "fs";
+import { PRODUCTION_PARAMS } from "../ts/constants";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root", "pubkeys"]
@@ -23,16 +24,8 @@ async function main() {
     //     "0xyourprivatekeyhere"
     // ).connect(provider);
 
-    const parameters: DeploymentParameters = {
-        MAX_DEPTH: 20,
-        MAX_DEPOSIT_SUBTREE_DEPTH: 1,
-        STAKE_AMOUNT: toWei("0.1"),
-        BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
-        MIN_GAS_LEFT: 10000,
-        MAX_TXS_PER_COMMIT: 32,
-        USE_BURN_AUCTION: true,
-        GENESIS_STATE_ROOT: argv.root
-    };
+    const parameters = PRODUCTION_PARAMS;
+    parameters.GENESIS_STATE_ROOT = argv.root;
 
     const contracts = await deployAll(signer, parameters, true);
     let addresses: { [key: string]: string } = {};
