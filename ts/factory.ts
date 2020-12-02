@@ -4,25 +4,26 @@ import { USDT } from "./decimal";
 import { State } from "./state";
 import { TxTransfer, TxCreate2Transfer, TxMassMigration } from "./tx";
 
+interface UserStateFactoryOptions {
+    numOfStates: number;
+    initialStateID: number;
+    initialpubkeyID: number;
+    tokenID?: number;
+    initialBalance?: BigNumber;
+    zeroNonce?: boolean;
+}
+
 export class UserStateFactory {
-    public static buildList(
-        numOfStates: number,
-        initialStateID: number = 0,
-        initialpubkeyID: number = 0,
-        tokenID: number = 1,
-        initialBalance: BigNumber = USDT.castInt(1000.0),
-        initialNonce: number = 9
-    ) {
+    public static buildList(options: UserStateFactoryOptions) {
         const states: State[] = [];
-        for (let i = 0; i < numOfStates; i++) {
-            const pubkeyID = initialpubkeyID + i;
-            const stateID = initialStateID + i;
-            const state = State.new(
-                pubkeyID,
-                tokenID,
-                initialBalance,
-                initialNonce + i
-            );
+        const tokenID = options.tokenID || 1;
+        const balance = options.initialBalance || USDT.castInt(1000.0);
+        const zeroNonce = options.zeroNonce || false;
+        for (let i = 0; i < options.numOfStates; i++) {
+            const pubkeyID = options.initialpubkeyID + i;
+            const stateID = options.initialStateID + i;
+            const nonce = zeroNonce ? 0 : 9 + i;
+            const state = State.new(pubkeyID, tokenID, balance, nonce);
             state.setStateID(stateID);
             state.newKeyPair();
             states.push(state);
