@@ -42,7 +42,7 @@ export interface OffchainCreate2Transfer {
     txType: string;
     fromIndex: number;
     toIndex: number;
-    toAccID: number;
+    toPubkeyID: number;
     amount: BigNumber;
     fee: BigNumber;
     nonce: number;
@@ -229,7 +229,7 @@ export class TxCreate2Transfer implements SignableTx {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
         const receiverPub: string[] = [];
-        const toAccID = randomNum(stateIDLen);
+        const toPubkeyID = randomNum(stateIDLen);
         const amount = USDT.randInt();
         const fee = USDT.randInt();
         const nonce = randomNum(nonceLen);
@@ -237,7 +237,7 @@ export class TxCreate2Transfer implements SignableTx {
             sender,
             receiver,
             receiverPub,
-            toAccID,
+            toPubkeyID,
             amount,
             fee,
             nonce,
@@ -256,7 +256,7 @@ export class TxCreate2Transfer implements SignableTx {
         public readonly fromIndex: number,
         public readonly toIndex: number,
         public toPubkey: string[],
-        public readonly toAccID: number,
+        public readonly toPubkeyID: number,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
@@ -302,7 +302,7 @@ export class TxCreate2Transfer implements SignableTx {
                 this.TX_TYPE,
                 this.fromIndex,
                 this.toIndex,
-                this.toAccID,
+                this.toPubkeyID,
                 this.amount,
                 this.fee,
                 this.nonce
@@ -315,7 +315,7 @@ export class TxCreate2Transfer implements SignableTx {
             txType: this.TX_TYPE,
             fromIndex: this.fromIndex,
             toIndex: this.toIndex,
-            toAccID: this.toAccID,
+            toPubkeyID: this.toPubkeyID,
             amount: this.amount,
             fee: this.fee,
             nonce: this.nonce
@@ -326,7 +326,7 @@ export class TxCreate2Transfer implements SignableTx {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
-            hexZeroPad(hexlify(this.toAccID), stateIDLen),
+            hexZeroPad(hexlify(this.toPubkeyID), stateIDLen),
             this.decimal.encodeInt(this.amount),
             this.decimal.encodeInt(this.fee)
         ]);

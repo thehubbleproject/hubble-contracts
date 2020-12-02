@@ -245,7 +245,7 @@ export class StateTree {
         const senderProof = this.processSender(tx.fromIndex, decrement);
         const receiverProof = this.processCreate(
             tx.toIndex,
-            tx.toAccID,
+            tx.toPubkeyID,
             tx.amount,
             senderProof.state.tokenID
         );

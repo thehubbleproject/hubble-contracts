@@ -169,7 +169,7 @@ library Authenticity {
                 MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
-                    _tx.toAccID,
+                    _tx.toPubkeyID,
                     proof.pubkeyWitnessesReceiver[i]
                 ),
                 "Authenticity: to account does not exists"

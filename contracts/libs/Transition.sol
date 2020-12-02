@@ -106,7 +106,7 @@ library Transition {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        encodedState = createState(_tx.toAccID, tokenID, _tx.amount);
+        encodedState = createState(_tx.toPubkeyID, tokenID, _tx.amount);
 
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),

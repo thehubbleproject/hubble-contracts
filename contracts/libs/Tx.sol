@@ -57,7 +57,7 @@ library Tx {
     struct Create2Transfer {
         uint256 fromIndex;
         uint256 toIndex;
-        uint256 toAccID;
+        uint256 toPubkeyID;
         uint256 amount;
         uint256 fee;
     }
@@ -143,13 +143,13 @@ library Tx {
         for (uint256 i = 0; i < batchSize; i++) {
             uint256 fromIndex = txs[i].fromIndex;
             uint256 toIndex = txs[i].toIndex;
-            uint256 toAccID = txs[i].toAccID;
+            uint256 toPubkeyID = txs[i].toPubkeyID;
             uint256 amount = txs[i].amount;
             uint256 fee = txs[i].fee;
             bytes memory _tx = abi.encodePacked(
                 uint32(fromIndex),
                 uint32(toIndex),
-                uint32(toAccID),
+                uint32(toPubkeyID),
                 uint16(encodeDecimal(amount)),
                 uint16(encodeDecimal(fee))
             );
