@@ -45,8 +45,8 @@ contract Create2Transfer {
         if (size > maxTxSize) return (stateRoot, Types.Result.TooManyTx);
 
         uint256 fees = 0;
-        // tokenType should be the same for all states in this commit
-        uint256 tokenType = proofs[0].state.tokenType;
+        // tokenID should be the same for all states in this commit
+        uint256 tokenID = proofs[0].state.tokenID;
         Tx.Create2Transfer memory _tx;
 
         for (uint256 i = 0; i < size; i++) {
@@ -54,7 +54,7 @@ contract Create2Transfer {
             (stateRoot, result) = Transition.processCreate2Transfer(
                 stateRoot,
                 _tx,
-                tokenType,
+                tokenID,
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
@@ -65,7 +65,7 @@ contract Create2Transfer {
         (stateRoot, result) = Transition.processReceiver(
             stateRoot,
             feeReceiver,
-            tokenType,
+            tokenID,
             fees,
             proofs[size * 2]
         );

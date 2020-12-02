@@ -107,7 +107,7 @@ describe("Rollup Mass Migration", () => {
         );
         assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
-        const tokenID = states[0].tokenType;
+        const tokenID = states[0].tokenID;
 
         const leaves = txs.map(tx =>
             State.new(

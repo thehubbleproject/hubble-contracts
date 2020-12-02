@@ -207,7 +207,7 @@ describe("Mass Migrations", async function() {
         const { signature } = mcl.sign(claimerAddress, Alice.secretKey);
         const state = {
             pubkeyIndex: Alice.pubkeyIndex,
-            tokenType: tokenID,
+            tokenID,
             balance: tx.amount,
             nonce: 0
         };

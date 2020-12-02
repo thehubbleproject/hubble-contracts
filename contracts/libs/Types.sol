@@ -189,7 +189,7 @@ library Types {
      */
     struct UserState {
         uint256 pubkeyIndex;
-        uint256 tokenType;
+        uint256 tokenID;
         uint256 balance;
         uint256 nonce;
     }
@@ -202,7 +202,7 @@ library Types {
         return
             abi.encodePacked(
                 state.pubkeyIndex,
-                state.tokenType,
+                state.tokenID,
                 state.balance,
                 state.nonce
             );
@@ -213,7 +213,7 @@ library Types {
         pure
         returns (Types.UserState memory state)
     {
-        (state.pubkeyIndex, state.tokenType, state.balance, state.nonce) = abi
+        (state.pubkeyIndex, state.tokenID, state.balance, state.nonce) = abi
             .decode(encoded, (uint256, uint256, uint256, uint256));
     }
 
@@ -238,8 +238,8 @@ library Types {
         Ok,
         InvalidTokenAmount,
         NotEnoughTokenBalance,
-        BadFromTokenType,
-        BadToTokenType,
+        BadFromTokenID,
+        BadToTokenID,
         BadSignature,
         MismatchedAmount,
         BadWithdrawRoot,

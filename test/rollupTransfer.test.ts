@@ -126,7 +126,7 @@ describe("Rollup Transfer Commitment", () => {
             } = await rollup.testProcessTransfer(
                 preRoot,
                 tx,
-                states[0].tokenType,
+                states[0].tokenID,
                 senderProof,
                 receiverProof
             );

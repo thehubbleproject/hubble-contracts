@@ -13,14 +13,14 @@ library Transition {
     function processTransfer(
         bytes32 stateRoot,
         Tx.Transfer memory _tx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) internal pure returns (bytes32 newRoot, Types.Result result) {
         (newRoot, result) = processSender(
             stateRoot,
             _tx.fromIndex,
-            tokenType,
+            tokenID,
             _tx.amount,
             _tx.fee,
             from
@@ -29,7 +29,7 @@ library Transition {
         (newRoot, result) = processReceiver(
             newRoot,
             _tx.toIndex,
-            tokenType,
+            tokenID,
             _tx.amount,
             to
         );
@@ -39,7 +39,7 @@ library Transition {
     function processMassMigration(
         bytes32 stateRoot,
         Tx.MassMigration memory _tx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from
     )
         internal
@@ -53,13 +53,13 @@ library Transition {
         (newRoot, result) = processSender(
             stateRoot,
             _tx.fromIndex,
-            tokenType,
+            tokenID,
             _tx.amount,
             _tx.fee,
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);
-        freshState = createState(from.state.pubkeyIndex, tokenType, _tx.amount);
+        freshState = createState(from.state.pubkeyIndex, tokenID, _tx.amount);
 
         return (newRoot, freshState, Types.Result.Ok);
     }
@@ -67,14 +67,14 @@ library Transition {
     function processCreate2Transfer(
         bytes32 stateRoot,
         Tx.Create2Transfer memory _tx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) internal pure returns (bytes32 newRoot, Types.Result result) {
         (newRoot, result) = processSender(
             stateRoot,
             _tx.fromIndex,
-            tokenType,
+            tokenID,
             _tx.amount,
             _tx.fee,
             from
@@ -83,7 +83,7 @@ library Transition {
         (, newRoot) = processCreate2TransferReceiver(
             newRoot,
             _tx,
-            from.state.tokenType,
+            from.state.tokenID,
             to
         );
 
@@ -93,7 +93,7 @@ library Transition {
     function processCreate2TransferReceiver(
         bytes32 stateRoot,
         Tx.Create2Transfer memory _tx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
         // Validate we are creating on a zero state
@@ -106,7 +106,7 @@ library Transition {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        encodedState = createState(_tx.toAccID, tokenType, _tx.amount);
+        encodedState = createState(_tx.toAccID, tokenID, _tx.amount);
 
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
@@ -119,7 +119,7 @@ library Transition {
     function processSender(
         bytes32 stateRoot,
         uint256 senderStateIndex,
-        uint256 tokenType,
+        uint256 tokenID,
         uint256 amount,
         uint256 fee,
         Types.StateMerkleProof memory proof
@@ -136,7 +136,7 @@ library Transition {
         (
             Types.UserState memory newSender,
             Types.Result result
-        ) = validateAndApplySender(tokenType, amount, fee, proof.state);
+        ) = validateAndApplySender(tokenID, amount, fee, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);
         newRoot = MerkleTree.computeRoot(
             keccak256(newSender.encode()),
@@ -149,7 +149,7 @@ library Transition {
     function processReceiver(
         bytes32 stateRoot,
         uint256 receiverStateIndex,
-        uint256 tokenType,
+        uint256 tokenID,
         uint256 amount,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes32 newRoot, Types.Result) {
@@ -165,7 +165,7 @@ library Transition {
         (
             Types.UserState memory newReceiver,
             Types.Result result
-        ) = validateAndApplyReceiver(tokenType, amount, proof.state);
+        ) = validateAndApplyReceiver(tokenID, amount, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);
         newRoot = MerkleTree.computeRoot(
             keccak256(newReceiver.encode()),
@@ -176,7 +176,7 @@ library Transition {
     }
 
     function validateAndApplySender(
-        uint256 tokenType,
+        uint256 tokenID,
         uint256 amount,
         uint256 fee,
         Types.UserState memory sender
@@ -185,11 +185,11 @@ library Transition {
         uint256 decrement = amount.add(fee);
         if (sender.balance < decrement)
             return (sender, Types.Result.NotEnoughTokenBalance);
-        if (sender.tokenType != tokenType)
-            return (sender, Types.Result.BadFromTokenType);
+        if (sender.tokenID != tokenID)
+            return (sender, Types.Result.BadFromTokenID);
         Types.UserState memory newSender = Types.UserState({
             pubkeyIndex: sender.pubkeyIndex,
-            tokenType: sender.tokenType,
+            tokenID: sender.tokenID,
             balance: sender.balance.sub(decrement),
             nonce: sender.nonce.add(1)
         });
@@ -197,15 +197,15 @@ library Transition {
     }
 
     function validateAndApplyReceiver(
-        uint256 tokenType,
+        uint256 tokenID,
         uint256 amount,
         Types.UserState memory receiver
     ) internal pure returns (Types.UserState memory newReceiver, Types.Result) {
-        if (receiver.tokenType != tokenType)
-            return (receiver, Types.Result.BadToTokenType);
+        if (receiver.tokenID != tokenID)
+            return (receiver, Types.Result.BadToTokenID);
         newReceiver = Types.UserState({
             pubkeyIndex: receiver.pubkeyIndex,
-            tokenType: receiver.tokenType,
+            tokenID: receiver.tokenID,
             balance: receiver.balance.add(amount),
             nonce: receiver.nonce
         });
@@ -214,12 +214,12 @@ library Transition {
 
     function createState(
         uint256 pubkeyIndex,
-        uint256 tokenType,
+        uint256 tokenID,
         uint256 amount
     ) internal pure returns (bytes memory stateEncoded) {
         Types.UserState memory state = Types.UserState({
             pubkeyIndex: pubkeyIndex,
-            tokenType: tokenType,
+            tokenID: tokenID,
             balance: amount,
             nonce: 0
         });

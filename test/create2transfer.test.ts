@@ -180,7 +180,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             } = await rollup.testProcessCreate2Transfer(
                 preRoot,
                 tx,
-                states[0].tokenType,
+                states[0].tokenID,
                 senderProof,
                 receiverProof
             );

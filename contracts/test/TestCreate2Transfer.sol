@@ -30,7 +30,7 @@ contract TestCreate2Transfer is Create2Transfer {
     function testProcessCreate2Transfer(
         bytes32 _balanceRoot,
         Tx.Create2Transfer memory _tx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32, Types.Result) {
@@ -38,7 +38,7 @@ contract TestCreate2Transfer is Create2Transfer {
             Transition.processCreate2Transfer(
                 _balanceRoot,
                 _tx,
-                tokenType,
+                tokenID,
                 from,
                 to
             );
