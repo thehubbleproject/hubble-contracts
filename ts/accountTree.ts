@@ -29,20 +29,20 @@ export class AccountRegistry {
     }
 
     public async register(pubkey: string[]): Promise<number> {
-        const accountID = (await this.registry.leafIndexLeft()).toNumber();
+        const pubkeyID = (await this.registry.leafIndexLeft()).toNumber();
         await (await this.registry.register(pubkey)).wait();
         const leaf = this.pubkeyToLeaf(pubkey);
-        this.treeLeft.updateSingle(accountID, leaf);
-        const _witness = this.witness(accountID);
+        this.treeLeft.updateSingle(pubkeyID, leaf);
+        const _witness = this.witness(pubkeyID);
         assert.isTrue(
-            await this.registry.exists(accountID, pubkey, _witness.slice(0, 31))
+            await this.registry.exists(pubkeyID, pubkey, _witness.slice(0, 31))
         );
-        return accountID;
+        return pubkeyID;
     }
 
-    public witness(accountID: number): string[] {
+    public witness(pubkeyID: number): string[] {
         // TODO: from right
-        const witness = this.treeLeft.witness(accountID).nodes;
+        const witness = this.treeLeft.witness(pubkeyID).nodes;
         witness.push(this.treeRight.root);
         return witness;
     }

@@ -84,17 +84,14 @@ contract WithdrawManager {
             "WithdrawManager: state should be in the withdrawRoot"
         );
         require(
-            !Bitmap.isClaimed(
-                withdrawal.state.pubkeyIndex,
-                bitmap[withdrawRoot]
-            ),
+            !Bitmap.isClaimed(withdrawal.state.pubkeyID, bitmap[withdrawRoot]),
             "WithdrawManager: Token has been claimed"
         );
         require(
             MerkleTree.verify(
                 accountRoot,
                 keccak256(abi.encodePacked(pubkey)),
-                withdrawal.state.pubkeyIndex,
+                withdrawal.state.pubkeyID,
                 pubkeyWitness
             ),
             "WithdrawManager: Public key should be in the Registry"
@@ -113,7 +110,7 @@ contract WithdrawManager {
         IERC20 tokenContract = IERC20(
             tokenRegistry.safeGetAddress(withdrawal.state.tokenID)
         );
-        Bitmap.setClaimed(withdrawal.state.pubkeyIndex, bitmap[withdrawRoot]);
+        Bitmap.setClaimed(withdrawal.state.pubkeyID, bitmap[withdrawRoot]);
         // transfer tokens from vault
         require(
             tokenContract.transfer(msg.sender, withdrawal.state.balance),

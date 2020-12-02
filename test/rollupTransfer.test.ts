@@ -57,7 +57,7 @@ describe("Rollup Transfer Commitment", () => {
         for (const tx of txs) {
             const sender = states[tx.fromIndex];
             pubkeys.push(sender.getPubkey());
-            pubkeyWitnesses.push(registry.witness(sender.pubkeyIndex));
+            pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
             signatures.push(sender.sign(tx));
         }
         const signature = mcl.aggreagate(signatures);

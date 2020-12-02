@@ -59,7 +59,7 @@ library Transition {
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);
-        freshState = createState(from.state.pubkeyIndex, tokenID, _tx.amount);
+        freshState = createState(from.state.pubkeyID, tokenID, _tx.amount);
 
         return (newRoot, freshState, Types.Result.Ok);
     }
@@ -188,7 +188,7 @@ library Transition {
         if (sender.tokenID != tokenID)
             return (sender, Types.Result.BadFromTokenID);
         Types.UserState memory newSender = Types.UserState({
-            pubkeyIndex: sender.pubkeyIndex,
+            pubkeyID: sender.pubkeyID,
             tokenID: sender.tokenID,
             balance: sender.balance.sub(decrement),
             nonce: sender.nonce.add(1)
@@ -204,7 +204,7 @@ library Transition {
         if (receiver.tokenID != tokenID)
             return (receiver, Types.Result.BadToTokenID);
         newReceiver = Types.UserState({
-            pubkeyIndex: receiver.pubkeyIndex,
+            pubkeyID: receiver.pubkeyID,
             tokenID: receiver.tokenID,
             balance: receiver.balance.add(amount),
             nonce: receiver.nonce
@@ -213,12 +213,12 @@ library Transition {
     }
 
     function createState(
-        uint256 pubkeyIndex,
+        uint256 pubkeyID,
         uint256 tokenID,
         uint256 amount
     ) internal pure returns (bytes memory stateEncoded) {
         Types.UserState memory state = Types.UserState({
-            pubkeyIndex: pubkeyIndex,
+            pubkeyID: pubkeyID,
             tokenID: tokenID,
             balance: amount,
             nonce: 0

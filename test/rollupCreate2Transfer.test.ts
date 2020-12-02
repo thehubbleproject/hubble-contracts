@@ -41,12 +41,12 @@ describe("Rollup Create2Transfer", async function() {
         Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(0);
         Alice.newKeyPair();
-        Alice.pubkeyIndex = await registry.register(Alice.getPubkey());
+        Alice.pubkeyID = await registry.register(Alice.getPubkey());
 
         Bob = State.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
         Bob.newKeyPair();
-        Bob.pubkeyIndex = await registry.register(Bob.getPubkey());
+        Bob.pubkeyID = await registry.register(Bob.getPubkey());
 
         // Bob is not in the state tree before the transfer
         stateTree.createState(Alice);
@@ -70,7 +70,7 @@ describe("Rollup Create2Transfer", async function() {
             Alice.stateID,
             Bob.stateID,
             Bob.publicKey,
-            Bob.pubkeyIndex,
+            Bob.pubkeyID,
             USDT.castInt(5.5),
             USDT.castInt(0.56),
             Alice.nonce + 1,

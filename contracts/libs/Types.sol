@@ -184,11 +184,8 @@ library Types {
         bytes32[] witness;
     }
 
-    /**
-    @param pubkeyIndex path to the pubkey in the PDA tree
-     */
     struct UserState {
-        uint256 pubkeyIndex;
+        uint256 pubkeyID;
         uint256 tokenID;
         uint256 balance;
         uint256 nonce;
@@ -201,7 +198,7 @@ library Types {
     {
         return
             abi.encodePacked(
-                state.pubkeyIndex,
+                state.pubkeyID,
                 state.tokenID,
                 state.balance,
                 state.nonce
@@ -213,7 +210,7 @@ library Types {
         pure
         returns (Types.UserState memory state)
     {
-        (state.pubkeyIndex, state.tokenID, state.balance, state.nonce) = abi
+        (state.pubkeyID, state.tokenID, state.balance, state.nonce) = abi
             .decode(encoded, (uint256, uint256, uint256, uint256));
     }
 

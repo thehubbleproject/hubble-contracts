@@ -8,9 +8,9 @@ contract BLSAccountRegistry is AccountTree {
 
     function register(uint256[4] calldata pubkey) external returns (uint256) {
         bytes32 leaf = keccak256(abi.encodePacked(pubkey));
-        uint256 accountID = _updateSingle(leaf);
-        emit PubkeyRegistered(pubkey, accountID);
-        return accountID;
+        uint256 pubkeyID = _updateSingle(leaf);
+        emit PubkeyRegistered(pubkey, pubkeyID);
+        return pubkeyID;
     }
 
     function registerBatch(uint256[4][BATCH_SIZE] calldata pubkeys)

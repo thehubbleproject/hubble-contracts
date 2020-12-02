@@ -8,17 +8,17 @@ export class UserStateFactory {
     public static buildList(
         numOfStates: number,
         initialStateID: number = 0,
-        initialAccID: number = 0,
+        initialpubkeyID: number = 0,
         tokenID: number = 1,
         initialBalance: BigNumber = USDT.castInt(1000.0),
         initialNonce: number = 9
     ) {
         const states: State[] = [];
         for (let i = 0; i < numOfStates; i++) {
-            const accountID = initialAccID + i;
+            const pubkeyID = initialpubkeyID + i;
             const stateID = initialStateID + i;
             const state = State.new(
-                accountID,
+                pubkeyID,
                 tokenID,
                 initialBalance,
                 initialNonce + i
@@ -76,7 +76,7 @@ export function txCreate2TransferFactory(
             senderIndex,
             reciverIndex,
             receiver.getPubkey(),
-            receiver.pubkeyIndex,
+            receiver.pubkeyID,
             amount,
             fee,
             sender.nonce,

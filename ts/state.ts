@@ -4,7 +4,7 @@ import { BigNumber, BigNumberish, ethers } from "ethers";
 import { solidityPack } from "ethers/lib/utils";
 
 export interface StateSolStruct {
-    pubkeyIndex: number;
+    pubkeyID: number;
     tokenID: number;
     balance: number;
     nonce: number;
@@ -14,7 +14,7 @@ export interface StateSolStruct {
  * @dev this is not an zero state leaf contrarily this is a legit state!
  */
 export const EMPTY_STATE: StateSolStruct = {
-    pubkeyIndex: 0,
+    pubkeyID: 0,
     tokenID: 0,
     balance: 0,
     nonce: 0
@@ -24,18 +24,18 @@ export class State {
     publicKey: mcl.PublicKey = ["0x", "0x", "0x", "0x"];
     secretKey: mcl.SecretKey;
     public static new(
-        pubkeyIndex: number,
+        pubkeyID: number,
         tokenID: number,
         balance: BigNumberish,
         nonce: number
     ): State {
-        return new State(pubkeyIndex, tokenID, BigNumber.from(balance), nonce);
+        return new State(pubkeyID, tokenID, BigNumber.from(balance), nonce);
     }
 
     // TODO add optional params for pubkey and stateID
     public clone() {
         const state = new State(
-            this.pubkeyIndex,
+            this.pubkeyID,
             this.tokenID,
             this.balance,
             this.nonce
@@ -48,7 +48,7 @@ export class State {
 
     public stateID = -1;
     constructor(
-        public pubkeyIndex: number,
+        public pubkeyID: number,
         public tokenID: number,
         public balance: BigNumber,
         public nonce: number
@@ -84,20 +84,20 @@ export class State {
     public encode(): string {
         return solidityPack(
             ["uint256", "uint256", "uint256", "uint256"],
-            [this.pubkeyIndex, this.tokenID, this.balance, this.nonce]
+            [this.pubkeyID, this.tokenID, this.balance, this.nonce]
         );
     }
 
     public toStateLeaf(): string {
         return ethers.utils.solidityKeccak256(
             ["uint256", "uint256", "uint256", "uint256"],
-            [this.pubkeyIndex, this.tokenID, this.balance, this.nonce]
+            [this.pubkeyID, this.tokenID, this.balance, this.nonce]
         );
     }
 
     public toSolStruct(): StateSolStruct {
         return {
-            pubkeyIndex: this.pubkeyIndex,
+            pubkeyID: this.pubkeyID,
             tokenID: this.tokenID,
             balance: this.balance.toNumber(),
             nonce: this.nonce
