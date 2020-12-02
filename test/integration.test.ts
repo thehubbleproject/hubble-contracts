@@ -3,7 +3,11 @@ import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import { AccountRegistry } from "../ts/accountTree";
 import { allContracts } from "../ts/allContractsInterfaces";
-import { PRODUCTION_PARAMS } from "../ts/constants";
+import {
+    BLOCKS_PER_SLOT,
+    DELTA_BLOCKS_INITIAL_SLOT,
+    PRODUCTION_PARAMS
+} from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import { UserStateFactory } from "../ts/factory";
 import { DeploymentParameters } from "../ts/interfaces";
@@ -12,6 +16,8 @@ import { TestTokenFactory } from "../types/ethers-contracts";
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import * as mcl from "../ts/mcl";
 import { TestToken } from "../types/ethers-contracts/TestToken";
+import { BodylessCommitment, getGenesisProof } from "../ts/commitments";
+import { getBatchID, mineBlocks } from "../ts/utils";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -51,11 +57,17 @@ describe("Integration Test", function() {
         assert.equal(event.args?.tokenType, 2);
     });
     it("Coordinator bid the first auction", async function() {
-        const chooser = contracts.chooser as BurnAuction;
-        await chooser.connect(coordinator).bid({ value: "1" });
+        const burnAuction = contracts.chooser as BurnAuction;
+        await burnAuction.connect(coordinator).bid({ value: "1" });
+        await mineBlocks(
+            ethers.provider,
+            DELTA_BLOCKS_INITIAL_SLOT + BLOCKS_PER_SLOT * 2
+        );
+        // Slot 2 is when the auction finalize and the coordinator can propose
+        assert.equal(Number(await burnAuction.currentSlot()), 2);
     });
     it("Deposit some users", async function() {
-        const { depositManager } = contracts;
+        const { depositManager, rollup } = contracts;
         const subtreeSize = 1 << parameters.MAX_DEPOSIT_SUBTREE_DEPTH;
         const nSubtrees = 5;
         const nDeposits = nSubtrees * subtreeSize;
@@ -84,6 +96,33 @@ describe("Integration Test", function() {
             fromBlockNumber
         );
         assert.equal(subtreeReadyEvents.length, nSubtrees);
+        let previousProof = getGenesisProof(
+            parameters.GENESIS_STATE_ROOT as string
+        );
+        for (let i = 0; i < nSubtrees; i++) {
+            const mergeOffsetLower = i * subtreeSize;
+            const statesToUpdate = states.slice(
+                mergeOffsetLower,
+                mergeOffsetLower + subtreeSize
+            );
+            const vacant = stateTree.getVacancyProof(
+                mergeOffsetLower,
+                parameters.MAX_DEPOSIT_SUBTREE_DEPTH
+            );
+            await rollup
+                .connect(coordinator)
+                .submitDeposits(previousProof, vacant, {
+                    value: parameters.STAKE_AMOUNT
+                });
+            const batchID = await getBatchID(rollup);
+            stateTree.createStateBulk(statesToUpdate);
+            const depositBatch = new BodylessCommitment(
+                stateTree.root
+            ).toBatch();
+            const batch = await rollup.getBatch(batchID);
+            assert.equal(batch.commitmentRoot, depositBatch.commitmentRoot);
+            previousProof = depositBatch.proofCompressed(0);
+        }
     });
     it("Users doing Transfers");
     it("Getting new users via Create to transfer");

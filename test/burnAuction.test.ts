@@ -8,10 +8,9 @@ import { MockRollup } from "../types/ethers-contracts/MockRollup";
 import { MockRollupFactory } from "../types/ethers-contracts/MockRollupFactory";
 import { TestBurnAuction } from "../types/ethers-contracts/TestBurnAuction";
 import { TestBurnAuctionFactory } from "../types/ethers-contracts/TestBurnAuctionFactory";
+import { BLOCKS_PER_SLOT, DELTA_BLOCKS_INITIAL_SLOT } from "../ts/constants";
 
 const defaultAddress = "0x0000000000000000000000000000000000000000";
-const BLOCKS_PER_SLOT = 100;
-const DELTA_BLOCKS_INITIAL_SLOT = 1000;
 const badBidMessage = "Your bid doesn't beat the current best";
 const badForgeMessage = "Invalid proposer";
 const uninitializedAuctionMessage = "Auction has not been initialized";
