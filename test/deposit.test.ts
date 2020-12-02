@@ -68,7 +68,7 @@ describe("DepositManager", async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
         const { testToken, tokenRegistry, depositManager } = contracts;
-        tokenID = (await tokenRegistry.numTokens()).toNumber();
+        tokenID = (await tokenRegistry.nextTokenID()).toNumber() - 1;
         await testToken.approve(depositManager.address, LARGE_AMOUNT_OF_TOKEN);
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {

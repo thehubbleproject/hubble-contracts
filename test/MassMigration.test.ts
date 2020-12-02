@@ -16,7 +16,7 @@ import { mineBlocks } from "../ts/utils";
 import { expectRevert } from "../ts/utils";
 
 describe("Mass Migrations", async function() {
-    const tokenID = 1;
+    const tokenID = 0;
     let Alice: State;
     let contracts: allContracts;
     let stateTree: StateTree;
