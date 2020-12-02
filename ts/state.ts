@@ -103,12 +103,4 @@ export class State {
             nonce: this.nonce
         };
     }
-
-    public toAccountLeaf(): string {
-        const publicKey = mcl.g2ToHex(this.publicKey);
-        return ethers.utils.solidityKeccak256(
-            ["uint256", "uint256", "uint256", "uint256"],
-            publicKey
-        );
-    }
 }

@@ -103,16 +103,16 @@ export class Tree {
         if (!depth) {
             depth = this.depth;
         }
-        let acc = witness.leaf;
+        let leaf = witness.leaf;
         for (let i = 0; i < depth; i++) {
             const node = witness.nodes[i];
             if (witness.path[i]) {
-                acc = this.hasher.hash2(acc, node);
+                leaf = this.hasher.hash2(leaf, node);
             } else {
-                acc = this.hasher.hash2(node, acc);
+                leaf = this.hasher.hash2(node, leaf);
             }
         }
-        return acc == this.root ? 0 : -1;
+        return leaf == this.root ? 0 : -1;
     }
 
     // insertSingle updates tree with a single raw data at given index

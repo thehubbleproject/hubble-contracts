@@ -28,11 +28,11 @@ contract BLSAccountRegistry is AccountTree {
     }
 
     function exists(
-        uint256 accountIndex,
+        uint256 pubkeyID,
         uint256[4] calldata pubkey,
         bytes32[WITNESS_LENGTH] calldata witness
     ) external view returns (bool) {
         bytes32 leaf = keccak256(abi.encodePacked(pubkey));
-        return _checkInclusion(leaf, accountIndex, witness);
+        return _checkInclusion(leaf, pubkeyID, witness);
     }
 }

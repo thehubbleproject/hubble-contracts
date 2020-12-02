@@ -9,7 +9,7 @@ library Tx {
     uint256 private constant CREATE2TRANSFER = 3;
     uint256 private constant MASS_MIGRATION = 5;
 
-    uint256 public constant MASK_ACCOUNT_ID = 0xffffffff;
+    uint256 public constant MASK_PUBKEY_ID = 0xffffffff;
     uint256 public constant MASK_STATE_ID = 0xffffffff;
     uint256 public constant MASK_AMOUNT = 0xffffffff;
     uint256 public constant MASK_FEE = 0xffffffff;
@@ -248,7 +248,7 @@ library Tx {
     {
         uint256 sender;
         uint256 receiver;
-        uint256 receiverAccID;
+        uint256 receiverPubkeyID;
         uint256 amount;
         uint256 fee;
         // solium-disable-next-line security/no-inline-assembly
@@ -259,9 +259,9 @@ library Tx {
                 mload(add(p_tx, POSITION_RECEIVER_1)),
                 MASK_STATE_ID
             )
-            receiverAccID := and(
+            receiverPubkeyID := and(
                 mload(add(p_tx, POSITION_RECEIVER_ACCID_1)),
-                MASK_ACCOUNT_ID
+                MASK_PUBKEY_ID
             )
             let amountBytes := mload(add(p_tx, POSITION_AMOUNT_1))
             let amountExponent := shr(
@@ -275,7 +275,7 @@ library Tx {
             let feeMantissa := and(feeBytes, MASK_MANTISSA)
             fee := mul(feeMantissa, exp(10, feeExponent))
         }
-        return Create2Transfer(sender, receiver, receiverAccID, amount, fee);
+        return Create2Transfer(sender, receiver, receiverPubkeyID, amount, fee);
     }
 
     function create2TransferMessageOf(
