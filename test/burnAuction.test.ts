@@ -8,6 +8,7 @@ import { MockRollup } from "../types/ethers-contracts/MockRollup";
 import { MockRollupFactory } from "../types/ethers-contracts/MockRollupFactory";
 import { TestBurnAuction } from "../types/ethers-contracts/TestBurnAuction";
 import { TestBurnAuctionFactory } from "../types/ethers-contracts/TestBurnAuctionFactory";
+import { BLOCKS_PER_SLOT, DELTA_BLOCKS_INITIAL_SLOT } from "../ts/constants";
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const donationAddress = "0x00000000000000000000000000000000000000d0";

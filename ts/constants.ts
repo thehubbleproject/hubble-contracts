@@ -28,6 +28,9 @@ export const PRODUCTION_PARAMS: DeploymentParameters = {
 export const COMMIT_SIZE = 32;
 export const STATE_TREE_DEPTH = 32;
 
+export const BLOCKS_PER_SLOT = 100;
+export const DELTA_BLOCKS_INITIAL_SLOT = 1000;
+
 // ethers.utils.keccak256(ethers.constants.HashZero)
 export const ZERO_BYTES32 =
     "0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563";
