@@ -4,6 +4,13 @@ import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { sum } from "./utils";
+import {
+    InsufficientFund,
+    ReceiverNotExist,
+    SenderNotExist,
+    StateAlreadyExist,
+    WrongTokenType
+} from "./exceptions";
 
 interface SolStateMerkleProof {
     state: StateSolStruct;
@@ -255,27 +262,32 @@ export class StateTree {
     public processSender(
         senderIndex: number,
         decrement: BigNumber
-    ): { proof: SolStateMerkleProof; safe: boolean } {
+    ): SolStateMerkleProof {
         const state = this.states[senderIndex];
-        if (!state || state.balance.lt(decrement)) {
-            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
-        }
+        if (!state) throw new SenderNotExist(`stateID: ${senderIndex}`);
+
+        if (state.balance.lt(decrement))
+            throw new InsufficientFund(
+                `balance: ${state.balance}, tx amount+fee: ${decrement}`
+            );
         const postState = applySender(state, decrement);
         const proof = this.processSideEffects(senderIndex, postState);
-        return { proof, safe: true };
+        return proof;
     }
     public processReceiver(
         receiverIndex: number,
         increment: BigNumber,
         tokenType: number
-    ): { proof: SolStateMerkleProof; safe: boolean } {
+    ): SolStateMerkleProof {
         const state = this.states[receiverIndex];
-        if (!state || state.tokenType != tokenType) {
-            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
-        }
+        if (!state) throw new ReceiverNotExist(`stateID: ${receiverIndex}`);
+        if (state.tokenType != tokenType)
+            throw new WrongTokenType(
+                `Tx tokenID: ${tokenType}, State tokenID: ${state.tokenType}`
+            );
         const postState = applyReceiver(state, increment);
         const proof = this.processSideEffects(receiverIndex, postState);
-        return { proof, safe: true };
+        return proof;
     }
 
     public processCreate(
@@ -283,13 +295,11 @@ export class StateTree {
         pubkeyIndex: number,
         balance: BigNumber,
         tokenType: number
-    ): { proof: SolStateMerkleProof; safe: boolean } {
-        const state = this.states[createIndex];
-        if (state !== undefined) {
-            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
-        }
+    ): SolStateMerkleProof {
+        if (this.states[createIndex] !== undefined)
+            throw new StateAlreadyExist(`stateID: ${createIndex}`);
         const postState = State.new(pubkeyIndex, tokenType, balance, 0);
         const proof = this.processSideEffects(createIndex, postState);
-        return { proof, safe: true };
+        return proof;
     }
 }
