@@ -11,6 +11,7 @@ import {
 import { deployAll } from "../ts/deploy";
 import {
     txCreate2TransferFactory,
+    txMassMigrationFactory,
     txTransferFactory,
     UserStateFactory
 } from "../ts/factory";
@@ -26,10 +27,12 @@ import {
     Create2TransferBatch,
     Create2TransferCommitment,
     getGenesisProof,
+    MassMigrationBatch,
+    MassMigrationCommitment,
     TransferBatch,
     TransferCommitment
 } from "../ts/commitments";
-import { getBatchID, mineBlocks } from "../ts/utils";
+import { getBatchID, mineBlocks, ZERO } from "../ts/utils";
 import { State } from "../ts/state";
 import { serialize } from "../ts/tx";
 
@@ -47,6 +50,7 @@ describe("Integration Test", function() {
     let nextStateID = 0;
     let previousProof: CommitmentInclusionProof;
     let earlyAdopters: State[];
+    let newUsers: State[];
 
     before(async function() {
         await mcl.init();
@@ -163,7 +167,11 @@ describe("Integration Test", function() {
             const signature = mcl.aggreagate(
                 txs.map(tx => earlyAdopters[tx.fromIndex].sign(tx))
             );
-            stateTree.processTransferCommit(txs, feeReceiverID);
+            const { safe } = stateTree.processTransferCommit(
+                txs,
+                feeReceiverID
+            );
+            assert.isTrue(safe);
             const commit = TransferCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
@@ -184,11 +192,12 @@ describe("Integration Test", function() {
         const nNewUsers = parameters.MAX_TXS_PER_COMMIT * numCommits;
         // We happen to have number of public key registered equal to number of states created.
         const nextPubkeyID = nextStateID;
-        const newUsers = UserStateFactory.buildList({
+        newUsers = UserStateFactory.buildList({
             numOfStates: nNewUsers,
             initialStateID: nextStateID,
             initialAccID: nextPubkeyID,
             tokenID: 2,
+            initialBalance: ZERO,
             zeroNonce: true
         });
         const feeReceiverID = 0;
@@ -207,7 +216,11 @@ describe("Integration Test", function() {
             const signature = mcl.aggreagate(
                 txs.map(tx => earlyAdopters[tx.fromIndex].sign(tx))
             );
-            stateTree.processCreate2TransferCommit(txs, feeReceiverID);
+            const { safe } = stateTree.processCreate2TransferCommit(
+                txs,
+                feeReceiverID
+            );
+            assert.isTrue(safe);
             const commit = Create2TransferCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
@@ -222,7 +235,47 @@ describe("Integration Test", function() {
             parameters.STAKE_AMOUNT
         );
     });
-    it("Exit via mass migration");
+    it("Exit via mass migration", async function() {
+        const { rollup } = contracts;
+        // The spokeID of the withdrawManager preregistered in the deploy script
+        const spokeID = 0;
+        const numCommits = 32;
+        const feeReceiverID = 0;
+        const commits = [];
+        const allUsers = earlyAdopters.concat(newUsers)
+        for (let i = 0; i < numCommits; i++) {
+            const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
+            const users = allUsers.slice(
+                sliceLeft,
+                sliceLeft + parameters.MAX_TXS_PER_COMMIT
+            );
+            const txs = txMassMigrationFactory(
+                users,
+                parameters.MAX_TXS_PER_COMMIT,
+                spokeID
+            );
+            const signature = mcl.aggreagate(
+                txs.map(tx => allUsers[tx.fromIndex].sign(tx))
+            );
+            const { safe } = stateTree.processMassMigrationCommit(
+                txs,
+                feeReceiverID
+            );
+            assert.isTrue(safe, `Invalid state transition at ${i}`);
+            const commit = MassMigrationCommitment.new(
+                stateTree.root,
+                accountRegistry.root(),
+                signature,
+                feeReceiverID,
+                serialize(txs)
+            );
+            commits.push(commit);
+        }
+        await new MassMigrationBatch(commits).submit(
+            rollup.connect(coordinator),
+            parameters.STAKE_AMOUNT
+        );
+    });
     it("Users withdraw funds");
     it("Coordinator withdrew their stack");
 });
