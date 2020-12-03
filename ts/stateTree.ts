@@ -21,6 +21,18 @@ const PLACEHOLDER_SOL_STATE_PROOF: SolStateMerkleProof = {
     witness: PLACEHOLDER_PROOF_WITNESS
 };
 
+function applySender(sender: State, decrement: BigNumber): State {
+    const state = sender.clone();
+    state.balance = sender.balance.sub(decrement);
+    state.nonce = sender.nonce + 1;
+    return state;
+}
+function applyReceiver(receiver: State, increment: BigNumber): State {
+    const state = receiver.clone();
+    state.balance = receiver.balance.add(increment);
+    return state;
+}
+
 export class StateTree {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
@@ -62,8 +74,6 @@ export class StateTree {
             throw new Error("state id is in use");
         }
         this.states[stateID] = state.clone();
-        this.states[stateID].setStateID(state.stateID);
-        this.states[stateID].setPubkey(state.publicKey);
         const leaf = state.toStateLeaf();
         this.stateTree.updateSingle(stateID, leaf);
     }
@@ -250,7 +260,7 @@ export class StateTree {
         if (!state || state.balance.lt(decrement)) {
             return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
         }
-        const postState = StateTree.applySender(state, decrement);
+        const postState = applySender(state, decrement);
         const proof = this.processSideEffects(senderIndex, postState);
         return { proof, safe: true };
     }
@@ -263,7 +273,7 @@ export class StateTree {
         if (!state || state.tokenType != tokenType) {
             return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
         }
-        const postState = StateTree.applyReceiver(state, increment);
+        const postState = applyReceiver(state, increment);
         const proof = this.processSideEffects(receiverIndex, postState);
         return { proof, safe: true };
     }
@@ -281,22 +291,5 @@ export class StateTree {
         const postState = State.new(pubkeyIndex, tokenType, balance, 0);
         const proof = this.processSideEffects(createIndex, postState);
         return { proof, safe: true };
-    }
-
-    static applySender(sender: State, decrement: BigNumber): State {
-        return State.new(
-            sender.pubkeyIndex,
-            sender.tokenType,
-            sender.balance.sub(decrement),
-            sender.nonce + 1
-        );
-    }
-    static applyReceiver(receiver: State, increment: BigNumber): State {
-        return State.new(
-            receiver.pubkeyIndex,
-            receiver.tokenType,
-            receiver.balance.add(increment),
-            receiver.nonce
-        );
     }
 }
