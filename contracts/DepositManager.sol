@@ -1,10 +1,8 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
 interface IDepositManager {
@@ -93,26 +91,28 @@ contract DepositCore is SubtreeQueue {
 
 contract DepositManager is DepositCore, IDepositManager {
     using Types for Types.UserState;
-    Registry public nameRegistry;
     address public vault;
+    address public rollup;
 
     ITokenRegistry public tokenRegistry;
 
     modifier onlyRollup() {
         require(
-            msg.sender ==
-                nameRegistry.getContractDetails(ParamManager.rollupCore()),
+            msg.sender == rollup,
             "DepositManager: sender is not Rollup contract"
         );
         _;
     }
 
-    constructor(address _registryAddr, uint256 maxSubtreeDepth) public {
-        nameRegistry = Registry(_registryAddr);
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
-        );
-        vault = nameRegistry.getContractDetails(ParamManager.vault());
+    constructor(
+        ITokenRegistry _tokenRegistry,
+        address _vault,
+        address _rollup,
+        uint256 maxSubtreeDepth
+    ) public {
+        tokenRegistry = _tokenRegistry;
+        vault = _vault;
+        rollup = _rollup;
         paramMaxSubtreeSize = 1 << maxSubtreeDepth;
     }
 

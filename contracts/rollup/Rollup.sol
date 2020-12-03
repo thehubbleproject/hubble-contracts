@@ -1,13 +1,11 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { ParamManager } from "../libs/ParamManager.sol";
 import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
 import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
 import { Chooser } from "../proposers/Chooser.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
-import { NameRegistry as Registry } from "../NameRegistry.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
 import { Create2Transfer } from "../Create2Transfer.sol";
@@ -22,7 +20,6 @@ contract RollupCore is BatchManager {
 
     // External contracts
     BLSAccountRegistry public accountRegistry;
-    Registry public nameRegistry;
     Transfer public transfer;
     MassMigration public massMigration;
     Create2Transfer public create2Transfer;
@@ -405,33 +402,24 @@ contract RollupCore is BatchManager {
 
 contract Rollup is RollupCore {
     constructor(
-        address _registryAddr,
+        Chooser _chooser,
+        IDepositManager _depositManager,
+        BLSAccountRegistry _accountRegistry,
+        Transfer _transfer,
+        MassMigration _massMigration,
+        Create2Transfer _create2Transfer,
         bytes32 genesisStateRoot,
         uint256 stakeAmount,
         uint256 blocksToFinalise,
         uint256 minGasLeft,
         uint256 maxTxsPerCommit
     ) public {
-        nameRegistry = Registry(_registryAddr);
-
-        chooser = Chooser(
-            nameRegistry.getContractDetails(ParamManager.chooser())
-        );
-        depositManager = IDepositManager(
-            nameRegistry.getContractDetails(ParamManager.depositManager())
-        );
-        accountRegistry = BLSAccountRegistry(
-            nameRegistry.getContractDetails(ParamManager.accountRegistry())
-        );
-        transfer = Transfer(
-            nameRegistry.getContractDetails(ParamManager.transferSimple())
-        );
-        massMigration = MassMigration(
-            nameRegistry.getContractDetails(ParamManager.massMigration())
-        );
-        create2Transfer = Create2Transfer(
-            nameRegistry.getContractDetails(ParamManager.create2Transfer())
-        );
+        chooser = _chooser;
+        depositManager = _depositManager;
+        accountRegistry = _accountRegistry;
+        transfer = _transfer;
+        massMigration = _massMigration;
+        create2Transfer = _create2Transfer;
         paramStakeAmount = stakeAmount;
         paramBlocksToFinalise = blocksToFinalise;
         paramMinGasLeft = minGasLeft;
