@@ -118,9 +118,7 @@ describe("Rollup Transfer Commitment", () => {
         const txs = txTransferFactory(states, COMMIT_SIZE);
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const { proofs, safe } = stateTree.processTransfer(tx);
-            const [senderProof, receiverProof] = proofs;
-            assert.isTrue(safe);
+            const [senderProof, receiverProof] = stateTree.processTransfer(tx);
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,

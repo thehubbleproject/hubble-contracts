@@ -169,9 +169,10 @@ describe("Rollup Create2Transfer Commitment", () => {
 
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const { proofs, safe } = stateTree.processCreate2Transfer(tx);
-            const [senderProof, receiverProof] = proofs;
-            assert.isTrue(safe);
+            const [
+                senderProof,
+                receiverProof
+            ] = stateTree.processCreate2Transfer(tx);
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,
