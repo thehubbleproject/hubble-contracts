@@ -37,8 +37,9 @@ export function txTransferFactory(
     n: number = COMMIT_SIZE
 ): TxTransfer[] {
     const txs: TxTransfer[] = [];
+    const nStates = states.length;
     for (let i = 0; i < n; i++) {
-        const senderIndex = i;
+        const senderIndex = i % nStates;
         const reciverIndex = (i + 5) % n;
         const sender = states[senderIndex];
         const amount = sender.balance.div(10);

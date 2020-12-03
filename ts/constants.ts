@@ -13,7 +13,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
 
 export const PRODUCTION_PARAMS: DeploymentParameters = {
     MAX_DEPTH: 20,
-    MAX_DEPOSIT_SUBTREE_DEPTH: 1,
+    MAX_DEPOSIT_SUBTREE_DEPTH: 2,
     STAKE_AMOUNT: toWei("0.1"),
     BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
     MIN_GAS_LEFT: 10000,
