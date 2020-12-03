@@ -228,7 +228,6 @@ export class TxCreate2Transfer implements SignableTx {
     public static rand(): TxCreate2Transfer {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
-        const senderPub: string[] = [];
         const receiverPub: string[] = [];
         const toAccID = randomNum(stateIDLen);
         const amount = USDT.randInt();
@@ -237,7 +236,6 @@ export class TxCreate2Transfer implements SignableTx {
         return new TxCreate2Transfer(
             sender,
             receiver,
-            senderPub,
             receiverPub,
             toAccID,
             amount,
@@ -257,7 +255,6 @@ export class TxCreate2Transfer implements SignableTx {
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
-        public fromPubkey: string[],
         public toPubkey: string[],
         public readonly toAccID: number,
         public readonly amount: BigNumber,
