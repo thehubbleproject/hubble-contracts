@@ -19,7 +19,7 @@ contract BLSAccountRegistry is AccountTree {
     {
         bytes32[BATCH_SIZE] memory leafs;
         for (uint256 i = 0; i < BATCH_SIZE; i++) {
-            emit PubkeyRegistered(pubkeys[i], leafIndexRight + SET_SIZE + i);
+            emit PubkeyRegistered(pubkeys[i], leafIndexLeft + i);
             bytes32 leaf = keccak256(abi.encodePacked(pubkeys[i]));
             leafs[i] = leaf;
         }
