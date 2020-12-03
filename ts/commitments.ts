@@ -17,7 +17,7 @@ interface SolStruct {
     body: any;
 }
 
-interface CommitmentInclusionProof {
+export interface CommitmentInclusionProof {
     commitment: CompressedStruct;
     path: number;
     witness: string[];

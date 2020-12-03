@@ -9,15 +9,23 @@ import {
     PRODUCTION_PARAMS
 } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
-import { UserStateFactory } from "../ts/factory";
+import { txTransferFactory, UserStateFactory } from "../ts/factory";
 import { DeploymentParameters } from "../ts/interfaces";
 import { StateTree } from "../ts/stateTree";
 import { TestTokenFactory } from "../types/ethers-contracts";
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import * as mcl from "../ts/mcl";
 import { TestToken } from "../types/ethers-contracts/TestToken";
-import { BodylessCommitment, getGenesisProof } from "../ts/commitments";
+import {
+    BodylessCommitment,
+    CommitmentInclusionProof,
+    getGenesisProof,
+    TransferBatch,
+    TransferCommitment
+} from "../ts/commitments";
 import { getBatchID, mineBlocks } from "../ts/utils";
+import { State } from "../ts/state";
+import { serialize } from "../ts/tx";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -30,6 +38,9 @@ describe("Integration Test", function() {
     let coordinator: Signer;
     let accountRegistry: AccountRegistry;
     let newToken: TestToken;
+    let nextStateID = 0;
+    let previousProof: CommitmentInclusionProof;
+    let earlyAdopters: State[];
 
     before(async function() {
         await mcl.init();
@@ -61,17 +72,24 @@ describe("Integration Test", function() {
         await burnAuction.connect(coordinator).bid({ value: "1" });
         await mineBlocks(
             ethers.provider,
-            DELTA_BLOCKS_INITIAL_SLOT + BLOCKS_PER_SLOT * 2
+            DELTA_BLOCKS_INITIAL_SLOT + BLOCKS_PER_SLOT
         );
+        await burnAuction.connect(coordinator).bid({ value: "1" });
+        await mineBlocks(ethers.provider, BLOCKS_PER_SLOT);
         // Slot 2 is when the auction finalize and the coordinator can propose
         assert.equal(Number(await burnAuction.currentSlot()), 2);
+        for (const slot of [2, 3]) {
+            const bid = await burnAuction.auction(slot);
+            assert.equal(bid.coordinator, await coordinator.getAddress());
+        }
     });
     it("Deposit some users", async function() {
         const { depositManager, rollup } = contracts;
         const subtreeSize = 1 << parameters.MAX_DEPOSIT_SUBTREE_DEPTH;
-        const nSubtrees = 5;
+        const nSubtrees = 10;
         const nDeposits = nSubtrees * subtreeSize;
-        const states = UserStateFactory.buildList({
+        nextStateID = nDeposits + 1;
+        earlyAdopters = UserStateFactory.buildList({
             numOfStates: nDeposits,
             initialStateID: 0,
             initialAccID: 0,
@@ -80,7 +98,7 @@ describe("Integration Test", function() {
         });
 
         const fromBlockNumber = await deployer.provider?.getBlockNumber();
-        for (const state of states) {
+        for (const state of earlyAdopters) {
             const pubkeyID = await accountRegistry.register(state.getPubkey());
             assert.equal(pubkeyID, state.pubkeyIndex);
             await newToken
@@ -96,12 +114,12 @@ describe("Integration Test", function() {
             fromBlockNumber
         );
         assert.equal(subtreeReadyEvents.length, nSubtrees);
-        let previousProof = getGenesisProof(
+        previousProof = getGenesisProof(
             parameters.GENESIS_STATE_ROOT as string
         );
         for (let i = 0; i < nSubtrees; i++) {
             const mergeOffsetLower = i * subtreeSize;
-            const statesToUpdate = states.slice(
+            const statesToUpdate = earlyAdopters.slice(
                 mergeOffsetLower,
                 mergeOffsetLower + subtreeSize
             );
@@ -124,7 +142,35 @@ describe("Integration Test", function() {
             previousProof = depositBatch.proofCompressed(0);
         }
     });
-    it("Users doing Transfers");
+    it("Users doing Transfers", async function() {
+        console.log("Next state ID", nextStateID);
+        const { rollup } = contracts;
+        const numCommits = 32;
+        const commits = [];
+        for (let i = 0; i < numCommits; i++) {
+            const feeReceiverID = 0;
+            const txs = txTransferFactory(
+                earlyAdopters,
+                parameters.MAX_TXS_PER_COMMIT
+            );
+            const signature = mcl.aggreagate(
+                txs.map(tx => earlyAdopters[tx.fromIndex].sign(tx))
+            );
+            stateTree.processTransferCommit(txs, feeReceiverID);
+            const commit = TransferCommitment.new(
+                stateTree.root,
+                accountRegistry.root(),
+                signature,
+                feeReceiverID,
+                serialize(txs)
+            );
+            commits.push(commit);
+        }
+        await new TransferBatch(commits).submit(
+            rollup.connect(coordinator),
+            parameters.STAKE_AMOUNT
+        );
+    });
     it("Getting new users via Create to transfer");
     it("Exit via mass migration");
     it("Users withdraw funds");
