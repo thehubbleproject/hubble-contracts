@@ -75,7 +75,6 @@ export function txCreate2TransferFactory(
         const tx = new TxCreate2Transfer(
             senderIndex,
             reciverIndex,
-            states[senderIndex].getPubkey(),
             receiver.getPubkey(),
             receiver.pubkeyIndex,
             amount,

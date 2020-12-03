@@ -69,7 +69,6 @@ describe("Rollup Create2Transfer", async function() {
         const tx = new TxCreate2Transfer(
             Alice.stateID,
             Bob.stateID,
-            Alice.publicKey,
             Bob.publicKey,
             Bob.pubkeyIndex,
             USDT.castInt(5.5),
