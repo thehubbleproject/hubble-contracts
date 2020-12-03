@@ -9,7 +9,11 @@ import {
     PRODUCTION_PARAMS
 } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
-import { txTransferFactory, UserStateFactory } from "../ts/factory";
+import {
+    txCreate2TransferFactory,
+    txTransferFactory,
+    UserStateFactory
+} from "../ts/factory";
 import { DeploymentParameters } from "../ts/interfaces";
 import { StateTree } from "../ts/stateTree";
 import { TestTokenFactory } from "../types/ethers-contracts";
@@ -19,6 +23,8 @@ import { TestToken } from "../types/ethers-contracts/TestToken";
 import {
     BodylessCommitment,
     CommitmentInclusionProof,
+    Create2TransferBatch,
+    Create2TransferCommitment,
     getGenesisProof,
     TransferBatch,
     TransferCommitment
@@ -52,7 +58,7 @@ describe("Integration Test", function() {
         contracts = await deployAll(deployer, parameters);
 
         accountRegistry = await AccountRegistry.new(
-            contracts.blsAccountRegistry
+            contracts.blsAccountRegistry.connect(coordinator)
         );
     });
     it("Register another token", async function() {
@@ -146,9 +152,10 @@ describe("Integration Test", function() {
         console.log("Next state ID", nextStateID);
         const { rollup } = contracts;
         const numCommits = 32;
+        const feeReceiverID = 0;
         const commits = [];
+
         for (let i = 0; i < numCommits; i++) {
-            const feeReceiverID = 0;
             const txs = txTransferFactory(
                 earlyAdopters,
                 parameters.MAX_TXS_PER_COMMIT
@@ -171,7 +178,50 @@ describe("Integration Test", function() {
             parameters.STAKE_AMOUNT
         );
     });
-    it("Getting new users via Create to transfer");
+    it("Getting new users via Create to transfer", async function() {
+        const { rollup } = contracts;
+        const numCommits = 32;
+        const nNewUsers = parameters.MAX_TXS_PER_COMMIT * numCommits;
+        // We happen to have number of public key registered equal to number of states created.
+        const nextPubkeyID = nextStateID;
+        const newUsers = UserStateFactory.buildList({
+            numOfStates: nNewUsers,
+            initialStateID: nextStateID,
+            initialAccID: nextPubkeyID,
+            tokenID: 2,
+            zeroNonce: true
+        });
+        const feeReceiverID = 0;
+        const commits = [];
+        for (let i = 0; i < numCommits; i++) {
+            const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
+            const users = newUsers.slice(
+                sliceLeft,
+                sliceLeft + parameters.MAX_TXS_PER_COMMIT
+            );
+            const txs = txCreate2TransferFactory(
+                earlyAdopters,
+                users,
+                parameters.MAX_TXS_PER_COMMIT
+            );
+            const signature = mcl.aggreagate(
+                txs.map(tx => earlyAdopters[tx.fromIndex].sign(tx))
+            );
+            stateTree.processCreate2TransferCommit(txs, feeReceiverID);
+            const commit = Create2TransferCommitment.new(
+                stateTree.root,
+                accountRegistry.root(),
+                signature,
+                feeReceiverID,
+                serialize(txs)
+            );
+            commits.push(commit);
+        }
+        await new Create2TransferBatch(commits).submit(
+            rollup.connect(coordinator),
+            parameters.STAKE_AMOUNT
+        );
+    });
     it("Exit via mass migration");
     it("Users withdraw funds");
     it("Coordinator withdrew their stack");
