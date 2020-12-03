@@ -147,7 +147,7 @@ export class StateTree {
         if (raiseError) {
             return { proofs: Array.from(generator), safe: true };
         } else {
-            return processNoRaise(generator, txs.length + 1);
+            return processNoRaise(generator, txs.length * 2 + 1);
         }
     }
     private *_processCreate2TransferCommit(
@@ -186,7 +186,7 @@ export class StateTree {
         if (raiseError) {
             return { proofs: Array.from(generator), safe: true };
         } else {
-            return processNoRaise(generator, txs.length + 1);
+            return processNoRaise(generator, txs.length * 2 + 1);
         }
     }
     private *_processMassMigrationCommit(
