@@ -39,12 +39,16 @@ export class State {
 
     // TODO add optional params for pubkey and stateID
     public clone() {
-        return new State(
+        const state = new State(
             this.pubkeyIndex,
             this.tokenType,
             this.balance,
             this.nonce
         );
+        state.setStateID(this.stateID);
+        state.publicKey = this.publicKey;
+        state.secretKey = this.secretKey;
+        return state;
     }
 
     public stateID = -1;

@@ -3,3 +3,15 @@ export class HubbleError extends Error {}
 export class EncodingError extends HubbleError {}
 
 export class MismatchByteLength extends HubbleError {}
+
+class StateTreeExceptions extends HubbleError {}
+
+export class SenderNotExist extends StateTreeExceptions {}
+
+export class ReceiverNotExist extends StateTreeExceptions {}
+
+export class StateAlreadyExist extends StateTreeExceptions {}
+
+export class WrongTokenType extends StateTreeExceptions {}
+
+export class InsufficientFund extends StateTreeExceptions {}

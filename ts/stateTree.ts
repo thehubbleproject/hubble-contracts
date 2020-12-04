@@ -4,6 +4,13 @@ import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { sum } from "./utils";
+import {
+    InsufficientFund,
+    ReceiverNotExist,
+    SenderNotExist,
+    StateAlreadyExist,
+    WrongTokenType
+} from "./exceptions";
 
 interface SolStateMerkleProof {
     state: StateSolStruct;
@@ -20,6 +27,38 @@ const PLACEHOLDER_SOL_STATE_PROOF: SolStateMerkleProof = {
     state: EMPTY_STATE,
     witness: PLACEHOLDER_PROOF_WITNESS
 };
+
+function applySender(sender: State, decrement: BigNumber): State {
+    const state = sender.clone();
+    state.balance = sender.balance.sub(decrement);
+    state.nonce = sender.nonce + 1;
+    return state;
+}
+function applyReceiver(receiver: State, increment: BigNumber): State {
+    const state = receiver.clone();
+    state.balance = receiver.balance.add(increment);
+    return state;
+}
+
+function processNoRaise(
+    generator: Generator<SolStateMerkleProof>,
+    expectedNumProofs: number
+): { proofs: SolStateMerkleProof[]; safe: boolean } {
+    let proofs: SolStateMerkleProof[] = [];
+    let safe = true;
+    for (let i = 0; i < expectedNumProofs; i++) {
+        if (!safe) {
+            proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
+            continue;
+        }
+        try {
+            proofs.push(generator.next().value);
+        } catch (error) {
+            safe = false;
+        }
+    }
+    return { proofs, safe };
+}
 
 export class StateTree {
     public static new(stateDepth: number) {
@@ -62,8 +101,6 @@ export class StateTree {
             throw new Error("state id is in use");
         }
         this.states[stateID] = state.clone();
-        this.states[stateID].setStateID(state.stateID);
-        this.states[stateID].setPubkey(state.publicKey);
         const leaf = state.toStateLeaf();
         this.stateTree.updateSingle(stateID, leaf);
     }
@@ -79,156 +116,140 @@ export class StateTree {
     public getState(stateID: number) {
         return this.states[stateID];
     }
+    private *_processTransferCommit(
+        txs: TxTransfer[],
+        feeReceiverID: number
+    ): Generator<SolStateMerkleProof> {
+        const tokenID = this.states[txs[0].fromIndex].tokenType;
+        for (const tx of txs) {
+            const [senderProof, receiverProof] = this.processTransfer(tx);
+            yield senderProof;
+            yield receiverProof;
+        }
+        const proof = this.processReceiver(
+            feeReceiverID,
+            sum(txs.map(tx => tx.fee)),
+            tokenID
+        );
+        yield proof;
+        return;
+    }
 
     public processTransferCommit(
         txs: TxTransfer[],
-        feeReceiverID: number
+        feeReceiverID: number,
+        raiseError: boolean = true
     ): {
         proofs: SolStateMerkleProof[];
         safe: boolean;
     } {
-        let safe = true;
-        let proofs: SolStateMerkleProof[] = [];
-        for (let i = 0; i < txs.length; i++) {
-            if (safe) {
-                const {
-                    proofs: transferProofs,
-                    safe: transferSafe
-                } = this.processTransfer(txs[i]);
-                const [senderProof, receiverProof] = transferProofs;
-                proofs.push(senderProof);
-                proofs.push(receiverProof);
-                safe = transferSafe;
-            } else {
-                proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
-                proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
-            }
+        const generator = this._processTransferCommit(txs, feeReceiverID);
+        if (raiseError) {
+            return { proofs: Array.from(generator), safe: true };
+        } else {
+            return processNoRaise(generator, txs.length * 2 + 1);
         }
-        const sumOfFee = sum(txs.map(tx => tx.fee));
-        const { proof: feeProof, safe: feeSafe } = this.processReceiver(
+    }
+    private *_processCreate2TransferCommit(
+        txs: TxCreate2Transfer[],
+        feeReceiverID: number
+    ): Generator<SolStateMerkleProof> {
+        const tokenID = this.states[txs[0].fromIndex].tokenType;
+        for (const tx of txs) {
+            const [senderProof, receiverProof] = this.processCreate2Transfer(
+                tx
+            );
+            yield senderProof;
+            yield receiverProof;
+        }
+        const proof = this.processReceiver(
             feeReceiverID,
-            sumOfFee,
-            proofs[0].state.tokenType
+            sum(txs.map(tx => tx.fee)),
+            tokenID
         );
-        proofs.push(feeProof);
-        safe = feeSafe;
-        return { proofs, safe };
+        yield proof;
+        return;
     }
 
     public processCreate2TransferCommit(
         txs: TxCreate2Transfer[],
-        feeReceiverID: number
+        feeReceiverID: number,
+        raiseError: boolean = true
     ): {
         proofs: SolStateMerkleProof[];
         safe: boolean;
     } {
-        let safe = true;
-        let proofs: SolStateMerkleProof[] = [];
-        for (let i = 0; i < txs.length; i++) {
-            if (safe) {
-                const {
-                    proofs: transferProofs,
-                    safe: transferSafe
-                } = this.processCreate2Transfer(txs[i]);
-                const [senderProof, receiverProof] = transferProofs;
-                proofs.push(senderProof);
-                proofs.push(receiverProof);
-                safe = transferSafe;
-            } else {
-                proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
-                proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
-            }
-        }
-        const sumOfFee = sum(txs.map(tx => tx.fee));
-        const { proof: feeProof, safe: feeSafe } = this.processReceiver(
-            feeReceiverID,
-            sumOfFee,
-            proofs[0].state.tokenType
+        const generator = this._processCreate2TransferCommit(
+            txs,
+            feeReceiverID
         );
-        proofs.push(feeProof);
-        safe = feeSafe;
-        return { proofs, safe };
+        if (raiseError) {
+            return { proofs: Array.from(generator), safe: true };
+        } else {
+            return processNoRaise(generator, txs.length * 2 + 1);
+        }
+    }
+    private *_processMassMigrationCommit(
+        txs: TxMassMigration[],
+        feeReceiverID: number
+    ): Generator<SolStateMerkleProof> {
+        const tokenID = this.states[txs[0].fromIndex].tokenType;
+        for (const tx of txs) {
+            const proof = this.processMassMigration(tx);
+            yield proof;
+        }
+        const proof = this.processReceiver(
+            feeReceiverID,
+            sum(txs.map(tx => tx.fee)),
+            tokenID
+        );
+        yield proof;
+        return;
     }
 
     public processMassMigrationCommit(
         txs: TxMassMigration[],
-        feeReceiverID: number
+        feeReceiverID: number,
+        raiseError: boolean = true
     ): {
         proofs: SolStateMerkleProof[];
         safe: boolean;
     } {
-        let safe = true;
-        let proofs: SolStateMerkleProof[] = [];
-        for (const tx of txs) {
-            if (safe) {
-                const { proof, safe: txSafe } = this.processMassMigration(tx);
-                proofs.push(proof);
-                safe = txSafe;
-            } else {
-                proofs.push(PLACEHOLDER_SOL_STATE_PROOF);
-            }
+        const generator = this._processMassMigrationCommit(txs, feeReceiverID);
+        if (raiseError) {
+            return { proofs: Array.from(generator), safe: true };
+        } else {
+            return processNoRaise(generator, txs.length + 1);
         }
-        const sumOfFee = sum(txs.map(tx => tx.fee));
-        const { proof, safe: feeSafe } = this.processReceiver(
-            feeReceiverID,
-            sumOfFee,
-            proofs[0].state.tokenType
-        );
-        safe = feeSafe;
-        proofs.push(proof);
-        return { proofs, safe };
     }
 
-    public processTransfer(
-        tx: TxTransfer
-    ): { proofs: SolStateMerkleProof[]; safe: boolean } {
+    public processTransfer(tx: TxTransfer): SolStateMerkleProof[] {
         const decrement = tx.amount.add(tx.fee);
-        const { proof: senderProof, safe: senderSafe } = this.processSender(
-            tx.fromIndex,
-            decrement
-        );
-        if (!senderSafe)
-            return {
-                proofs: [senderProof, PLACEHOLDER_SOL_STATE_PROOF],
-                safe: false
-            };
-        const {
-            proof: receiverProof,
-            safe: receiverSafe
-        } = this.processReceiver(
+        const senderProof = this.processSender(tx.fromIndex, decrement);
+        const receiverProof = this.processReceiver(
             tx.toIndex,
             tx.amount,
             senderProof.state.tokenType
         );
-        return { proofs: [senderProof, receiverProof], safe: receiverSafe };
+        return [senderProof, receiverProof];
     }
 
-    public processMassMigration(
-        tx: TxMassMigration
-    ): { proof: SolStateMerkleProof; safe: boolean } {
+    public processMassMigration(tx: TxMassMigration): SolStateMerkleProof {
         return this.processSender(tx.fromIndex, tx.amount.add(tx.fee));
     }
 
     public processCreate2Transfer(
         tx: TxCreate2Transfer
-    ): { proofs: SolStateMerkleProof[]; safe: boolean } {
+    ): SolStateMerkleProof[] {
         const decrement = tx.amount.add(tx.fee);
-        const { proof: senderProof, safe: senderSafe } = this.processSender(
-            tx.fromIndex,
-            decrement
-        );
-        if (!senderSafe)
-            return {
-                proofs: [senderProof, PLACEHOLDER_SOL_STATE_PROOF],
-                safe: false
-            };
-        const { proof: receiverProof, safe: receiverSafe } = this.processCreate(
+        const senderProof = this.processSender(tx.fromIndex, decrement);
+        const receiverProof = this.processCreate(
             tx.toIndex,
             tx.toAccID,
             tx.amount,
             senderProof.state.tokenType
         );
-        return { proofs: [senderProof, receiverProof], safe: receiverSafe };
+        return [senderProof, receiverProof];
     }
 
     private processSideEffects(
@@ -245,27 +266,32 @@ export class StateTree {
     public processSender(
         senderIndex: number,
         decrement: BigNumber
-    ): { proof: SolStateMerkleProof; safe: boolean } {
+    ): SolStateMerkleProof {
         const state = this.states[senderIndex];
-        if (!state || state.balance.lt(decrement)) {
-            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
-        }
-        const postState = StateTree.applySender(state, decrement);
+        if (!state) throw new SenderNotExist(`stateID: ${senderIndex}`);
+
+        if (state.balance.lt(decrement))
+            throw new InsufficientFund(
+                `balance: ${state.balance}, tx amount+fee: ${decrement}`
+            );
+        const postState = applySender(state, decrement);
         const proof = this.processSideEffects(senderIndex, postState);
-        return { proof, safe: true };
+        return proof;
     }
     public processReceiver(
         receiverIndex: number,
         increment: BigNumber,
         tokenType: number
-    ): { proof: SolStateMerkleProof; safe: boolean } {
+    ): SolStateMerkleProof {
         const state = this.states[receiverIndex];
-        if (!state || state.tokenType != tokenType) {
-            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
-        }
-        const postState = StateTree.applyReceiver(state, increment);
+        if (!state) throw new ReceiverNotExist(`stateID: ${receiverIndex}`);
+        if (state.tokenType != tokenType)
+            throw new WrongTokenType(
+                `Tx tokenID: ${tokenType}, State tokenID: ${state.tokenType}`
+            );
+        const postState = applyReceiver(state, increment);
         const proof = this.processSideEffects(receiverIndex, postState);
-        return { proof, safe: true };
+        return proof;
     }
 
     public processCreate(
@@ -273,30 +299,11 @@ export class StateTree {
         pubkeyIndex: number,
         balance: BigNumber,
         tokenType: number
-    ): { proof: SolStateMerkleProof; safe: boolean } {
-        const state = this.states[createIndex];
-        if (state !== undefined) {
-            return { proof: PLACEHOLDER_SOL_STATE_PROOF, safe: false };
-        }
+    ): SolStateMerkleProof {
+        if (this.states[createIndex] !== undefined)
+            throw new StateAlreadyExist(`stateID: ${createIndex}`);
         const postState = State.new(pubkeyIndex, tokenType, balance, 0);
         const proof = this.processSideEffects(createIndex, postState);
-        return { proof, safe: true };
-    }
-
-    static applySender(sender: State, decrement: BigNumber): State {
-        return State.new(
-            sender.pubkeyIndex,
-            sender.tokenType,
-            sender.balance.sub(decrement),
-            sender.nonce + 1
-        );
-    }
-    static applyReceiver(receiver: State, increment: BigNumber): State {
-        return State.new(
-            receiver.pubkeyIndex,
-            receiver.tokenType,
-            receiver.balance.add(increment),
-            receiver.nonce
-        );
+        return proof;
     }
 }
