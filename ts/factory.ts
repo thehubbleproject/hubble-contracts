@@ -145,8 +145,8 @@ export function txTransferFactory(
         const sender = group.getUser(i % group.size);
         const receiver = group.getUser((i + 5) % group.size);
         const senderState = group.getState(sender);
-        const amount = senderState.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(senderState.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
         const tx = new TxTransfer(
             sender.stateID,
             receiver.stateID,
@@ -176,8 +176,8 @@ export function txCreate2TransferFactory(
         const sender = registered.getUser(i);
         const reciver = unregistered.getUser(i);
         const senderState = registered.getState(sender);
-        const amount = senderState.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(senderState.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
 
         const tx = new TxCreate2Transfer(
             sender.stateID,
@@ -205,8 +205,8 @@ export function txMassMigrationFactory(
     const senders = [];
     for (const sender of group.userIterator()) {
         const senderState = group.getState(sender);
-        const amount = senderState.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(senderState.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
         const tx = new TxMassMigration(
             sender.stateID,
             amount,
