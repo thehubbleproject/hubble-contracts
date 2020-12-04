@@ -4,6 +4,7 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import { serialize, TxTransfer } from "../ts/tx";
 import { execSync } from "child_process";
+import { constants } from "ethers";
 
 const txPerCommitment = 32;
 const commitmentsPerBatch = 32;
@@ -12,8 +13,12 @@ const blockGasLimit = 12500000;
 
 async function main() {
     const [signer, ...rest] = await ethers.getSigners();
+    const parameters = TESTING_PARAMS;
 
-    const constracts = await deployAll(signer, TESTING_PARAMS);
+    const constracts = await deployAll(signer, {
+        ...TESTING_PARAMS,
+        GENESIS_STATE_ROOT: constants.HashZero
+    });
     let commitments = [];
     for (let i = 0; i < commitmentsPerBatch; i++) {
         let commitment = TransferCommitment.new(ethers.constants.HashZero);

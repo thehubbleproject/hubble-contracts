@@ -13,6 +13,7 @@ import {
     Create2TransferCommitment
 } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
+import { constants } from "ethers";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -32,7 +33,10 @@ describe("Rollup Create2Transfer", async function() {
 
     beforeEach(async function() {
         const accounts = await ethers.getSigners();
-        contracts = await deployAll(accounts[0], TESTING_PARAMS);
+        contracts = await deployAll(accounts[0], {
+            ...TESTING_PARAMS,
+            GENESIS_STATE_ROOT: constants.HashZero
+        });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = contracts.blsAccountRegistry;
         registry = await AccountRegistry.new(registryContract);
