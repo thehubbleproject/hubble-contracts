@@ -35,6 +35,7 @@ import {
 import { getBatchID, mineBlocks, ZERO } from "../ts/utils";
 import { State } from "../ts/state";
 import { serialize } from "../ts/tx";
+import { Tree } from "../ts/tree";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
@@ -160,10 +161,7 @@ describe("Integration Test", function() {
         const commits = [];
 
         for (let i = 0; i < numCommits; i++) {
-             // earlyAdopters have new balances after previous state transition
-             earlyAdopters = earlyAdopters.map(state =>
-                stateTree.getState(state.stateID)
-            );
+            syncBalances(earlyAdopters, stateTree);
             const txs = txTransferFactory(
                 earlyAdopters,
                 parameters.MAX_TXS_PER_COMMIT
@@ -205,14 +203,10 @@ describe("Integration Test", function() {
             zeroNonce: true
         });
         const feeReceiverID = 0;
-        
-        
+
         const commits: TransferCommitment[] = [];
         for (let i = 0; i < numCommits; i++) {
-            // earlyAdopters have new balances after previous state transition
-            earlyAdopters = earlyAdopters.map(state =>
-                stateTree.getState(state.stateID)
-            );
+            syncBalances(earlyAdopters, stateTree);
             const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
             const users = newUsers.slice(
                 sliceLeft,
@@ -252,23 +246,17 @@ describe("Integration Test", function() {
         const numCommits = 32;
         const feeReceiverID = 0;
         const commits = [];
-        let allUsers = [... earlyAdopters, ...newUsers];
-        console.log("allUsers.length", allUsers.length)
-        console.log(allUsers.map(s=>s.stateID))
+        let allUsers = [...earlyAdopters, ...newUsers];
+        console.log("allUsers.length", allUsers.length);
+        console.log(allUsers.map(s => s.stateID));
+        const tokenID = allUsers[0].tokenType;
         for (let i = 0; i < numCommits; i++) {
-            console.log("loop", i)
-            console.log("allUsers[50]", allUsers[50])
-            allUsers = allUsers.map(state =>
-                stateTree.getState(state.stateID)
-            );
-            console.log("allUsers[50]", allUsers[50])
+            syncBalances(allUsers, stateTree);
             const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
             const users = allUsers.slice(
                 sliceLeft,
                 sliceLeft + parameters.MAX_TXS_PER_COMMIT
             );
-            // console.log(users)
-            console.log("Users", users.map(s=> s.stateID))
             const txs = txMassMigrationFactory(
                 users,
                 parameters.MAX_TXS_PER_COMMIT,
@@ -277,15 +265,16 @@ describe("Integration Test", function() {
             const signature = mcl.aggreagate(
                 txs.map(tx => allUsers[tx.fromIndex].sign(tx))
             );
-            const { safe } = stateTree.processMassMigrationCommit(
-                txs,
-                feeReceiverID
-            );
-            assert.isTrue(safe, `Invalid state transition at ${i}`);
+            stateTree.processMassMigrationCommit(txs, feeReceiverID);
+            const withdrawRoot = Tree.merklize(users.map(s => s.toStateLeaf()))
+                .root;
             const commit = MassMigrationCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
                 signature,
+                spokeID,
+                withdrawRoot,
+
                 feeReceiverID,
                 serialize(txs)
             );
@@ -299,3 +288,11 @@ describe("Integration Test", function() {
     it("Users withdraw funds");
     it("Coordinator withdrew their stack");
 });
+
+function syncBalances(states: State[], stateTree: StateTree) {
+    for (const state of states) {
+        const treeState = stateTree.getState(state.stateID);
+        state.balance = treeState.balance;
+        state.nonce = treeState.nonce;
+    }
+}
