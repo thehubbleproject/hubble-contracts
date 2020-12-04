@@ -76,7 +76,7 @@ describe("Integration Test", function() {
             tx.blockHash
         );
         // In the deploy script, we already have a TestToken registered with tokenID 1
-        assert.equal(event.args?.tokenType, 2);
+        assert.equal(event.args?.tokenID, 2);
     });
     it("Coordinator bid the first auction", async function() {
         const burnAuction = contracts.chooser as BurnAuction;
@@ -117,7 +117,7 @@ describe("Integration Test", function() {
                 .approve(depositManager.address, state.balance);
             await depositManager
                 .connect(coordinator)
-                .depositFor(state.pubkeyIndex, state.balance, state.tokenType);
+                .depositFor(state.pubkeyIndex, state.balance, state.tokenID);
         }
 
         const subtreeReadyEvents = await depositManager.queryFilter(
@@ -249,7 +249,7 @@ describe("Integration Test", function() {
         let allUsers = [...earlyAdopters, ...newUsers];
         console.log("allUsers.length", allUsers.length);
         console.log(allUsers.map(s => s.stateID));
-        const tokenID = allUsers[0].tokenType;
+        const tokenID = allUsers[0].tokenID;
         for (let i = 0; i < numCommits; i++) {
             syncBalances(allUsers, stateTree);
             const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
