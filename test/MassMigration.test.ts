@@ -16,7 +16,7 @@ import { mineBlocks } from "../ts/utils";
 import { expectRevert } from "../ts/utils";
 
 describe("Mass Migrations", async function() {
-    const tokenID = 1;
+    const tokenID = 0;
     let Alice: State;
     let contracts: allContracts;
     let stateTree: StateTree;
@@ -207,7 +207,7 @@ describe("Mass Migrations", async function() {
         const { signature } = mcl.sign(claimerAddress, Alice.secretKey);
         const state = {
             pubkeyIndex: Alice.pubkeyIndex,
-            tokenType: tokenID,
+            tokenID,
             balance: tx.amount,
             nonce: 0
         };

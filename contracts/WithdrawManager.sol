@@ -111,7 +111,7 @@ contract WithdrawManager {
         require(checkSuccess, "WithdrawManager: Bad signature");
 
         IERC20 tokenContract = IERC20(
-            tokenRegistry.safeGetAddress(withdrawal.state.tokenType)
+            tokenRegistry.safeGetAddress(withdrawal.state.tokenID)
         );
         Bitmap.setClaimed(withdrawal.state.pubkeyIndex, bitmap[withdrawRoot]);
         // transfer tokens from vault

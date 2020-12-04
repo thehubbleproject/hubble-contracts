@@ -30,12 +30,11 @@ contract TestTransfer is Transfer {
     function testProcessTransfer(
         bytes32 _balanceRoot,
         Tx.Transfer memory _tx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32, Types.Result) {
-        return
-            Transition.processTransfer(_balanceRoot, _tx, tokenType, from, to);
+        return Transition.processTransfer(_balanceRoot, _tx, tokenID, from, to);
     }
 
     function testProcessTransferCommit(

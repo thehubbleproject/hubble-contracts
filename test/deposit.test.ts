@@ -63,24 +63,24 @@ const LARGE_AMOUNT_OF_TOKEN = 1000000;
 
 describe("DepositManager", async function() {
     let contracts: allContracts;
-    let tokenType: number;
+    let tokenID: number;
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, TESTING_PARAMS);
         const { testToken, tokenRegistry, depositManager } = contracts;
-        tokenType = (await tokenRegistry.numTokens()).toNumber();
+        tokenID = (await tokenRegistry.nextTokenID()).toNumber() - 1;
         await testToken.approve(depositManager.address, LARGE_AMOUNT_OF_TOKEN);
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
         const { depositManager } = contracts;
-        const deposit0 = State.new(0, tokenType, 10, 0);
-        const deposit1 = State.new(1, tokenType, 10, 0);
+        const deposit0 = State.new(0, tokenID, 10, 0);
+        const deposit1 = State.new(1, tokenID, 10, 0);
         const pendingDeposit = solidityKeccak256(
             ["bytes", "bytes"],
             [deposit0.toStateLeaf(), deposit1.toStateLeaf()]
         );
 
-        const txDeposit0 = await depositManager.depositFor(0, 10, tokenType);
+        const txDeposit0 = await depositManager.depositFor(0, 10, tokenID);
         console.log(
             "Deposit 0 transaction cost",
             (await txDeposit0.wait()).gasUsed.toNumber()
@@ -94,7 +94,7 @@ describe("DepositManager", async function() {
         assert.equal(event0.args?.pubkeyID.toNumber(), 0);
         assert.equal(event0.args?.data, deposit0.encode());
 
-        const txDeposit1 = await depositManager.depositFor(1, 10, tokenType);
+        const txDeposit1 = await depositManager.depositFor(1, 10, tokenID);
         console.log(
             "Deposit 1 transaction cost",
             (await txDeposit1.wait()).gasUsed.toNumber()
@@ -136,8 +136,8 @@ describe("DepositManager", async function() {
         const nDeposits = 1 << TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
 
         for (let i = 0; i < nDeposits; i++) {
-            await depositManager.depositFor(i, amount, tokenType);
-            const state = State.new(i, tokenType, amount, 0);
+            await depositManager.depositFor(i, amount, tokenID);
+            const state = State.new(i, tokenID, amount, 0);
             stateLeaves.push(state.toStateLeaf());
         }
         await rollup.submitDeposits(

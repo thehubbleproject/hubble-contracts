@@ -147,16 +147,16 @@ contract FrontendCreate2Transfer {
         );
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         Types.UserState memory receiver = Types.decodeState(receiverEncoded);
-        uint256 tokenType = sender.tokenType;
+        uint256 tokenID = sender.tokenID;
         (sender, result) = Transition.validateAndApplySender(
-            tokenType,
+            tokenID,
             _tx.amount,
             _tx.fee,
             sender
         );
         if (result != Types.Result.Ok) return (sender.encode(), "", result);
         (receiver, result) = Transition.validateAndApplyReceiver(
-            tokenType,
+            tokenID,
             _tx.amount,
             receiver
         );
@@ -166,7 +166,7 @@ contract FrontendCreate2Transfer {
     function process(
         bytes32 stateRoot,
         bytes memory encodedTx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32 newRoot, Types.Result result) {
@@ -183,7 +183,7 @@ contract FrontendCreate2Transfer {
             Transition.processCreate2Transfer(
                 stateRoot,
                 _tx,
-                tokenType,
+                tokenID,
                 from,
                 to
             );

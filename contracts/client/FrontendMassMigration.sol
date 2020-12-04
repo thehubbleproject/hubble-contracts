@@ -125,16 +125,16 @@ contract FrontendMassMigration {
         );
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         Types.UserState memory receiver = Types.decodeState(receiverEncoded);
-        uint256 tokenType = sender.tokenType;
+        uint256 tokenID = sender.tokenID;
         (sender, result) = Transition.validateAndApplySender(
-            tokenType,
+            tokenID,
             _tx.amount,
             _tx.fee,
             sender
         );
         if (result != Types.Result.Ok) return (sender.encode(), "", result);
         (receiver, result) = Transition.validateAndApplyReceiver(
-            tokenType,
+            tokenID,
             _tx.amount,
             receiver
         );
@@ -144,7 +144,7 @@ contract FrontendMassMigration {
     function process(
         bytes32 stateRoot,
         bytes memory encodedTx,
-        uint256 tokenType,
+        uint256 tokenID,
         Types.StateMerkleProof memory from
     )
         public
@@ -163,7 +163,7 @@ contract FrontendMassMigration {
             offchainTx.amount,
             offchainTx.fee
         );
-        return Transition.processMassMigration(stateRoot, _tx, tokenType, from);
+        return Transition.processMassMigration(stateRoot, _tx, tokenID, from);
     }
 
     function checkSignature(

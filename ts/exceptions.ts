@@ -12,6 +12,6 @@ export class ReceiverNotExist extends StateTreeExceptions {}
 
 export class StateAlreadyExist extends StateTreeExceptions {}
 
-export class WrongTokenType extends StateTreeExceptions {}
+export class WrongTokenID extends StateTreeExceptions {}
 
 export class InsufficientFund extends StateTreeExceptions {}
