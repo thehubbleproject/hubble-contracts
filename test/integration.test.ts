@@ -32,13 +32,16 @@ import {
     TransferBatch,
     TransferCommitment
 } from "../ts/commitments";
-import { getBatchID, mineBlocks, ZERO } from "../ts/utils";
+import { getBatchID, mineBlocks, sum, ZERO } from "../ts/utils";
 import { State } from "../ts/state";
 import { serialize } from "../ts/tx";
 import { Tree } from "../ts/tree";
 
 const DOMAIN =
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+// In the deploy script, we already have a TestToken registered with tokenID 0
+// We are deploying a new token with tokenID 1
+const tokenID = 1;
 
 describe("Integration Test", function() {
     let contracts: allContracts;
@@ -75,8 +78,8 @@ describe("Integration Test", function() {
             tokenRegistry.filters.RegisteredToken(null, null),
             tx.blockHash
         );
-        // In the deploy script, we already have a TestToken registered with tokenID 1
-        assert.equal(event.args?.tokenID, 2);
+
+        assert.equal(event.args?.tokenID, tokenID);
     });
     it("Coordinator bid the first auction", async function() {
         const burnAuction = contracts.chooser as BurnAuction;
@@ -104,7 +107,7 @@ describe("Integration Test", function() {
             numOfStates: nDeposits,
             initialStateID: 0,
             initialAccID: 0,
-            tokenID: 2,
+            tokenID,
             zeroNonce: true
         });
 
@@ -198,7 +201,7 @@ describe("Integration Test", function() {
             numOfStates: nNewUsers,
             initialStateID: nextStateID,
             initialAccID: nextPubkeyID,
-            tokenID: 2,
+            tokenID,
             initialBalance: ZERO,
             zeroNonce: true
         });
@@ -247,9 +250,6 @@ describe("Integration Test", function() {
         const feeReceiverID = 0;
         const commits = [];
         let allUsers = [...earlyAdopters, ...newUsers];
-        console.log("allUsers.length", allUsers.length);
-        console.log(allUsers.map(s => s.stateID));
-        const tokenID = allUsers[0].tokenID;
         for (let i = 0; i < numCommits; i++) {
             syncBalances(allUsers, stateTree);
             const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
@@ -274,7 +274,8 @@ describe("Integration Test", function() {
                 signature,
                 spokeID,
                 withdrawRoot,
-
+                tokenID,
+                sum(txs.map(tx => tx.amount)),
                 feeReceiverID,
                 serialize(txs)
             );
