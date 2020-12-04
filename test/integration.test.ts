@@ -55,6 +55,7 @@ describe("Integration Test", function() {
     let previousProof: CommitmentInclusionProof;
     let earlyAdopters: State[];
     let newUsers: State[];
+    let massMigrationBatch: MassMigrationBatch
 
     before(async function() {
         await mcl.init();
@@ -281,12 +282,15 @@ describe("Integration Test", function() {
             );
             commits.push(commit);
         }
-        await new MassMigrationBatch(commits).submit(
+        massMigrationBatch = new MassMigrationBatch(commits)
+        await massMigrationBatch.submit(
             rollup.connect(coordinator),
             parameters.STAKE_AMOUNT
         );
     });
-    it("Users withdraw funds");
+    it("Users withdraw funds", async function(){
+        await mineBlocks(ethers.provider, parameters.BLOCKS_TO_FINALISE);
+    });
     it("Coordinator withdrew their stack");
 });
 
