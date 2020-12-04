@@ -54,6 +54,19 @@ export class DecimalCodec {
         return BigNumber.from(Math.round(validNum * 10 ** this.place));
     }
 
+    /**
+     * Find a BigNumber that's less than the input and compressable
+     */
+    public castBigNumber(input: BigNumber): BigNumber {
+        let mantissa = input;
+        for (let exponent = 0; exponent < this.exponentMax; exponent++) {
+            if (mantissa.lte(this.mantissaMax))
+                return mantissa.mul(BigNumber.from(10).pow(exponent));
+            mantissa = mantissa.div(10);
+        }
+        throw new EncodingError(`Can't cast input ${input.toString()}`);
+    }
+
     public encode(input: number) {
         // Use Math.round here to prevent the case
         // > 32.3 * 10 ** 6

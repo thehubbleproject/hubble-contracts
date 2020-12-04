@@ -42,8 +42,8 @@ export function txTransferFactory(
         const senderIndex = i % nStates;
         const reciverIndex = (i + 5) % n;
         const sender = states[senderIndex];
-        const amount = sender.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(sender.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
         const tx = new TxTransfer(
             senderIndex,
             reciverIndex,
@@ -67,8 +67,8 @@ export function txCreate2TransferFactory(
     for (let i = 0; i < n; i++) {
         const sender = states[i];
         const receiver = newStates[i];
-        const amount = sender.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(sender.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
 
         // uses states for sender
         // and newStates for receiver as they are not created yet
@@ -95,8 +95,8 @@ export function txMassMigrationFactory(
     const txs: TxMassMigration[] = [];
     for (let i = 0; i < n; i++) {
         const sender = states[i];
-        const amount = sender.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(sender.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
         const tx = new TxMassMigration(
             sender.stateID,
             amount,
