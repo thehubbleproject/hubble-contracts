@@ -26,6 +26,7 @@ import { BurnAuctionFactory } from "../types/ethers-contracts/BurnAuctionFactory
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
 import { ProofOfBurn } from "../types/ethers-contracts/ProofOfBurn";
+import { GenesisNotSpecified } from "./exceptions";
 
 async function waitAndRegister(
     contract: Contract,
@@ -197,8 +198,8 @@ export async function deployAll(
         await paramManager.depositManager()
     );
 
-    if (!parameters.GENESIS_STATE_ROOT)
-        throw Error("GENESIS_STATE_ROOT not specified!");
+    if (!parameters.GENESIS_STATE_ROOT) throw new GenesisNotSpecified();
+
     // deploy Rollup core
     const rollup = await new RollupFactory(allLinkRefs, signer).deploy(
         nameRegistry.address,
