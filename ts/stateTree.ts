@@ -9,7 +9,7 @@ import {
     ReceiverNotExist,
     SenderNotExist,
     StateAlreadyExist,
-    WrongTokenType
+    WrongTokenID
 } from "./exceptions";
 
 interface SolStateMerkleProof {
@@ -120,7 +120,7 @@ export class StateTree {
         txs: TxTransfer[],
         feeReceiverID: number
     ): Generator<SolStateMerkleProof> {
-        const tokenID = this.states[txs[0].fromIndex].tokenType;
+        const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
             const [senderProof, receiverProof] = this.processTransfer(tx);
             yield senderProof;
@@ -154,7 +154,7 @@ export class StateTree {
         txs: TxCreate2Transfer[],
         feeReceiverID: number
     ): Generator<SolStateMerkleProof> {
-        const tokenID = this.states[txs[0].fromIndex].tokenType;
+        const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
             const [senderProof, receiverProof] = this.processCreate2Transfer(
                 tx
@@ -193,7 +193,7 @@ export class StateTree {
         txs: TxMassMigration[],
         feeReceiverID: number
     ): Generator<SolStateMerkleProof> {
-        const tokenID = this.states[txs[0].fromIndex].tokenType;
+        const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
             const proof = this.processMassMigration(tx);
             yield proof;
@@ -285,9 +285,9 @@ export class StateTree {
     ): SolStateMerkleProof {
         const state = this.states[receiverIndex];
         if (!state) throw new ReceiverNotExist(`stateID: ${receiverIndex}`);
-        if (state.tokenType != tokenID)
-            throw new WrongTokenType(
-                `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenType}`
+        if (state.tokenID != tokenID)
+            throw new WrongTokenID(
+                `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
             );
         const postState = applyReceiver(state, increment);
         const proof = this.processSideEffects(receiverIndex, postState);
