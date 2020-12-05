@@ -38,7 +38,7 @@ library Authenticity {
                 MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
-                    proof.states[i].pubkeyIndex,
+                    proof.states[i].pubkeyID,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Authenticity: account does not exists"
@@ -97,7 +97,7 @@ library Authenticity {
                 MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
-                    proof.states[i].pubkeyIndex,
+                    proof.states[i].pubkeyID,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Authenticity: account does not exists"
@@ -158,7 +158,7 @@ library Authenticity {
                 MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysSender[i])),
-                    proof.states[i].pubkeyIndex,
+                    proof.states[i].pubkeyID,
                     proof.pubkeyWitnessesSender[i]
                 ),
                 "Authenticity: from account does not exists"
@@ -169,7 +169,7 @@ library Authenticity {
                 MerkleTree.verify(
                     accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
-                    _tx.toAccID,
+                    _tx.toPubkeyID,
                     proof.pubkeyWitnessesReceiver[i]
                 ),
                 "Authenticity: to account does not exists"

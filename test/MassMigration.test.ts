@@ -39,7 +39,7 @@ describe("Mass Migrations", async function() {
         Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(2);
         Alice.newKeyPair();
-        Alice.pubkeyIndex = await registry.register(Alice.getPubkey());
+        Alice.pubkeyID = await registry.register(Alice.getPubkey());
 
         stateTree.createState(Alice);
         const accountRoot = await registry.root();
@@ -75,7 +75,7 @@ describe("Mass Migrations", async function() {
         const root = await registry.root();
 
         const leaf = State.new(
-            Alice.pubkeyIndex,
+            Alice.pubkeyID,
             tokenID,
             tx.amount,
             0
@@ -152,7 +152,7 @@ describe("Mass Migrations", async function() {
             USDT
         );
         const leaf = State.new(
-            Alice.pubkeyIndex,
+            Alice.pubkeyID,
             tokenID,
             tx.amount,
             0
@@ -206,7 +206,7 @@ describe("Mass Migrations", async function() {
         const claimerAddress = await claimer.getAddress();
         const { signature } = mcl.sign(claimerAddress, Alice.secretKey);
         const state = {
-            pubkeyIndex: Alice.pubkeyIndex,
+            pubkeyID: Alice.pubkeyID,
             tokenID,
             balance: tx.amount,
             nonce: 0
@@ -223,7 +223,7 @@ describe("Mass Migrations", async function() {
                 withdrawProof,
                 Alice.publicKey,
                 mcl.g1ToHex(signature),
-                registry.witness(Alice.pubkeyIndex)
+                registry.witness(Alice.pubkeyID)
             );
         const receiptClaim = await txClaim.wait();
         console.log(
@@ -238,7 +238,7 @@ describe("Mass Migrations", async function() {
                     withdrawProof,
                     Alice.publicKey,
                     mcl.g1ToHex(signature),
-                    registry.witness(Alice.pubkeyIndex)
+                    registry.witness(Alice.pubkeyID)
                 ),
             "WithdrawManager: Token has been claimed"
         );

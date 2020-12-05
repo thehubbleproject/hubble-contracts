@@ -64,7 +64,7 @@ describe("Tx Serialization", async () => {
             const {
                 fromIndex,
                 toIndex,
-                toAccID,
+                toPubkeyID,
                 amount,
                 fee
             } = await c.create2TransferDecode(serialized, i);
@@ -80,8 +80,8 @@ describe("Tx Serialization", async () => {
                 "to index not equal"
             );
             assert.equal(
-                toAccID.toString(),
-                txs[i].toAccID.toString(),
+                toPubkeyID.toString(),
+                txs[i].toPubkeyID.toString(),
                 "to acc ID not equal"
             );
 

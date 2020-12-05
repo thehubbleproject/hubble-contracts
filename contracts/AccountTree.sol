@@ -33,24 +33,24 @@ contract AccountTree {
         root = keccak256(abi.encode(rootLeft, rootRight));
     }
 
-    function _updateSingle(bytes32 leaf) internal returns (uint256) {
+    function _updateSingle(bytes32 leafInput) internal returns (uint256) {
         require(leafIndexLeft < SET_SIZE - 1, "AccountTree: left set is full ");
-        bytes32 acc = leaf;
+        bytes32 leaf = leafInput;
         uint256 path = leafIndexLeft;
         bool subtreeSet = false;
         for (uint256 i = 0; i < DEPTH; i++) {
             if (path & 1 == 1) {
-                acc = keccak256(abi.encode(filledSubtreesLeft[i], acc));
+                leaf = keccak256(abi.encode(filledSubtreesLeft[i], leaf));
             } else {
                 if (!subtreeSet) {
-                    filledSubtreesLeft[i] = acc;
+                    filledSubtreesLeft[i] = leaf;
                     subtreeSet = true;
                 }
-                acc = keccak256(abi.encode(acc, zeros[i]));
+                leaf = keccak256(abi.encode(leaf, zeros[i]));
             }
             path >>= 1;
         }
-        rootLeft = acc;
+        rootLeft = leaf;
         root = keccak256(abi.encode(rootLeft, rootRight));
         leafIndexLeft += 1;
         return leafIndexLeft - 1;
@@ -73,49 +73,49 @@ contract AccountTree {
                 leafs[j] = keccak256(abi.encode(leafs[k], leafs[k + 1]));
             }
         }
-        bytes32 acc = leafs[0];
+        bytes32 leaf = leafs[0];
 
         // Ascend to the root
         uint256 path = leafIndexRight;
         bool subtreeSet = false;
         for (uint256 i = 0; i < DEPTH - BATCH_DEPTH; i++) {
             if (path & 1 == 1) {
-                acc = keccak256(abi.encode(filledSubtreesRight[i], acc));
+                leaf = keccak256(abi.encode(filledSubtreesRight[i], leaf));
             } else {
                 if (!subtreeSet) {
-                    filledSubtreesRight[i] = acc;
+                    filledSubtreesRight[i] = leaf;
                     subtreeSet = true;
                 }
-                acc = keccak256(abi.encode(acc, zeros[i + BATCH_DEPTH]));
+                leaf = keccak256(abi.encode(leaf, zeros[i + BATCH_DEPTH]));
             }
             path >>= 1;
         }
-        rootRight = acc;
+        rootRight = leaf;
         root = keccak256(abi.encode(rootLeft, rootRight));
         leafIndexRight += 1;
         return leafIndexRight - 1;
     }
 
     function _checkInclusion(
-        bytes32 leaf,
+        bytes32 leafInput,
         uint256 leafIndex,
         bytes32[WITNESS_LENGTH] memory witness
     ) internal view returns (bool) {
         require(witness.length == DEPTH, "AccountTree: invalid witness size");
         uint256 path = leafIndex % SET_SIZE;
-        bytes32 acc = leaf;
+        bytes32 leaf = leafInput;
         for (uint256 i = 0; i < WITNESS_LENGTH; i++) {
             if (path & 1 == 1) {
-                acc = keccak256(abi.encode(witness[i], acc));
+                leaf = keccak256(abi.encode(witness[i], leaf));
             } else {
-                acc = keccak256(abi.encode(acc, witness[i]));
+                leaf = keccak256(abi.encode(leaf, witness[i]));
             }
             path >>= 1;
         }
         if (leafIndex < SET_SIZE) {
-            return acc == rootLeft;
+            return leaf == rootLeft;
         } else {
-            return acc == rootRight;
+            return leaf == rootRight;
         }
     }
 }

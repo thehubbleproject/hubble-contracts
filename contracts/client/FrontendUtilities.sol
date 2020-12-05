@@ -26,7 +26,7 @@ contract FrontendUtilities {
         uint256 amount,
         uint256 tokenID
     ) external {
-        uint256 accountID = accountRegistry.register(pubkey);
-        depositManager.depositFor(accountID, amount, tokenID);
+        uint256 pubkeyID = accountRegistry.register(pubkey);
+        depositManager.depositFor(pubkeyID, amount, tokenID);
     }
 }

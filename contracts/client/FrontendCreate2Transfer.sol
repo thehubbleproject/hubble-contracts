@@ -58,7 +58,7 @@ contract FrontendCreate2Transfer {
             txTxs[i] = Tx.Create2Transfer(
                 _tx.fromIndex,
                 _tx.toIndex,
-                _tx.toAccID,
+                _tx.toPubkeyID,
                 _tx.amount,
                 _tx.fee
             );
@@ -108,7 +108,7 @@ contract FrontendCreate2Transfer {
         Tx.Create2Transfer memory txTx = Tx.Create2Transfer(
             _tx.fromIndex,
             _tx.toIndex,
-            _tx.toAccID,
+            _tx.toPubkeyID,
             _tx.amount,
             _tx.fee
         );
@@ -175,7 +175,7 @@ contract FrontendCreate2Transfer {
         Tx.Create2Transfer memory _tx = Tx.Create2Transfer(
             offchainTx.fromIndex,
             offchainTx.toIndex,
-            offchainTx.toAccID,
+            offchainTx.toPubkeyID,
             offchainTx.amount,
             offchainTx.fee
         );

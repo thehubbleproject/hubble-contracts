@@ -245,7 +245,7 @@ export class StateTree {
         const senderProof = this.processSender(tx.fromIndex, decrement);
         const receiverProof = this.processCreate(
             tx.toIndex,
-            tx.toAccID,
+            tx.toPubkeyID,
             tx.amount,
             senderProof.state.tokenID
         );
@@ -296,13 +296,13 @@ export class StateTree {
 
     public processCreate(
         createIndex: number,
-        pubkeyIndex: number,
+        pubkeyID: number,
         balance: BigNumber,
         tokenID: number
     ): SolStateMerkleProof {
         if (this.states[createIndex] !== undefined)
             throw new StateAlreadyExist(`stateID: ${createIndex}`);
-        const postState = State.new(pubkeyIndex, tokenID, balance, 0);
+        const postState = State.new(pubkeyID, tokenID, balance, 0);
         const proof = this.processSideEffects(createIndex, postState);
         return proof;
     }

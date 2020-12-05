@@ -122,7 +122,7 @@ contract DepositManager is DepositCore, IDepositManager {
      * @param tokenID Type of token user is depositing
      */
     function depositFor(
-        uint256 accountID,
+        uint256 pubkeyID,
         uint256 amount,
         uint256 tokenID
     ) external {
@@ -140,14 +140,14 @@ contract DepositManager is DepositCore, IDepositManager {
         );
         // create a new state
         Types.UserState memory newState = Types.UserState(
-            accountID,
+            pubkeyID,
             tokenID,
             amount,
             0
         );
         // get new state hash
         bytes memory encodedState = newState.encode();
-        emit DepositQueued(accountID, encodedState);
+        emit DepositQueued(pubkeyID, encodedState);
         bytes32 readySubtree = insertAndMerge(keccak256(encodedState));
         if (readySubtree != bytes32(0)) {
             emit DepositSubTreeReady(readySubtree);

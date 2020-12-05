@@ -94,7 +94,7 @@ library Offchain {
         uint256 txType;
         uint256 fromIndex;
         uint256 toIndex;
-        uint256 toAccID;
+        uint256 toPubkeyID;
         uint256 amount;
         uint256 fee;
         uint256 nonce;
@@ -109,7 +109,7 @@ library Offchain {
             _tx.txType,
             _tx.fromIndex,
             _tx.toIndex,
-            _tx.toAccID,
+            _tx.toPubkeyID,
             _tx.amount,
             _tx.fee,
             _tx.nonce
@@ -129,7 +129,7 @@ library Offchain {
                 _tx.txType,
                 _tx.fromIndex,
                 _tx.toIndex,
-                _tx.toAccID,
+                _tx.toPubkeyID,
                 _tx.amount,
                 _tx.fee,
                 _tx.nonce

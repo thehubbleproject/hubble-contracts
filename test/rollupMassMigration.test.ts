@@ -58,7 +58,7 @@ describe("Rollup Mass Migration", () => {
         for (const tx of txs) {
             const sender = states[tx.fromIndex];
             pubkeys.push(sender.getPubkey());
-            pubkeyWitnesses.push(registry.witness(sender.pubkeyIndex));
+            pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
             signatures.push(sender.sign(tx));
         }
         const signature = mcl.aggreagate(signatures);
@@ -111,7 +111,7 @@ describe("Rollup Mass Migration", () => {
 
         const leaves = txs.map(tx =>
             State.new(
-                states[tx.fromIndex].pubkeyIndex,
+                states[tx.fromIndex].pubkeyID,
                 tokenID,
                 tx.amount,
                 0

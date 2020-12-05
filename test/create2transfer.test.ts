@@ -86,12 +86,10 @@ describe("Rollup Create2Transfer Commitment", () => {
             const receiver = states[tx.toIndex];
 
             pubkeysSender.push(sender.getPubkey());
-            pubkeyWitnessesSender.push(registry.witness(sender.pubkeyIndex));
+            pubkeyWitnessesSender.push(registry.witness(sender.pubkeyID));
 
             pubkeysReceiver.push(receiver.getPubkey());
-            pubkeyWitnessesReceiver.push(
-                registry.witness(receiver.pubkeyIndex)
-            );
+            pubkeyWitnessesReceiver.push(registry.witness(receiver.pubkeyID));
 
             signatures.push(sender.sign(tx));
         }
