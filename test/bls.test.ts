@@ -7,7 +7,6 @@ import * as mcl from "../ts/mcl";
 import { ethers } from "hardhat";
 import { randomBytes, hexlify, arrayify } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../ts/hashToField";
-import { BigNumber, utils } from "ethers";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = arrayify(DOMAIN_HEX);
@@ -23,7 +22,6 @@ describe("BLS", async () => {
     let bls: TestBls;
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN_HEX);
         const accounts = await ethers.getSigners();
         bls = await new TestBlsFactory(accounts[0]).deploy();
         await bls.deployed();
@@ -57,7 +55,9 @@ describe("BLS", async () => {
     it("hash to point", async function() {
         for (let i = 0; i < 100; i++) {
             const msg = randHex(i);
-            const [expectX, expectY] = mcl.g1ToHex(mcl.hashToPoint(msg));
+            const [expectX, expectY] = mcl.g1ToHex(
+                mcl.hashToPoint(msg, DOMAIN)
+            );
             const [actualX, actualY] = await bls.hashToPoint(DOMAIN, msg);
             assert.equal(to32Hex(actualX), expectX);
             assert.equal(to32Hex(actualY), expectY);
@@ -71,12 +71,16 @@ describe("BLS", async () => {
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
-            const { signature, M } = mcl.sign(message, secret);
-            messages.push(M);
-            pubkeys.push(pubkey);
+            const { signature, messagePoint } = mcl.sign(
+                message,
+                secret,
+                DOMAIN
+            );
+            messages.push(mcl.g1ToHex(messagePoint));
+            pubkeys.push(mcl.g2ToHex(pubkey));
             signatures.push(signature);
         }
-        const aggSignature = mcl.aggreagate(signatures);
+        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
         const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isTrue(res[0]);
         assert.isTrue(res[1]);
@@ -89,14 +93,18 @@ describe("BLS", async () => {
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
-            const { signature, M } = mcl.sign(message, secret);
-            messages.push(M);
-            pubkeys.push(pubkey);
+            const { signature, messagePoint } = mcl.sign(
+                message,
+                secret,
+                DOMAIN
+            );
+            messages.push(mcl.g1ToHex(messagePoint));
+            pubkeys.push(mcl.g2ToHex(pubkey));
             if (i != 0) {
                 signatures.push(signature);
             }
         }
-        const aggSignature = mcl.aggreagate(signatures);
+        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
         const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isTrue(res[1]);
@@ -108,9 +116,9 @@ describe("BLS", async () => {
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
-            const { signature, M } = mcl.sign(message, secret);
-            messages.push(M);
-            pubkeys.push(pubkey);
+            const { messagePoint } = mcl.sign(message, secret, DOMAIN);
+            messages.push(mcl.g1ToHex(messagePoint));
+            pubkeys.push(mcl.g2ToHex(pubkey));
         }
         const aggSignature = [100, 100];
         let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
@@ -125,16 +133,20 @@ describe("BLS", async () => {
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
-            const { signature, M } = mcl.sign(message, secret);
-            messages.push(M);
+            const { signature, messagePoint } = mcl.sign(
+                message,
+                secret,
+                DOMAIN
+            );
+            messages.push(mcl.g1ToHex(messagePoint));
             if (i == 0) {
                 pubkeys.push([3, 3, 3, 3]);
             } else {
-                pubkeys.push(pubkey);
+                pubkeys.push(mcl.g2ToHex(pubkey));
             }
             signatures.push(signature);
         }
-        const aggSignature = mcl.aggreagate(signatures);
+        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
         const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
@@ -148,17 +160,21 @@ describe("BLS", async () => {
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
-            const { signature, M } = mcl.sign(message, secret);
-            messages.push(M);
+            const { signature, messagePoint } = mcl.sign(
+                message,
+                secret,
+                DOMAIN
+            );
+            messages.push(mcl.g1ToHex(messagePoint));
             if (i == 0) {
                 pubkeys.push(g2PointOnIncorrectSubgroup);
                 assert.isTrue(await bls.isOnCurveG2(pubkeys[i]));
             } else {
-                pubkeys.push(pubkey);
+                pubkeys.push(mcl.g2ToHex(pubkey));
             }
             signatures.push(signature);
         }
-        const aggSignature = mcl.aggreagate(signatures);
+        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
         let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
@@ -166,8 +182,12 @@ describe("BLS", async () => {
     it("verify single signature", async function() {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
-        const { signature, M } = mcl.sign(message, secret);
-        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
+        let res = await bls.verifySingle(
+            mcl.g1ToHex(signature),
+            mcl.g2ToHex(pubkey),
+            mcl.g1ToHex(messagePoint)
+        );
         assert.isTrue(res[0]);
         assert.isTrue(res[1]);
     });
@@ -175,36 +195,52 @@ describe("BLS", async () => {
         const message = randHex(12);
         const { pubkey } = mcl.newKeyPair();
         const { secret } = mcl.newKeyPair();
-        const { signature, M } = mcl.sign(message, secret);
-        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
+        let res = await bls.verifySingle(
+            mcl.g1ToHex(signature),
+            mcl.g2ToHex(pubkey),
+            mcl.g1ToHex(messagePoint)
+        );
         assert.isFalse(res[0]);
         assert.isTrue(res[1]);
     });
     it("verify single signature: fail pubkey is not on curve", async function() {
         const message = randHex(12);
         const { secret } = mcl.newKeyPair();
-        const { M, signature } = mcl.sign(message, secret);
+        const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
         const pubkey = [3, 3, 3, 3];
-        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        let res = await bls.verifySingle(
+            mcl.g1ToHex(signature),
+            pubkey,
+            mcl.g1ToHex(messagePoint)
+        );
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
     });
     it("verify single signature: fail signature is not on curve", async function() {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
-        const { M } = mcl.sign(message, secret);
+        const { messagePoint } = mcl.sign(message, secret, DOMAIN);
         const signature = [3, 3];
-        let res = await bls.verifySingle(signature, pubkey, M);
+        let res = await bls.verifySingle(
+            signature,
+            mcl.g2ToHex(pubkey),
+            mcl.g1ToHex(messagePoint)
+        );
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
     });
     it("verify single signature: fail pubkey is not on correct subgroup", async function() {
         const message = randHex(12);
         const { secret } = mcl.newKeyPair();
-        const { M, signature } = mcl.sign(message, secret);
+        const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
         const pubkey = g2PointOnIncorrectSubgroup;
         assert.isTrue(await bls.isOnCurveG2(pubkey));
-        let res = await bls.verifySingle(mcl.g1ToHex(signature), pubkey, M);
+        let res = await bls.verifySingle(
+            mcl.g1ToHex(signature),
+            pubkey,
+            mcl.g1ToHex(messagePoint)
+        );
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
     });
@@ -237,7 +273,7 @@ describe("BLS", async () => {
             assert.isFalse(isOnCurve);
         }
     });
-    it.skip("gas cost: verify signature", async function() {
+    it("gas cost: verify signature", async function() {
         const n = 100;
         const messages = [];
         const pubkeys = [];
@@ -245,12 +281,16 @@ describe("BLS", async () => {
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
             const { pubkey, secret } = mcl.newKeyPair();
-            const { signature, M } = mcl.sign(message, secret);
-            messages.push(M);
-            pubkeys.push(pubkey);
+            const { signature, messagePoint } = mcl.sign(
+                message,
+                secret,
+                DOMAIN
+            );
+            messages.push(mcl.g1ToHex(messagePoint));
+            pubkeys.push(mcl.g2ToHex(pubkey));
             signatures.push(signature);
         }
-        const aggSignature = mcl.aggreagate(signatures);
+        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
         const cost = await bls.callStatic.verifyMultipleGasCost(
             aggSignature,
             pubkeys,
@@ -258,14 +298,14 @@ describe("BLS", async () => {
         );
         console.log(`verify signature for ${n} message: ${cost.toNumber()}`);
     });
-    it.skip("gas cost: verify single signature", async function() {
+    it("gas cost: verify single signature", async function() {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
-        const { signature, M } = mcl.sign(message, secret);
+        const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
         const cost = await bls.callStatic.verifySingleGasCost(
             mcl.g1ToHex(signature),
-            pubkey,
-            M
+            mcl.g2ToHex(pubkey),
+            mcl.g1ToHex(messagePoint)
         );
         console.log(`verify single signature:: ${cost.toNumber()}`);
     });
