@@ -8,7 +8,8 @@ import {
     g2ToHex,
     sign,
     g1ToHex,
-    Signature
+    Signature,
+    aggregateRaw
 } from "./mcl";
 
 export interface BlsSignerInterface {
@@ -43,4 +44,9 @@ export class BlsSigner implements BlsSignerInterface {
         const sol = g1ToHex(signature);
         return { mcl: signature, sol };
     }
+}
+
+export function aggregate(signatures: Signature[]): Signature {
+    const aggregated = aggregateRaw(signatures.map(s => s.mcl));
+    return { mcl: aggregated, sol: g1ToHex(aggregated) };
 }

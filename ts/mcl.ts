@@ -31,11 +31,6 @@ export interface keyPair {
 
 export type Domain = Uint8Array;
 
-export function aggregate(signatures: Signature[]): Signature {
-    const aggregated = aggregateRaw(signatures.map(s => s.mcl));
-    return { mcl: aggregated, sol: g1ToHex(aggregated) };
-}
-
 export async function init() {
     await mcl.init(mcl.BN_SNARK1);
     mcl.setMapToMode(mcl.BN254);
