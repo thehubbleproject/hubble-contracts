@@ -1,5 +1,4 @@
 import { TestTxFactory } from "../types/ethers-contracts/TestTxFactory";
-import * as mcl from "../ts/mcl";
 import { TestTx } from "../types/ethers-contracts/TestTx";
 import {
     TxTransfer,
@@ -10,10 +9,8 @@ import {
 import { assert } from "chai";
 import { ethers } from "hardhat";
 import { COMMIT_SIZE } from "../ts/constants";
-import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { USDT } from "../ts/decimal";
 import { BigNumber } from "ethers";
-import { hexToUint8Array, randHex } from "../ts/utils";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -44,17 +41,7 @@ describe("Tx Serialization", async () => {
         }
     });
     it("parse create2transfer transaction", async function() {
-        await mcl.init();
-        const dummyDomain = hexToUint8Array(randHex(32));
-        let states = UserStateFactory.buildList(COMMIT_SIZE, dummyDomain);
-        let newStates = UserStateFactory.buildList(
-            32,
-            dummyDomain,
-            states.length,
-            states.length
-        );
-        const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
-
+        const txs = TxCreate2Transfer.buildList(COMMIT_SIZE);
         const serialized = serialize(txs);
         assert.equal(
             (await c.create2transferSize(serialized)).toNumber(),

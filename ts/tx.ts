@@ -228,7 +228,7 @@ export class TxCreate2Transfer implements SignableTx {
     public static rand(): TxCreate2Transfer {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
-        const receiverPub: string[] = [];
+        const receiverPub: string[] = ["0x00", "0x00", "0x00", "0x00"];
         const toPubkeyID = randomNum(stateIDLen);
         const amount = USDT.randInt();
         const fee = USDT.randInt();
