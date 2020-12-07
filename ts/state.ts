@@ -1,7 +1,8 @@
-import * as mcl from "./mcl";
-import { Tx, SignableTx } from "./tx";
+import { Domain, solG2 } from "./mcl";
+import { SignableTx } from "./tx";
 import { BigNumber, BigNumberish, ethers } from "ethers";
 import { solidityPack } from "ethers/lib/utils";
+import { BlsSignerInterface, NullBlsSinger, BlsSigner } from "./blsSigner";
 
 export interface StateSolStruct {
     pubkeyID: number;
@@ -21,7 +22,7 @@ export const EMPTY_STATE: StateSolStruct = {
 };
 
 export class State {
-    public signer: mcl.BlsSignerInterface = new mcl.NullBlsSinger();
+    public signer: BlsSignerInterface = new NullBlsSinger();
     public static new(
         pubkeyID: number,
         tokenID: number,
@@ -52,8 +53,8 @@ export class State {
         public nonce: number
     ) {}
 
-    public newKeyPair(domain: mcl.Domain): State {
-        this.signer = mcl.BlsSigner.new(domain);
+    public newKeyPair(domain: Domain): State {
+        this.signer = BlsSigner.new(domain);
         return this;
     }
 
@@ -66,7 +67,7 @@ export class State {
         return this;
     }
 
-    public getPubkey(): mcl.solG2 {
+    public getPubkey(): solG2 {
         return this.signer.pubkey;
     }
 

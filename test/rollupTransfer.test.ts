@@ -12,6 +12,7 @@ import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
 import { txTransferFactory, UserStateFactory } from "../ts/factory";
+import { aggregate } from "../ts/blsSigner";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
@@ -59,7 +60,7 @@ describe("Rollup Transfer Commitment", () => {
             pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
             signatures.push(sender.sign(tx));
         }
-        const signature = mcl.aggregate(signatures).sol;
+        const signature = aggregate(signatures).sol;
         const { safe } = stateTree.processTransferCommit(txs, 0);
         assert.isTrue(safe);
         const serialized = serialize(txs);

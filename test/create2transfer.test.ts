@@ -13,6 +13,7 @@ import { Result } from "../ts/interfaces";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { TestBls } from "../types/ethers-contracts/TestBls";
 import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
+import { aggregate } from "../ts/blsSigner";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
@@ -94,7 +95,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             signatures.push(sender.sign(tx));
         }
 
-        const signature = mcl.aggregate(signatures).sol;
+        const signature = aggregate(signatures).sol;
         const serialized = serialize(txs);
 
         // Need post stateWitnesses

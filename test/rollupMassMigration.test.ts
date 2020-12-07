@@ -15,6 +15,7 @@ import { assert } from "chai";
 import { Result } from "../ts/interfaces";
 import { constants } from "ethers";
 import { Tree } from "../ts/tree";
+import { aggregate } from "../ts/blsSigner";
 
 const DOMAIN = hexToUint8Array(randHex(32));
 const STATE_SIZE = 32;
@@ -60,7 +61,7 @@ describe("Rollup Mass Migration", () => {
             pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
             signatures.push(sender.sign(tx));
         }
-        const signature = mcl.aggregate(signatures).sol;
+        const signature = aggregate(signatures).sol;
         const { safe } = stateTree.processMassMigrationCommit(txs, 0);
         assert.isTrue(safe);
         const serialized = serialize(txs);
