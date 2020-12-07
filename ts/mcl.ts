@@ -32,7 +32,7 @@ export interface keyPair {
 export type Domain = Uint8Array;
 
 export function aggregate(signatures: Signature[]): Signature {
-    const aggregated = aggreagateRaw(signatures.map(s => s.mcl));
+    const aggregated = aggregateRaw(signatures.map(s => s.mcl));
     return { mcl: aggregated, sol: g1ToHex(aggregated) };
 }
 
@@ -128,7 +128,7 @@ export function sign(
     return { signature, messagePoint };
 }
 
-export function aggreagateRaw(signatures: mclG1[]): mclG1 {
+export function aggregateRaw(signatures: mclG1[]): mclG1 {
     let aggregated = new mcl.G1();
     for (const sig of signatures) {
         aggregated = mcl.add(aggregated, sig);

@@ -80,7 +80,7 @@ describe("BLS", async () => {
             pubkeys.push(mcl.g2ToHex(pubkey));
             signatures.push(signature);
         }
-        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
+        const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
         const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isTrue(res[0]);
         assert.isTrue(res[1]);
@@ -104,7 +104,7 @@ describe("BLS", async () => {
                 signatures.push(signature);
             }
         }
-        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
+        const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
         const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isTrue(res[1]);
@@ -146,7 +146,7 @@ describe("BLS", async () => {
             }
             signatures.push(signature);
         }
-        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
+        const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
         const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
@@ -174,7 +174,7 @@ describe("BLS", async () => {
             }
             signatures.push(signature);
         }
-        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
+        const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
         let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
@@ -290,7 +290,7 @@ describe("BLS", async () => {
             pubkeys.push(mcl.g2ToHex(pubkey));
             signatures.push(signature);
         }
-        const aggSignature = mcl.g1ToHex(mcl.aggreagateRaw(signatures));
+        const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
         const cost = await bls.callStatic.verifyMultipleGasCost(
             aggSignature,
             pubkeys,
