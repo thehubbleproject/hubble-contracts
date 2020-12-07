@@ -1,10 +1,30 @@
 import { BigNumber } from "ethers";
+import { BlsSigner } from "./blsSigner";
 import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
 import { Domain } from "./mcl";
 import { State } from "./state";
-import { TxTransfer, TxCreate2Transfer, TxMassMigration } from "./tx";
+import {
+    TxTransfer,
+    TxCreate2Transfer,
+    TxMassMigration,
+    SignableTx
+} from "./tx";
 
+export class User {
+    static new(domain: Domain, stateID: number, pubkeyID: number){
+        const signer = BlsSigner.new(domain)
+        return new User(signer, stateID, pubkeyID)
+    }
+    constructor(
+        public blsSigner: BlsSigner,
+        public stateID: number,
+        public pubkeyID: number
+    ) {}
+    public sign(tx: SignableTx) {
+        return this.blsSigner.sign(tx.message());
+    }
+}
 export class UserStateFactory {
     public static buildList(
         numOfStates: number,
@@ -15,6 +35,7 @@ export class UserStateFactory {
         initialBalance: BigNumber = USDT.castInt(1000.0),
         initialNonce: number = 9
     ) {
+        const users: User[] = [];
         const states: State[] = [];
         for (let i = 0; i < numOfStates; i++) {
             const pubkeyID = initialpubkeyID + i;
@@ -25,11 +46,11 @@ export class UserStateFactory {
                 initialBalance,
                 initialNonce + i
             );
-            state.setStateID(stateID);
-            state.newKeyPair(domain);
+            const user = User.new(domain, stateID, pubkeyID)
             states.push(state);
+            users.push(user)
         }
-        return states;
+        return {users, states};
     }
 }
 
