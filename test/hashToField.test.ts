@@ -2,7 +2,6 @@ import * as mcl from "../ts/mcl";
 import { assert } from "chai";
 import { expandMsg } from "../ts/hashToField";
 import { hexlify } from "ethers/lib/utils";
-import { hexToUint8Array } from "../ts/utils";
 
 const DOMAIN_STR = "QUUX-V01-CS02-with-expander";
 const DST = Uint8Array.from(Buffer.from(DOMAIN_STR, "utf8"));
@@ -99,9 +98,9 @@ describe("Hash to Field", () => {
             "0x09b6a2dec1f1b0747c73332e5147ecacde20767f28a9b68261713bed9a1d2432";
         const expectedY =
             "0x0cb70ff0b1bdb5d30006bd0cc03dc2c071dcff0daea886c9793f304c695c1bc6";
-        const dst = "xxx";
+        const dst = Uint8Array.from(Buffer.from("xxx", "utf8"));
         const msg = "0x616263";
-        const p = mcl.hashToPoint(msg, hexToUint8Array(dst));
+        const p = mcl.hashToPoint(msg, dst);
         const [x, y] = mcl.g1ToHex(p);
         assert.equal(x, expectedX);
         assert.equal(y, expectedY);
