@@ -14,6 +14,7 @@ import { Result } from "../ts/interfaces";
 import { Tree } from "../ts/tree";
 import { mineBlocks } from "../ts/utils";
 import { expectRevert } from "../ts/utils";
+import { constants } from "ethers";
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;
@@ -28,7 +29,10 @@ describe("Mass Migrations", async function() {
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        contracts = await deployAll(signer, TESTING_PARAMS);
+        contracts = await deployAll(signer, {
+            ...TESTING_PARAMS,
+            GENESIS_STATE_ROOT: constants.HashZero
+        });
         const { rollup, blsAccountRegistry } = contracts;
         mcl.setDomainHex(await rollup.appID());
 

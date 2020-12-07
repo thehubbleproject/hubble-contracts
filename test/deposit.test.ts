@@ -66,7 +66,10 @@ describe("DepositManager", async function() {
     let tokenID: number;
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        contracts = await deployAll(signer, TESTING_PARAMS);
+        contracts = await deployAll(signer, {
+            ...TESTING_PARAMS,
+            GENESIS_STATE_ROOT: constants.HashZero
+        });
         const { testToken, tokenRegistry, depositManager } = contracts;
         tokenID = (await tokenRegistry.nextTokenID()).toNumber() - 1;
         await testToken.approve(depositManager.address, LARGE_AMOUNT_OF_TOKEN);

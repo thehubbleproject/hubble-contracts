@@ -4,6 +4,8 @@ export class EncodingError extends HubbleError {}
 
 export class MismatchByteLength extends HubbleError {}
 
+export class GenesisNotSpecified extends HubbleError {}
+
 class StateTreeExceptions extends HubbleError {}
 
 export class SenderNotExist extends StateTreeExceptions {}
