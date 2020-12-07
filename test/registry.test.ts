@@ -11,7 +11,7 @@ let DEPTH: number;
 let BATCH_DEPTH: number;
 let hasher: Hasher;
 
-function pubkeyToLeaf(uncompressed: mcl.PublicKey) {
+function pubkeyToLeaf(uncompressed: mcl.solG2) {
     const leaf = ethers.utils.solidityKeccak256(
         ["uint256", "uint256", "uint256", "uint256"],
         uncompressed

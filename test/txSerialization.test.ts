@@ -13,6 +13,7 @@ import { COMMIT_SIZE } from "../ts/constants";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { USDT } from "../ts/decimal";
 import { BigNumber } from "ethers";
+import { hexToUint8Array, randHex } from "../ts/utils";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -44,9 +45,11 @@ describe("Tx Serialization", async () => {
     });
     it("parse create2transfer transaction", async function() {
         await mcl.init();
-        let states = UserStateFactory.buildList(COMMIT_SIZE);
+        const dummyDomain = hexToUint8Array(randHex(32));
+        let states = UserStateFactory.buildList(COMMIT_SIZE, dummyDomain);
         let newStates = UserStateFactory.buildList(
             32,
+            dummyDomain,
             states.length,
             states.length
         );
