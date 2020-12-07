@@ -2,12 +2,10 @@ import { ethers } from "ethers";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { deployAll } from "../ts/deploy";
 import { DeploymentParameters } from "../ts/interfaces";
-import { toWei } from "../ts/utils";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import fs from "fs";
 import { PRODUCTION_PARAMS } from "../ts/constants";
 import { StateTree } from "../ts/stateTree";
-import { State } from "../ts/state";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root", "pubkeys"]
@@ -21,12 +19,8 @@ const argv = require("minimist")(process.argv.slice(2), {
 
 function getDefaultGenesisRoot(parameters: DeploymentParameters) {
     const stateTree = StateTree.new(parameters.MAX_DEPTH);
-    const LARGE_AMOUNT = 1000000000;
-    const state0 = State.new(0, 0, LARGE_AMOUNT, 0);
-    state0.setStateID(0);
-    const state1 = State.new(1, 0, LARGE_AMOUNT, 0);
-    state1.setStateID(1);
-    stateTree.createStateBulk([state0, state1]);
+    // An completely empty genesis state
+    // Can add states here
     return stateTree.root;
 }
 
