@@ -11,6 +11,10 @@ export class State {
         return new State(pubkeyID, tokenID, BigNumber.from(balance), nonce);
     }
 
+    public clone() {
+        return new State(this.pubkeyID, this.tokenID, this.balance, this.nonce);
+    }
+
     constructor(
         public pubkeyID: number,
         public tokenID: number,

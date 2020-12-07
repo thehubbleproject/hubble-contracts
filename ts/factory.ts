@@ -1,9 +1,10 @@
 import { BigNumber } from "ethers";
-import { BlsSigner } from "./blsSigner";
+import { aggregate, BlsSigner } from "./blsSigner";
 import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
-import { Domain } from "./mcl";
+import { Domain, solG1 } from "./mcl";
 import { State } from "./state";
+import { StateTree } from "./stateTree";
 import {
     TxTransfer,
     TxCreate2Transfer,
@@ -12,9 +13,9 @@ import {
 } from "./tx";
 
 export class User {
-    static new(domain: Domain, stateID: number, pubkeyID: number){
-        const signer = BlsSigner.new(domain)
-        return new User(signer, stateID, pubkeyID)
+    static new(domain: Domain, stateID: number, pubkeyID: number) {
+        const signer = BlsSigner.new(domain);
+        return new User(signer, stateID, pubkeyID);
     }
     constructor(
         public blsSigner: BlsSigner,
@@ -23,6 +24,9 @@ export class User {
     ) {}
     public sign(tx: SignableTx) {
         return this.blsSigner.sign(tx.message());
+    }
+    get pubkey() {
+        return this.blsSigner.pubkey;
     }
 }
 export class UserStateFactory {
@@ -34,7 +38,7 @@ export class UserStateFactory {
         tokenID: number = 1,
         initialBalance: BigNumber = USDT.castInt(1000.0),
         initialNonce: number = 9
-    ) {
+    ): { users: User[]; states: State[] } {
         const users: User[] = [];
         const states: State[] = [];
         for (let i = 0; i < numOfStates; i++) {
@@ -46,36 +50,40 @@ export class UserStateFactory {
                 initialBalance,
                 initialNonce + i
             );
-            const user = User.new(domain, stateID, pubkeyID)
+            const user = User.new(domain, stateID, pubkeyID);
             states.push(state);
-            users.push(user)
+            users.push(user);
         }
-        return {users, states};
+        return { users, states };
     }
 }
 
 export function txTransferFactory(
-    states: State[],
+    users: User[],
+    stateTree: StateTree,
     n: number = COMMIT_SIZE
-): TxTransfer[] {
+): { txs: TxTransfer[]; signature: solG1 } {
     const txs: TxTransfer[] = [];
+    const signatures = [];
     for (let i = 0; i < n; i++) {
-        const senderIndex = i;
-        const reciverIndex = (i + 5) % n;
-        const sender = states[senderIndex];
-        const amount = sender.balance.div(10);
+        const sender = users[i];
+        const reciver = users[(i + 5) % n];
+        const senderState = stateTree.getState(sender.stateID);
+        const amount = senderState.balance.div(10);
         const fee = amount.div(10);
         const tx = new TxTransfer(
-            senderIndex,
-            reciverIndex,
+            sender.stateID,
+            reciver.stateID,
             amount,
             fee,
-            sender.nonce,
+            senderState.nonce,
             USDT
         );
         txs.push(tx);
+        signatures.push(sender.sign(tx));
     }
-    return txs;
+    const signature = aggregate(signatures).sol;
+    return { txs, signature };
 }
 
 // creates N new transactions with existing sender and non-existent receiver

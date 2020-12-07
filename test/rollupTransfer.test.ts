@@ -11,7 +11,7 @@ import { assert } from "chai";
 import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
-import { txTransferFactory, UserStateFactory } from "../ts/factory";
+import { txTransferFactory, User, UserStateFactory } from "../ts/factory";
 import { aggregate } from "../ts/blsSigner";
 
 const DOMAIN_HEX = randHex(32);
@@ -25,6 +25,7 @@ describe("Rollup Transfer Commitment", () => {
     let rollup: TestTransfer;
     let registry: AccountRegistry;
     let stateTree: StateTree;
+    let users: User[] = [];
     let states: State[] = [];
 
     before(async function() {
@@ -35,9 +36,12 @@ describe("Rollup Transfer Commitment", () => {
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
-        for (const state of states) {
-            await registry.register(state.getPubkey());
+        const list = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
+        users = list.users;
+        states = list.states;
+
+        for (const user of users) {
+            await registry.register(user.pubkey);
         }
     });
 
@@ -49,20 +53,20 @@ describe("Rollup Transfer Commitment", () => {
     });
 
     it("transfer commitment: signature check", async function() {
-        const txs = txTransferFactory(states, COMMIT_SIZE);
-        const signatures = [];
+        const { txs, signature } = txTransferFactory(
+            users,
+            stateTree,
+            COMMIT_SIZE
+        );
         const pubkeys = [];
         const pubkeyWitnesses = [];
-
         for (const tx of txs) {
             const sender = states[tx.fromIndex];
-            pubkeys.push(sender.getPubkey());
+            pubkeys.push(sender.pubkey);
             pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
-            signatures.push(sender.sign(tx));
         }
-        const signature = aggregate(signatures).sol;
-        const { safe } = stateTree.processTransferCommit(txs, 0);
-        assert.isTrue(safe);
+
+        stateTree.processTransferCommit(txs, 0);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
