@@ -1,37 +1,43 @@
 import {
     solG2,
     Domain,
-    newKeyPair,
-    mclG2,
-    SecretKey,
     getPubkey,
     g2ToHex,
     sign,
     g1ToHex,
-    Signature,
-    aggregateRaw
+    aggregateRaw,
+    mclG1,
+    solG1,
+    SecretKey,
+    randFr,
+    PublicKey
 } from "./mcl";
+
+export interface SignatureInterface {
+    mcl: mclG1;
+    sol: solG1;
+}
 
 export interface BlsSignerInterface {
     pubkey: solG2;
-    sign(message: string): Signature;
+    sign(message: string): SignatureInterface;
 }
 
 export class NullBlsSinger implements BlsSignerInterface {
     get pubkey(): solG2 {
         throw new Error("NullBlsSinger has no public key");
     }
-    sign(message: string): Signature {
+    sign(message: string): SignatureInterface {
         throw new Error("NullBlsSinger dosen't sign");
     }
 }
 
 export class BlsSigner implements BlsSignerInterface {
     static new(domain: Domain) {
-        const keyPair = newKeyPair();
-        return new BlsSigner(domain, keyPair.secret);
+        const secret = randFr();
+        return new BlsSigner(domain, secret);
     }
-    private _pubkey: mclG2;
+    private _pubkey: PublicKey;
     constructor(public domain: Domain, private secret: SecretKey) {
         this._pubkey = getPubkey(secret);
     }
@@ -39,14 +45,16 @@ export class BlsSigner implements BlsSignerInterface {
         return g2ToHex(this._pubkey);
     }
 
-    public sign(message: string): Signature {
+    public sign(message: string): SignatureInterface {
         const { signature } = sign(message, this.secret, this.domain);
         const sol = g1ToHex(signature);
         return { mcl: signature, sol };
     }
 }
 
-export function aggregate(signatures: Signature[]): Signature {
+export function aggregate(
+    signatures: SignatureInterface[]
+): SignatureInterface {
     const aggregated = aggregateRaw(signatures.map(s => s.mcl));
     return { mcl: aggregated, sol: g1ToHex(aggregated) };
 }

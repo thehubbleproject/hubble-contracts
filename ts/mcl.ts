@@ -8,24 +8,17 @@ export type mclG2 = any;
 export type mclG1 = any;
 export type mclFP = any;
 export type mclFR = any;
-export interface PublicKey {
-    mcl: mclG2;
-    sol: solG2;
-}
-
-export interface Signature {
-    mcl: mclG1;
-    sol: solG1;
-}
 
 export type SecretKey = mclFR;
-export type Message = solG1;
+export type MessagePoint = mclG1;
+export type Signature = mclG1;
+export type PublicKey = mclG2;
 
 export type solG1 = [string, string];
 export type solG2 = [string, string, string, string];
 
 export interface keyPair {
-    pubkey: mclG2;
+    pubkey: PublicKey;
     secret: SecretKey;
 }
 
@@ -42,7 +35,7 @@ export function validateDomain(domain: Domain) {
     }
 }
 
-export function hashToPoint(msg: string, domain: Domain): mclG1 {
+export function hashToPoint(msg: string, domain: Domain): MessagePoint {
     if (!ethers.utils.isHexString(msg)) {
         throw new Error("message is expected to be hex string");
     }
@@ -100,7 +93,7 @@ export function g2ToHex(p: mclG2): solG2 {
     return [x0, x1, y0, y1];
 }
 
-export function getPubkey(secret: mclFR): mclG1 {
+export function getPubkey(secret: SecretKey): PublicKey {
     const pubkey = mcl.mul(g2(), secret);
     pubkey.normalize();
     return pubkey;
@@ -116,14 +109,14 @@ export function sign(
     message: string,
     secret: SecretKey,
     domain: Domain
-): { signature: mclG1; messagePoint: mclG1 } {
+): { signature: Signature; messagePoint: MessagePoint } {
     const messagePoint = hashToPoint(message, domain);
     const signature = mcl.mul(messagePoint, secret);
     signature.normalize();
     return { signature, messagePoint };
 }
 
-export function aggregateRaw(signatures: mclG1[]): mclG1 {
+export function aggregateRaw(signatures: Signature[]): Signature {
     let aggregated = new mcl.G1();
     for (const sig of signatures) {
         aggregated = mcl.add(aggregated, sig);
