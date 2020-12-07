@@ -30,14 +30,13 @@ describe("Rollup Create2Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE);
+        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
         for (const state of states) {
             await registry.register(state.getPubkey());
         }
@@ -56,6 +55,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         // create 32 new states
         let newStates = UserStateFactory.buildList(
             STATE_SIZE,
+            DOMAIN,
             states.length,
             states.length
         );
@@ -94,7 +94,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             signatures.push(sender.sign(tx));
         }
 
-        const signature = mcl.aggreagate(signatures);
+        const signature = mcl.aggregate(signatures).sol;
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
@@ -153,6 +153,7 @@ describe("Rollup Create2Transfer Commitment", () => {
     it("create2trasnfer commitment: processTx", async function() {
         let newStates = UserStateFactory.buildList(
             STATE_SIZE,
+            DOMAIN,
             states.length,
             states.length
         );

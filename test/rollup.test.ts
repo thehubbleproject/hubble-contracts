@@ -10,9 +10,11 @@ import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { getGenesisProof, TransferCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
+import { hexToUint8Array } from "../ts/utils";
 
-const DOMAIN =
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const DOMAIN = hexToUint8Array(
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+);
 
 describe("Rollup", async function() {
     const tokenID = 1;
@@ -24,7 +26,6 @@ describe("Rollup", async function() {
     let parameters = TESTING_PARAMS;
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN);
     });
 
     beforeEach(async function() {
@@ -34,10 +35,10 @@ describe("Rollup", async function() {
         // We build state tree first for genesis state root, then register public keys later
         Alice = State.new(0, tokenID, initialBalance, 0);
         Alice.setStateID(0);
-        Alice.newKeyPair();
+        Alice.newKeyPair(DOMAIN);
         Bob = State.new(1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
-        Bob.newKeyPair();
+        Bob.newKeyPair(DOMAIN);
         stateTree = new StateTree(parameters.MAX_DEPTH);
         stateTree.createStateBulk([Alice, Bob]);
 
@@ -73,7 +74,7 @@ describe("Rollup", async function() {
         const commitment = TransferCommitment.new(
             stateTree.root,
             registry.root(),
-            mcl.g1ToHex(Alice.sign(tx)),
+            Alice.sign(tx).sol,
             feeReceiver,
             serialize([tx])
         );

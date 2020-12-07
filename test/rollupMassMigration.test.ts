@@ -3,7 +3,7 @@ import { AccountRegistry } from "../ts/accountTree";
 import { txMassMigrationFactory, UserStateFactory } from "../ts/factory";
 import { State } from "../ts/state";
 import { StateTree } from "../ts/stateTree";
-import { randHex, sum } from "../ts/utils";
+import { hexToUint8Array, randHex, sum } from "../ts/utils";
 import {
     BlsAccountRegistryFactory,
     TestMassMigrationFactory
@@ -16,7 +16,7 @@ import { Result } from "../ts/interfaces";
 import { constants } from "ethers";
 import { Tree } from "../ts/tree";
 
-const DOMAIN_HEX = randHex(32);
+const DOMAIN = hexToUint8Array(randHex(32));
 const STATE_SIZE = 32;
 const COMMIT_SIZE = 32;
 const STATE_TREE_DEPTH = 32;
@@ -30,14 +30,13 @@ describe("Rollup Mass Migration", () => {
 
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN_HEX);
         const [signer] = await ethers.getSigners();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE);
+        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
         for (const state of states) {
             await registry.register(state.getPubkey());
         }
@@ -61,7 +60,7 @@ describe("Rollup Mass Migration", () => {
             pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
             signatures.push(sender.sign(tx));
         }
-        const signature = mcl.aggreagate(signatures);
+        const signature = mcl.aggregate(signatures).sol;
         const { safe } = stateTree.processMassMigrationCommit(txs, 0);
         assert.isTrue(safe);
         const serialized = serialize(txs);
@@ -89,7 +88,7 @@ describe("Rollup Mass Migration", () => {
             proof,
             postStateRoot,
             accountRoot,
-            DOMAIN_HEX,
+            DOMAIN,
             spokeID,
             serialized
         );

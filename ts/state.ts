@@ -21,8 +21,7 @@ export const EMPTY_STATE: StateSolStruct = {
 };
 
 export class State {
-    publicKey: mcl.PublicKey = ["0x", "0x", "0x", "0x"];
-    secretKey: mcl.SecretKey;
+    public signer: mcl.BlsSignerInterface = new mcl.NullBlsSinger();
     public static new(
         pubkeyID: number,
         tokenID: number,
@@ -41,8 +40,7 @@ export class State {
             this.nonce
         );
         state.setStateID(this.stateID);
-        state.publicKey = this.publicKey;
-        state.secretKey = this.secretKey;
+        state.signer = this.signer;
         return state;
     }
 
@@ -54,17 +52,13 @@ export class State {
         public nonce: number
     ) {}
 
-    public newKeyPair(): State {
-        const keyPair = mcl.newKeyPair();
-        this.publicKey = keyPair.pubkey;
-        this.secretKey = keyPair.secret;
+    public newKeyPair(domain: mcl.Domain): State {
+        this.signer = mcl.BlsSigner.new(domain);
         return this;
     }
 
     public sign(tx: SignableTx) {
-        const msg = tx.message();
-        const { signature } = mcl.sign(msg, this.secretKey);
-        return signature;
+        return this.signer.sign(tx.message());
     }
 
     public setStateID(stateID: number): State {
@@ -72,13 +66,8 @@ export class State {
         return this;
     }
 
-    public setPubkey(pubkey: mcl.PublicKey): State {
-        this.publicKey = pubkey;
-        return this;
-    }
-
-    public getPubkey(): mcl.PublicKey {
-        return this.publicKey;
+    public getPubkey(): mcl.solG2 {
+        return this.signer.pubkey;
     }
 
     public encode(): string {

@@ -25,13 +25,27 @@ export type solG1 = [string, string];
 export type solG2 = [string, string, string, string];
 
 export interface keyPair {
-    pubkey: PublicKey;
+    pubkey: mclG2;
     secret: SecretKey;
 }
 
 export type Domain = Uint8Array;
 
-export class BlsSigner {
+export interface BlsSignerInterface {
+    pubkey: solG2;
+    sign(message: string): Signature;
+}
+
+export class NullBlsSinger implements BlsSignerInterface {
+    get pubkey(): solG2 {
+        throw new Error("NullBlsSinger has no public key");
+    }
+    sign(message: string): Signature {
+        throw new Error("NullBlsSinger dosen't sign");
+    }
+}
+
+export class BlsSigner implements BlsSignerInterface {
     static new(domain: Domain) {
         const keyPair = newKeyPair();
         return new BlsSigner(domain, keyPair.secret);
@@ -40,7 +54,7 @@ export class BlsSigner {
     constructor(public domain: Domain, private secret: SecretKey) {
         this._pubkey = getPubkey(secret);
     }
-    get pubkey() {
+    get pubkey(): solG2 {
         return g2ToHex(this._pubkey);
     }
 

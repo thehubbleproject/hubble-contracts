@@ -9,13 +9,13 @@ import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { randHex } from "../ts/utils";
+import { hexToUint8Array, randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
 import { txTransferFactory, UserStateFactory } from "../ts/factory";
 
 const DOMAIN_HEX = randHex(32);
-const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
-const BAD_DOMAIN = Uint8Array.from(Buffer.from(randHex(32).slice(2), "hex"));
+const DOMAIN = hexToUint8Array(DOMAIN_HEX);
+const BAD_DOMAIN = hexToUint8Array(randHex(32));
 let STATE_SIZE = 32;
 let COMMIT_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
@@ -28,14 +28,13 @@ describe("Rollup Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE);
+        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
         for (const state of states) {
             await registry.register(state.getPubkey());
         }
@@ -60,7 +59,7 @@ describe("Rollup Transfer Commitment", () => {
             pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
             signatures.push(sender.sign(tx));
         }
-        const signature = mcl.aggreagate(signatures);
+        const signature = mcl.aggregate(signatures).sol;
         const { safe } = stateTree.processTransferCommit(txs, 0);
         assert.isTrue(safe);
         const serialized = serialize(txs);

@@ -14,9 +14,11 @@ import {
 } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { constants } from "ethers";
+import { hexToUint8Array } from "../ts/utils";
 
-const DOMAIN =
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+const DOMAIN = hexToUint8Array(
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+);
 
 describe("Rollup Create2Transfer", async function() {
     const tokenID = 1;
@@ -28,7 +30,6 @@ describe("Rollup Create2Transfer", async function() {
     let initialBatch: Create2TransferBatch;
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN);
     });
 
     beforeEach(async function() {
@@ -44,12 +45,12 @@ describe("Rollup Create2Transfer", async function() {
 
         Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(0);
-        Alice.newKeyPair();
+        Alice.newKeyPair(DOMAIN);
         Alice.pubkeyID = await registry.register(Alice.getPubkey());
 
         Bob = State.new(-1, tokenID, initialBalance, 0);
         Bob.setStateID(1);
-        Bob.newKeyPair();
+        Bob.newKeyPair(DOMAIN);
         Bob.pubkeyID = await registry.register(Bob.getPubkey());
 
         // Bob is not in the state tree before the transfer
@@ -73,15 +74,13 @@ describe("Rollup Create2Transfer", async function() {
         const tx = new TxCreate2Transfer(
             Alice.stateID,
             Bob.stateID,
-            Bob.publicKey,
+            Bob.getPubkey(),
             Bob.pubkeyID,
             USDT.castInt(5.5),
             USDT.castInt(0.56),
             Alice.nonce + 1,
             USDT
         );
-
-        const signature = Alice.sign(tx);
 
         const rollup = contracts.rollup;
         const { proofs, safe } = stateTree.processCreate2TransferCommit(
@@ -91,7 +90,6 @@ describe("Rollup Create2Transfer", async function() {
         assert.isTrue(safe);
         const postStateRoot = stateTree.root;
         const serialized = serialize([tx]);
-        const aggregatedSignature0 = mcl.g1ToHex(signature);
 
         const root = await registry.root();
         const rootOnchain = await registry.registry.root();
@@ -100,7 +98,7 @@ describe("Rollup Create2Transfer", async function() {
         const commitment = Create2TransferCommitment.new(
             postStateRoot,
             root,
-            aggregatedSignature0,
+            Alice.sign(tx).sol,
             feeReceiver,
             serialized
         );
