@@ -1,5 +1,11 @@
 pragma solidity ^0.5.15;
 
+/**
+    @notice The account tree is a `DEPTH + 1` Merkle tree of public keys.
+    It has a left tree and a right tree with both depth `DEPTH`.
+    To insert a single public key the account tree insert to the left tree.
+    To insert many public keys in one on chain transaction it insert to the right tree.
+ */
 contract AccountTree {
     uint256 public constant DEPTH = 31;
     uint256 public constant WITNESS_LENGTH = DEPTH;
