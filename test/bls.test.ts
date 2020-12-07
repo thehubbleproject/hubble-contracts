@@ -273,7 +273,7 @@ describe("BLS", async () => {
             assert.isFalse(isOnCurve);
         }
     });
-    it("gas cost: verify signature", async function() {
+    it.skip("gas cost: verify signature", async function() {
         const n = 100;
         const messages = [];
         const pubkeys = [];
@@ -298,7 +298,7 @@ describe("BLS", async () => {
         );
         console.log(`verify signature for ${n} message: ${cost.toNumber()}`);
     });
-    it("gas cost: verify single signature", async function() {
+    it.skip("gas cost: verify single signature", async function() {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
