@@ -4,7 +4,7 @@ import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
 import { TransferFactory } from "../types/ethers-contracts/TransferFactory";
 import { MassMigrationFactory } from "../types/ethers-contracts/MassMigrationFactory";
-import { TestTokenFactory } from "../types/ethers-contracts/TestTokenFactory";
+import { ExampleTokenFactory } from "../types/ethers-contracts/ExampleTokenFactory";
 import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
@@ -153,17 +153,17 @@ export async function deployAll(
         await paramManager.create2Transfer()
     );
 
-    // deploy test token
-    const testToken = await new TestTokenFactory(signer).deploy();
+    // deploy example token
+    const exampleToken = await new ExampleTokenFactory(signer).deploy();
     await waitAndRegister(
-        testToken,
-        "testToken",
+        exampleToken,
+        "exampleToken",
         verbose,
         nameRegistry,
-        await paramManager.testToken()
+        await paramManager.exampleToken()
     );
-    await tokenRegistry.requestRegistration(testToken.address);
-    await tokenRegistry.finaliseRegistration(testToken.address);
+    await tokenRegistry.requestRegistration(exampleToken.address);
+    await tokenRegistry.finaliseRegistration(exampleToken.address);
 
     const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
     await waitAndRegister(
@@ -245,7 +245,7 @@ export async function deployAll(
         massMigration,
         create2Transfer,
         chooser,
-        testToken,
+        exampleToken,
         spokeRegistry,
         vault,
         depositManager,
