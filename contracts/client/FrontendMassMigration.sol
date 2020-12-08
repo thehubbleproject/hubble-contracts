@@ -109,7 +109,6 @@ contract FrontendMassMigration {
 
     function validateAndApply(
         bytes calldata senderEncoded,
-        bytes calldata receiverEncoded,
         bytes calldata encodedTx
     )
         external
@@ -124,7 +123,6 @@ contract FrontendMassMigration {
             encodedTx
         );
         Types.UserState memory sender = Types.decodeState(senderEncoded);
-        Types.UserState memory receiver = Types.decodeState(receiverEncoded);
         uint256 tokenID = sender.tokenID;
         (sender, result) = Transition.validateAndApplySender(
             tokenID,
@@ -133,12 +131,12 @@ contract FrontendMassMigration {
             sender
         );
         if (result != Types.Result.Ok) return (sender.encode(), "", result);
-        (receiver, result) = Transition.validateAndApplyReceiver(
+        newReceiver = Transition.createState(
+            sender.pubkeyID,
             tokenID,
-            _tx.amount,
-            receiver
+            _tx.amount
         );
-        return (sender.encode(), receiver.encode(), result);
+        return (sender.encode(), newReceiver, result);
     }
 
     function process(
