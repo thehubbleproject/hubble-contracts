@@ -113,9 +113,13 @@ describe("Rollup Transfer Commitment", () => {
 
     it("transfer commitment: processTx", async function() {
         const txs = txTransferFactory(states, COMMIT_SIZE);
+        const tokenID = states[0].tokenID;
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const [senderProof, receiverProof] = stateTree.processTransfer(tx);
+            const [senderProof, receiverProof] = stateTree.processTransfer(
+                tx,
+                tokenID
+            );
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,
@@ -123,7 +127,7 @@ describe("Rollup Transfer Commitment", () => {
             } = await rollup.testProcessTransfer(
                 preRoot,
                 tx,
-                states[0].tokenID,
+                tokenID,
                 senderProof,
                 receiverProof
             );

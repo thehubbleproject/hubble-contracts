@@ -162,13 +162,14 @@ describe("Rollup Create2Transfer Commitment", () => {
 
         // concat newstates with the global obj
         states = states.concat(newStates);
+        const tokenID = states[0].tokenID;
 
         for (const tx of txs) {
             const preRoot = stateTree.root;
             const [
                 senderProof,
                 receiverProof
-            ] = stateTree.processCreate2Transfer(tx);
+            ] = stateTree.processCreate2Transfer(tx, tokenID);
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,
@@ -176,7 +177,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             } = await rollup.testProcessCreate2Transfer(
                 preRoot,
                 tx,
-                states[0].tokenID,
+                tokenID,
                 senderProof,
                 receiverProof
             );
