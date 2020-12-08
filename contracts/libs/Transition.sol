@@ -96,7 +96,7 @@ library Transition {
         uint256 tokenID,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
-        // Validate we are creating on a zero state
+        // Validate we are creating on a empty state
         require(
             MerkleTree.verify(
                 stateRoot,
