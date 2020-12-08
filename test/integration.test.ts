@@ -62,6 +62,7 @@ describe("Integration Test", function() {
         mcl.setDomainHex(DOMAIN);
         [deployer, coordinator] = await ethers.getSigners();
         parameters = PRODUCTION_PARAMS;
+        parameters.BLOCKS_TO_FINALISE = 100
         stateTree = StateTree.new(parameters.MAX_DEPTH);
         parameters.GENESIS_STATE_ROOT = stateTree.root;
         contracts = await deployAll(deployer, parameters);
