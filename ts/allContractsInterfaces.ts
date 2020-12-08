@@ -3,7 +3,7 @@ import { NameRegistry } from "../types/ethers-contracts/NameRegistry";
 import { TokenRegistry } from "../types/ethers-contracts/TokenRegistry";
 import { Pob } from "../types/ethers-contracts/Pob";
 import { Transfer } from "../types/ethers-contracts/Transfer";
-import { TestToken } from "../types/ethers-contracts/TestToken";
+import { ExampleToken } from "../types/ethers-contracts/ExampleToken";
 import { DepositManager } from "../types/ethers-contracts/DepositManager";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
@@ -31,7 +31,7 @@ export interface allContracts {
     massMigration: MassMigration;
     create2Transfer: Create2Transfer;
     chooser: Pob | BurnAuction;
-    testToken: TestToken;
+    exampleToken: ExampleToken;
     spokeRegistry: SpokeRegistry;
     vault: Vault;
     depositManager: DepositManager;

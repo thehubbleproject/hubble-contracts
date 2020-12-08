@@ -70,9 +70,12 @@ describe("DepositManager", async function() {
             ...TESTING_PARAMS,
             GENESIS_STATE_ROOT: constants.HashZero
         });
-        const { testToken, tokenRegistry, depositManager } = contracts;
+        const { exampleToken, tokenRegistry, depositManager } = contracts;
         tokenID = (await tokenRegistry.nextTokenID()).toNumber() - 1;
-        await testToken.approve(depositManager.address, LARGE_AMOUNT_OF_TOKEN);
+        await exampleToken.approve(
+            depositManager.address,
+            LARGE_AMOUNT_OF_TOKEN
+        );
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
         const { depositManager } = contracts;

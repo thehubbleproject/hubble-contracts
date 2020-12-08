@@ -145,7 +145,7 @@ describe("Mass Migrations", async function() {
         );
     });
     it("submit a batch, finalize, and withdraw", async function() {
-        const { rollup, withdrawManager, testToken, vault } = contracts;
+        const { rollup, withdrawManager, exampleToken, vault } = contracts;
         const feeReceiver = Alice.stateID;
         const tx = new TxMassMigration(
             Alice.stateID,
@@ -194,7 +194,7 @@ describe("Mass Migrations", async function() {
 
         // We cheat here a little bit by sending token to the vault manually.
         // Ideally the tokens of the vault should come from the deposits
-        await testToken.transfer(vault.address, tx.amount);
+        await exampleToken.transfer(vault.address, tx.amount);
 
         const txProcess = await withdrawManager.processWithdrawCommitment(
             batchId,
