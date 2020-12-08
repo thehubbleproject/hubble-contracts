@@ -107,7 +107,7 @@ describe("Integration Test", function() {
         earlyAdopters = UserStateFactory.buildList({
             numOfStates: nDeposits,
             initialStateID: 0,
-            initialAccID: 0,
+            initialpubkeyID: 0,
             tokenID,
             zeroNonce: true
         });
@@ -115,13 +115,13 @@ describe("Integration Test", function() {
         const fromBlockNumber = await deployer.provider?.getBlockNumber();
         for (const state of earlyAdopters) {
             const pubkeyID = await accountRegistry.register(state.getPubkey());
-            assert.equal(pubkeyID, state.pubkeyIndex);
+            assert.equal(pubkeyID, state.pubkeyID);
             await newToken
                 .connect(coordinator)
                 .approve(depositManager.address, state.balance);
             await depositManager
                 .connect(coordinator)
-                .depositFor(state.pubkeyIndex, state.balance, state.tokenID);
+                .depositFor(state.pubkeyID, state.balance, state.tokenID);
         }
 
         const subtreeReadyEvents = await depositManager.queryFilter(
@@ -201,7 +201,7 @@ describe("Integration Test", function() {
         newUsers = UserStateFactory.buildList({
             numOfStates: nNewUsers,
             initialStateID: nextStateID,
-            initialAccID: nextPubkeyID,
+            initialpubkeyID: nextPubkeyID,
             tokenID,
             initialBalance: ZERO,
             zeroNonce: true
