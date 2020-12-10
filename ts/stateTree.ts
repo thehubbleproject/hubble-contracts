@@ -1,5 +1,5 @@
 import { Hasher, Tree } from "./tree";
-import { State, EMPTY_STATE, StateSolStruct } from "./state";
+import { State, ZERO_STATE, StateSolStruct } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
@@ -24,7 +24,7 @@ const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(
 );
 
 const PLACEHOLDER_SOL_STATE_PROOF: SolStateMerkleProof = {
-    state: EMPTY_STATE,
+    state: ZERO_STATE,
     witness: PLACEHOLDER_PROOF_WITNESS
 };
 
@@ -257,7 +257,7 @@ export class StateTree {
         postState: State
     ): SolStateMerkleProof {
         const state = this.states[stateIndex];
-        const preStateStruct = state ? state.toSolStruct() : EMPTY_STATE;
+        const preStateStruct = state ? state.toSolStruct() : ZERO_STATE;
         const witness = this.stateTree.witness(stateIndex).nodes;
         this.states[stateIndex] = postState;
         this.stateTree.updateSingle(stateIndex, postState.toStateLeaf());
