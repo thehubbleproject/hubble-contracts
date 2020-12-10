@@ -90,7 +90,7 @@ export class Group {
     }
     public createStates(options?: createStateOptions) {
         const initialBalance = options?.initialBalance || USDT.castInt(1000.0);
-        const tokenID = options?.tokenID || 1;
+        const tokenID = options?.tokenID === undefined ? 5678 : options.tokenID;
         const zeroNonce = options?.zeroNonce || false;
         const arbitraryInitialNonce = 9;
         for (let i = 0; i < this.users.length; i++) {
