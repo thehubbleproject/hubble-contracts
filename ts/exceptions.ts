@@ -6,6 +6,8 @@ export class MismatchByteLength extends HubbleError {}
 
 export class GenesisNotSpecified extends HubbleError {}
 
+export class UserNotExist extends HubbleError {}
+
 class StateTreeExceptions extends HubbleError {}
 
 export class SenderNotExist extends StateTreeExceptions {}

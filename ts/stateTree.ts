@@ -12,6 +12,25 @@ import {
     WrongTokenID
 } from "./exceptions";
 
+export interface StateProvider {
+    getState(stateID: number): SolStateMerkleProof;
+    createState(stateID: number, state: State): void;
+}
+
+class NullProvider implements StateProvider {
+    getState(stateID: number): SolStateMerkleProof {
+        throw new Error(
+            "This is a NullProvider, please connect to a real provider"
+        );
+    }
+    createState(stateID: number, state: State) {
+        throw new Error(
+            "This is a NullProvider, please connect to a real provider"
+        );
+    }
+}
+export const nullProvider = new NullProvider();
+
 interface SolStateMerkleProof {
     state: State;
     witness: string[];
@@ -60,7 +79,7 @@ function processNoRaise(
     return { proofs, safe };
 }
 
-export class StateTree {
+export class StateTree implements StateProvider {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
     }
@@ -104,15 +123,14 @@ export class StateTree {
         return this.stateTree.depth;
     }
 
-    public createState(state: State) {
-        const stateID = state.stateID;
+    public createState(stateID: number, state: State) {
         if (this.states[stateID])
             throw new StateAlreadyExist(`stateID: ${stateID}`);
         this.updateState(stateID, state);
     }
-    public createStateBulk(states: State[]) {
-        for (const state of states) {
-            this.createState(state);
+    public createStateBulk(firstStateID: number, states: State[]) {
+        for (const [i, state] of states.entries()) {
+            this.createState(firstStateID + i, state);
         }
     }
 

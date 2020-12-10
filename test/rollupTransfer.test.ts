@@ -6,41 +6,35 @@ import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
-import { txTransferFactory, User, UserStateFactory } from "../ts/factory";
-import { aggregate } from "../ts/blsSigner";
+import { Group, txTransferFactory } from "../ts/factory";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
 const BAD_DOMAIN = hexToUint8Array(randHex(32));
-let STATE_SIZE = 32;
 let COMMIT_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
+const tokenID = 5566;
 
 describe("Rollup Transfer Commitment", () => {
     let rollup: TestTransfer;
     let registry: AccountRegistry;
     let stateTree: StateTree;
-    let users: User[] = [];
-    let states: State[] = [];
+    let users: Group;
 
     before(async function() {
         await mcl.init();
-        const [signer, ...rest] = await ethers.getSigners();
+        const [signer] = await ethers.getSigners();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        const list = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
-        users = list.users;
-        states = list.states;
-
-        for (const user of users) {
+        users = Group.new({ n: 32, domain: DOMAIN });
+        for (const user of users.userIterator()) {
             await registry.register(user.pubkey);
         }
     });
@@ -49,22 +43,19 @@ describe("Rollup Transfer Commitment", () => {
         const [signer, ...rest] = await ethers.getSigners();
         rollup = await new TestTransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
-        stateTree.createStateBulk(states);
+        users.connect(stateTree);
+        users.createStates({ tokenID });
     });
 
     it("transfer commitment: signature check", async function() {
-        const { txs, signature } = txTransferFactory(
+        const { txs, signature, senders } = txTransferFactory(
             users,
-            stateTree,
             COMMIT_SIZE
         );
-        const pubkeys = [];
-        const pubkeyWitnesses = [];
-        for (const tx of txs) {
-            const sender = states[tx.fromIndex];
-            pubkeys.push(sender.pubkey);
-            pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
-        }
+        const pubkeys = senders.map(sender => sender.pubkey);
+        const pubkeyWitnesses = senders.map(sender =>
+            registry.witness(sender.pubkeyID)
+        );
 
         stateTree.processTransferCommit(txs, 0);
         const serialized = serialize(txs);
@@ -116,8 +107,7 @@ describe("Rollup Transfer Commitment", () => {
     }).timeout(400000);
 
     it("transfer commitment: processTx", async function() {
-        const txs = txTransferFactory(states, COMMIT_SIZE);
-        const tokenID = states[0].tokenID;
+        const { txs } = txTransferFactory(users, COMMIT_SIZE);
         for (const tx of txs) {
             const preRoot = stateTree.root;
             const [senderProof, receiverProof] = stateTree.processTransfer(
@@ -144,15 +134,11 @@ describe("Rollup Transfer Commitment", () => {
         }
     });
     it("transfer commitment: processTransferCommit", async function() {
-        const txs = txTransferFactory(states, COMMIT_SIZE);
+        const { txs } = txTransferFactory(users, COMMIT_SIZE);
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.processTransferCommit(
-            txs,
-            feeReceiver
-        );
-        assert.isTrue(safe, "Should be a valid applyTransferBatch");
+        const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
         const postStateRoot = stateTree.root;
 
         const {

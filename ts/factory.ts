@@ -1,10 +1,10 @@
 import { BigNumber } from "ethers";
 import { aggregate, BlsSigner } from "./blsSigner";
-import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
+import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
 import { State } from "./state";
-import { StateTree } from "./stateTree";
+import { nullProvider, StateProvider } from "./stateTree";
 import {
     TxTransfer,
     TxCreate2Transfer,
@@ -29,51 +29,132 @@ export class User {
         return this.blsSigner.pubkey;
     }
 }
-export class UserStateFactory {
-    public static buildList(
-        numOfStates: number,
-        domain: Domain,
-        initialStateID: number = 0,
-        initialpubkeyID: number = 0,
-        tokenID: number = 1,
-        initialBalance: BigNumber = USDT.castInt(1000.0),
-        initialNonce: number = 9
-    ): { users: User[]; states: State[] } {
+
+interface GroupOptions {
+    n: number;
+    domain: Domain;
+    stateProvider?: StateProvider;
+    initialStateID?: number;
+    initialPubkeyID?: number;
+}
+
+interface createStateOptions {
+    initialBalance?: BigNumber;
+    tokenID?: number;
+    zeroNonce?: boolean;
+}
+
+export class Group {
+    static new(options: GroupOptions) {
+        const initialStateID = options.initialStateID || 0;
+        const initialPubkeyID = options.initialPubkeyID || 0;
+        const stateProvider = options.stateProvider || nullProvider;
         const users: User[] = [];
-        const states: State[] = [];
-        for (let i = 0; i < numOfStates; i++) {
-            const pubkeyID = initialpubkeyID + i;
+        for (let i = 0; i < options.n; i++) {
             const stateID = initialStateID + i;
+            const pubkeyID = initialPubkeyID + i;
+            users.push(User.new(options.domain, stateID, pubkeyID));
+        }
+        return new this(users, stateProvider);
+    }
+    constructor(private users: User[], private stateProvider: StateProvider) {}
+    public connect(provider: StateProvider) {
+        this.stateProvider = provider;
+    }
+    get size() {
+        return this.users.length;
+    }
+    public *userIterator() {
+        for (const user of this.users) {
+            yield user;
+        }
+    }
+    public getUser(i: number) {
+        if (i >= this.users.length) throw new UserNotExist(`${i}`);
+        return this.users[i];
+    }
+    public getState(user: User) {
+        return this.stateProvider.getState(user.stateID).state;
+    }
+    public syncState(): State[] {
+        const states: State[] = [];
+        for (const user of this.users) {
+            const state = this.stateProvider.getState(user.stateID).state;
+            states.push(state);
+        }
+        return states;
+    }
+    public createStates(options?: createStateOptions) {
+        const initialBalance = options?.initialBalance || USDT.castInt(1000.0);
+        const tokenID = options?.tokenID || 1;
+        const zeroNonce = options?.zeroNonce || false;
+        const arbitraryInitialNonce = 9;
+        for (let i = 0; i < this.users.length; i++) {
+            const user = this.users[i];
+            const nonce = zeroNonce ? 0 : arbitraryInitialNonce + i;
             const state = State.new(
-                pubkeyID,
+                user.pubkeyID,
                 tokenID,
                 initialBalance,
-                initialNonce + i
+                nonce
             );
-            const user = User.new(domain, stateID, pubkeyID);
-            states.push(state);
-            users.push(user);
+            this.stateProvider.createState(i, state);
         }
-        return { users, states };
     }
 }
 
+// Created n transfers from Group of Users, if n is greater than the size of the group, balance is not guaranteed to be sufficient
 export function txTransferFactory(
-    users: User[],
-    stateTree: StateTree,
-    n: number = COMMIT_SIZE
-): { txs: TxTransfer[]; signature: solG1 } {
+    group: Group,
+    n: number
+): { txs: TxTransfer[]; signature: solG1; senders: User[] } {
     const txs: TxTransfer[] = [];
     const signatures = [];
+    const senders = [];
     for (let i = 0; i < n; i++) {
-        const sender = users[i];
-        const reciver = users[(i + 5) % n];
-        const senderState = stateTree.getState(sender.stateID);
+        const sender = group.getUser(i % group.size);
+        const receiver = group.getUser((i + 5) % group.size);
+        const senderState = group.getState(sender);
         const amount = senderState.balance.div(10);
         const fee = amount.div(10);
         const tx = new TxTransfer(
             sender.stateID,
+            receiver.stateID,
+            amount,
+            fee,
+            senderState.nonce,
+            USDT
+        );
+        txs.push(tx);
+        signatures.push(sender.sign(tx));
+        senders.push(sender);
+    }
+    const signature = aggregate(signatures).sol;
+    return { txs, signature, senders };
+}
+
+// creates N new transactions with existing sender and non-existent receiver
+export function txCreate2TransferFactory(
+    registered: Group,
+    unregistered: Group
+): { txs: TxCreate2Transfer[]; signature: solG1 } {
+    const txs: TxCreate2Transfer[] = [];
+    const signatures = [];
+    const n = Math.min(registered.size, unregistered.size);
+    for (let i = 0; i < n; i++) {
+        const sender = registered.getUser(i);
+        const reciver = unregistered.getUser(i);
+        const senderState = registered.getState(sender);
+        const amount = senderState.balance.div(10);
+        const fee = amount.div(10);
+
+        // uses states for sender
+        // and newStates for receiver as they are not created yet
+        const tx = new TxCreate2Transfer(
+            sender.stateID,
             reciver.stateID,
+            reciver.pubkey,
+            reciver.pubkeyID,
             amount,
             fee,
             senderState.nonce,
@@ -86,58 +167,27 @@ export function txTransferFactory(
     return { txs, signature };
 }
 
-// creates N new transactions with existing sender and non-existent receiver
-export function txCreate2TransferFactory(
-    states: State[],
-    newStates: State[],
-    n: number = COMMIT_SIZE
-): TxCreate2Transfer[] {
-    const txs: TxCreate2Transfer[] = [];
-    for (let i = 0; i < n; i++) {
-        const senderIndex = states[i].stateID;
-        const reciverIndex = newStates[i].stateID;
-        const sender = states[senderIndex];
-        const receiver = newStates[i];
-        const amount = sender.balance.div(10);
-        const fee = amount.div(10);
-
-        // uses states for sender
-        // and newStates for receiver as they are not created yet
-        const tx = new TxCreate2Transfer(
-            senderIndex,
-            reciverIndex,
-            receiver.getPubkey(),
-            receiver.pubkeyID,
-            amount,
-            fee,
-            sender.nonce,
-            USDT
-        );
-        txs.push(tx);
-    }
-    return txs;
-}
-
 export function txMassMigrationFactory(
-    states: State[],
-    n: number = COMMIT_SIZE,
+    group: Group,
     spokeID = 0
-): TxMassMigration[] {
+): { txs: TxMassMigration[]; signature: solG1 } {
     const txs: TxMassMigration[] = [];
-    for (let i = 0; i < n; i++) {
-        const senderIndex = i;
-        const sender = states[senderIndex];
-        const amount = sender.balance.div(10);
+    const signatures = [];
+    for (const sender of group.userIterator()) {
+        const senderState = group.getState(sender);
+        const amount = senderState.balance.div(10);
         const fee = amount.div(10);
         const tx = new TxMassMigration(
-            senderIndex,
+            sender.stateID,
             amount,
             spokeID,
             fee,
-            sender.nonce,
+            senderState.nonce,
             USDT
         );
         txs.push(tx);
+        signatures.push(sender.sign(tx));
     }
-    return txs;
+    const signature = aggregate(signatures).sol;
+    return { txs, signature };
 }
