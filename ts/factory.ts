@@ -174,9 +174,10 @@ export function txCreate2TransferFactory(
 export function txMassMigrationFactory(
     group: Group,
     spokeID = 0
-): { txs: TxMassMigration[]; signature: solG1 } {
+): { txs: TxMassMigration[]; signature: solG1; senders: User[] } {
     const txs: TxMassMigration[] = [];
     const signatures = [];
+    const senders = [];
     for (const sender of group.userIterator()) {
         const senderState = group.getState(sender);
         const amount = senderState.balance.div(10);
@@ -191,7 +192,8 @@ export function txMassMigrationFactory(
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
+        senders.push(sender);
     }
     const signature = aggregate(signatures).sol;
-    return { txs, signature };
+    return { txs, signature, senders };
 }
