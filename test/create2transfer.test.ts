@@ -8,15 +8,16 @@ import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { randHex } from "../ts/utils";
+import { hexToUint8Array, randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
 import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
 import { TestBls } from "../types/ethers-contracts/TestBls";
 import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
+import { aggregate } from "../ts/blsSigner";
 
 const DOMAIN_HEX = randHex(32);
-const DOMAIN = Uint8Array.from(Buffer.from(DOMAIN_HEX.slice(2), "hex"));
-const BAD_DOMAIN = Uint8Array.from(Buffer.from(randHex(32).slice(2), "hex"));
+const DOMAIN = hexToUint8Array(DOMAIN_HEX);
+const BAD_DOMAIN = hexToUint8Array(randHex(32));
 let STATE_SIZE = 32;
 let COMMIT_SIZE = 32;
 let STATE_TREE_DEPTH = 32;
@@ -30,14 +31,13 @@ describe("Rollup Create2Transfer Commitment", () => {
 
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN_HEX);
         const [signer, ...rest] = await ethers.getSigners();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE);
+        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
         for (const state of states) {
             await registry.register(state.getPubkey());
         }
@@ -56,6 +56,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         // create 32 new states
         let newStates = UserStateFactory.buildList(
             STATE_SIZE,
+            DOMAIN,
             states.length,
             states.length
         );
@@ -94,7 +95,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             signatures.push(sender.sign(tx));
         }
 
-        const signature = mcl.aggreagate(signatures);
+        const signature = aggregate(signatures).sol;
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
@@ -153,6 +154,7 @@ describe("Rollup Create2Transfer Commitment", () => {
     it("create2trasnfer commitment: processTx", async function() {
         let newStates = UserStateFactory.buildList(
             STATE_SIZE,
+            DOMAIN,
             states.length,
             states.length
         );

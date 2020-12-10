@@ -1,12 +1,14 @@
 import { BigNumber } from "ethers";
 import { COMMIT_SIZE } from "./constants";
 import { USDT } from "./decimal";
+import { Domain } from "./mcl";
 import { State } from "./state";
 import { TxTransfer, TxCreate2Transfer, TxMassMigration } from "./tx";
 
 export class UserStateFactory {
     public static buildList(
         numOfStates: number,
+        domain: Domain,
         initialStateID: number = 0,
         initialpubkeyID: number = 0,
         tokenID: number = 1,
@@ -24,7 +26,7 @@ export class UserStateFactory {
                 initialNonce + i
             );
             state.setStateID(stateID);
-            state.newKeyPair();
+            state.newKeyPair(domain);
             states.push(state);
         }
         return states;

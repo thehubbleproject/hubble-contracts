@@ -11,7 +11,8 @@ let DEPTH: number;
 let BATCH_DEPTH: number;
 let hasher: Hasher;
 
-function pubkeyToLeaf(uncompressed: mcl.PublicKey) {
+function pubkeyToLeaf(uncompressedMcl: mcl.mclG2) {
+    const uncompressed = mcl.g2ToHex(uncompressedMcl);
     const leaf = ethers.utils.solidityKeccak256(
         ["uint256", "uint256", "uint256", "uint256"],
         uncompressed
@@ -71,7 +72,7 @@ describe("Registry", async () => {
             const { pubkey } = mcl.newKeyPair();
             const { uncompressed, leaf } = pubkeyToLeaf(pubkey);
             leafs.push(leaf);
-            pubkeys.push(pubkey);
+            pubkeys.push(mcl.g2ToHex(pubkey));
             treeLeft.updateSingle(i, leaf);
             await registry.register(uncompressed);
         }

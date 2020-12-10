@@ -12,7 +12,7 @@ import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
 import { Tree } from "../ts/tree";
-import { mineBlocks } from "../ts/utils";
+import { hexToUint8Array, mineBlocks } from "../ts/utils";
 import { expectRevert } from "../ts/utils";
 import { constants } from "ethers";
 
@@ -23,6 +23,7 @@ describe("Mass Migrations", async function() {
     let stateTree: StateTree;
     let registry: AccountRegistry;
     let initialBatch: MassMigrationBatch;
+    let DOMAIN: Uint8Array;
     before(async function() {
         await mcl.init();
     });
@@ -34,7 +35,7 @@ describe("Mass Migrations", async function() {
             GENESIS_STATE_ROOT: constants.HashZero
         });
         const { rollup, blsAccountRegistry } = contracts;
-        mcl.setDomainHex(await rollup.appID());
+        DOMAIN = hexToUint8Array(await rollup.appID());
 
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         const registryContract = blsAccountRegistry;
@@ -42,7 +43,7 @@ describe("Mass Migrations", async function() {
         const initialBalance = USDT.castInt(1000.0);
         Alice = State.new(-1, tokenID, initialBalance, 0);
         Alice.setStateID(2);
-        Alice.newKeyPair();
+        Alice.newKeyPair(DOMAIN);
         Alice.pubkeyID = await registry.register(Alice.getPubkey());
 
         stateTree.createState(Alice);
@@ -75,7 +76,6 @@ describe("Mass Migrations", async function() {
         );
         assert.isTrue(safe);
         const txs = tx.encode();
-        const aggregatedSignature0 = mcl.g1ToHex(signature);
         const root = await registry.root();
 
         const leaf = State.new(
@@ -89,7 +89,7 @@ describe("Mass Migrations", async function() {
         const commitment = MassMigrationCommitment.new(
             stateRoot,
             root,
-            aggregatedSignature0,
+            signature.sol,
             tx.spokeID,
             withdrawRoot,
             tokenID,
@@ -171,7 +171,7 @@ describe("Mass Migrations", async function() {
         const commitment = MassMigrationCommitment.new(
             stateTree.root,
             await registry.root(),
-            mcl.aggreagate([Alice.sign(tx)]),
+            Alice.sign(tx).sol,
             tx.spokeID,
             withdrawTree.root,
             tokenID,
@@ -208,7 +208,7 @@ describe("Mass Migrations", async function() {
         const withdrawal = withdrawTree.witness(0);
         const [, claimer] = await ethers.getSigners();
         const claimerAddress = await claimer.getAddress();
-        const { signature } = mcl.sign(claimerAddress, Alice.secretKey);
+        const signature = Alice.signer.sign(claimerAddress).sol;
         const state = {
             pubkeyID: Alice.pubkeyID,
             tokenID,
@@ -225,8 +225,8 @@ describe("Mass Migrations", async function() {
             .claimTokens(
                 commitment.withdrawRoot,
                 withdrawProof,
-                Alice.publicKey,
-                mcl.g1ToHex(signature),
+                Alice.getPubkey(),
+                signature,
                 registry.witness(Alice.pubkeyID)
             );
         const receiptClaim = await txClaim.wait();
@@ -240,8 +240,8 @@ describe("Mass Migrations", async function() {
                 .claimTokens(
                     commitment.withdrawRoot,
                     withdrawProof,
-                    Alice.publicKey,
-                    mcl.g1ToHex(signature),
+                    Alice.getPubkey(),
+                    signature,
                     registry.witness(Alice.pubkeyID)
                 ),
             "WithdrawManager: Token has been claimed"

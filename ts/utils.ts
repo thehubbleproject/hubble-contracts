@@ -31,6 +31,10 @@ export function to32Hex(n: BigNumber): string {
     return hexZeroPad(n.toHexString(), 32);
 }
 
+export function hexToUint8Array(h: string): Uint8Array {
+    return Uint8Array.from(Buffer.from(h.slice(2), "hex"));
+}
+
 export function toWei(ether: string): Wei {
     return parseEther(ether).toString();
 }
