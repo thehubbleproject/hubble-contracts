@@ -32,6 +32,8 @@ export class NullBlsSinger implements BlsSignerInterface {
     }
 }
 
+export const nullBlsSigner = new NullBlsSinger();
+
 export class BlsSigner implements BlsSignerInterface {
     static new(domain: Domain) {
         const secret = randFr();

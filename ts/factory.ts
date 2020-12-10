@@ -1,5 +1,10 @@
 import { BigNumber } from "ethers";
-import { aggregate, BlsSigner } from "./blsSigner";
+import {
+    aggregate,
+    BlsSigner,
+    BlsSignerInterface,
+    nullBlsSigner
+} from "./blsSigner";
 import { USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
@@ -13,18 +18,26 @@ import {
 } from "./tx";
 
 export class User {
-    static new(domain: Domain, stateID: number, pubkeyID: number) {
-        const signer = BlsSigner.new(domain);
-        return new User(signer, stateID, pubkeyID);
+    static new(stateID: number, pubkeyID: number, domain?: Domain) {
+        const signer = domain ? BlsSigner.new(domain) : nullBlsSigner;
+        return new this(signer, stateID, pubkeyID);
     }
     constructor(
-        public blsSigner: BlsSigner,
+        public blsSigner: BlsSignerInterface,
         public stateID: number,
         public pubkeyID: number
     ) {}
     public sign(tx: SignableTx) {
         return this.blsSigner.sign(tx.message());
     }
+    public signRaw(message: string) {
+        return this.blsSigner.sign(message);
+    }
+    public connect(signer: BlsSignerInterface) {
+        this.blsSigner = signer;
+        return this;
+    }
+
     get pubkey() {
         return this.blsSigner.pubkey;
     }
@@ -35,7 +48,7 @@ export class User {
 
 interface GroupOptions {
     n: number;
-    domain: Domain;
+    domain?: Domain;
     stateProvider?: StateProvider;
     initialStateID?: number;
     initialPubkeyID?: number;
@@ -56,7 +69,7 @@ export class Group {
         for (let i = 0; i < options.n; i++) {
             const stateID = initialStateID + i;
             const pubkeyID = initialPubkeyID + i;
-            users.push(User.new(options.domain, stateID, pubkeyID));
+            users.push(User.new(stateID, pubkeyID, options.domain));
         }
         return new this(users, stateProvider);
     }
@@ -64,6 +77,12 @@ export class Group {
     public connect(provider: StateProvider) {
         this.stateProvider = provider;
         return this;
+    }
+    public setupSigners(domain: Domain) {
+        for (const user of this.users) {
+            const signer = BlsSigner.new(domain);
+            user.connect(signer);
+        }
     }
     get size() {
         return this.users.length;
