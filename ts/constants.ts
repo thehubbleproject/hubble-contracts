@@ -2,7 +2,7 @@ import { DeploymentParameters } from "./interfaces";
 import { toWei } from "./utils";
 
 export const TESTING_PARAMS: DeploymentParameters = {
-    MAX_DEPTH: 4,
+    MAX_DEPTH: 8,
     MAX_DEPOSIT_SUBTREE_DEPTH: 1,
     STAKE_AMOUNT: toWei("0.1"),
     BLOCKS_TO_FINALISE: 5,

@@ -28,6 +28,9 @@ export class User {
     get pubkey() {
         return this.blsSigner.pubkey;
     }
+    toString() {
+        return `<User stateID: ${this.stateID}  pubkeyID: ${this.pubkeyID}>`;
+    }
 }
 
 interface GroupOptions {
@@ -60,6 +63,7 @@ export class Group {
     constructor(private users: User[], private stateProvider: StateProvider) {}
     public connect(provider: StateProvider) {
         this.stateProvider = provider;
+        return this;
     }
     get size() {
         return this.users.length;
@@ -98,7 +102,7 @@ export class Group {
                 initialBalance,
                 nonce
             );
-            this.stateProvider.createState(i, state);
+            this.stateProvider.createState(user.stateID, state);
         }
     }
 }
