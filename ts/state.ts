@@ -4,23 +4,6 @@ import { BigNumber, BigNumberish, ethers } from "ethers";
 import { solidityPack } from "ethers/lib/utils";
 import { BlsSignerInterface, NullBlsSinger, BlsSigner } from "./blsSigner";
 
-export interface StateSolStruct {
-    pubkeyID: number;
-    tokenID: number;
-    balance: number;
-    nonce: number;
-}
-
-/**
- * @dev this is not an empty state leaf contrarily this is a legit state!
- */
-export const ZERO_STATE: StateSolStruct = {
-    pubkeyID: 0,
-    tokenID: 0,
-    balance: 0,
-    nonce: 0
-};
-
 export class State {
     public signer: BlsSignerInterface = new NullBlsSinger();
     public static new(
@@ -84,13 +67,6 @@ export class State {
             [this.pubkeyID, this.tokenID, this.balance, this.nonce]
         );
     }
-
-    public toSolStruct(): StateSolStruct {
-        return {
-            pubkeyID: this.pubkeyID,
-            tokenID: this.tokenID,
-            balance: this.balance.toNumber(),
-            nonce: this.nonce
-        };
-    }
 }
+
+export const ZERO_STATE = State.new(0, 0, 0, 0);

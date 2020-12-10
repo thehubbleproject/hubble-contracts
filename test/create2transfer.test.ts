@@ -98,18 +98,14 @@ describe("Rollup Create2Transfer Commitment", () => {
         const signature = aggregate(signatures).sol;
         const serialized = serialize(txs);
 
-        // Need post stateWitnesses
-        const postStates = txs.map(tx => stateTree.getState(tx.fromIndex));
-        const stateWitnesses = txs.map(tx =>
-            stateTree.getStateWitness(tx.fromIndex)
-        );
+        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
 
         const proof = {
-            states: postStates,
-            stateWitnesses,
+            states: postProofs.map(proof => proof.state),
+            stateWitnesses: postProofs.map(proof => proof.witness),
             pubkeysSender,
             pubkeyWitnessesSender,
             pubkeysReceiver: pubkeysReceiver,
@@ -166,13 +162,14 @@ describe("Rollup Create2Transfer Commitment", () => {
 
         // concat newstates with the global obj
         states = states.concat(newStates);
+        const tokenID = states[0].tokenID;
 
         for (const tx of txs) {
             const preRoot = stateTree.root;
             const [
                 senderProof,
                 receiverProof
-            ] = stateTree.processCreate2Transfer(tx);
+            ] = stateTree.processCreate2Transfer(tx, tokenID);
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,
@@ -180,7 +177,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             } = await rollup.testProcessCreate2Transfer(
                 preRoot,
                 tx,
-                states[0].tokenID,
+                tokenID,
                 senderProof,
                 receiverProof
             );

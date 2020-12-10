@@ -1,5 +1,5 @@
 import { Hasher, Tree } from "./tree";
-import { State, ZERO_STATE, StateSolStruct } from "./state";
+import { State, ZERO_STATE } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
@@ -13,7 +13,7 @@ import {
 } from "./exceptions";
 
 interface SolStateMerkleProof {
-    state: StateSolStruct;
+    state: State;
     witness: string[];
 }
 
@@ -73,8 +73,17 @@ export class StateTree {
         );
     }
 
-    public getStateWitness(stateID: number) {
-        return this.stateTree.witness(stateID).nodes;
+    public getState(stateID: number): SolStateMerkleProof {
+        const queried = this.states[stateID];
+        const state = queried ? queried : ZERO_STATE;
+        const witness = this.stateTree.witness(stateID).nodes;
+        return { state, witness };
+    }
+
+    /** Side effect! */
+    private updateState(stateID: number, state: State) {
+        this.states[stateID] = state;
+        this.stateTree.updateSingle(stateID, state.toStateLeaf());
     }
 
     public getVacancyProof(mergeOffsetLower: number, subtreeDepth: number) {
@@ -97,12 +106,9 @@ export class StateTree {
 
     public createState(state: State) {
         const stateID = state.stateID;
-        if (this.states[stateID]) {
-            throw new Error("state id is in use");
-        }
-        this.states[stateID] = state.clone();
-        const leaf = state.toStateLeaf();
-        this.stateTree.updateSingle(stateID, leaf);
+        if (this.states[stateID])
+            throw new StateAlreadyExist(`stateID: ${stateID}`);
+        this.updateState(stateID, state);
     }
     public createStateBulk(states: State[]) {
         for (const state of states) {
@@ -113,16 +119,16 @@ export class StateTree {
     public get root() {
         return this.stateTree.root;
     }
-    public getState(stateID: number) {
-        return this.states[stateID];
-    }
     private *_processTransferCommit(
         txs: TxTransfer[],
         feeReceiverID: number
     ): Generator<SolStateMerkleProof> {
         const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
-            const [senderProof, receiverProof] = this.processTransfer(tx);
+            const [senderProof, receiverProof] = this.processTransfer(
+                tx,
+                tokenID
+            );
             yield senderProof;
             yield receiverProof;
         }
@@ -157,7 +163,8 @@ export class StateTree {
         const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
             const [senderProof, receiverProof] = this.processCreate2Transfer(
-                tx
+                tx,
+                tokenID
             );
             yield senderProof;
             yield receiverProof;
@@ -195,7 +202,7 @@ export class StateTree {
     ): Generator<SolStateMerkleProof> {
         const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
-            const proof = this.processMassMigration(tx);
+            const proof = this.processMassMigration(tx, tokenID);
             yield proof;
         }
         const proof = this.processReceiver(
@@ -223,59 +230,76 @@ export class StateTree {
         }
     }
 
-    public processTransfer(tx: TxTransfer): SolStateMerkleProof[] {
+    public processTransfer(
+        tx: TxTransfer,
+        tokenID: number
+    ): SolStateMerkleProof[] {
         const decrement = tx.amount.add(tx.fee);
-        const senderProof = this.processSender(tx.fromIndex, decrement);
+        const senderProof = this.processSender(
+            tx.fromIndex,
+            tokenID,
+            decrement
+        );
         const receiverProof = this.processReceiver(
             tx.toIndex,
             tx.amount,
-            senderProof.state.tokenID
+            tokenID
         );
         return [senderProof, receiverProof];
     }
 
-    public processMassMigration(tx: TxMassMigration): SolStateMerkleProof {
-        return this.processSender(tx.fromIndex, tx.amount.add(tx.fee));
+    public processMassMigration(
+        tx: TxMassMigration,
+        tokenID: number
+    ): SolStateMerkleProof {
+        return this.processSender(tx.fromIndex, tokenID, tx.amount.add(tx.fee));
     }
 
     public processCreate2Transfer(
-        tx: TxCreate2Transfer
+        tx: TxCreate2Transfer,
+        tokenID: number
     ): SolStateMerkleProof[] {
         const decrement = tx.amount.add(tx.fee);
-        const senderProof = this.processSender(tx.fromIndex, decrement);
+        const senderProof = this.processSender(
+            tx.fromIndex,
+            tokenID,
+            decrement
+        );
         const receiverProof = this.processCreate(
             tx.toIndex,
             tx.toPubkeyID,
             tx.amount,
-            senderProof.state.tokenID
+            tokenID
         );
         return [senderProof, receiverProof];
     }
 
-    private processSideEffects(
-        stateIndex: number,
+    private getProofAndUpdate(
+        stateID: number,
         postState: State
     ): SolStateMerkleProof {
-        const state = this.states[stateIndex];
-        const preStateStruct = state ? state.toSolStruct() : ZERO_STATE;
-        const witness = this.stateTree.witness(stateIndex).nodes;
-        this.states[stateIndex] = postState;
-        this.stateTree.updateSingle(stateIndex, postState.toStateLeaf());
-        return { state: preStateStruct, witness };
+        const proofBeforeUpdate = this.getState(stateID);
+        this.updateState(stateID, postState);
+        return proofBeforeUpdate;
     }
     public processSender(
         senderIndex: number,
+        tokenID: number,
         decrement: BigNumber
     ): SolStateMerkleProof {
         const state = this.states[senderIndex];
         if (!state) throw new SenderNotExist(`stateID: ${senderIndex}`);
-
         if (state.balance.lt(decrement))
             throw new InsufficientFund(
                 `balance: ${state.balance}, tx amount+fee: ${decrement}`
             );
+        if (state.tokenID != tokenID)
+            throw new WrongTokenID(
+                `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
+            );
+
         const postState = applySender(state, decrement);
-        const proof = this.processSideEffects(senderIndex, postState);
+        const proof = this.getProofAndUpdate(senderIndex, postState);
         return proof;
     }
     public processReceiver(
@@ -290,7 +314,7 @@ export class StateTree {
                 `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
             );
         const postState = applyReceiver(state, increment);
-        const proof = this.processSideEffects(receiverIndex, postState);
+        const proof = this.getProofAndUpdate(receiverIndex, postState);
         return proof;
     }
 
@@ -303,7 +327,7 @@ export class StateTree {
         if (this.states[createIndex] !== undefined)
             throw new StateAlreadyExist(`stateID: ${createIndex}`);
         const postState = State.new(pubkeyID, tokenID, balance, 0);
-        const proof = this.processSideEffects(createIndex, postState);
+        const proof = this.getProofAndUpdate(createIndex, postState);
         return proof;
     }
 }

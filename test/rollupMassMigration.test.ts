@@ -67,17 +67,14 @@ describe("Rollup Mass Migration", () => {
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postStates = txs.map(tx => stateTree.getState(tx.fromIndex));
-        const stateWitnesses = txs.map(tx =>
-            stateTree.getStateWitness(tx.fromIndex)
-        );
+        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
 
         const proof = {
-            states: postStates,
-            stateWitnesses,
+            states: postProofs.map(proof => proof.state),
+            stateWitnesses: postProofs.map(proof => proof.witness),
             pubkeys,
             pubkeyWitnesses
         };

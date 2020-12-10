@@ -66,17 +66,14 @@ describe("Rollup Transfer Commitment", () => {
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postStates = txs.map(tx => stateTree.getState(tx.fromIndex));
-        const stateWitnesses = txs.map(tx =>
-            stateTree.getStateWitness(tx.fromIndex)
-        );
+        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
 
         const proof = {
-            states: postStates,
-            stateWitnesses,
+            states: postProofs.map(proof => proof.state),
+            stateWitnesses: postProofs.map(proof => proof.witness),
             pubkeys,
             pubkeyWitnesses
         };
@@ -116,9 +113,13 @@ describe("Rollup Transfer Commitment", () => {
 
     it("transfer commitment: processTx", async function() {
         const txs = txTransferFactory(states, COMMIT_SIZE);
+        const tokenID = states[0].tokenID;
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const [senderProof, receiverProof] = stateTree.processTransfer(tx);
+            const [senderProof, receiverProof] = stateTree.processTransfer(
+                tx,
+                tokenID
+            );
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,
@@ -126,7 +127,7 @@ describe("Rollup Transfer Commitment", () => {
             } = await rollup.testProcessTransfer(
                 preRoot,
                 tx,
-                states[0].tokenID,
+                tokenID,
                 senderProof,
                 receiverProof
             );
