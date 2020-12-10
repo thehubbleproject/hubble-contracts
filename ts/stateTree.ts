@@ -5,6 +5,7 @@ import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { sum } from "./utils";
 import {
+    ExceedTreeSize,
     InsufficientFund,
     ReceiverNotExist,
     SenderNotExist,
@@ -91,16 +92,23 @@ export class StateTree implements StateProvider {
             Hasher.new("bytes", ZERO_BYTES32)
         );
     }
+    private checkSize(stateID: number) {
+        if (stateID >= this.stateTree.setSize)
+            throw new ExceedTreeSize(
+                `Want stateID ${stateID} but the tree has only ${this.stateTree.setSize} leaves`
+            );
+    }
 
     public getState(stateID: number): SolStateMerkleProof {
-        const queried = this.states[stateID];
-        const state = queried ? queried : ZERO_STATE;
+        this.checkSize(stateID);
+        const state = this.states[stateID] || ZERO_STATE;
         const witness = this.stateTree.witness(stateID).nodes;
         return { state, witness };
     }
 
     /** Side effect! */
     private updateState(stateID: number, state: State) {
+        this.checkSize(stateID);
         this.states[stateID] = state;
         this.stateTree.updateSingle(stateID, state.toStateLeaf());
     }

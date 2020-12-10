@@ -10,6 +10,8 @@ export class UserNotExist extends HubbleError {}
 
 class StateTreeExceptions extends HubbleError {}
 
+export class ExceedTreeSize extends StateTreeExceptions {}
+
 export class SenderNotExist extends StateTreeExceptions {}
 
 export class ReceiverNotExist extends StateTreeExceptions {}
