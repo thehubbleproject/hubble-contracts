@@ -10,17 +10,15 @@ import {
 } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import {
+    Group,
     txCreate2TransferFactory,
     txMassMigrationFactory,
-    txTransferFactory,
-    UserStateFactory
+    txTransferFactory
 } from "../ts/factory";
 import { DeploymentParameters } from "../ts/interfaces";
 import { StateTree } from "../ts/stateTree";
-import { TestTokenFactory } from "../types/ethers-contracts";
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import * as mcl from "../ts/mcl";
-import { TestToken } from "../types/ethers-contracts/TestToken";
 import {
     BodylessCommitment,
     CommitmentInclusionProof,
@@ -32,13 +30,14 @@ import {
     TransferBatch,
     TransferCommitment
 } from "../ts/commitments";
-import { getBatchID, mineBlocks, sum, ZERO } from "../ts/utils";
-import { State } from "../ts/state";
+import { getBatchID, hexToUint8Array, mineBlocks, sum } from "../ts/utils";
 import { serialize } from "../ts/tx";
 import { Tree } from "../ts/tree";
+import { ExampleToken } from "../types/ethers-contracts/ExampleToken";
+import { ExampleTokenFactory } from "../types/ethers-contracts";
+import { USDT } from "../ts/decimal";
+import { State } from "../ts/state";
 
-const DOMAIN =
-    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 // In the deploy script, we already have a TestToken registered with tokenID 0
 // We are deploying a new token with tokenID 1
 const tokenID = 1;
@@ -50,30 +49,36 @@ describe("Integration Test", function() {
     let deployer: Signer;
     let coordinator: Signer;
     let accountRegistry: AccountRegistry;
-    let newToken: TestToken;
+    let newToken: ExampleToken;
     let nextStateID = 0;
     let previousProof: CommitmentInclusionProof;
-    let earlyAdopters: State[];
-    let newUsers: State[];
-    let massMigrationBatch: MassMigrationBatch
+    let earlyAdopters: Group;
+    let newUsers: Group;
+    let massMigrationBatch: MassMigrationBatch;
+    let genesisRoot: string;
+    let domain: Uint8Array;
 
     before(async function() {
         await mcl.init();
-        mcl.setDomainHex(DOMAIN);
         [deployer, coordinator] = await ethers.getSigners();
         parameters = PRODUCTION_PARAMS;
-        parameters.BLOCKS_TO_FINALISE = 100
+        parameters.BLOCKS_TO_FINALISE = 100;
         stateTree = StateTree.new(parameters.MAX_DEPTH);
-        parameters.GENESIS_STATE_ROOT = stateTree.root;
-        contracts = await deployAll(deployer, parameters);
+        genesisRoot = stateTree.root;
+        contracts = await deployAll(deployer, {
+            ...parameters,
+            GENESIS_STATE_ROOT: genesisRoot
+        });
+        const { rollup, blsAccountRegistry } = contracts;
+        domain = hexToUint8Array(await rollup.appID());
 
         accountRegistry = await AccountRegistry.new(
-            contracts.blsAccountRegistry.connect(coordinator)
+            blsAccountRegistry.connect(coordinator)
         );
     });
     it("Register another token", async function() {
         const { tokenRegistry } = contracts;
-        newToken = await new TestTokenFactory(coordinator).deploy();
+        newToken = await new ExampleTokenFactory(coordinator).deploy();
         await tokenRegistry.requestRegistration(newToken.address);
         const tx = await tokenRegistry.finaliseRegistration(newToken.address);
         const [event] = await tokenRegistry.queryFilter(
@@ -105,24 +110,23 @@ describe("Integration Test", function() {
         const nSubtrees = 10;
         const nDeposits = nSubtrees * subtreeSize;
         nextStateID = nDeposits;
-        earlyAdopters = UserStateFactory.buildList({
-            numOfStates: nDeposits,
+        earlyAdopters = Group.new({
+            n: nDeposits,
             initialStateID: 0,
-            initialpubkeyID: 0,
-            tokenID,
-            zeroNonce: true
-        });
-
+            initialPubkeyID: 0,
+            domain
+        }).connect(stateTree);
+        const balance = USDT.castInt(1234.0);
         const fromBlockNumber = await deployer.provider?.getBlockNumber();
-        for (const state of earlyAdopters) {
-            const pubkeyID = await accountRegistry.register(state.getPubkey());
-            assert.equal(pubkeyID, state.pubkeyID);
+        for (const user of earlyAdopters.userIterator()) {
+            const pubkeyID = await accountRegistry.register(user.pubkey);
+            assert.equal(pubkeyID, user.pubkeyID);
             await newToken
                 .connect(coordinator)
-                .approve(depositManager.address, state.balance);
+                .approve(depositManager.address, balance);
             await depositManager
                 .connect(coordinator)
-                .depositFor(state.pubkeyID, state.balance, state.tokenID);
+                .depositFor(user.pubkeyID, balance, tokenID);
         }
 
         const subtreeReadyEvents = await depositManager.queryFilter(
@@ -130,15 +134,11 @@ describe("Integration Test", function() {
             fromBlockNumber
         );
         assert.equal(subtreeReadyEvents.length, nSubtrees);
-        previousProof = getGenesisProof(
-            parameters.GENESIS_STATE_ROOT as string
-        );
+        previousProof = getGenesisProof(genesisRoot);
+        const subgroups = Array.from(earlyAdopters.groupInterator(subtreeSize));
         for (let i = 0; i < nSubtrees; i++) {
             const mergeOffsetLower = i * subtreeSize;
-            const statesToUpdate = earlyAdopters.slice(
-                mergeOffsetLower,
-                mergeOffsetLower + subtreeSize
-            );
+            const subgroup = subgroups[i];
             const vacant = stateTree.getVacancyProof(
                 mergeOffsetLower,
                 parameters.MAX_DEPOSIT_SUBTREE_DEPTH
@@ -149,7 +149,11 @@ describe("Integration Test", function() {
                     value: parameters.STAKE_AMOUNT
                 });
             const batchID = await getBatchID(rollup);
-            stateTree.createStateBulk(statesToUpdate);
+            subgroup.createStates({
+                initialBalance: balance,
+                tokenID,
+                zeroNonce: true
+            });
             const depositBatch = new BodylessCommitment(
                 stateTree.root
             ).toBatch();
@@ -166,19 +170,11 @@ describe("Integration Test", function() {
         const commits = [];
 
         for (let i = 0; i < numCommits; i++) {
-            syncBalances(earlyAdopters, stateTree);
-            const txs = txTransferFactory(
+            const { txs, signature } = txTransferFactory(
                 earlyAdopters,
                 parameters.MAX_TXS_PER_COMMIT
             );
-            const signature = mcl.aggreagate(
-                txs.map(tx => earlyAdopters[tx.fromIndex].sign(tx))
-            );
-            const { safe } = stateTree.processTransferCommit(
-                txs,
-                feeReceiverID
-            );
-            assert.isTrue(safe);
+            stateTree.processTransferCommit(txs, feeReceiverID);
             const commit = TransferCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
@@ -199,37 +195,27 @@ describe("Integration Test", function() {
         const nNewUsers = parameters.MAX_TXS_PER_COMMIT * numCommits;
         // We happen to have number of public key registered equal to number of states created.
         const nextPubkeyID = nextStateID;
-        newUsers = UserStateFactory.buildList({
-            numOfStates: nNewUsers,
+        newUsers = Group.new({
+            n: nNewUsers,
             initialStateID: nextStateID,
-            initialpubkeyID: nextPubkeyID,
-            tokenID,
-            initialBalance: ZERO,
-            zeroNonce: true
+            initialPubkeyID: nextPubkeyID,
+            domain
         });
         const feeReceiverID = 0;
 
         const commits: TransferCommitment[] = [];
+        const kindEarlyAdopters = earlyAdopters.slice(
+            parameters.MAX_TXS_PER_COMMIT
+        );
+        const newUsersGroups = Array.from(
+            newUsers.groupInterator(parameters.MAX_TXS_PER_COMMIT)
+        );
         for (let i = 0; i < numCommits; i++) {
-            syncBalances(earlyAdopters, stateTree);
-            const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
-            const users = newUsers.slice(
-                sliceLeft,
-                sliceLeft + parameters.MAX_TXS_PER_COMMIT
+            const { txs, signature } = txCreate2TransferFactory(
+                kindEarlyAdopters,
+                newUsersGroups[i]
             );
-            const txs = txCreate2TransferFactory(
-                earlyAdopters,
-                users,
-                parameters.MAX_TXS_PER_COMMIT
-            );
-            const signature = mcl.aggreagate(
-                txs.map(tx => earlyAdopters[tx.fromIndex].sign(tx))
-            );
-            const { safe } = stateTree.processCreate2TransferCommit(
-                txs,
-                feeReceiverID
-            );
-            assert.isTrue(safe);
+            stateTree.processCreate2TransferCommit(txs, feeReceiverID);
             const commit = Create2TransferCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
@@ -251,25 +237,27 @@ describe("Integration Test", function() {
         const numCommits = 32;
         const feeReceiverID = 0;
         const commits = [];
-        let allUsers = [...earlyAdopters, ...newUsers];
+        const allUsers = earlyAdopters.join(newUsers);
+        const allUserGroups = Array.from(
+            allUsers.groupInterator(parameters.MAX_TXS_PER_COMMIT)
+        );
         for (let i = 0; i < numCommits; i++) {
-            syncBalances(allUsers, stateTree);
-            const sliceLeft = i * parameters.MAX_TXS_PER_COMMIT;
-            const users = allUsers.slice(
-                sliceLeft,
-                sliceLeft + parameters.MAX_TXS_PER_COMMIT
-            );
-            const txs = txMassMigrationFactory(
-                users,
-                parameters.MAX_TXS_PER_COMMIT,
+            const group = allUserGroups[i];
+            const { txs, signature, senders } = txMassMigrationFactory(
+                group,
                 spokeID
             );
-            const signature = mcl.aggreagate(
-                txs.map(tx => allUsers[tx.fromIndex].sign(tx))
-            );
             stateTree.processMassMigrationCommit(txs, feeReceiverID);
-            const withdrawRoot = Tree.merklize(users.map(s => s.toStateLeaf()))
-                .root;
+            const withdrawRoot = Tree.merklize(
+                txs.map((tx, j) =>
+                    State.new(
+                        senders[j].pubkeyID,
+                        tokenID,
+                        tx.amount,
+                        0
+                    ).toStateLeaf()
+                )
+            ).root;
             const commit = MassMigrationCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
@@ -283,22 +271,14 @@ describe("Integration Test", function() {
             );
             commits.push(commit);
         }
-        massMigrationBatch = new MassMigrationBatch(commits)
+        massMigrationBatch = new MassMigrationBatch(commits);
         await massMigrationBatch.submit(
             rollup.connect(coordinator),
             parameters.STAKE_AMOUNT
         );
     });
-    it("Users withdraw funds", async function(){
+    it("Users withdraw funds", async function() {
         await mineBlocks(ethers.provider, parameters.BLOCKS_TO_FINALISE);
     });
     it("Coordinator withdrew their stack");
 });
-
-function syncBalances(states: State[], stateTree: StateTree) {
-    for (const state of states) {
-        const treeState = stateTree.getState(state.stateID);
-        state.balance = treeState.balance;
-        state.nonce = treeState.nonce;
-    }
-}

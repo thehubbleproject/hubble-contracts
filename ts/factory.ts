@@ -92,6 +92,34 @@ export class Group {
             yield user;
         }
     }
+    // Useful when want to divide users into sub-groups
+    public *groupInterator(subgroupSize: number) {
+        let subgroup = [];
+        for (const user of this.users) {
+            subgroup.push(user);
+            if (subgroup.length == subgroupSize) {
+                yield new Group(subgroup, this.stateProvider);
+                subgroup = [];
+            }
+        }
+    }
+    public join(other: Group) {
+        const allUsers = [];
+        for (const user of this.userIterator()) {
+            allUsers.push(user);
+        }
+        for (const user of other.userIterator()) {
+            allUsers.push(user);
+        }
+        return new Group(allUsers, this.stateProvider);
+    }
+    public slice(n: number) {
+        if (n > this.users.length)
+            throw new UserNotExist(
+                `Want ${n} users but this group has only ${this.users.length} users`
+            );
+        return new Group(this.users.slice(0, n), this.stateProvider);
+    }
     public getUser(i: number) {
         if (i >= this.users.length) throw new UserNotExist(`${i}`);
         return this.users[i];
