@@ -10,6 +10,12 @@ export class UserNotExist extends HubbleError {}
 
 export class TreeException extends HubbleError {}
 
+class AccountTreeException extends HubbleError {}
+
+class StateTreeExceptions extends HubbleError {}
+
+// TreeException
+
 export class ExceedTreeSize extends TreeException {}
 
 export class BadMergeAlignment extends TreeException {}
@@ -20,7 +26,12 @@ export class MismatchLength extends TreeException {}
 
 export class MismatchHash extends TreeException {}
 
-class StateTreeExceptions extends HubbleError {}
+export class NegativeIndex extends TreeException {}
+
+// AccountTreeException
+export class RegistrationFail extends AccountTreeException {}
+
+// StateTreeExceptions
 
 export class ExceedStateTreeSize extends StateTreeExceptions {}
 

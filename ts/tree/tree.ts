@@ -5,7 +5,8 @@ import {
     EmptyArray,
     ExceedTreeSize,
     MismatchHash,
-    MismatchLength
+    MismatchLength,
+    NegativeIndex
 } from "../exceptions";
 import { Hasher, Node } from "./hasher";
 
@@ -132,6 +133,8 @@ export class Tree {
             throw new ExceedTreeSize(
                 `Leaf index ${index}; tree size ${this.setSize}`
             );
+        // Probably an overflow if this error is hit
+        if (index < 0) throw new NegativeIndex(`${index}`);
     }
 
     // insertSingle updates tree with a single raw data at given index
@@ -160,12 +163,12 @@ export class Tree {
     }
 
     // updateBatch given multiple sequencial data updates tree ascending from an offset
-    public updateBatch(offset: number, data: Array<Node>) {
-        const len = data.length;
+    public updateBatch(offset: number, leaves: Array<Node>) {
+        const len = leaves.length;
         if (len == 0) throw new EmptyArray();
         this.checkSetSize(len + offset);
         for (let i = 0; i < len; i++) {
-            this.tree[this.depth][offset + i] = data[i];
+            this.tree[this.depth][offset + i] = leaves[i];
         }
         this.ascend(offset, len);
     }
