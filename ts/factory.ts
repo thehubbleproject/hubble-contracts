@@ -99,6 +99,13 @@ export class Group {
     public getState(user: User) {
         return this.stateProvider.getState(user.stateID).state;
     }
+    public getPubkeys() {
+        return this.users.map(user => user.pubkey);
+    }
+    public getPubkeyIDs() {
+        return this.users.map(user => user.pubkeyID);
+    }
+
     public syncState(): State[] {
         const states: State[] = [];
         for (const user of this.users) {
@@ -163,16 +170,15 @@ export function txCreate2TransferFactory(
 ): { txs: TxCreate2Transfer[]; signature: solG1 } {
     const txs: TxCreate2Transfer[] = [];
     const signatures = [];
-    const n = Math.min(registered.size, unregistered.size);
-    for (let i = 0; i < n; i++) {
+    if (registered.size != unregistered.size)
+        throw new Error("This factory supports same number of users only");
+    for (let i = 0; i < registered.size; i++) {
         const sender = registered.getUser(i);
         const reciver = unregistered.getUser(i);
         const senderState = registered.getState(sender);
         const amount = senderState.balance.div(10);
         const fee = amount.div(10);
 
-        // uses states for sender
-        // and newStates for receiver as they are not created yet
         const tx = new TxCreate2Transfer(
             sender.stateID,
             reciver.stateID,

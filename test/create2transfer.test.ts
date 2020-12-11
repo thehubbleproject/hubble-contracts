@@ -5,97 +5,81 @@ import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { State } from "../ts/state";
 import { assert } from "chai";
 import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../ts/utils";
 import { Result } from "../ts/interfaces";
-import { txCreate2TransferFactory, UserStateFactory } from "../ts/factory";
-import { TestBls } from "../types/ethers-contracts/TestBls";
-import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
-import { aggregate } from "../ts/blsSigner";
+import { Group, txCreate2TransferFactory } from "../ts/factory";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
 const BAD_DOMAIN = hexToUint8Array(randHex(32));
-let STATE_SIZE = 32;
-let COMMIT_SIZE = 32;
-let STATE_TREE_DEPTH = 32;
+const STATE_TREE_DEPTH = 32;
+const tokenID = 5566;
 
 describe("Rollup Create2Transfer Commitment", () => {
     let rollup: TestCreate2Transfer;
     let registry: AccountRegistry;
     let stateTree: StateTree;
-    let states: State[] = [];
-    let bls: TestBls;
+    let usersWithState: Group;
+    let usersWithoutState: Group;
 
     before(async function() {
         await mcl.init();
-        const [signer, ...rest] = await ethers.getSigners();
+        const [signer] = await ethers.getSigners();
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
-        for (const state of states) {
-            await registry.register(state.getPubkey());
+        const nUsersWithStates = 32;
+        const nUserWithoutState = nUsersWithStates;
+        usersWithState = Group.new({
+            n: nUsersWithStates,
+            initialStateID: 0,
+            initialPubkeyID: 0,
+            domain: DOMAIN
+        });
+        usersWithoutState = Group.new({
+            n: nUserWithoutState,
+            initialStateID: nUsersWithStates,
+            initialPubkeyID: nUsersWithStates,
+            domain: DOMAIN
+        });
+
+        for (const user of usersWithState.userIterator()) {
+            await registry.register(user.pubkey);
         }
-        bls = await new TestBlsFactory(signer).deploy();
-        await bls.deployed();
+        for (const user of usersWithoutState.userIterator()) {
+            await registry.register(user.pubkey);
+        }
     });
 
     beforeEach(async function() {
-        const [signer, ...rest] = await ethers.getSigners();
+        const [signer] = await ethers.getSigners();
         rollup = await new TestCreate2TransferFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
-        stateTree.createStateBulk(states);
+        usersWithState.connect(stateTree);
+        usersWithState.createStates({ tokenID });
     });
 
     it("create2transfer commitment: signature check", async function() {
-        // create 32 new states
-        let newStates = UserStateFactory.buildList(
-            STATE_SIZE,
-            DOMAIN,
-            states.length,
-            states.length
+        const { txs, signature } = txCreate2TransferFactory(
+            usersWithState,
+            usersWithoutState
         );
 
-        const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
-        for (const state of newStates) {
-            await registry.register(state.getPubkey());
-        }
+        const pubkeysSender = usersWithState.getPubkeys();
+        const pubkeysReceiver = usersWithoutState.getPubkeys();
+        const pubkeyWitnessesSender = usersWithState
+            .getPubkeyIDs()
+            .map(pubkeyID => registry.witness(pubkeyID));
+        const pubkeyWitnessesReceiver = usersWithoutState
+            .getPubkeyIDs()
+            .map(pubkeyID => registry.witness(pubkeyID));
 
-        // concat newstates with the global obj
-        states = states.concat(newStates);
+        stateTree.processCreate2TransferCommit(txs, 0);
 
-        const signatures = [];
-        const pubkeysSender = [];
-        const pubkeysReceiver = [];
-        const pubkeyWitnessesSender = [];
-        const pubkeyWitnessesReceiver = [];
-
-        const stateTransitionProof = stateTree.processCreate2TransferCommit(
-            txs,
-            0
-        );
-
-        assert.isTrue(stateTransitionProof.safe);
-
-        for (const tx of txs) {
-            const sender = states[tx.fromIndex];
-            const receiver = states[tx.toIndex];
-
-            pubkeysSender.push(sender.getPubkey());
-            pubkeyWitnessesSender.push(registry.witness(sender.pubkeyID));
-
-            pubkeysReceiver.push(receiver.getPubkey());
-            pubkeyWitnessesReceiver.push(registry.witness(receiver.pubkeyID));
-
-            signatures.push(sender.sign(tx));
-        }
-
-        const signature = aggregate(signatures).sol;
         const serialized = serialize(txs);
 
         const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
@@ -148,21 +132,10 @@ describe("Rollup Create2Transfer Commitment", () => {
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(800000);
     it("create2trasnfer commitment: processTx", async function() {
-        let newStates = UserStateFactory.buildList(
-            STATE_SIZE,
-            DOMAIN,
-            states.length,
-            states.length
+        const { txs } = txCreate2TransferFactory(
+            usersWithState,
+            usersWithoutState
         );
-
-        const txs = txCreate2TransferFactory(states, newStates, COMMIT_SIZE);
-        for (const state of newStates) {
-            await registry.register(state.getPubkey());
-        }
-
-        // concat newstates with the global obj
-        states = states.concat(newStates);
-        const tokenID = states[0].tokenID;
 
         for (const tx of txs) {
             const preRoot = stateTree.root;
@@ -188,5 +161,5 @@ describe("Rollup Create2Transfer Commitment", () => {
                 "mismatch processed stateroot"
             );
         }
-    }).timeout(80000);
+    });
 });
