@@ -2,7 +2,11 @@ import { BigNumberish, BytesLike, ethers } from "ethers";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "./constants";
 import { Wei } from "./interfaces";
+import { State } from "./state";
+import { MigrationTree, StateProvider } from "./stateTree";
 import { Tree } from "./tree";
+import { serialize, TxMassMigration } from "./tx";
+import { sum } from "./utils";
 
 interface CompressedStruct {
     stateRoot: BytesLike;
@@ -133,6 +137,38 @@ export class MassMigrationCommitment extends Commitment {
             feeReceiver,
             txs
         );
+    }
+    public static fromStateProvider(
+        accountRoot: BytesLike,
+        txs: TxMassMigration[],
+        signature: BigNumberish[],
+        feeReceiver: number,
+        stateProvider: StateProvider
+    ) {
+        const states = [];
+        for (const tx of txs) {
+            const origin = stateProvider.getState(tx.fromIndex).state;
+            const destination = State.new(
+                origin.pubkeyID,
+                origin.tokenID,
+                tx.amount,
+                0
+            );
+            states.push(destination);
+        }
+        const migrationTree = MigrationTree.fromStates(states);
+        const commitment = new this(
+            stateProvider.root,
+            accountRoot,
+            signature,
+            txs[0].spokeID,
+            migrationTree.root,
+            states[0].tokenID,
+            sum(txs.map(tx => tx.amount)),
+            feeReceiver,
+            serialize(txs)
+        );
+        return { commitment, migrationTree };
     }
     constructor(
         public stateRoot: BytesLike,
