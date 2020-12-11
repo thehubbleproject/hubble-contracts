@@ -1,8 +1,11 @@
 // Modified from https://github.com/iden3/rollup/blob/master/contracts/RollupBurnAuction.sol
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract BurnAuction is Chooser {
+    using SafeMath for uint256;
+
     uint32 constant BLOCKS_PER_SLOT = 100;
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
@@ -48,13 +51,15 @@ contract BurnAuction is Chooser {
      */
     function bid() external payable {
         uint32 auctionSlot = currentSlot() + 2;
-        require(
-            msg.value > auction[auctionSlot].amount,
-            "Your bid doesn't beat the current best"
-        );
 
         // if not initialized it must be 0
         uint256 latestBidAmount = auction[auctionSlot].amount;
+        uint256 bidAmount = msg.value;
+
+        require(
+            bidAmount > latestBidAmount,
+            "Your bid doesn't beat the current best"
+        );
 
         // refund, check 0 case (it means no bids yet for the auction, so no refund)
         if (auction[auctionSlot].initialized && auction[auctionSlot].amount > 0)
@@ -62,8 +67,8 @@ contract BurnAuction is Chooser {
 
         // update donation accumulator
         // TODO: use safe math
-        donationAccumulator -= latestBidAmount;
-        donationAccumulator += msg.value;
+        donationAccumulator = donationAccumulator.sub(latestBidAmount);
+        donationAccumulator = donationAccumulator.add(bidAmount);
 
         // set new best bider
         auction[auctionSlot].coordinator = msg.sender;
