@@ -6,6 +6,12 @@ contract BurnAuction is Chooser {
     uint32 constant BLOCKS_PER_SLOT = 100;
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
+    // Donation address that is fed with portion of burned amount
+    address payable donationTarget;
+
+    // Donation amout that can be withdrawn with withdrawDonation is accumulated
+    uint256 donationAccumulator;
+
     // First block where the first slot begins
     uint256 public genesisBlock;
 
@@ -32,8 +38,9 @@ contract BurnAuction is Chooser {
      * Set first block where the slot will begin
      * Initializes auction for first slot
      */
-    constructor() public {
+    constructor(address payable _donationTarget) public {
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
+        donationTarget = _donationTarget;
     }
 
     /**
@@ -45,11 +52,19 @@ contract BurnAuction is Chooser {
             msg.value > auction[auctionSlot].amount,
             "Your bid doesn't beat the current best"
         );
+
+        // if not initialized it must be 0
+        uint256 latestBidAmount = auction[auctionSlot].amount;
+
         // refund, check 0 case (it means no bids yet for the auction, so no refund)
         if (auction[auctionSlot].initialized && auction[auctionSlot].amount > 0)
-            auction[auctionSlot].coordinator.transfer(
-                auction[auctionSlot].amount
-            );
+            auction[auctionSlot].coordinator.transfer(latestBidAmount);
+
+        // update donation accumulator
+        // TODO: use safe math
+        donationAccumulator -= latestBidAmount;
+        donationAccumulator += msg.value;
+
         // set new best bider
         auction[auctionSlot].coordinator = msg.sender;
         auction[auctionSlot].amount = uint128(msg.value);
@@ -64,6 +79,11 @@ contract BurnAuction is Chooser {
             "Auction has not been initialized"
         );
         return auction[_currentSlot].coordinator;
+    }
+
+    function withdrawDonation() external {
+        donationTarget.transfer(donationAccumulator);
+        donationAccumulator = 0;
     }
 
     /**
