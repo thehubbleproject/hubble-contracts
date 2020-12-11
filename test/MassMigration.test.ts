@@ -1,126 +1,112 @@
 import { deployAll } from "../ts/deploy";
-import { COMMIT_SIZE, TESTING_PARAMS } from "../ts/constants";
+import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "hardhat";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
 import { State } from "../ts/state";
-import { TxMassMigration } from "../ts/tx";
+import { serialize, TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
-import { MassMigrationBatch, MassMigrationCommitment } from "../ts/commitments";
+import { getGenesisProof, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
 import { Tree } from "../ts/tree";
-import { hexToUint8Array, mineBlocks } from "../ts/utils";
+import { hexToUint8Array, mineBlocks, sum } from "../ts/utils";
 import { expectRevert } from "../ts/utils";
-import { constants } from "ethers";
+import { Group, txMassMigrationFactory } from "../ts/factory";
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;
-    let Alice: State;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    let initialBatch: MassMigrationBatch;
     let DOMAIN: Uint8Array;
+    let users: Group;
+    let genesisRoot: string;
+    const spokeID = 0;
     before(async function() {
         await mcl.init();
     });
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
+        users = Group.new({ n: 32, initialStateID: 0, initialPubkeyID: 0 });
+        stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
+        const initialBalance = USDT.castInt(1000);
+        users
+            .connect(stateTree)
+            .createStates({ initialBalance, tokenID, zeroNonce: false });
+
+        genesisRoot = stateTree.root;
+
         contracts = await deployAll(signer, {
             ...TESTING_PARAMS,
-            GENESIS_STATE_ROOT: constants.HashZero
+            GENESIS_STATE_ROOT: genesisRoot
         });
         const { rollup, blsAccountRegistry } = contracts;
         DOMAIN = hexToUint8Array(await rollup.appID());
+        users.setupSigners(DOMAIN);
 
-        stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
-        const registryContract = blsAccountRegistry;
-        registry = await AccountRegistry.new(registryContract);
-        const initialBalance = USDT.castInt(1000.0);
-        Alice = State.new(-1, tokenID, initialBalance, 0);
-        Alice.setStateID(2);
-        Alice.newKeyPair(DOMAIN);
-        Alice.pubkeyID = await registry.register(Alice.getPubkey());
-
-        stateTree.createState(Alice);
-        const accountRoot = await registry.root();
-        const initialCommitment = MassMigrationCommitment.new(
-            stateTree.root,
-            accountRoot
-        );
-        initialBatch = initialCommitment.toBatch();
-        // We submit a batch that has a stateRoot containing Alice and Bob
-        await initialBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
+        registry = await AccountRegistry.new(blsAccountRegistry);
+        for (const user of users.userIterator()) {
+            const pubkeyID = await registry.register(user.pubkey);
+            assert.equal(pubkeyID, user.pubkeyID);
+        }
     });
 
     it("submit a batch and dispute", async function() {
         const { rollup, massMigration } = contracts;
-        const feeReceiver = Alice.stateID;
-        const tx = new TxMassMigration(
-            Alice.stateID,
-            USDT.castInt(39.99),
-            1,
-            USDT.castInt(0.01),
-            Alice.nonce + 1,
-            USDT
+        const feeReceiver = users.getUser(0).stateID;
+        const { txs, signature, senders } = txMassMigrationFactory(
+            users,
+            spokeID
         );
-        const signature = Alice.sign(tx);
-        const stateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.processMassMigrationCommit(
-            [tx],
+        const preStateRoot = stateTree.root;
+        const { proofs } = stateTree.processMassMigrationCommit(
+            txs,
             feeReceiver
         );
-        assert.isTrue(safe);
-        const txs = tx.encode();
-        const root = await registry.root();
+        const postStateRoot = stateTree.root;
 
-        const leaf = State.new(
-            Alice.pubkeyID,
-            tokenID,
-            tx.amount,
-            0
-        ).toStateLeaf();
-        const withdrawRoot = Tree.merklize([leaf]).root;
+        const leaves = txs.map((tx, i) =>
+            State.new(senders[i].pubkeyID, tokenID, tx.amount, 0).toStateLeaf()
+        );
+
+        const withdrawRoot = Tree.merklize(leaves).root;
 
         const commitment = MassMigrationCommitment.new(
-            stateRoot,
-            root,
-            signature.sol,
-            tx.spokeID,
+            postStateRoot,
+            registry.root(),
+            signature,
+            spokeID,
             withdrawRoot,
             tokenID,
-            tx.amount,
+            sum(txs.map(tx => tx.amount)),
             feeReceiver,
-            txs
+            serialize(txs)
         );
         const {
-            0: postStateRoot,
+            0: processedStateRoot,
             1: result
         } = await massMigration.processMassMigrationCommit(
-            stateRoot,
-            COMMIT_SIZE,
+            preStateRoot,
+            TESTING_PARAMS.MAX_TXS_PER_COMMIT,
             commitment.toSolStruct().body,
             proofs
         );
+        assert.equal(Result[result], Result[Result.Ok]);
         assert.equal(
+            processedStateRoot,
             postStateRoot,
-            stateTree.root,
             "should have same state root"
         );
-        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
-        commitment.stateRoot = postStateRoot;
 
         const targetBatch = commitment.toBatch();
 
         await targetBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
 
         const batchId = Number(await rollup.nextBatchID()) - 1;
-        const rootOnchain = await registry.registry.root();
-        assert.equal(root, rootOnchain, "mismatch pubkey tree root");
         const batch = await rollup.getBatch(batchId);
 
         assert.equal(
@@ -128,7 +114,7 @@ describe("Mass Migrations", async function() {
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = initialBatch.proofCompressed(0);
+        const previousMP = getGenesisProof(genesisRoot);
         const commitmentMP = targetBatch.proof(0);
 
         await rollup.disputeTransitionMassMigration(
@@ -143,20 +129,22 @@ describe("Mass Migrations", async function() {
             0,
             "Good state transition should not rollback"
         );
-    });
+    }).timeout(80000);
     it("submit a batch, finalize, and withdraw", async function() {
         const { rollup, withdrawManager, exampleToken, vault } = contracts;
-        const feeReceiver = Alice.stateID;
+        const feeReceiver = users.getUser(0).stateID;
+        const alice = users.getUser(1);
+        const aliceState = stateTree.getState(alice.stateID).state;
         const tx = new TxMassMigration(
-            Alice.stateID,
+            alice.stateID,
             USDT.castInt(39.99),
             1,
             USDT.castInt(0.01),
-            Alice.nonce + 1,
+            aliceState.nonce + 1,
             USDT
         );
         const leaf = State.new(
-            Alice.pubkeyID,
+            alice.pubkeyID,
             tokenID,
             tx.amount,
             0
@@ -170,8 +158,8 @@ describe("Mass Migrations", async function() {
 
         const commitment = MassMigrationCommitment.new(
             stateTree.root,
-            await registry.root(),
-            Alice.sign(tx).sol,
+            registry.root(),
+            alice.sign(tx).sol,
             tx.spokeID,
             withdrawTree.root,
             tokenID,
@@ -208,9 +196,9 @@ describe("Mass Migrations", async function() {
         const withdrawal = withdrawTree.witness(0);
         const [, claimer] = await ethers.getSigners();
         const claimerAddress = await claimer.getAddress();
-        const signature = Alice.signer.sign(claimerAddress).sol;
+        const signature = alice.signRaw(claimerAddress).sol;
         const state = {
-            pubkeyID: Alice.pubkeyID,
+            pubkeyID: alice.pubkeyID,
             tokenID,
             balance: tx.amount,
             nonce: 0
@@ -220,31 +208,24 @@ describe("Mass Migrations", async function() {
             path: withdrawal.index,
             witness: withdrawal.nodes
         };
-        const txClaim = await withdrawManager
-            .connect(claimer)
-            .claimTokens(
-                commitment.withdrawRoot,
-                withdrawProof,
-                Alice.getPubkey(),
-                signature,
-                registry.witness(Alice.pubkeyID)
-            );
-        const receiptClaim = await txClaim.wait();
-        console.log(
-            "Transaction cost: claiming a token",
-            receiptClaim.gasUsed.toNumber()
-        );
-        await expectRevert(
-            withdrawManager
+        async function claim() {
+            return withdrawManager
                 .connect(claimer)
                 .claimTokens(
                     commitment.withdrawRoot,
                     withdrawProof,
-                    Alice.getPubkey(),
+                    alice.pubkey,
                     signature,
-                    registry.witness(Alice.pubkeyID)
-                ),
-            "WithdrawManager: Token has been claimed"
+                    registry.witness(alice.pubkeyID)
+                );
+        }
+        const firstClaim = await claim();
+        const receipt = await firstClaim.wait();
+        console.log(
+            "Transaction cost: claiming a token",
+            receipt.gasUsed.toNumber()
         );
+        // Try double claim
+        await expectRevert(claim(), "WithdrawManager: Token has been claimed");
     });
 });

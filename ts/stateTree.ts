@@ -5,12 +5,32 @@ import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { sum } from "./utils";
 import {
+    ExceedTreeSize,
     InsufficientFund,
     ReceiverNotExist,
     SenderNotExist,
     StateAlreadyExist,
     WrongTokenID
 } from "./exceptions";
+
+export interface StateProvider {
+    getState(stateID: number): SolStateMerkleProof;
+    createState(stateID: number, state: State): void;
+}
+
+class NullProvider implements StateProvider {
+    getState(stateID: number): SolStateMerkleProof {
+        throw new Error(
+            "This is a NullProvider, please connect to a real provider"
+        );
+    }
+    createState(stateID: number, state: State) {
+        throw new Error(
+            "This is a NullProvider, please connect to a real provider"
+        );
+    }
+}
+export const nullProvider = new NullProvider();
 
 interface SolStateMerkleProof {
     state: State;
@@ -60,7 +80,7 @@ function processNoRaise(
     return { proofs, safe };
 }
 
-export class StateTree {
+export class StateTree implements StateProvider {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
     }
@@ -72,16 +92,23 @@ export class StateTree {
             Hasher.new("bytes", ZERO_BYTES32)
         );
     }
+    private checkSize(stateID: number) {
+        if (stateID >= this.stateTree.setSize)
+            throw new ExceedTreeSize(
+                `Want stateID ${stateID} but the tree has only ${this.stateTree.setSize} leaves`
+            );
+    }
 
     public getState(stateID: number): SolStateMerkleProof {
-        const queried = this.states[stateID];
-        const state = queried ? queried : ZERO_STATE;
+        this.checkSize(stateID);
+        const state = this.states[stateID] || ZERO_STATE;
         const witness = this.stateTree.witness(stateID).nodes;
         return { state, witness };
     }
 
     /** Side effect! */
     private updateState(stateID: number, state: State) {
+        this.checkSize(stateID);
         this.states[stateID] = state;
         this.stateTree.updateSingle(stateID, state.toStateLeaf());
     }
@@ -104,15 +131,14 @@ export class StateTree {
         return this.stateTree.depth;
     }
 
-    public createState(state: State) {
-        const stateID = state.stateID;
+    public createState(stateID: number, state: State) {
         if (this.states[stateID])
             throw new StateAlreadyExist(`stateID: ${stateID}`);
         this.updateState(stateID, state);
     }
-    public createStateBulk(states: State[]) {
-        for (const state of states) {
-            this.createState(state);
+    public createStateBulk(firstStateID: number, states: State[]) {
+        for (const [i, state] of states.entries()) {
+            this.createState(firstStateID + i, state);
         }
     }
 

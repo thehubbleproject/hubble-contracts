@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { AccountRegistry } from "../ts/accountTree";
-import { txMassMigrationFactory, UserStateFactory } from "../ts/factory";
+import { Group, txMassMigrationFactory } from "../ts/factory";
 import { State } from "../ts/state";
 import { StateTree } from "../ts/stateTree";
 import { hexToUint8Array, randHex, sum } from "../ts/utils";
@@ -15,19 +15,18 @@ import { assert } from "chai";
 import { Result } from "../ts/interfaces";
 import { constants } from "ethers";
 import { Tree } from "../ts/tree";
-import { aggregate } from "../ts/blsSigner";
 
 const DOMAIN = hexToUint8Array(randHex(32));
-const STATE_SIZE = 32;
 const COMMIT_SIZE = 32;
 const STATE_TREE_DEPTH = 32;
+const tokenID = 5566;
 const spokeID = 1;
 
 describe("Rollup Mass Migration", () => {
     let rollup: TestMassMigration;
     let registry: AccountRegistry;
     let stateTree: StateTree;
-    let states: State[] = [];
+    let users: Group;
 
     before(async function() {
         await mcl.init();
@@ -37,33 +36,29 @@ describe("Rollup Mass Migration", () => {
         ).deploy();
 
         registry = await AccountRegistry.new(registryContract);
-        states = UserStateFactory.buildList(STATE_SIZE, DOMAIN);
-        for (const state of states) {
-            await registry.register(state.getPubkey());
+        users = Group.new({ n: 32, domain: DOMAIN });
+        for (const user of users.userIterator()) {
+            await registry.register(user.pubkey);
         }
     });
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
         rollup = await new TestMassMigrationFactory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
-        stateTree.createStateBulk(states);
+        users.connect(stateTree);
+        users.createStates({ tokenID });
     });
 
     it("checks signature", async function() {
-        const txs = txMassMigrationFactory(states, COMMIT_SIZE, spokeID);
-        const signatures = [];
-        const pubkeys = [];
-        const pubkeyWitnesses = [];
-
-        for (const tx of txs) {
-            const sender = states[tx.fromIndex];
-            pubkeys.push(sender.getPubkey());
-            pubkeyWitnesses.push(registry.witness(sender.pubkeyID));
-            signatures.push(sender.sign(tx));
-        }
-        const signature = aggregate(signatures).sol;
-        const { safe } = stateTree.processMassMigrationCommit(txs, 0);
-        assert.isTrue(safe);
+        const { txs, signature, senders } = txMassMigrationFactory(
+            users,
+            spokeID
+        );
+        const pubkeys = senders.map(sender => sender.pubkey);
+        const pubkeyWitnesses = senders.map(sender =>
+            registry.witness(sender.pubkeyID)
+        );
+        stateTree.processMassMigrationCommit(txs, 0);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
@@ -94,25 +89,18 @@ describe("Rollup Mass Migration", () => {
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
     it("checks state transitions", async function() {
-        const txs = txMassMigrationFactory(states, COMMIT_SIZE, spokeID);
+        const { txs, senders } = txMassMigrationFactory(users, spokeID);
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs, safe } = stateTree.processMassMigrationCommit(
+        const { proofs } = stateTree.processMassMigrationCommit(
             txs,
             feeReceiver
         );
-        assert.isTrue(safe, "Should be a valid applyTransferBatch");
         const postStateRoot = stateTree.root;
-        const tokenID = states[0].tokenID;
 
-        const leaves = txs.map(tx =>
-            State.new(
-                states[tx.fromIndex].pubkeyID,
-                tokenID,
-                tx.amount,
-                0
-            ).toStateLeaf()
+        const leaves = txs.map((tx, i) =>
+            State.new(senders[i].pubkeyID, tokenID, tx.amount, 0).toStateLeaf()
         );
         const withdrawRoot = Tree.merklize(leaves).root;
         const commitmentBody = {

@@ -3,14 +3,14 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "hardhat";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { State } from "../ts/state";
-import { serialize, TxTransfer } from "../ts/tx";
+import { serialize } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { getGenesisProof, TransferCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { hexToUint8Array } from "../ts/utils";
+import { Group, txTransferFactory } from "../ts/factory";
 
 const DOMAIN = hexToUint8Array(
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -18,12 +18,12 @@ const DOMAIN = hexToUint8Array(
 
 describe("Rollup", async function() {
     const tokenID = 1;
-    let Alice: State;
-    let Bob: State;
     let contracts: allContracts;
     let stateTree: StateTree;
     let registry: AccountRegistry;
-    let parameters = TESTING_PARAMS;
+    let users: Group;
+    let genesisRoot: string;
+
     before(async function() {
         await mcl.init();
     });
@@ -31,58 +31,57 @@ describe("Rollup", async function() {
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
 
+        users = Group.new({
+            n: 32,
+            initialStateID: 0,
+            initialPubkeyID: 0,
+            domain: DOMAIN
+        });
+
+        stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
+
         const initialBalance = USDT.castInt(55.6);
-        // We build state tree first for genesis state root, then register public keys later
-        Alice = State.new(0, tokenID, initialBalance, 0);
-        Alice.setStateID(0);
-        Alice.newKeyPair(DOMAIN);
-        Bob = State.new(1, tokenID, initialBalance, 0);
-        Bob.setStateID(1);
-        Bob.newKeyPair(DOMAIN);
-        stateTree = new StateTree(parameters.MAX_DEPTH);
-        stateTree.createStateBulk([Alice, Bob]);
+        users
+            .connect(stateTree)
+            .createStates({ initialBalance, tokenID, zeroNonce: true });
 
-        parameters.GENESIS_STATE_ROOT = stateTree.root;
+        genesisRoot = stateTree.root;
 
-        contracts = await deployAll(signer, parameters);
+        contracts = await deployAll(signer, {
+            ...TESTING_PARAMS,
+            GENESIS_STATE_ROOT: genesisRoot
+        });
+
         registry = await AccountRegistry.new(contracts.blsAccountRegistry);
-        const AlicePubkeyID = await registry.register(Alice.getPubkey());
-        const BobPubkeyID = await registry.register(Bob.getPubkey());
 
-        assert.equal(AlicePubkeyID, Alice.pubkeyID);
-        assert.equal(BobPubkeyID, Bob.pubkeyID);
+        for (const user of users.userIterator()) {
+            const pubkeyID = await registry.register(user.pubkey);
+            assert.equal(pubkeyID, user.pubkeyID);
+        }
     });
 
     it("submit a batch and dispute", async function() {
-        const feeReceiver = Alice.stateID;
-        const tx = new TxTransfer(
-            Alice.stateID,
-            Bob.stateID,
-            USDT.castInt(5.5),
-            USDT.castInt(0.56),
-            Alice.nonce + 1,
-            USDT
+        const feeReceiver = users.getUser(0).stateID;
+        const { rollup } = contracts;
+        const { txs, signature } = txTransferFactory(
+            users,
+            TESTING_PARAMS.MAX_TXS_PER_COMMIT
         );
 
-        const { rollup } = contracts;
-        const { proofs, safe } = stateTree.processTransferCommit(
-            [tx],
-            feeReceiver
-        );
-        assert.isTrue(safe);
+        const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
 
         const commitment = TransferCommitment.new(
             stateTree.root,
             registry.root(),
-            Alice.sign(tx).sol,
+            signature,
             feeReceiver,
-            serialize([tx])
+            serialize(txs)
         );
 
         const targetBatch = commitment.toBatch();
         const _txSubmit = await targetBatch.submit(
             rollup,
-            parameters.STAKE_AMOUNT
+            TESTING_PARAMS.STAKE_AMOUNT
         );
         console.log(
             "submitBatch execution cost",
@@ -97,9 +96,7 @@ describe("Rollup", async function() {
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = getGenesisProof(
-            parameters.GENESIS_STATE_ROOT as string
-        );
+        const previousMP = getGenesisProof(genesisRoot);
         const commitmentMP = targetBatch.proof(0);
 
         const _tx = await rollup.disputeTransitionTransfer(
@@ -115,5 +112,5 @@ describe("Rollup", async function() {
             0,
             "Good state transition should not rollback"
         );
-    });
+    }).timeout(120000);
 });
