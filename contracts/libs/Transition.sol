@@ -80,12 +80,7 @@ library Transition {
             from
         );
         if (result != Types.Result.Ok) return (newRoot, result);
-        (, newRoot) = processCreate2TransferReceiver(
-            newRoot,
-            _tx,
-            from.state.tokenID,
-            to
-        );
+        newRoot = processCreate2TransferReceiver(newRoot, _tx, tokenID, to);
 
         return (newRoot, Types.Result.Ok);
     }
@@ -95,7 +90,7 @@ library Transition {
         Tx.Create2Transfer memory _tx,
         uint256 tokenID,
         Types.StateMerkleProof memory proof
-    ) internal pure returns (bytes memory encodedState, bytes32 newRoot) {
+    ) internal pure returns (bytes32 newRoot) {
         // Validate we are creating on a empty state
         require(
             MerkleTree.verify(
@@ -106,14 +101,18 @@ library Transition {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        encodedState = createState(_tx.toPubkeyID, tokenID, _tx.amount);
+        bytes memory encodedState = createState(
+            _tx.toPubkeyID,
+            tokenID,
+            _tx.amount
+        );
 
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
             _tx.toIndex,
             proof.witness
         );
-        return (encodedState, newRoot);
+        return newRoot;
     }
 
     function processSender(

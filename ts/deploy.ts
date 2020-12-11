@@ -207,7 +207,7 @@ export async function deployAll(
         parameters.STAKE_AMOUNT,
         parameters.BLOCKS_TO_FINALISE,
         parameters.MIN_GAS_LEFT,
-        parameters.MAX_DEPOSIT_SUBTREE_DEPTH
+        parameters.MAX_TXS_PER_COMMIT
     );
     await waitAndRegister(
         rollup,
