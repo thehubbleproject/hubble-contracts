@@ -10,7 +10,7 @@ contract BurnAuction is Chooser {
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
     // Donation address that is fed with portion of burned amount
-    address payable donationAddress;
+    address payable public donationAddress;
 
     // First block where the first slot begins
     uint256 public genesisBlock;
@@ -34,7 +34,7 @@ contract BurnAuction is Chooser {
     /**
      * @dev Event called when an coordinator beat the bestBid of the ongoing auction
      */
-    event NewBestBid(uint32 slot, address coordinator, uint128 amount);
+    event NewBestBid(uint32 slot, address coordinator, uint256 amount);
 
     /**
      * @dev RollupBurnAuction constructor
@@ -51,32 +51,29 @@ contract BurnAuction is Chooser {
      */
     function bid(uint256 bidAmount) external payable {
         uint32 auctionSlot = currentSlot() + 2;
-
         // if not initialized it must be 0
         uint256 currentBidAmount = auction[auctionSlot].amount;
-
         require(
             bidAmount > currentBidAmount,
-            "BurnAuction, bidNew: less then current"
+            "BurnAuction, bid: less then current"
         );
-
         address coordinator = msg.sender;
         require(
             deposits[coordinator] + msg.value >= bidAmount,
-            "BurnAuction, bidNew: insufficient funds for bidding"
+            "BurnAuction, bid: insufficient funds for bidding"
         );
-
         // update balances
+        // refund previous coordinator
         updateBalance(auction[auctionSlot].coordinator, currentBidAmount, 0);
+        // update donation balance
         updateBalance(donationAddress, bidAmount, currentBidAmount);
+        // update coordinator with remaining value
         updateBalance(coordinator, msg.value, bidAmount);
-
         // set new best bider
         auction[auctionSlot].coordinator = msg.sender;
         auction[auctionSlot].amount = uint128(bidAmount);
         auction[auctionSlot].initialized = true;
-
-        emit NewBestBid(auctionSlot, msg.sender, uint128(msg.value));
+        emit NewBestBid(auctionSlot, coordinator, bidAmount);
     }
 
     function getProposer() external view returns (address) {
@@ -135,7 +132,9 @@ contract BurnAuction is Chooser {
         uint256 incr,
         uint256 decr
     ) internal {
-        deposits[addr] = deposits[addr].add(incr);
-        deposits[addr] = deposits[addr].sub(decr);
+        if (addr != address(0)) {
+            deposits[addr] = deposits[addr].add(incr);
+            deposits[addr] = deposits[addr].sub(decr);
+        }
     }
 }
