@@ -53,6 +53,8 @@ describe("Account Tree", async () => {
         const batchSize = 1 << BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
             const leafs = randomLeaves(batchSize);
+            const leafIndexRight = Number(await accountTree.leafIndexRight());
+            assert.equal(leafIndexRight, batchSize * k);
             treeRight.updateBatch(batchSize * k, leafs);
             await accountTree.updateBatch(leafs);
             assert.equal(treeRight.root, await accountTree.rootRight());
