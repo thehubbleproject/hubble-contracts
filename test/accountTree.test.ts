@@ -42,6 +42,8 @@ describe("Account Tree", async () => {
     it("update with single leaf", async function() {
         for (let i = 0; i < 33; i++) {
             const leaf = randHex(32);
+            const leafIndexLeft = Number(await accountTree.leafIndexLeft());
+            assert.equal(leafIndexLeft, i);
             treeLeft.updateSingle(i, leaf);
             await accountTree.updateSingle(leaf);
             assert.equal(treeLeft.root, await accountTree.rootLeft());
