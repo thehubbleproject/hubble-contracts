@@ -1,10 +1,16 @@
 import { ZERO_BYTES32 } from "../constants";
 import { minTreeDepth } from "../utils";
+import {
+    BadMergeAlignment,
+    EmptyArray,
+    ExceedTreeSize,
+    MismatchHash,
+    MismatchLength
+} from "../exceptions";
 import { Hasher, Node } from "./hasher";
 
 type Level = { [node: number]: Node };
 export type Data = string;
-export type Success = number;
 
 export type Witness = {
     path: Array<boolean>;
@@ -62,12 +68,13 @@ export class Tree {
         const mergeSize = 1 << subtreeDepth;
         const mergeOffsetUpper = mergeOffsetLower + mergeSize;
         const pathFollower = mergeOffsetLower >> subtreeDepth;
-        if (
-            mergeOffsetLower >> subtreeDepth !=
-            (mergeOffsetUpper - 1) >> subtreeDepth
-        ) {
-            throw new Error("bad merge alignment");
-        }
+        const subtreeRootIndexUpper = (mergeOffsetUpper - 1) >> subtreeDepth;
+
+        if (pathFollower != subtreeRootIndexUpper)
+            throw new BadMergeAlignment(
+                `pathFollower ${pathFollower}; subtreeRootIndexUpper ${subtreeRootIndexUpper}`
+            );
+
         return this.witness(pathFollower, this.depth - subtreeDepth);
     }
 
@@ -88,19 +95,27 @@ export class Tree {
 
     // checkInclusion verifies the given witness.
     // It performs root calculation rather than just looking up for the leaf or node
-    public checkInclusion(witness: Witness): Success {
+    public checkInclusion(witness: Witness): boolean {
         // we check the form of witness data rather than looking up for the leaf
-        if (witness.nodes.length == 0) return -2;
-        if (witness.nodes.length != witness.path.length) return -3;
+        if (witness.nodes.length == 0) throw new EmptyArray();
+        if (witness.nodes.length != witness.path.length)
+            throw new MismatchLength(
+                `nodes: ${witness.nodes.length}; path: ${witness.path.length}`
+            );
         const data = witness.data;
         if (data) {
-            if (witness.nodes.length != this.depth) return -4;
-            if (this.hasher.hash(data) != witness.leaf) return -5;
+            if (witness.nodes.length != this.depth)
+                throw new MismatchLength(
+                    `nodes: ${witness.nodes.length}; tree depth: ${this.depth}`
+                );
+            const dataHash = this.hasher.hash(data);
+            if (dataHash != witness.leaf)
+                throw new MismatchHash(
+                    `hash(data): ${dataHash}; leaf: ${witness.leaf}`
+                );
         }
-        let depth = witness.depth;
-        if (!depth) {
-            depth = this.depth;
-        }
+        const depth = witness.depth ? witness.depth : this.depth;
+
         let leaf = witness.leaf;
         for (let i = 0; i < depth; i++) {
             const node = witness.nodes[i];
@@ -110,51 +125,49 @@ export class Tree {
                 leaf = this.hasher.hash2(node, leaf);
             }
         }
-        return leaf == this.root ? 0 : -1;
+        return leaf == this.root;
+    }
+    private checkSetSize(index: number) {
+        if (index >= this.setSize)
+            throw new ExceedTreeSize(
+                `Leaf index ${index}; tree size ${this.setSize}`
+            );
     }
 
     // insertSingle updates tree with a single raw data at given index
-    public insertSingle(leafIndex: number, data: Data): Success {
-        if (leafIndex >= this.setSize) {
-            return -1;
-        }
+    public insertSingle(leafIndex: number, data: Data) {
+        this.checkSetSize(leafIndex);
         this.tree[this.depth][leafIndex] = this.hasher.toLeaf(data);
         this.ascend(leafIndex, 1);
-        return 0;
     }
 
     // updateSingle updates tree with a leaf at given index
-    public updateSingle(leafIndex: number, leaf: Node): Success {
-        if (leafIndex >= this.setSize) {
-            return -1;
-        }
+    public updateSingle(leafIndex: number, leaf: Node) {
+        this.checkSetSize(leafIndex);
         this.tree[this.depth][leafIndex] = leaf;
         this.ascend(leafIndex, 1);
-        return 0;
     }
 
     // insertBatch given multiple raw data updates tree ascending from an offset
-    public insertBatch(offset: number, data: Array<Data>): Success {
+    public insertBatch(offset: number, data: Array<Data>) {
         const len = data.length;
-        if (len == 0) return -1;
-        if (len + offset > this.setSize) return -2;
+        if (len == 0) throw new EmptyArray();
+        this.checkSetSize(len + offset);
         for (let i = 0; i < len; i++) {
             this.tree[this.depth][offset + i] = this.hasher.toLeaf(data[i]);
         }
         this.ascend(offset, len);
-        return 0;
     }
 
     // updateBatch given multiple sequencial data updates tree ascending from an offset
-    public updateBatch(offset: number, data: Array<Node>): Success {
+    public updateBatch(offset: number, data: Array<Node>) {
         const len = data.length;
-        if (len == 0) return -1;
-        if (len + offset > this.setSize) return -2;
+        if (len == 0) throw new EmptyArray();
+        this.checkSetSize(len + offset);
         for (let i = 0; i < len; i++) {
             this.tree[this.depth][offset + i] = data[i];
         }
         this.ascend(offset, len);
-        return 0;
     }
 
     public isZero(level: number, leafIndex: number): boolean {
