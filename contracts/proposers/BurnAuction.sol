@@ -10,10 +10,7 @@ contract BurnAuction is Chooser {
     uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
     // Donation address that is fed with portion of burned amount
-    address payable donationTarget;
-
-    // Donation amout that can be withdrawn with withdrawDonation is accumulated
-    uint256 donationAccumulator;
+    address payable donationAddress;
 
     // First block where the first slot begins
     uint256 public genesisBlock;
@@ -31,6 +28,9 @@ contract BurnAuction is Chooser {
     // auction is a relation of the best bid for each slot
     mapping(uint32 => Bid) public auction;
 
+    // deposits is current balances of coordinators that can used for next bids
+    mapping(address => uint256) public deposits;
+
     /**
      * @dev Event called when an coordinator beat the bestBid of the ongoing auction
      */
@@ -41,39 +41,41 @@ contract BurnAuction is Chooser {
      * Set first block where the slot will begin
      * Initializes auction for first slot
      */
-    constructor(address payable _donationTarget) public {
+    constructor(address payable _donationAddress) public {
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
-        donationTarget = _donationTarget;
+        donationAddress = _donationAddress;
     }
 
     /**
      * @dev Receive a bid from an coordinator. If the bid is higher than the current bid it replace the existing bid
      */
-    function bid() external payable {
+    function bid(uint256 bidAmount) external payable {
         uint32 auctionSlot = currentSlot() + 2;
 
         // if not initialized it must be 0
-        uint256 latestBidAmount = auction[auctionSlot].amount;
-        uint256 bidAmount = msg.value;
+        uint256 currentBidAmount = auction[auctionSlot].amount;
 
         require(
-            bidAmount > latestBidAmount,
-            "Your bid doesn't beat the current best"
+            bidAmount > currentBidAmount,
+            "BurnAuction, bidNew: less then current"
         );
 
-        // refund, check 0 case (it means no bids yet for the auction, so no refund)
-        if (auction[auctionSlot].initialized && auction[auctionSlot].amount > 0)
-            auction[auctionSlot].coordinator.transfer(latestBidAmount);
+        address coordinator = msg.sender;
+        require(
+            deposits[coordinator] + msg.value >= bidAmount,
+            "BurnAuction, bidNew: insufficient funds for bidding"
+        );
 
-        // update donation accumulator
-        // TODO: use safe math
-        donationAccumulator = donationAccumulator.sub(latestBidAmount);
-        donationAccumulator = donationAccumulator.add(bidAmount);
+        // update balances
+        updateBalance(auction[auctionSlot].coordinator, currentBidAmount, 0);
+        updateBalance(donationAddress, bidAmount, currentBidAmount);
+        updateBalance(coordinator, msg.value, bidAmount);
 
         // set new best bider
         auction[auctionSlot].coordinator = msg.sender;
-        auction[auctionSlot].amount = uint128(msg.value);
+        auction[auctionSlot].amount = uint128(bidAmount);
         auction[auctionSlot].initialized = true;
+
         emit NewBestBid(auctionSlot, msg.sender, uint128(msg.value));
     }
 
@@ -87,8 +89,19 @@ contract BurnAuction is Chooser {
     }
 
     function withdrawDonation() external {
-        donationTarget.transfer(donationAccumulator);
-        donationAccumulator = 0;
+        uint256 donationAmount = deposits[donationAddress];
+        donationAddress.transfer(donationAmount);
+        deposits[donationAddress] = 0;
+    }
+
+    function witdraw(uint256 amount) external {
+        address payable claimer = msg.sender;
+        require(
+            deposits[claimer] >= amount,
+            "BurnAuction, withdraw: insufficient deposit amount for withdraw"
+        );
+        claimer.transfer(amount);
+        updateBalance(claimer, 0, amount);
     }
 
     /**
@@ -115,5 +128,14 @@ contract BurnAuction is Chooser {
      */
     function getBlockNumber() public view returns (uint256) {
         return block.number;
+    }
+
+    function updateBalance(
+        address addr,
+        uint256 incr,
+        uint256 decr
+    ) internal {
+        deposits[addr] = deposits[addr].add(incr);
+        deposits[addr] = deposits[addr].sub(decr);
     }
 }
