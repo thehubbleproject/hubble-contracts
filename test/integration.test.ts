@@ -57,6 +57,7 @@ describe("Integration Test", function() {
     let genesisRoot: string;
     let domain: Uint8Array;
     let migrationTrees: MigrationTree[] = [];
+    let lastBiddedSlot: number = -100;
 
     before(async function() {
         await mcl.init();
@@ -76,6 +77,19 @@ describe("Integration Test", function() {
             blsAccountRegistry.connect(coordinator)
         );
     });
+    beforeEach(async function() {
+        // Remember to bid when a new slot starts
+        if (lastBiddedSlot > 0) {
+            const burnAuction = contracts.chooser as BurnAuction;
+            const newSlot = Number(await burnAuction.currentSlot());
+            if (newSlot + 2 > lastBiddedSlot) {
+                console.log("New slot", newSlot, "bid now");
+                await burnAuction.connect(coordinator).bid({ value: "1" });
+                lastBiddedSlot = newSlot + 2;
+                console.log("can propose at slot", lastBiddedSlot);
+            }
+        }
+    });
     it("Register another token", async function() {
         const { tokenRegistry } = contracts;
         newToken = await new ExampleTokenFactory(coordinator).deploy();
@@ -90,11 +104,22 @@ describe("Integration Test", function() {
     });
     it("Coordinator bid the first auction", async function() {
         const burnAuction = contracts.chooser as BurnAuction;
-        await burnAuction.connect(coordinator).bid({ value: "1" });
+        const genesisBlock = Number(await burnAuction.genesisBlock());
+
+        // mine to slot 0
         await mineBlocks(
             ethers.provider,
-            DELTA_BLOCKS_INITIAL_SLOT + BLOCKS_PER_SLOT
+            genesisBlock - ethers.provider.blockNumber
         );
+        assert.equal(Number(await burnAuction.currentSlot()), 0);
+        // bid slot 2
+        await burnAuction.connect(coordinator).bid({ value: "1" });
+        lastBiddedSlot = 2;
+        // can't propose at slot 0 and 1
+        // mine to slot 1
+        await mineBlocks(ethers.provider, BLOCKS_PER_SLOT);
+        assert.equal(Number(await burnAuction.currentSlot()), 1);
+        // bid slot 3
         await burnAuction.connect(coordinator).bid({ value: "1" });
         await mineBlocks(ethers.provider, BLOCKS_PER_SLOT);
         // Slot 2 is when the auction finalize and the coordinator can propose
@@ -103,6 +128,8 @@ describe("Integration Test", function() {
             const bid = await burnAuction.auction(slot);
             assert.equal(bid.coordinator, await coordinator.getAddress());
         }
+        // Set currentSlot to a positive number, and we remember to bid in beforeEach
+        lastBiddedSlot = 3;
     });
     it("Deposit some users", async function() {
         const { depositManager, rollup } = contracts;
@@ -206,14 +233,12 @@ describe("Integration Test", function() {
         const batchSize = accountRegistry.batchSize;
         // We happen to number of newUsers as a multiple of batchSize, so no need to handle single registration case
         for (const group of newUsers.groupInterator(batchSize)) {
-            console.log("before", group.getPubkeyIDs());
             const firstID = await accountRegistry.registerBatch(
                 group.getPubkeys()
             );
             for (let i = 0; i < batchSize; i++) {
                 group.getUser(i).pubkeyID = firstID + i;
             }
-            console.log("updated", group.getPubkeyIDs());
         }
         const feeReceiverID = 0;
 
@@ -246,7 +271,7 @@ describe("Integration Test", function() {
         const batchID = await getBatchID(rollup);
         stakedBatchIDs.push(batchID);
     }).timeout(40000);
-    it.skip("Exit via mass migration", async function() {
+    it("Exit via mass migration", async function() {
         const { rollup, withdrawManager } = contracts;
         // The spokeID of the withdrawManager preregistered in the deploy script
         const spokeID = 1;
@@ -312,7 +337,7 @@ describe("Integration Test", function() {
             }
         }
     });
-    it.skip("Coordinator withdrew their stack", async function() {
+    it("Coordinator withdrew their stack", async function() {
         const { rollup } = contracts;
         const preBalance = await coordinator.getBalance();
         for (const batchID of stakedBatchIDs) {
