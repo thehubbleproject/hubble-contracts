@@ -82,7 +82,7 @@ contract AccountTree {
         bytes32 leaf = leafs[0];
 
         // Ascend to the root
-        uint256 path = leafIndexRight;
+        uint256 path = leafIndexRight / BATCH_SIZE;
         bool subtreeSet = false;
         for (uint256 i = 0; i < DEPTH - BATCH_DEPTH; i++) {
             if (path & 1 == 1) {
@@ -98,8 +98,8 @@ contract AccountTree {
         }
         rootRight = leaf;
         root = keccak256(abi.encode(rootLeft, rootRight));
-        leafIndexRight += 1;
-        return leafIndexRight - 1;
+        leafIndexRight += BATCH_SIZE;
+        return leafIndexRight - BATCH_SIZE;
     }
 
     function _checkInclusion(

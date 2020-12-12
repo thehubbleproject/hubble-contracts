@@ -42,6 +42,8 @@ describe("Account Tree", async () => {
     it("update with single leaf", async function() {
         for (let i = 0; i < 33; i++) {
             const leaf = randHex(32);
+            const leafIndexLeft = Number(await accountTree.leafIndexLeft());
+            assert.equal(leafIndexLeft, i);
             treeLeft.updateSingle(i, leaf);
             await accountTree.updateSingle(leaf);
             assert.equal(treeLeft.root, await accountTree.rootLeft());
@@ -53,6 +55,8 @@ describe("Account Tree", async () => {
         const batchSize = 1 << BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
             const leafs = randomLeaves(batchSize);
+            const leafIndexRight = Number(await accountTree.leafIndexRight());
+            assert.equal(leafIndexRight, batchSize * k);
             treeRight.updateBatch(batchSize * k, leafs);
             await accountTree.updateBatch(leafs);
             assert.equal(treeRight.root, await accountTree.rootRight());
