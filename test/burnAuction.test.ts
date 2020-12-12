@@ -3,15 +3,11 @@ import { assert, expect } from "chai";
 import { BigNumber, Signer } from "ethers";
 import { formatEther, isAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { toWei } from "../ts/utils";
+import { expectRevert, toWei } from "../ts/utils";
 import { MockRollup } from "../types/ethers-contracts/MockRollup";
 import { MockRollupFactory } from "../types/ethers-contracts/MockRollupFactory";
 import { TestBurnAuction } from "../types/ethers-contracts/TestBurnAuction";
 import { TestBurnAuctionFactory } from "../types/ethers-contracts/TestBurnAuctionFactory";
-
-const {
-    expectRevert // Assertions for transactions that should fail
-} = require("@openzeppelin/test-helpers");
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const donationAddress = "0x00000000000000000000000000000000000000d0";
