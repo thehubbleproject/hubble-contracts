@@ -31,6 +31,8 @@ export class NegativeIndex extends TreeException {}
 // AccountTreeException
 export class RegistrationFail extends AccountTreeException {}
 
+export class WrongBatchSize extends AccountTreeException {}
+
 // StateTreeExceptions
 
 export class ExceedStateTreeSize extends StateTreeExceptions {}

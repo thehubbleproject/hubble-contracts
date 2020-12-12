@@ -2,7 +2,7 @@ import { Tree } from "./tree";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { ethers } from "ethers";
 import { solG2 } from "./mcl";
-import { RegistrationFail } from "./exceptions";
+import { RegistrationFail, WrongBatchSize } from "./exceptions";
 
 // Tree is 32 level depth, the index is still smaller than Number.MAX_SAFE_INTEGER
 export class AccountRegistry {
@@ -44,8 +44,8 @@ export class AccountRegistry {
     public async registerBatch(pubkeys: solG2[]): Promise<number> {
         const length = pubkeys.length;
         if (length != this.batchSize)
-            throw new Error(
-                `Expect batch of ${this.batchSize} pubkeys, got ${length}`
+            throw new WrongBatchSize(
+                `Expect ${this.batchSize} pubkeys, got ${length}`
             );
         const rigthIndex = await this.syncRightIndex();
         await this.registry.registerBatch(pubkeys);
