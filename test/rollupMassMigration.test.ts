@@ -1,9 +1,8 @@
 import { ethers } from "hardhat";
 import { AccountRegistry } from "../ts/accountTree";
 import { Group, txMassMigrationFactory } from "../ts/factory";
-import { State } from "../ts/state";
 import { StateTree } from "../ts/stateTree";
-import { hexToUint8Array, randHex, sum } from "../ts/utils";
+import { hexToUint8Array, randHex } from "../ts/utils";
 import {
     BlsAccountRegistryFactory,
     TestMassMigrationFactory
@@ -14,7 +13,8 @@ import { serialize } from "../ts/tx";
 import { assert } from "chai";
 import { Result } from "../ts/interfaces";
 import { constants } from "ethers";
-import { Tree } from "../ts/tree";
+import { MassMigrationCommitment } from "../ts/commitments";
+import { EMPTY_SIGNATURE } from "../ts/constants";
 
 const DOMAIN = hexToUint8Array(randHex(32));
 const COMMIT_SIZE = 32;
@@ -89,7 +89,7 @@ describe("Rollup Mass Migration", () => {
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
     it("checks state transitions", async function() {
-        const { txs, senders } = txMassMigrationFactory(users, spokeID);
+        const { txs } = txMassMigrationFactory(users, spokeID);
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
@@ -98,21 +98,13 @@ describe("Rollup Mass Migration", () => {
             feeReceiver
         );
         const postStateRoot = stateTree.root;
-
-        const leaves = txs.map((tx, i) =>
-            State.new(senders[i].pubkeyID, tokenID, tx.amount, 0).toStateLeaf()
-        );
-        const withdrawRoot = Tree.merklize(leaves).root;
-        const commitmentBody = {
-            accountRoot: constants.HashZero,
-            signature: [0, 0],
-            spokeID,
-            withdrawRoot,
-            tokenID,
-            amount: sum(txs.map(tx => tx.amount)),
+        const { commitment } = MassMigrationCommitment.fromStateProvider(
+            constants.HashZero,
+            txs,
+            EMPTY_SIGNATURE,
             feeReceiver,
-            txs: serialize(txs)
-        };
+            stateTree
+        );
 
         const {
             0: gasCost,
@@ -121,7 +113,7 @@ describe("Rollup Mass Migration", () => {
         } = await rollup.callStatic.testProcessMassMigrationCommit(
             preStateRoot,
             COMMIT_SIZE,
-            commitmentBody,
+            commitment.toSolStruct().body,
             proofs
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());

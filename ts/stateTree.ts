@@ -3,7 +3,7 @@ import { State, ZERO_STATE } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
-import { sum } from "./utils";
+import { minTreeDepth, sum } from "./utils";
 import {
     ExceedTreeSize,
     InsufficientFund,
@@ -16,6 +16,7 @@ import {
 export interface StateProvider {
     getState(stateID: number): SolStateMerkleProof;
     createState(stateID: number, state: State): void;
+    root: string;
 }
 
 class NullProvider implements StateProvider {
@@ -25,6 +26,11 @@ class NullProvider implements StateProvider {
         );
     }
     createState(stateID: number, state: State) {
+        throw new Error(
+            "This is a NullProvider, please connect to a real provider"
+        );
+    }
+    get root(): string {
         throw new Error(
             "This is a NullProvider, please connect to a real provider"
         );
@@ -140,6 +146,7 @@ export class StateTree implements StateProvider {
         for (const [i, state] of states.entries()) {
             this.createState(firstStateID + i, state);
         }
+        return this;
     }
 
     public get root() {
@@ -355,5 +362,17 @@ export class StateTree implements StateProvider {
         const postState = State.new(pubkeyID, tokenID, balance, 0);
         const proof = this.getProofAndUpdate(createIndex, postState);
         return proof;
+    }
+}
+
+export class MigrationTree extends StateTree {
+    public static fromStates(states: State[]) {
+        const depth = minTreeDepth(states.length);
+        return new this(depth).createStateBulk(0, states);
+    }
+
+    public getWithdrawProof(stateID: number) {
+        const { state, witness } = this.getState(stateID);
+        return { state, witness, path: stateID };
     }
 }

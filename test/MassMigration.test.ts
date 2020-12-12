@@ -3,16 +3,14 @@ import { TESTING_PARAMS } from "../ts/constants";
 import { ethers } from "hardhat";
 import { StateTree } from "../ts/stateTree";
 import { AccountRegistry } from "../ts/accountTree";
-import { State } from "../ts/state";
-import { serialize, TxMassMigration } from "../ts/tx";
+import { TxMassMigration } from "../ts/tx";
 import * as mcl from "../ts/mcl";
 import { allContracts } from "../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { getGenesisProof, MassMigrationCommitment } from "../ts/commitments";
 import { USDT } from "../ts/decimal";
 import { Result } from "../ts/interfaces";
-import { Tree } from "../ts/tree";
-import { hexToUint8Array, mineBlocks, sum } from "../ts/utils";
+import { hexToUint8Array, mineBlocks } from "../ts/utils";
 import { expectRevert } from "../ts/utils";
 import { Group, txMassMigrationFactory } from "../ts/factory";
 
@@ -68,23 +66,12 @@ describe("Mass Migrations", async function() {
             feeReceiver
         );
         const postStateRoot = stateTree.root;
-
-        const leaves = txs.map((tx, i) =>
-            State.new(senders[i].pubkeyID, tokenID, tx.amount, 0).toStateLeaf()
-        );
-
-        const withdrawRoot = Tree.merklize(leaves).root;
-
-        const commitment = MassMigrationCommitment.new(
-            postStateRoot,
+        const { commitment } = MassMigrationCommitment.fromStateProvider(
             registry.root(),
+            txs,
             signature,
-            spokeID,
-            withdrawRoot,
-            tokenID,
-            sum(txs.map(tx => tx.amount)),
             feeReceiver,
-            serialize(txs)
+            stateTree
         );
         const {
             0: processedStateRoot,
@@ -143,29 +130,17 @@ describe("Mass Migrations", async function() {
             aliceState.nonce + 1,
             USDT
         );
-        const leaf = State.new(
-            alice.pubkeyID,
-            tokenID,
-            tx.amount,
-            0
-        ).toStateLeaf();
-        const withdrawTree = Tree.merklize([leaf]);
-        const { safe } = stateTree.processMassMigrationCommit(
-            [tx],
-            feeReceiver
-        );
-        assert.isTrue(safe);
+        stateTree.processMassMigrationCommit([tx], feeReceiver);
 
-        const commitment = MassMigrationCommitment.new(
-            stateTree.root,
+        const {
+            commitment,
+            migrationTree
+        } = MassMigrationCommitment.fromStateProvider(
             registry.root(),
+            [tx],
             alice.sign(tx).sol,
-            tx.spokeID,
-            withdrawTree.root,
-            tokenID,
-            tx.amount,
             feeReceiver,
-            tx.encode()
+            stateTree
         );
 
         const batch = commitment.toBatch();
@@ -193,21 +168,10 @@ describe("Mass Migrations", async function() {
             "Transaction cost: Process Withdraw Commitment",
             receiptProcess.gasUsed.toNumber()
         );
-        const withdrawal = withdrawTree.witness(0);
+        const withdrawProof = migrationTree.getWithdrawProof(0);
         const [, claimer] = await ethers.getSigners();
         const claimerAddress = await claimer.getAddress();
         const signature = alice.signRaw(claimerAddress).sol;
-        const state = {
-            pubkeyID: alice.pubkeyID,
-            tokenID,
-            balance: tx.amount,
-            nonce: 0
-        };
-        const withdrawProof = {
-            state,
-            path: withdrawal.index,
-            witness: withdrawal.nodes
-        };
         async function claim() {
             return withdrawManager
                 .connect(claimer)

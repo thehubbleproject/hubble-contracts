@@ -1,12 +1,6 @@
-import { constants, ethers } from "ethers";
+import { ethers } from "ethers";
 import { BigNumber } from "ethers";
-import {
-    randomBytes,
-    hexlify,
-    hexZeroPad,
-    keccak256,
-    parseEther
-} from "ethers/lib/utils";
+import { randomBytes, hexlify, hexZeroPad, parseEther } from "ethers/lib/utils";
 import { Wei } from "./interfaces";
 import { ContractTransaction } from "ethers";
 import { assert, expect } from "chai";
@@ -55,6 +49,13 @@ export function randomLeaves(num: number): string[] {
         leaves.push(randHex(32));
     }
     return leaves;
+}
+
+// Simulate the tree depth of calling contracts/libs/MerkleTree.sol::MerkleTree.merklise
+// Make the depth as shallow as possible
+// the length 1 is a special case that the formula doesn't work
+export function minTreeDepth(leavesLength: number) {
+    return leavesLength == 1 ? 1 : Math.ceil(Math.log2(leavesLength));
 }
 
 export async function mineBlocks(
