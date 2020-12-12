@@ -155,7 +155,8 @@ export class Tree {
     public insertBatch(offset: number, data: Array<Data>) {
         const len = data.length;
         if (len == 0) throw new EmptyArray();
-        this.checkSetSize(len + offset);
+        const lastIndex = len + offset - 1;
+        this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
             this.tree[this.depth][offset + i] = this.hasher.toLeaf(data[i]);
         }
@@ -166,7 +167,8 @@ export class Tree {
     public updateBatch(offset: number, leaves: Array<Node>) {
         const len = leaves.length;
         if (len == 0) throw new EmptyArray();
-        this.checkSetSize(len + offset);
+        const lastIndex = len + offset - 1;
+        this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
             this.tree[this.depth][offset + i] = leaves[i];
         }
