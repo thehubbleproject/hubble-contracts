@@ -45,7 +45,7 @@ contract BurnAuction is Chooser {
      * Set first block where the slot will begin
      * Initializes auction for first slot
      */
-    constructor(address payable _donationAddress, uint256 donationNumerator)
+    constructor(address payable _donationAddress, uint256 _donationNumerator)
         public
     {
         require(
@@ -55,7 +55,7 @@ contract BurnAuction is Chooser {
 
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
         donationAddress = _donationAddress;
-        donationNumerator = donationNumerator;
+        donationNumerator = _donationNumerator;
     }
 
     /**
@@ -102,7 +102,10 @@ contract BurnAuction is Chooser {
     }
 
     function withdrawDonation() external {
-        require(deposits[donationAddress] == 0, "BurnAuction, withdrawDonation: donation deposit is zero");
+        require(
+            deposits[donationAddress] != 0,
+            "BurnAuction, withdrawDonation: donation deposit is zero"
+        );
         uint256 donationAmount = deposits[donationAddress];
         deposits[donationAddress] = 0;
         donationAddress.transfer(donationAmount);
