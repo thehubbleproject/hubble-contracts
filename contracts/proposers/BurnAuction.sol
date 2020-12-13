@@ -11,7 +11,7 @@ contract BurnAuction is Chooser {
 
     // donation numerator and demoninator are used to calculate donation amount
     uint256 public constant DONATION_DENOMINATOR = 10000;
-    uint256 public DONATION_NUMERATOR;
+    uint256 public donationNumerator;
 
     // Donation address that is fed with portion of burned amount
     address payable public donationAddress;
@@ -55,7 +55,7 @@ contract BurnAuction is Chooser {
 
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
         donationAddress = _donationAddress;
-        DONATION_NUMERATOR = donationNumerator;
+        donationNumerator = donationNumerator;
     }
 
     /**
@@ -80,8 +80,8 @@ contract BurnAuction is Chooser {
         // update donation balance
         updateBalance(
             donationAddress,
-            bidAmount.mul(DONATION_NUMERATOR).div(DONATION_DENOMINATOR),
-            currentBidAmount.mul(DONATION_NUMERATOR).div(DONATION_DENOMINATOR)
+            bidAmount.mul(donationNumerator).div(DONATION_DENOMINATOR),
+            currentBidAmount.mul(donationNumerator).div(DONATION_DENOMINATOR)
         );
         // update coordinator with remaining value
         updateBalance(coordinator, msg.value, bidAmount);
@@ -102,9 +102,10 @@ contract BurnAuction is Chooser {
     }
 
     function withdrawDonation() external {
+        require(deposits[donationAddress] == 0, "");
         uint256 donationAmount = deposits[donationAddress];
-        donationAddress.transfer(donationAmount);
         deposits[donationAddress] = 0;
+        donationAddress.transfer(donationAmount);
     }
 
     function witdraw(uint256 amount) external {
