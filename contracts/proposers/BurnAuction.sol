@@ -6,8 +6,12 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 contract BurnAuction is Chooser {
     using SafeMath for uint256;
 
-    uint32 constant BLOCKS_PER_SLOT = 100;
-    uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
+    uint32 public constant BLOCKS_PER_SLOT = 100;
+    uint32 public constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
+
+    // donation numerator and demoninator are used to calculate donation amount
+    uint256 public constant DONATION_DENOMINATOR = 10000;
+    uint256 public DONATION_NUMERATOR;
 
     // Donation address that is fed with portion of burned amount
     address payable public donationAddress;
@@ -41,9 +45,17 @@ contract BurnAuction is Chooser {
      * Set first block where the slot will begin
      * Initializes auction for first slot
      */
-    constructor(address payable _donationAddress) public {
+    constructor(address payable _donationAddress, uint256 donationNumerator)
+        public
+    {
+        require(
+            donationNumerator <= DONATION_DENOMINATOR,
+            "BurnAuction, constructor: bad denominator"
+        );
+
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
         donationAddress = _donationAddress;
+        DONATION_NUMERATOR = donationNumerator;
     }
 
     /**
@@ -66,7 +78,11 @@ contract BurnAuction is Chooser {
         // refund previous coordinator
         updateBalance(auction[auctionSlot].coordinator, currentBidAmount, 0);
         // update donation balance
-        updateBalance(donationAddress, bidAmount, currentBidAmount);
+        updateBalance(
+            donationAddress,
+            bidAmount.mul(DONATION_NUMERATOR).div(DONATION_DENOMINATOR),
+            currentBidAmount.mul(DONATION_NUMERATOR).div(DONATION_DENOMINATOR)
+        );
         // update coordinator with remaining value
         updateBalance(coordinator, msg.value, bidAmount);
         // set new best bider

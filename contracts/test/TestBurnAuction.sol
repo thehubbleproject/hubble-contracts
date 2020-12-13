@@ -16,9 +16,9 @@ contract MockRollup {
 }
 
 contract TestBurnAuction is BurnAuction {
-    constructor(address payable _donationAddress)
+    constructor(address payable donationAddress, uint256 donationNumerator)
         public
-        BurnAuction(_donationAddress)
+        BurnAuction(donationAddress, donationNumerator)
     {}
 
     uint256 public blockNumber = 0;

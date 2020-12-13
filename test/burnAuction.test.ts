@@ -1,6 +1,6 @@
 // Tests borrowed from https://github.com/iden3/rollup/blob/master/test/contracts/RollupBurnAuction.test.js
 import { assert, expect } from "chai";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, ContractReceipt, Signer, Transaction } from "ethers";
 import { formatEther, isAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
 import { expectRevert, toWei } from "../ts/utils";
@@ -13,9 +13,12 @@ const zeroAddress = "0x0000000000000000000000000000000000000000";
 const donationAddress = "0x00000000000000000000000000000000000000d0";
 const BLOCKS_PER_SLOT = 100;
 const DELTA_BLOCKS_INITIAL_SLOT = 1000;
-const badBidMessage = "Your bid doesn't beat the current best";
+const DONATION_NUMERATOR = 7500;
+const DONATION_DENOMINATOR = 10000;
 
 const badBidLessThanCurrentMessage = "BurnAuction, bid: less then current";
+const withdrawInsufficientmessage =
+    "BurnAuction, withdraw: insufficient deposit amount for withdraw";
 const badBidInsufficienttMessage =
     "BurnAuction, bid: insufficient funds for bidding";
 
@@ -27,17 +30,20 @@ describe("BurnAuction", function() {
     let rollup: MockRollup;
     let signer1: Signer;
     let signer2: Signer;
+    let gasPrice: BigNumber;
 
     before(async () => {
         let signer: Signer;
         [signer, signer1, signer2] = await ethers.getSigners();
 
         burnAuction = await new TestBurnAuctionFactory(signer).deploy(
-            donationAddress
+            donationAddress,
+            DONATION_NUMERATOR
         );
         rollup = await new MockRollupFactory(signer).deploy(
             burnAuction.address
         );
+        gasPrice = await ethers.provider.getGasPrice();
         // mine blocks till the first slot begins
         await mineBlocksTillInitialSlot();
     });
@@ -140,6 +146,18 @@ describe("BurnAuction", function() {
             // Winner can forge as many batches as they like in the slot
             await successForge(signer2);
         });
+        it("slot 2 - withdraw fail", async () => {
+            let amount = await depositAmount(await signer1.getAddress());
+            amount = amount.add("1");
+            await withdrawFail(signer1, amount, withdrawInsufficientmessage);
+        });
+        it("slot 2 - withdraw success", async () => {
+            let amount = await depositAmount(await signer1.getAddress());
+            await withdrawSuccess(signer1, amount);
+        });
+        it("slot 2 - withdraw donation", async () => {
+            await withdrawDonation(signer1);
+        });
     });
 
     async function mineBlocksTillInitialSlot() {
@@ -187,6 +205,19 @@ describe("BurnAuction", function() {
         const oldBidderPrevDeposit = await _burnAuction.deposits(
             prevCoordinator
         );
+        const donationPrevDeposit = await _burnAuction.deposits(
+            donationAddress
+        );
+        let correctDonationPrevDeposit = donationPrevDeposit;
+
+        if (prevBid.initialized) {
+            correctDonationPrevDeposit = BigNumber.from(prevBid.amount)
+                .mul(DONATION_NUMERATOR)
+                .div(DONATION_DENOMINATOR);
+            correctDonationPrevDeposit = donationPrevDeposit.sub(
+                correctDonationPrevDeposit
+            );
+        }
 
         const tx = await _burnAuction.bid(bidAmountWei, { value: valueWei });
         await tx.wait();
@@ -204,6 +235,10 @@ describe("BurnAuction", function() {
             prevCoordinator
         );
 
+        const donationNextDeposit = await _burnAuction.deposits(
+            donationAddress
+        );
+
         expect(event.args?.amount.toString()).to.be.equal(bidAmountWei);
         expect(event.args?.coordinator).to.be.equal(coordinator);
 
@@ -216,6 +251,14 @@ describe("BurnAuction", function() {
         expect(burnAuctionPrevBalance.add(valueWei).toString()).to.be.equal(
             burnAuctionNextBalance.toString()
         );
+
+        const donationAmt = ethers.BigNumber.from(bidAmountWei)
+            .mul(DONATION_NUMERATOR)
+            .div(DONATION_DENOMINATOR);
+
+        expect(
+            correctDonationPrevDeposit?.add(donationAmt).toString()
+        ).to.be.equal(donationNextDeposit.toString());
 
         if (
             prevCoordinator !== coordinator &&
@@ -239,6 +282,63 @@ describe("BurnAuction", function() {
                     .toString()
             ).to.be.equal(newBidderNextDeposit.toString());
         }
+    }
+
+    async function withdrawDonation(signer: Signer) {
+        const _burnAuction = burnAuction.connect(signer);
+        const oldBalance = await ethers.provider.getBalance(donationAddress);
+        const deposit = await depositAmount(donationAddress);
+        await _burnAuction.withdrawDonation();
+        const newBalance = await ethers.provider.getBalance(donationAddress);
+        const mustBeZeroDepoist = await depositAmount(donationAddress);
+
+        expect(oldBalance.add(deposit).toString()).to.be.equal(
+            newBalance.toString()
+        );
+        expect(mustBeZeroDepoist.isZero()).to.be.true;
+    }
+
+    async function withdrawSuccess(signer: Signer, amount: BigNumber) {
+        const _burnAuction = burnAuction.connect(signer);
+        const coordinator = await signer.getAddress();
+        const oldDeposit = await _burnAuction.deposits(coordinator);
+        const oldBalance = await ethers.provider.getBalance(coordinator);
+        const tx = await _burnAuction.witdraw(amount);
+        const receipt = await tx.wait();
+        const fee = calculateFee(receipt);
+        const newDeposit = await _burnAuction.deposits(coordinator);
+        const newBalance = await signer.getBalance();
+        expect(oldDeposit.sub(amount).toString()).to.be.equal(
+            newDeposit.toString()
+        );
+        expect(
+            oldBalance
+                .sub(fee)
+                .add(amount)
+                .toString()
+        ).to.be.equal(newBalance.toString());
+    }
+
+    async function withdrawFail(
+        signer: Signer,
+        amount: BigNumber,
+        withMessage: string
+    ) {
+        const _burnAuction = burnAuction.connect(signer);
+        const coordinator = await signer.getAddress();
+        const oldDeposit = await _burnAuction.deposits(coordinator);
+        await expectRevert(_burnAuction.witdraw(amount), withMessage);
+        const newDeposit = await _burnAuction.deposits(coordinator);
+        expect(oldDeposit.toString()).to.be.equal(newDeposit.toString());
+    }
+
+    function calculateFee(receipt: ContractReceipt): BigNumber {
+        return gasPrice.mul(receipt.gasUsed);
+    }
+
+    async function depositAmount(addr: string): Promise<BigNumber> {
+        let _burnAuction = await burnAuction.deployed();
+        return await _burnAuction.deposits(addr);
     }
 
     async function failBid(
@@ -299,9 +399,5 @@ describe("BurnAuction", function() {
             slot: currentAuctionSlot,
             ...currentAucttion
         };
-    }
-
-    async function getSmartContractBalance() {
-        return Number(formatEther(await getEtherBalance(burnAuction.address)));
     }
 });
