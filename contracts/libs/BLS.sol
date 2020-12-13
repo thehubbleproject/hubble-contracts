@@ -2,6 +2,11 @@ pragma solidity ^0.5.15;
 
 import { ModexpInverse, ModexpSqrt } from "./ModExp.sol";
 
+/**
+    @title  Boneh–Lynn–Shacham (BLS) signature scheme on Barreto-Naehrig 254 bit curve (BN-254)
+    @notice We use BLS signature aggregation to reduce the size of signature data to store on chain.
+    @dev We use G1 points for signatures and messages, and G2 points for public keys
+ */
 library BLS {
     // Field order
     // prettier-ignore
@@ -124,6 +129,9 @@ library BLS {
         return base + pair * pubkeyLen;
     }
 
+    /**
+    @notice Fouque-Tibouchi Hash to Curve
+     */
     function hashToPoint(bytes32 domain, bytes memory message)
         internal
         view
