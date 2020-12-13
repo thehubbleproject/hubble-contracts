@@ -102,7 +102,7 @@ contract BurnAuction is Chooser {
     }
 
     function withdrawDonation() external {
-        require(deposits[donationAddress] == 0, "");
+        require(deposits[donationAddress] == 0, "BurnAuction, withdrawDonation: donation deposit is zero");
         uint256 donationAmount = deposits[donationAddress];
         deposits[donationAddress] = 0;
         donationAddress.transfer(donationAmount);
