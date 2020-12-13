@@ -10,7 +10,8 @@ import {
     ReceiverNotExist,
     SenderNotExist,
     StateAlreadyExist,
-    WrongTokenID
+    WrongTokenID,
+    ZeroAmount
 } from "./exceptions";
 
 export interface StateProvider {
@@ -267,11 +268,11 @@ export class StateTree implements StateProvider {
         tx: TxTransfer,
         tokenID: number
     ): SolStateMerkleProof[] {
-        const decrement = tx.amount.add(tx.fee);
         const senderProof = this.processSender(
             tx.fromIndex,
             tokenID,
-            decrement
+            tx.amount,
+            tx.fee
         );
         const receiverProof = this.processReceiver(
             tx.toIndex,
@@ -285,18 +286,18 @@ export class StateTree implements StateProvider {
         tx: TxMassMigration,
         tokenID: number
     ): SolStateMerkleProof {
-        return this.processSender(tx.fromIndex, tokenID, tx.amount.add(tx.fee));
+        return this.processSender(tx.fromIndex, tokenID, tx.amount, tx.fee);
     }
 
     public processCreate2Transfer(
         tx: TxCreate2Transfer,
         tokenID: number
     ): SolStateMerkleProof[] {
-        const decrement = tx.amount.add(tx.fee);
         const senderProof = this.processSender(
             tx.fromIndex,
             tokenID,
-            decrement
+            tx.amount,
+            tx.fee
         );
         const receiverProof = this.processCreate(
             tx.toIndex,
@@ -318,10 +319,13 @@ export class StateTree implements StateProvider {
     public processSender(
         senderIndex: number,
         tokenID: number,
-        decrement: BigNumber
+        amount: BigNumber,
+        fee: BigNumber
     ): SolStateMerkleProof {
         const state = this.states[senderIndex];
         if (!state) throw new SenderNotExist(`stateID: ${senderIndex}`);
+        if (amount.isZero()) throw new ZeroAmount();
+        const decrement = amount.add(fee);
         if (state.balance.lt(decrement))
             throw new InsufficientFund(
                 `balance: ${state.balance}, tx amount+fee: ${decrement}`
