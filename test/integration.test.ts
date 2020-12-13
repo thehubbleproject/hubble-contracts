@@ -316,34 +316,39 @@ describe("Integration Test", function() {
             );
         }
 
+        // We sample only one user from each commitment to withdraw
         // Let all users share same withdrawerAddress
         const withdrawerAddress = await withdrawer.getAddress();
         for (let i = 0; i < numCommits; i++) {
+            const preBalance = await newToken.balanceOf(withdrawerAddress);
             const group = allUserGroups[i];
             const tree = migrationTrees[i];
-            for (let j = 0; j < group.size; j++) {
-                const user = group.getUser(i);
-                const signature = user.signRaw(withdrawerAddress).sol;
-                const withdrawProof = tree.getWithdrawProof(j);
-                await withdrawManager
-                    .connect(withdrawer)
-                    .claimTokens(
-                        tree.root,
-                        withdrawProof,
-                        user.pubkey,
-                        signature,
-                        accountRegistry.witness(user.pubkeyID)
-                    );
-            }
+            const { user, index } = group.pickRandom();
+            const signature = user.signRaw(withdrawerAddress).sol;
+            // The new stateID in the migration tree is the position user in the group
+            const withdrawProof = tree.getWithdrawProof(index);
+            await withdrawManager
+                .connect(withdrawer)
+                .claimTokens(
+                    tree.root,
+                    withdrawProof,
+                    user.pubkey,
+                    signature,
+                    accountRegistry.witness(user.pubkeyID)
+                );
+            const postBalance = await newToken.balanceOf(withdrawerAddress);
+            assert.equal(
+                postBalance.sub(preBalance).toString(),
+                withdrawProof.state.balance.toString()
+            );
         }
-    });
-    it("Coordinator withdrew their stack", async function() {
+    }).timeout(80000);
+    it("Coordinator withdrew their stake", async function() {
         const { rollup } = contracts;
-        const preBalance = await coordinator.getBalance();
         for (const batchID of stakedBatchIDs) {
+            const preBalance = await coordinator.getBalance();
             const tx = await rollup.connect(coordinator).withdrawStake(batchID);
-            const receipt = await tx.wait();
-            const txFee = receipt.gasUsed.mul(tx.gasPrice);
+            const txFee = (await tx.wait()).gasUsed.mul(tx.gasPrice);
             const postBalance = await coordinator.getBalance();
             assert.equal(
                 postBalance

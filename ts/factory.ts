@@ -103,6 +103,11 @@ export class Group {
             }
         }
     }
+    public pickRandom(): { user: User; index: number } {
+        const index = Math.floor(Math.random() * this.users.length);
+        const user = this.users[index];
+        return { user, index };
+    }
     public join(other: Group) {
         const allUsers = [];
         for (const user of this.userIterator()) {
