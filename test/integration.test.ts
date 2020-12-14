@@ -3,11 +3,7 @@ import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import { AccountRegistry } from "../ts/accountTree";
 import { allContracts } from "../ts/allContractsInterfaces";
-import {
-    BLOCKS_PER_SLOT,
-    DELTA_BLOCKS_INITIAL_SLOT,
-    PRODUCTION_PARAMS
-} from "../ts/constants";
+import { BLOCKS_PER_SLOT, PRODUCTION_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import {
     Group,
@@ -84,7 +80,7 @@ describe("Integration Test", function() {
             const newSlot = Number(await burnAuction.currentSlot());
             if (newSlot + 2 > lastBiddedSlot) {
                 console.log("New slot", newSlot, "bid now");
-                await burnAuction.connect(coordinator).bid({ value: "1" });
+                await burnAuction.connect(coordinator).bid("1", { value: "1" });
                 lastBiddedSlot = newSlot + 2;
                 console.log("can propose at slot", lastBiddedSlot);
             }
@@ -113,14 +109,14 @@ describe("Integration Test", function() {
         );
         assert.equal(Number(await burnAuction.currentSlot()), 0);
         // bid slot 2
-        await burnAuction.connect(coordinator).bid({ value: "1" });
+        await burnAuction.connect(coordinator).bid("1", { value: "1" });
         lastBiddedSlot = 2;
         // can't propose at slot 0 and 1
         // mine to slot 1
         await mineBlocks(ethers.provider, BLOCKS_PER_SLOT);
         assert.equal(Number(await burnAuction.currentSlot()), 1);
         // bid slot 3
-        await burnAuction.connect(coordinator).bid({ value: "1" });
+        await burnAuction.connect(coordinator).bid("1", { value: "1" });
         await mineBlocks(ethers.provider, BLOCKS_PER_SLOT);
         // Slot 2 is when the auction finalize and the coordinator can propose
         assert.equal(Number(await burnAuction.currentSlot()), 2);
@@ -342,7 +338,7 @@ describe("Integration Test", function() {
                 withdrawProof.state.balance.toString()
             );
         }
-    }).timeout(80000);
+    }).timeout(240000);
     it("Coordinator withdrew their stake", async function() {
         const { rollup } = contracts;
         for (const batchID of stakedBatchIDs) {

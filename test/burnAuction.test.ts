@@ -1,7 +1,6 @@
 // Tests borrowed from https://github.com/iden3/rollup/blob/master/test/contracts/RollupBurnAuction.test.js
 import { assert, expect } from "chai";
-import { BigNumber, ContractReceipt, Signer, Transaction } from "ethers";
-import { formatEther, isAddress } from "ethers/lib/utils";
+import { BigNumber, ContractReceipt, Signer } from "ethers";
 import { ethers } from "hardhat";
 import { expectRevert, toWei } from "../ts/utils";
 import { MockRollup } from "../types/ethers-contracts/MockRollup";
@@ -12,8 +11,6 @@ import { BLOCKS_PER_SLOT, DELTA_BLOCKS_INITIAL_SLOT } from "../ts/constants";
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
 const donationAddress = "0x00000000000000000000000000000000000000d0";
-const BLOCKS_PER_SLOT = 100;
-const DELTA_BLOCKS_INITIAL_SLOT = 1000;
 const DONATION_NUMERATOR = 7500;
 const DONATION_DENOMINATOR = 10000;
 
