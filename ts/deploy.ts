@@ -89,7 +89,10 @@ export async function deployAll(
     // deploy a chooser
     let chooser: ProofOfBurn | BurnAuction;
     if (parameters.USE_BURN_AUCTION) {
-        chooser = await new BurnAuctionFactory(signer).deploy();
+        chooser = await new BurnAuctionFactory(signer).deploy(
+            parameters.DONATION_ADDRESS,
+            parameters.DONATION_NUMERATOR
+        );
     } else {
         chooser = await new ProofOfBurnFactory(signer).deploy();
     }

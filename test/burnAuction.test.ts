@@ -1,18 +1,27 @@
 // Tests borrowed from https://github.com/iden3/rollup/blob/master/test/contracts/RollupBurnAuction.test.js
 import { assert, expect } from "chai";
-import { BigNumber, Signer } from "ethers";
-import { formatEther } from "ethers/lib/utils";
+import { BigNumber, ContractReceipt, Signer, Transaction } from "ethers";
+import { formatEther, isAddress } from "ethers/lib/utils";
 import { ethers } from "hardhat";
-import { toWei } from "../ts/utils";
+import { expectRevert, toWei } from "../ts/utils";
 import { MockRollup } from "../types/ethers-contracts/MockRollup";
 import { MockRollupFactory } from "../types/ethers-contracts/MockRollupFactory";
 import { TestBurnAuction } from "../types/ethers-contracts/TestBurnAuction";
 import { TestBurnAuctionFactory } from "../types/ethers-contracts/TestBurnAuctionFactory";
 
-const defaultAddress = "0x0000000000000000000000000000000000000000";
+const zeroAddress = "0x0000000000000000000000000000000000000000";
+const donationAddress = "0x00000000000000000000000000000000000000d0";
 const BLOCKS_PER_SLOT = 100;
 const DELTA_BLOCKS_INITIAL_SLOT = 1000;
-const badBidMessage = "Your bid doesn't beat the current best";
+const DONATION_NUMERATOR = 7500;
+const DONATION_DENOMINATOR = 10000;
+
+const badBidLessThanCurrentMessage = "BurnAuction, bid: less then current";
+const withdrawInsufficientmessage =
+    "BurnAuction, withdraw: insufficient deposit amount for withdraw";
+const badBidInsufficienttMessage =
+    "BurnAuction, bid: insufficient funds for bidding";
+
 const badForgeMessage = "Invalid proposer";
 const uninitializedAuctionMessage = "Auction has not been initialized";
 
@@ -21,82 +30,112 @@ describe("BurnAuction", function() {
     let rollup: MockRollup;
     let signer1: Signer;
     let signer2: Signer;
+    let gasPrice: BigNumber;
 
     before(async () => {
         let signer: Signer;
         [signer, signer1, signer2] = await ethers.getSigners();
-        burnAuction = await new TestBurnAuctionFactory(signer).deploy();
+
+        burnAuction = await new TestBurnAuctionFactory(signer).deploy(
+            donationAddress,
+            DONATION_NUMERATOR
+        );
         rollup = await new MockRollupFactory(signer).deploy(
             burnAuction.address
         );
+        gasPrice = await ethers.provider.getGasPrice();
         // mine blocks till the first slot begins
         await mineBlocksTillInitialSlot();
     });
 
     describe("Rollup Burn Auction: functional test - One entire auction process step by step, then multiple auctions with lots of bids", () => {
-        it("slot 0 - Fails bidding on empty auction (slot 2, no account, no amount)", async () => {
-            try {
-                await burnAuction.bid();
-                assert.fail("This shouldnt have been executed");
-            } catch (error) {
-                expect(error.message).to.include(badBidMessage);
-            }
-        });
-
         it("slot 0 - Fails forging an uninitialized auction", async () => {
             await failForge(signer1, uninitializedAuctionMessage);
         });
-
-        it("slot 0 - Fails bidding on empty auction (slot 2, account 0, amount ==  0)", async () =>
-            await failBid(signer1, "0"));
-
-        it("slot 0 - Successfully bids on empty auction (slot 2, account 0, amount > 0)", async () =>
-            await successBid(signer1, "2"));
-
-        it("slot 0 - Fails bidding on initialized auction (slot 2, account 1, amount <  best bid amount)", async () =>
-            await failBid(signer2, "1.999999999"));
-
-        it("slot 0 - Fails bidding on initialized auction (slot 2, account 1, amount ==  best bid amount)", async () =>
-            await failBid(signer2, "2"));
-
-        it("slot 0 - Successfully bids on initialized auction (slot 2, account 1, amount >  best bid amount). This action causes a refund", async () =>
-            await successBid(signer2, "2.0000001"));
-
-        it("slot 0 => 1 - Moves to the next slot when BLOCKS_PER_SLOT blocks are mined", async () => {
-            await mineBlocksTillNextSlot();
-            // check winner of first auction (@ slot 2)
+        it("slot 0 - Fails bidding on empty auction (slot 2, account 0, amount ==  0)", async () => {
+            await failBid(signer1, "0", "0", badBidLessThanCurrentMessage);
+        });
+        it("slot 0 - Fails bidding on empty auction (slot 2, account 0, amount ==  0)", async () => {
+            await failBid(signer1, "1", "0", badBidInsufficienttMessage);
+        });
+        it("slot 0 - Successfully bids on empty auction (slot 2, account 0, amount > 0)", async () => {
+            const bidAmount = "2";
+            const value = "5";
+            await successBid(signer1, bidAmount, value);
+        });
+        it("slot 0 - Fails bidding on initialized auction (slot 2, account 1, less than current)", async () => {
+            const bidAmount = "1.999999999";
+            const value = "1.999999999";
+            await failBid(
+                signer2,
+                bidAmount,
+                value,
+                badBidLessThanCurrentMessage
+            );
+        });
+        it("slot 0 - Fails bidding on initialized auction (slot 2, account 1, equal to current)", async () => {
+            const bidAmount = "2";
+            const value = "2";
+            await failBid(
+                signer2,
+                bidAmount,
+                value,
+                badBidLessThanCurrentMessage
+            );
+        });
+        it("slot 0 - Successfully bids on empty auction (slot 2, account 0, raise bid)", async () => {
+            const bidAmount = "3";
+            const value = "0";
+            await successBid(signer1, bidAmount, value);
+        });
+        it("slot 0 - Fails bidding on initialized auction (slot 2, account 1, insufficient)", async () => {
+            const bidAmount = "4";
+            const value = "0";
+            await failBid(
+                signer2,
+                bidAmount,
+                value,
+                badBidInsufficienttMessage
+            );
+        });
+        it("slot 0 - Successfully bids on empty auction (slot 2, account 0, take over)", async () => {
+            const bidAmount = "4";
+            const value = "4";
+            await successBid(signer2, bidAmount, value);
             const slot = await getAuction(2);
             expect(slot).to.eql({
                 coordinator: await signer2.getAddress(),
-                amount: "2000000100000000000",
+                amount: toWei(bidAmount),
                 initialized: true
             });
-            expect(await getSmartContractBalance()).to.be.equal(2.0000001);
         });
 
-        it("slot 1 - Fails bidding on next auction (slot 3, account 0, amount ==  0)", async () =>
-            await failBid(signer1, "0"));
-
-        it("slot 1 - Successfully bids on next auction (slot 3, account 0, amount > 0).", async () =>
-            await successBid(signer1, "1"));
-
-        it("slot 1 => 2 - Moves to the next slot when BLOCKS_PER_SLOT blocks are mined", async () => {
+        it("slot 1 - Fails bidding on next auction (slot 3, account 0, amount ==  0)", async () => {
             await mineBlocksTillNextSlot();
-            // Check first forger and second winner
-            const slots = [await getAuction(2), await getAuction(3)];
-            expect(slots).to.eql([
-                {
-                    coordinator: await signer2.getAddress(),
-                    amount: "2000000100000000000",
-                    initialized: true
-                },
-                {
-                    coordinator: await signer1.getAddress(),
-                    amount: "1000000000000000000",
-                    initialized: true
-                }
-            ]);
-            expect(await getSmartContractBalance()).to.be.equal(3.0000001);
+            assert.equal(1, await getSlot());
+            await failBid(signer1, "0", "0", badBidLessThanCurrentMessage);
+        });
+
+        it("slot 1 - Successfully bids on next auction (slot 3, account 0, amount > 0).", async () => {
+            await successBid(signer1, "1", "0");
+            let slot = await getAuction(2);
+            expect(slot).to.eql({
+                coordinator: await signer2.getAddress(),
+                amount: toWei("4"),
+                initialized: true
+            });
+            slot = await getAuction(3);
+            expect(slot).to.eql({
+                coordinator: await signer1.getAddress(),
+                amount: toWei("1"),
+                initialized: true
+            });
+        });
+
+        it("slot 2 - Fails Forging batch (unauthorized coordinator)", async () => {
+            await mineBlocksTillNextSlot();
+            assert.equal(2, await getSlot());
+            await failForge(signer1, badForgeMessage);
         });
 
         it("slot 2 - Fails Forging batch (unauthorized coordinator)", async () =>
@@ -107,69 +146,17 @@ describe("BurnAuction", function() {
             // Winner can forge as many batches as they like in the slot
             await successForge(signer2);
         });
-
-        it("slot 2 - Bids nBids times on the current auction (slot 4), forward 2 slots and check status. Note that there will be a slot that wont receive bids", async () => {
-            // Do nBids
-            const nBids = 20;
-            let bestBid = {
-                amount: 0,
-                addr: ""
-            };
-            const signers = await ethers.getSigners();
-            // small number of participants to increase probability of same bidder beating his own bid
-            const nParticipants = signers.length < 3 ? signers.length : 3;
-            for (let i = 0; i < nBids; i++) {
-                // choose a random bidder
-                const signer =
-                    signers[Math.floor(Math.random() * nParticipants)];
-                // alternate between succesfull and unsuccesfull bid
-                const amount =
-                    i % 2
-                        ? Math.floor((bestBid.amount + 0.000001) * 100000000) /
-                          100000000
-                        : bestBid.amount;
-                if (amount > bestBid.amount) {
-                    await successBid(signer, `${amount}`);
-                    bestBid = { amount, addr: signer.address };
-                } else await failBid(signer, `${amount}`);
-            }
-
-            // Forward two slots
-            await mineBlocksTillNextSlot();
-            await mineBlocksTillNextSlot();
-            // Extra bid just for fun
-            await successBid(signer1, "0.0000001");
-
-            // Get auction status
-            const slots = [
-                await getAuction(4),
-                await getAuction(5),
-                await getAuction(6)
-            ];
-
-            const bestBidAmount = toWei(`${bestBid.amount}`);
-
-            // Check results
-            expect(slots).to.eql([
-                {
-                    coordinator: bestBid.addr,
-                    amount: bestBidAmount.toString(),
-                    initialized: true
-                },
-                {
-                    coordinator: defaultAddress,
-                    amount: "0",
-                    initialized: false
-                },
-                {
-                    coordinator: await signer1.getAddress(),
-                    amount: "100000000000",
-                    initialized: true
-                }
-            ]);
-            expect((await getSmartContractBalance()).toFixed(5)).to.be.equal(
-                (3.0000002 + bestBid.amount).toFixed(5)
-            );
+        it("slot 2 - withdraw fail", async () => {
+            let amount = await depositAmount(await signer1.getAddress());
+            amount = amount.add("1");
+            await withdrawFail(signer1, amount, withdrawInsufficientmessage);
+        });
+        it("slot 2 - withdraw success", async () => {
+            let amount = await depositAmount(await signer1.getAddress());
+            await withdrawSuccess(signer1, amount);
+        });
+        it("slot 2 - withdraw donation", async () => {
+            await withdrawDonation(signer1);
         });
     });
 
@@ -197,83 +184,187 @@ describe("BurnAuction", function() {
         expect(nextSlot - currentSlot).to.equal(1);
     }
 
-    async function successBid(signer: Signer, bid: string) {
-        // Get status before new bid
-        const bidWei = toWei(bid);
-        const newBidderPrevBalance = await signer.getBalance();
-        const prevBestBid = await getCurrentAuction();
-        const oldBidderPrevBalnce = await getEtherBalance(
-            prevBestBid.coordinator
-        );
+    async function successBid(
+        signer: Signer,
+        bidAmount: string,
+        value: string
+    ) {
+        const bidAmountWei = toWei(bidAmount);
+        const valueWei = toWei(value);
 
-        // Bid and get updated balance
-        const tx = await burnAuction.connect(signer).bid({ value: bidWei });
-        const receipt = await tx.wait();
+        const _burnAuction = burnAuction.connect(signer);
+        const coordinator = await signer.getAddress();
+        const prevBid = await getCurrentAuction();
+        const prevBidAmountWei = prevBid.amount;
+        const prevCoordinator = prevBid.coordinator;
+
+        const burnAuctionPrevBalance = await getEtherBalance(
+            _burnAuction.address
+        );
+        const newBidderPrevDeposit = await _burnAuction.deposits(coordinator);
+        const oldBidderPrevDeposit = await _burnAuction.deposits(
+            prevCoordinator
+        );
+        const donationPrevDeposit = await _burnAuction.deposits(
+            donationAddress
+        );
+        let correctDonationPrevDeposit = donationPrevDeposit;
+
+        if (prevBid.initialized) {
+            correctDonationPrevDeposit = BigNumber.from(prevBid.amount)
+                .mul(DONATION_NUMERATOR)
+                .div(DONATION_DENOMINATOR);
+            correctDonationPrevDeposit = donationPrevDeposit.sub(
+                correctDonationPrevDeposit
+            );
+        }
+
+        const tx = await _burnAuction.bid(bidAmountWei, { value: valueWei });
+        await tx.wait();
 
         const [event] = await burnAuction.queryFilter(
             burnAuction.filters.NewBestBid(null, null, null),
             tx.blockHash
         );
 
-        const paidInGas = receipt.gasUsed.mul(
-            await ethers.provider.getGasPrice()
+        const burnAuctionNextBalance = await getEtherBalance(
+            _burnAuction.address
         );
-        const newBidderNxtBalance = await signer.getBalance();
-        const oldBidderNxtBalance = await getEtherBalance(
-            prevBestBid.coordinator
+        const newBidderNextDeposit = await _burnAuction.deposits(coordinator);
+        const oldBidderNextDeposit = await _burnAuction.deposits(
+            prevCoordinator
         );
 
-        expect(event.args?.amount.toString()).to.be.equal(bidWei.toString());
+        const donationNextDeposit = await _burnAuction.deposits(
+            donationAddress
+        );
 
-        // If the previous bidder and the current bidder are the same
-        if ((await signer.getAddress()) === prevBestBid.coordinator) {
-            // Ignore address 0
-            if (prevBestBid.coordinator !== defaultAddress) {
-                let prevBid = "0";
-                // if the previous auction and the current auction are the same (same slot) (refund situation)
-                if (prevBestBid.slot == event.args?.slot)
-                    prevBid = prevBestBid.amount;
-                const diff = newBidderNxtBalance.sub(
-                    newBidderPrevBalance
-                        .sub(toWei(bid))
-                        .sub(paidInGas)
-                        .add(prevBid)
-                );
-                expect(diff.toNumber()).to.be.equal(0);
-            }
-        }
-        // If the previous bidder and the current bidder are NOT the same
-        else {
-            const diff = newBidderNxtBalance.sub(
-                newBidderPrevBalance.sub(toWei(bid)).sub(paidInGas)
-            );
-            expect(diff.toNumber()).to.be.equal(0);
-            // if the previous auction and the current auction are the same (same slot ==> refund) + Ignore address 0
-            if (
-                prevBestBid.slot == event.args?.slot &&
-                prevBestBid.coordinator !== defaultAddress
-            ) {
-                const prevBid = prevBestBid.amount;
-                expect(
-                    oldBidderPrevBalnce
-                        .add(prevBid)
-                        .sub(oldBidderNxtBalance)
-                        .toNumber()
-                ).to.be.equal(0);
-            }
+        expect(event.args?.amount.toString()).to.be.equal(bidAmountWei);
+        expect(event.args?.coordinator).to.be.equal(coordinator);
+
+        const bestBid = await getCurrentAuction();
+        expect(bestBid.initialized).to.be.equal(true);
+        expect(bestBid.coordinator).to.be.equal(coordinator);
+
+        expect(bestBid.amount.toString()).to.be.equal(bidAmountWei);
+
+        expect(burnAuctionPrevBalance.add(valueWei).toString()).to.be.equal(
+            burnAuctionNextBalance.toString()
+        );
+
+        const donationAmt = ethers.BigNumber.from(bidAmountWei)
+            .mul(DONATION_NUMERATOR)
+            .div(DONATION_DENOMINATOR);
+
+        expect(
+            correctDonationPrevDeposit?.add(donationAmt).toString()
+        ).to.be.equal(donationNextDeposit.toString());
+
+        if (
+            prevCoordinator !== coordinator &&
+            prevCoordinator !== zeroAddress
+        ) {
+            expect(
+                oldBidderPrevDeposit.add(prevBidAmountWei).toString()
+            ).to.be.equal(oldBidderNextDeposit.toString());
+            expect(
+                newBidderPrevDeposit
+                    .add(valueWei)
+                    .sub(bidAmountWei)
+                    .toString()
+            ).to.be.equal(newBidderNextDeposit.toString());
+        } else {
+            expect(
+                newBidderPrevDeposit
+                    .add(prevBidAmountWei)
+                    .add(valueWei)
+                    .sub(bidAmountWei)
+                    .toString()
+            ).to.be.equal(newBidderNextDeposit.toString());
         }
     }
 
-    async function failBid(signer: Signer, bid: string) {
+    async function withdrawDonation(signer: Signer) {
+        const _burnAuction = burnAuction.connect(signer);
+        const oldBalance = await ethers.provider.getBalance(donationAddress);
+        const deposit = await depositAmount(donationAddress);
+        await _burnAuction.withdrawDonation();
+        const newBalance = await ethers.provider.getBalance(donationAddress);
+        const mustBeZeroDepoist = await depositAmount(donationAddress);
+
+        expect(oldBalance.add(deposit).toString()).to.be.equal(
+            newBalance.toString()
+        );
+        expect(mustBeZeroDepoist.isZero()).to.be.true;
+    }
+
+    async function withdrawSuccess(signer: Signer, amount: BigNumber) {
+        const _burnAuction = burnAuction.connect(signer);
+        const coordinator = await signer.getAddress();
+        const oldDeposit = await _burnAuction.deposits(coordinator);
+        const oldBalance = await ethers.provider.getBalance(coordinator);
+        const tx = await _burnAuction.witdraw(amount);
+        const receipt = await tx.wait();
+        const fee = calculateFee(receipt);
+        const newDeposit = await _burnAuction.deposits(coordinator);
+        const newBalance = await signer.getBalance();
+        expect(oldDeposit.sub(amount).toString()).to.be.equal(
+            newDeposit.toString()
+        );
+        expect(
+            oldBalance
+                .sub(fee)
+                .add(amount)
+                .toString()
+        ).to.be.equal(newBalance.toString());
+    }
+
+    async function withdrawFail(
+        signer: Signer,
+        amount: BigNumber,
+        withMessage: string
+    ) {
+        const _burnAuction = burnAuction.connect(signer);
+        const coordinator = await signer.getAddress();
+        const oldDeposit = await _burnAuction.deposits(coordinator);
+        await expectRevert(_burnAuction.witdraw(amount), withMessage);
+        const newDeposit = await _burnAuction.deposits(coordinator);
+        expect(oldDeposit.toString()).to.be.equal(newDeposit.toString());
+    }
+
+    function calculateFee(receipt: ContractReceipt): BigNumber {
+        return gasPrice.mul(receipt.gasUsed);
+    }
+
+    async function depositAmount(addr: string): Promise<BigNumber> {
+        let _burnAuction = await burnAuction.deployed();
+        return await _burnAuction.deposits(addr);
+    }
+
+    async function failBid(
+        signer: Signer,
+        bidAmount: string,
+        value: string,
+        withMessage: string
+    ) {
+        const _burnAuction = burnAuction.connect(signer);
         const oldBalance = await signer.getBalance();
-        try {
-            await burnAuction.connect(signer).bid({ value: toWei(bid) });
-            assert.fail("This shouldnt have been executed");
-        } catch (error) {
-            expect(error.message).to.include(badBidMessage);
-            const newBalance = await signer.getBalance();
-            expect(oldBalance.toString()).to.equal(newBalance.toString());
-        }
+        const oldDeposit = await _burnAuction.deposits(
+            await signer.getAddress()
+        );
+
+        await expectRevert(
+            _burnAuction.bid(toWei(bidAmount), { value: toWei(value) }),
+            withMessage
+        );
+
+        const newBalance = await signer.getBalance();
+        const newDeposit = await _burnAuction.deposits(
+            await signer.getAddress()
+        );
+
+        expect(oldDeposit.toString()).to.equal(newDeposit.toString());
+        expect(oldBalance.toString()).to.equal(newBalance.toString());
     }
 
     async function successForge(signer: Signer) {
@@ -281,12 +372,7 @@ describe("BurnAuction", function() {
     }
 
     async function failForge(signer: Signer, failMessage: string) {
-        try {
-            await rollup.connect(signer).submitBatch();
-            assert.fail("This shouldnt have been executed");
-        } catch (error) {
-            expect(error.message).to.include(failMessage);
-        }
+        await expectRevert(rollup.connect(signer).submitBatch(), failMessage);
     }
 
     async function getEtherBalance(address: string): Promise<BigNumber> {
@@ -313,9 +399,5 @@ describe("BurnAuction", function() {
             slot: currentAuctionSlot,
             ...currentAucttion
         };
-    }
-
-    async function getSmartContractBalance() {
-        return Number(formatEther(await getEtherBalance(burnAuction.address)));
     }
 });

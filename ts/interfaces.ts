@@ -9,6 +9,9 @@ export interface DeploymentParameters {
     MAX_TXS_PER_COMMIT: number;
     USE_BURN_AUCTION: boolean;
     GENESIS_STATE_ROOT?: string;
+
+    DONATION_ADDRESS: string;
+    DONATION_NUMERATOR: number;
 }
 
 export enum Usage {

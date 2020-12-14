@@ -1,10 +1,20 @@
 // Modified from https://github.com/iden3/rollup/blob/master/contracts/RollupBurnAuction.sol
 pragma solidity ^0.5.15;
 import { Chooser } from "./Chooser.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract BurnAuction is Chooser {
-    uint32 constant BLOCKS_PER_SLOT = 100;
-    uint32 constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
+    using SafeMath for uint256;
+
+    uint32 public constant BLOCKS_PER_SLOT = 100;
+    uint32 public constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
+
+    // donation numerator and demoninator are used to calculate donation amount
+    uint256 public constant DONATION_DENOMINATOR = 10000;
+    uint256 public donationNumerator;
+
+    // Donation address that is fed with portion of burned amount
+    address payable public donationAddress;
 
     // First block where the first slot begins
     uint256 public genesisBlock;
@@ -22,39 +32,64 @@ contract BurnAuction is Chooser {
     // auction is a relation of the best bid for each slot
     mapping(uint32 => Bid) public auction;
 
+    // deposits is current balances of coordinators that can used for next bids
+    mapping(address => uint256) public deposits;
+
     /**
      * @dev Event called when an coordinator beat the bestBid of the ongoing auction
      */
-    event NewBestBid(uint32 slot, address coordinator, uint128 amount);
+    event NewBestBid(uint32 slot, address coordinator, uint256 amount);
 
     /**
      * @dev RollupBurnAuction constructor
      * Set first block where the slot will begin
      * Initializes auction for first slot
      */
-    constructor() public {
+    constructor(address payable _donationAddress, uint256 _donationNumerator)
+        public
+    {
+        require(
+            donationNumerator <= DONATION_DENOMINATOR,
+            "BurnAuction, constructor: bad denominator"
+        );
+
         genesisBlock = getBlockNumber() + DELTA_BLOCKS_INITIAL_SLOT;
+        donationAddress = _donationAddress;
+        donationNumerator = _donationNumerator;
     }
 
     /**
      * @dev Receive a bid from an coordinator. If the bid is higher than the current bid it replace the existing bid
      */
-    function bid() external payable {
+    function bid(uint256 bidAmount) external payable {
         uint32 auctionSlot = currentSlot() + 2;
+        // if not initialized it must be 0
+        uint256 currentBidAmount = auction[auctionSlot].amount;
         require(
-            msg.value > auction[auctionSlot].amount,
-            "Your bid doesn't beat the current best"
+            bidAmount > currentBidAmount,
+            "BurnAuction, bid: less then current"
         );
-        // refund, check 0 case (it means no bids yet for the auction, so no refund)
-        if (auction[auctionSlot].initialized && auction[auctionSlot].amount > 0)
-            auction[auctionSlot].coordinator.transfer(
-                auction[auctionSlot].amount
-            );
+        address coordinator = msg.sender;
+        require(
+            deposits[coordinator] + msg.value >= bidAmount,
+            "BurnAuction, bid: insufficient funds for bidding"
+        );
+        // update balances
+        // refund previous coordinator
+        updateBalance(auction[auctionSlot].coordinator, currentBidAmount, 0);
+        // update donation balance
+        updateBalance(
+            donationAddress,
+            bidAmount.mul(donationNumerator).div(DONATION_DENOMINATOR),
+            currentBidAmount.mul(donationNumerator).div(DONATION_DENOMINATOR)
+        );
+        // update coordinator with remaining value
+        updateBalance(coordinator, msg.value, bidAmount);
         // set new best bider
         auction[auctionSlot].coordinator = msg.sender;
-        auction[auctionSlot].amount = uint128(msg.value);
+        auction[auctionSlot].amount = uint128(bidAmount);
         auction[auctionSlot].initialized = true;
-        emit NewBestBid(auctionSlot, msg.sender, uint128(msg.value));
+        emit NewBestBid(auctionSlot, coordinator, bidAmount);
     }
 
     function getProposer() external view returns (address) {
@@ -64,6 +99,26 @@ contract BurnAuction is Chooser {
             "Auction has not been initialized"
         );
         return auction[_currentSlot].coordinator;
+    }
+
+    function withdrawDonation() external {
+        require(
+            deposits[donationAddress] != 0,
+            "BurnAuction, withdrawDonation: donation deposit is zero"
+        );
+        uint256 donationAmount = deposits[donationAddress];
+        deposits[donationAddress] = 0;
+        donationAddress.transfer(donationAmount);
+    }
+
+    function witdraw(uint256 amount) external {
+        address payable claimer = msg.sender;
+        require(
+            deposits[claimer] >= amount,
+            "BurnAuction, withdraw: insufficient deposit amount for withdraw"
+        );
+        updateBalance(claimer, 0, amount);
+        claimer.transfer(amount);
     }
 
     /**
@@ -90,5 +145,16 @@ contract BurnAuction is Chooser {
      */
     function getBlockNumber() public view returns (uint256) {
         return block.number;
+    }
+
+    function updateBalance(
+        address addr,
+        uint256 incr,
+        uint256 decr
+    ) internal {
+        if (addr != address(0)) {
+            deposits[addr] = deposits[addr].add(incr);
+            deposits[addr] = deposits[addr].sub(decr);
+        }
     }
 }
