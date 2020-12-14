@@ -174,18 +174,23 @@ export function txTransferFactory(
     const txs: TxTransfer[] = [];
     const signatures = [];
     const senders = [];
+    const seenNonce: { [stateID: number]: number } = {};
     for (let i = 0; i < n; i++) {
         const sender = group.getUser(i % group.size);
         const receiver = group.getUser((i + 5) % group.size);
         const senderState = group.getState(sender);
         const amount = USDT.castBigNumber(senderState.balance.div(10));
         const fee = USDT.castBigNumber(amount.div(10));
+        const nonce = seenNonce[sender.stateID]
+            ? seenNonce[sender.stateID] + 1
+            : senderState.nonce;
+        seenNonce[sender.stateID] = nonce;
         const tx = new TxTransfer(
             sender.stateID,
             receiver.stateID,
             amount,
             fee,
-            senderState.nonce,
+            nonce,
             USDT
         );
         txs.push(tx);

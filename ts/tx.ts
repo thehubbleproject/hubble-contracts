@@ -143,6 +143,9 @@ export class TxTransfer implements SignableTx {
         ]);
         return hexlify(concated);
     }
+    public toString(): string {
+        return `<Transfer ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
+    }
 }
 
 export class TxMassMigration implements SignableTx {

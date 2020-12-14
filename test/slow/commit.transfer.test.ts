@@ -105,7 +105,43 @@ describe("Rollup Transfer Commitment", () => {
         const receipt = await tx.wait();
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(400000);
+    it("transfer commitment: signature check, with 2 more tx from same sender", async function() {
+        const fewSenderGroup = users.slice(3);
+        const { txs, signature, senders } = txTransferFactory(
+            fewSenderGroup,
+            COMMIT_SIZE
+        );
+        for (const tx of txs) {
+            console.log(`${tx}`);
+        }
+        const pubkeys = senders.map(sender => sender.pubkey);
+        const pubkeyWitnesses = senders.map(sender =>
+            registry.witness(sender.pubkeyID)
+        );
 
+        stateTree.processTransferCommit(txs, 0);
+
+        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const proof = {
+            states: postProofs.map(proof => proof.state),
+            stateWitnesses: postProofs.map(proof => proof.witness),
+            pubkeys,
+            pubkeyWitnesses
+        };
+        const {
+            0: gasCost,
+            1: result
+        } = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            stateTree.root,
+            registry.root(),
+            DOMAIN,
+            serialize(txs)
+        );
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
+        console.log("operation gas cost:", gasCost.toString());
+    }).timeout(400000);
     it("transfer commitment: processTx", async function() {
         const { txs } = txTransferFactory(users, COMMIT_SIZE);
         for (const tx of txs) {
