@@ -24,7 +24,11 @@ library Authenticity {
     ) internal view returns (Types.Result) {
         uint256 size = txs.transferSize();
         uint256[2][] memory messages = new uint256[2][](size);
-        for (uint256 i = 0; i < size; i++) {
+        uint256[] memory senders = new uint256[](size);
+        // We reverse loop the transactions to compute nonce correctly
+        for (uint256 j = 0; j < size; j++) {
+            // i is the index counting down from tail
+            uint256 i = size - j - 1;
             Tx.Transfer memory _tx = txs.transferDecode(i);
             // check state inclusion
             require(
@@ -36,6 +40,7 @@ library Authenticity {
                 ),
                 "Authenticity: state inclusion signer"
             );
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
             // check pubkey inclusion
             require(
@@ -47,13 +52,17 @@ library Authenticity {
                 ),
                 "Authenticity: account does not exists"
             );
+            uint256 nonce = proof.states[i].nonce - 1;
+            // Add a huge value to avoid collision to the array initial value 0
+            uint256 safeIndex = _tx.fromIndex + 1000000000000000;
 
+            for (uint256 k = 0; k < j; k++) {
+                // Update nonce if the sender is seen before
+                if (senders[k] == safeIndex) nonce--;
+            }
+            senders[j] = safeIndex;
             // construct the message
-            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
-            bytes memory txMsg = Tx.transferMessageOf(
-                _tx,
-                proof.states[i].nonce - 1
-            );
+            bytes memory txMsg = Tx.transferMessageOf(_tx, nonce);
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         bool callSuccess;
