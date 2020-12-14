@@ -5,7 +5,7 @@ import { BigNumber, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { minTreeDepth, sum } from "./utils";
 import {
-    ExceedTreeSize,
+    ExceedStateTreeSize,
     InsufficientFund,
     ReceiverNotExist,
     SenderNotExist,
@@ -100,7 +100,7 @@ export class StateTree implements StateProvider {
     }
     private checkSize(stateID: number) {
         if (stateID >= this.stateTree.setSize)
-            throw new ExceedTreeSize(
+            throw new ExceedStateTreeSize(
                 `Want stateID ${stateID} but the tree has only ${this.stateTree.setSize} leaves`
             );
     }

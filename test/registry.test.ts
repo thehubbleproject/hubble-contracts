@@ -47,7 +47,7 @@ describe("Registry", async () => {
         const root = hasher.hash2(treeLeft.root, treeRight.root);
         assert.equal(root, await registry.root());
     });
-    it.skip("batch update", async function() {
+    it("batch update", async function() {
         const batchSize = 1 << BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
             let leafs = [];
