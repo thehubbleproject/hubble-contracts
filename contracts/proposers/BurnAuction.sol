@@ -117,8 +117,8 @@ contract BurnAuction is Chooser {
             deposits[claimer] >= amount,
             "BurnAuction, withdraw: insufficient deposit amount for withdraw"
         );
-        claimer.transfer(amount);
         updateBalance(claimer, 0, amount);
+        claimer.transfer(amount);
     }
 
     /**
