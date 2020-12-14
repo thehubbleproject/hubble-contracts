@@ -24,6 +24,11 @@ Anyone can trigger the dispute methods of the contract and penalize the coordina
 - ZK rollups: Both improve throughput but Hubble is ZK free. No zero-knowledge moon math, only boring EVM at work.
 - ZK optimistic rollups: Hubble does not address privacy.
 
+Hubble has the highest highest throughput compared with all above applications, since
+
+- We use BLS signature aggregation to reduce the size to store data on chain
+- We optimize for simple transfer
+
 ### What else can Hubble do
 
 - Mass Migration: Users can migrate their tokens to other layer 2 solutions without withdraw to and deposit from layer 1 again.
