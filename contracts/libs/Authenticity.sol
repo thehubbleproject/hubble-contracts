@@ -92,7 +92,9 @@ library Authenticity {
     ) internal view returns (Types.Result) {
         uint256 size = txs.massMigrationSize();
         uint256[2][] memory messages = new uint256[2][](size);
-        for (uint256 i = 0; i < size; i++) {
+        uint256[] memory senders = new uint256[](size);
+        for (uint256 j = 0; j < size; j++) {
+            uint256 i = size - j - 1;
             Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
             // check state inclusion
             require(
@@ -104,6 +106,7 @@ library Authenticity {
                 ),
                 "Authenticity: state inclusion signer"
             );
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
             // check pubkey inclusion
             require(
@@ -116,13 +119,14 @@ library Authenticity {
                 "Authenticity: account does not exists"
             );
 
-            // construct the message
-            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
-            bytes memory txMsg = Tx.massMigrationMessageOf(
-                _tx,
-                proof.states[i].nonce - 1,
-                spokeID
-            );
+            uint256 nonce = proof.states[i].nonce - 1;
+            uint256 safeIndex = _tx.fromIndex + 1000000000000000;
+
+            for (uint256 k = 0; k < j; k++) {
+                if (senders[k] == safeIndex) nonce--;
+            }
+            senders[j] = safeIndex;
+            bytes memory txMsg = Tx.massMigrationMessageOf(_tx, nonce, spokeID);
             messages[i] = BLS.hashToPoint(domain, txMsg);
         }
         bool callSuccess;

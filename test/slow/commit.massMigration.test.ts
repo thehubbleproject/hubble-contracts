@@ -88,6 +88,51 @@ describe("Rollup Mass Migration", () => {
         assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
+    it.only("checks signature: same sender", async function() {
+        const smallGroup = users.slice(4);
+        let manySameSenderGroup = smallGroup;
+        for (let i = 0; i < 7; i++) {
+            manySameSenderGroup = manySameSenderGroup.join(smallGroup);
+        }
+        const { txs, signature, senders } = txMassMigrationFactory(
+            manySameSenderGroup,
+            spokeID
+        );
+        const pubkeys = senders.map(sender => sender.pubkey);
+        const pubkeyWitnesses = senders.map(sender =>
+            registry.witness(sender.pubkeyID)
+        );
+        stateTree.processMassMigrationCommit(txs, 0);
+        const serialized = serialize(txs);
+
+        // Need post stateWitnesses
+        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+
+        const postStateRoot = stateTree.root;
+        const accountRoot = registry.root();
+
+        const proof = {
+            states: postProofs.map(proof => proof.state),
+            stateWitnesses: postProofs.map(proof => proof.witness),
+            pubkeys,
+            pubkeyWitnesses
+        };
+        const {
+            0: gasCost,
+            1: result
+        } = await rollup.callStatic.testCheckSignature(
+            signature,
+            proof,
+            postStateRoot,
+            accountRoot,
+            DOMAIN,
+            spokeID,
+            serialized
+        );
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
+        console.log("operation gas cost:", gasCost.toString());
+    }).timeout(400000);
+
     it("checks state transitions", async function() {
         const { txs } = txMassMigrationFactory(users, spokeID);
         const feeReceiver = 0;
