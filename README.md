@@ -2,21 +2,48 @@
 
 ![Node.js CI](https://github.com/thehubbleproject/RedditHubble/workflows/Node.js%20CI/badge.svg)
 
-Introduction on [Reddit](https://www.reddit.com/r/ethereum/comments/i1qmod/the_reddit_bakeoff_submission_by_hubble_project/)
+## About Hubble
 
-We have a record showing the possibility of 2320 TPS on [Ropsten](https://ropsten.etherscan.io/tx/0x01c83dbce6894360a56dc6810106f47cbc699522a9844e126afc30f51abc0c2e) network. Assuming 12500000 gas limit and 450 gas per tx.
+Hubble is a token transfer solution to improve Ethereum throughput from 20 transactions per second to 2600.
 
-Original [Specification](https://hackmd.io/8mS3DL2QR9mcl31YCjJtdg?view).
+### How it work
+
+People sumit transfers to a coordinator, who then submits transactions and the state root of the balances update to a Ethereum contract.
+
+### Why can that improve the throughput
+
+The contract does not validate either the correctness of the balances update or the authenticity of the sender.
+
+### What if the coordinator submit incorrect balances update?
+
+Anyone can trigger the dispute methods of the contract and penalize the coordinator by burning the assets they staked beforehand. The contract rolls back to the last state when the balance was correct.
+
+### How is it different from these projects
+
+- Optimism: Hubble does not support virtual machine, ... yet.
+- ZK rollups: Both improve throughput but Hubble is ZK free. No zero-knowledge moon math, only boring EVM at work.
+- ZK optimistic rollups: Hubble does not address privacy.
+
+Hubble has the highest highest throughput compared with all above applications, since
+
+- We use BLS signature aggregation to reduce the size to store data on chain
+- We optimize for simple transfer
+
+### What else can Hubble do
+
+- Mass Migration: Users can migrate their tokens to other layer 2 solutions without withdraw to and deposit from layer 1 again.
+- Create2Transfer: Users can onboard Hubble without going through layer 1. The coordinator can register pubkeys for them and they can acquire tokens from holders who are already in Hubble.
+
 
 ## Getting Started
 
-```
+```sh
 npm install
 npm run generate
 ```
 
 ## Testing
 
-```
+```sh
 npm run test
 ```

@@ -1,6 +1,10 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
+/**
+    @notice work with sparse Merkle Tree
+    @dev we assume the tree is at maximum 32 level depth
+*/
 library MerkleTree {
     function computeRoot(
         bytes32 leafInput,

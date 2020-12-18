@@ -1,5 +1,8 @@
 pragma solidity ^0.5.15;
 
+/**
+    @notice A cheap way to check if some asset has been claimed before and set it claimed
+ */
 library Bitmap {
     function isClaimed(
         uint256 index,

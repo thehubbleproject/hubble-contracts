@@ -6,6 +6,9 @@ import { Types } from "./Types.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
 import { Tx } from "./Tx.sol";
 
+/**
+    @notice Perform state transitions for transactions. This library does not verify the signature of the message.
+ */
 library Transition {
     using SafeMath for uint256;
     using Types for Types.UserState;
