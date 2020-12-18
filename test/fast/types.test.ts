@@ -1,9 +1,9 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
 import { getAddress } from "ethers/lib/utils";
-import { randHex, randomNum } from "../ts/utils";
-import { TestTypesFactory } from "../types/ethers-contracts";
-import { TestTypes } from "../types/ethers-contracts/TestTypes";
+import { randHex, randomNum } from "../../ts/utils";
+import { TestTypesFactory } from "../../types/ethers-contracts";
+import { TestTypes } from "../../types/ethers-contracts/TestTypes";
 
 describe("Type testing", function() {
     let contract: TestTypes;

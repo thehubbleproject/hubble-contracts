@@ -1,12 +1,12 @@
-import { TestBlsFactory } from "../types/ethers-contracts/TestBlsFactory";
-import { TestBls } from "../types/ethers-contracts/TestBls";
+import { TestBlsFactory } from "../../types/ethers-contracts/TestBlsFactory";
+import { TestBls } from "../../types/ethers-contracts/TestBls";
 import { assert } from "chai";
-import { randHex, randFs, to32Hex } from "../ts/utils";
+import { randHex, randFs, to32Hex } from "../../ts/utils";
 
-import * as mcl from "../ts/mcl";
+import * as mcl from "../../ts/mcl";
 import { ethers } from "hardhat";
 import { randomBytes, hexlify, arrayify } from "ethers/lib/utils";
-import { expandMsg, hashToField } from "../ts/hashToField";
+import { expandMsg, hashToField } from "../../ts/hashToField";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = arrayify(DOMAIN_HEX);

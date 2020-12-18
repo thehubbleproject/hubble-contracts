@@ -1,13 +1,13 @@
 import { assert, expect } from "chai";
 import { ethers } from "hardhat";
-import { TESTING_PARAMS } from "../ts/constants";
-import { randHex } from "../ts/utils";
+import { TESTING_PARAMS } from "../../ts/constants";
+import { randHex } from "../../ts/utils";
 import {
     MockDepositManagerFactory,
     TestRollupFactory
-} from "../types/ethers-contracts";
-import { MockDepositManager } from "../types/ethers-contracts/MockDepositManager";
-import { TestRollup } from "../types/ethers-contracts/TestRollup";
+} from "../../types/ethers-contracts";
+import { MockDepositManager } from "../../types/ethers-contracts/MockDepositManager";
+import { TestRollup } from "../../types/ethers-contracts/TestRollup";
 
 describe("Rollback", function() {
     let rollup: TestRollup;

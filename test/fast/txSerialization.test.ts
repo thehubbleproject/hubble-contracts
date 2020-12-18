@@ -1,15 +1,15 @@
-import { TestTxFactory } from "../types/ethers-contracts/TestTxFactory";
-import { TestTx } from "../types/ethers-contracts/TestTx";
+import { TestTxFactory } from "../../types/ethers-contracts/TestTxFactory";
+import { TestTx } from "../../types/ethers-contracts/TestTx";
 import {
     TxTransfer,
     serialize,
     TxMassMigration,
     TxCreate2Transfer
-} from "../ts/tx";
+} from "../../ts/tx";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { COMMIT_SIZE } from "../ts/constants";
-import { USDT } from "../ts/decimal";
+import { COMMIT_SIZE } from "../../ts/constants";
+import { USDT } from "../../ts/decimal";
 import { BigNumber } from "ethers";
 
 describe("Tx Serialization", async () => {

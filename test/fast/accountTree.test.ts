@@ -1,9 +1,9 @@
-import { TestAccountTreeFactory } from "../types/ethers-contracts/TestAccountTreeFactory";
-import { TestAccountTree } from "../types/ethers-contracts/TestAccountTree";
-import { Tree, Hasher } from "../ts/tree";
+import { TestAccountTreeFactory } from "../../types/ethers-contracts/TestAccountTreeFactory";
+import { TestAccountTree } from "../../types/ethers-contracts/TestAccountTree";
+import { Tree, Hasher } from "../../ts/tree";
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { randHex, randomLeaves } from "../ts/utils";
+import { randHex, randomLeaves } from "../../ts/utils";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;

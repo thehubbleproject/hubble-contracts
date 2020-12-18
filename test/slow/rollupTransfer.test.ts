@@ -1,16 +1,16 @@
-import { TestTransferFactory } from "../types/ethers-contracts/TestTransferFactory";
-import { TestTransfer } from "../types/ethers-contracts/TestTransfer";
-import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
+import { TestTransferFactory } from "../../types/ethers-contracts/TestTransferFactory";
+import { TestTransfer } from "../../types/ethers-contracts/TestTransfer";
+import { BlsAccountRegistryFactory } from "../../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { serialize } from "../ts/tx";
-import * as mcl from "../ts/mcl";
-import { StateTree } from "../ts/stateTree";
-import { AccountRegistry } from "../ts/accountTree";
+import { serialize } from "../../ts/tx";
+import * as mcl from "../../ts/mcl";
+import { StateTree } from "../../ts/stateTree";
+import { AccountRegistry } from "../../ts/accountTree";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { hexToUint8Array, randHex } from "../ts/utils";
-import { Result } from "../ts/interfaces";
-import { Group, txTransferFactory } from "../ts/factory";
+import { hexToUint8Array, randHex } from "../../ts/utils";
+import { Result } from "../../ts/interfaces";
+import { Group, txTransferFactory } from "../../ts/factory";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
