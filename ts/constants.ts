@@ -15,7 +15,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
 
 export const PRODUCTION_PARAMS: DeploymentParameters = {
     MAX_DEPTH: 20,
-    MAX_DEPOSIT_SUBTREE_DEPTH: 1,
+    MAX_DEPOSIT_SUBTREE_DEPTH: 2,
     STAKE_AMOUNT: toWei("0.1"),
     BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
     MIN_GAS_LEFT: 10000,
@@ -27,6 +27,9 @@ export const PRODUCTION_PARAMS: DeploymentParameters = {
 
 export const COMMIT_SIZE = 32;
 export const STATE_TREE_DEPTH = 32;
+
+export const BLOCKS_PER_SLOT = 100;
+export const DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
 // ethers.utils.keccak256(ethers.constants.HashZero)
 export const ZERO_BYTES32 =

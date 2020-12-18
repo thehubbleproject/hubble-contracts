@@ -17,7 +17,7 @@ interface SolStruct {
     body: any;
 }
 
-interface CommitmentInclusionProof {
+export interface CommitmentInclusionProof {
     commitment: CompressedStruct;
     path: number;
     witness: string[];
@@ -49,7 +49,7 @@ abstract class Commitment {
     }
 }
 
-export class GenesisCommitment extends Commitment {
+export class BodylessCommitment extends Commitment {
     get bodyRoot() {
         return ZERO_BYTES32;
     }
@@ -64,7 +64,7 @@ export class GenesisCommitment extends Commitment {
 export function getGenesisProof(
     stateRoot: BytesLike
 ): CommitmentInclusionProof {
-    return new GenesisCommitment(stateRoot).toBatch().proofCompressed(0);
+    return new BodylessCommitment(stateRoot).toBatch().proofCompressed(0);
 }
 
 export class TransferCommitment extends Commitment {

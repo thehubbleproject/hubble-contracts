@@ -46,3 +46,5 @@ export class StateAlreadyExist extends StateTreeExceptions {}
 export class WrongTokenID extends StateTreeExceptions {}
 
 export class InsufficientFund extends StateTreeExceptions {}
+
+export class ZeroAmount extends StateTreeExceptions {}

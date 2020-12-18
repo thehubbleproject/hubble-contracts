@@ -92,6 +92,39 @@ export class Group {
             yield user;
         }
     }
+    // Useful when want to divide users into sub-groups
+    public *groupInterator(subgroupSize: number) {
+        let subgroup = [];
+        for (const user of this.users) {
+            subgroup.push(user);
+            if (subgroup.length == subgroupSize) {
+                yield new Group(subgroup, this.stateProvider);
+                subgroup = [];
+            }
+        }
+    }
+    public pickRandom(): { user: User; index: number } {
+        const index = Math.floor(Math.random() * this.users.length);
+        const user = this.users[index];
+        return { user, index };
+    }
+    public join(other: Group) {
+        const allUsers = [];
+        for (const user of this.userIterator()) {
+            allUsers.push(user);
+        }
+        for (const user of other.userIterator()) {
+            allUsers.push(user);
+        }
+        return new Group(allUsers, this.stateProvider);
+    }
+    public slice(n: number) {
+        if (n > this.users.length)
+            throw new UserNotExist(
+                `Want ${n} users but this group has only ${this.users.length} users`
+            );
+        return new Group(this.users.slice(0, n), this.stateProvider);
+    }
     public getUser(i: number) {
         if (i >= this.users.length) throw new UserNotExist(`${i}`);
         return this.users[i];
@@ -145,8 +178,8 @@ export function txTransferFactory(
         const sender = group.getUser(i % group.size);
         const receiver = group.getUser((i + 5) % group.size);
         const senderState = group.getState(sender);
-        const amount = senderState.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(senderState.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
         const tx = new TxTransfer(
             sender.stateID,
             receiver.stateID,
@@ -176,8 +209,8 @@ export function txCreate2TransferFactory(
         const sender = registered.getUser(i);
         const reciver = unregistered.getUser(i);
         const senderState = registered.getState(sender);
-        const amount = senderState.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(senderState.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
 
         const tx = new TxCreate2Transfer(
             sender.stateID,
@@ -205,8 +238,8 @@ export function txMassMigrationFactory(
     const senders = [];
     for (const sender of group.userIterator()) {
         const senderState = group.getState(sender);
-        const amount = senderState.balance.div(10);
-        const fee = amount.div(10);
+        const amount = USDT.castBigNumber(senderState.balance.div(10));
+        const fee = USDT.castBigNumber(amount.div(10));
         const tx = new TxMassMigration(
             sender.stateID,
             amount,
