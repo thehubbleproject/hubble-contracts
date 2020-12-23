@@ -1,9 +1,9 @@
-import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
-import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
+import { BlsAccountRegistryFactory } from "../../types/ethers-contracts/BlsAccountRegistryFactory";
+import { BlsAccountRegistry } from "../../types/ethers-contracts/BlsAccountRegistry";
 
-import { Tree, Hasher } from "../ts/tree";
+import { Tree, Hasher } from "../../ts/tree";
 
-import * as mcl from "../ts/mcl";
+import * as mcl from "../../ts/mcl";
 import { ethers } from "hardhat";
 import { assert } from "chai";
 

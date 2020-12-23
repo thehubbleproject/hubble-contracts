@@ -1,16 +1,19 @@
-import { deployAll } from "../ts/deploy";
-import { TESTING_PARAMS } from "../ts/constants";
+import { deployAll } from "../../ts/deploy";
+import { TESTING_PARAMS } from "../../ts/constants";
 import { ethers } from "hardhat";
-import { StateTree } from "../ts/stateTree";
-import { AccountRegistry } from "../ts/accountTree";
-import { serialize } from "../ts/tx";
-import * as mcl from "../ts/mcl";
-import { allContracts } from "../ts/allContractsInterfaces";
+import { StateTree } from "../../ts/stateTree";
+import { AccountRegistry } from "../../ts/accountTree";
+import { serialize } from "../../ts/tx";
+import * as mcl from "../../ts/mcl";
+import { allContracts } from "../../ts/allContractsInterfaces";
 import { assert } from "chai";
-import { Create2TransferCommitment, getGenesisProof } from "../ts/commitments";
-import { USDT } from "../ts/decimal";
-import { hexToUint8Array } from "../ts/utils";
-import { Group, txCreate2TransferFactory } from "../ts/factory";
+import {
+    Create2TransferCommitment,
+    getGenesisProof
+} from "../../ts/commitments";
+import { USDT } from "../../ts/decimal";
+import { hexToUint8Array } from "../../ts/utils";
+import { Group, txCreate2TransferFactory } from "../../ts/factory";
 
 const DOMAIN = hexToUint8Array(
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"

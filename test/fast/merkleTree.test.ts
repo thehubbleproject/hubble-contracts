@@ -1,9 +1,9 @@
-import { randomLeaves } from "../ts/utils";
+import { randomLeaves } from "../../ts/utils";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { Tree } from "../ts/tree";
-import { TestMerkleTreeFactory } from "../types/ethers-contracts/TestMerkleTreeFactory";
-import { TestMerkleTree } from "../types/ethers-contracts/TestMerkleTree";
+import { Tree } from "../../ts/tree";
+import { TestMerkleTreeFactory } from "../../types/ethers-contracts/TestMerkleTreeFactory";
+import { TestMerkleTree } from "../../types/ethers-contracts/TestMerkleTree";
 
 describe("MerkleTree", async function() {
     const MAX_DEPTH = 32;

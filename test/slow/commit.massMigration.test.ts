@@ -1,20 +1,20 @@
 import { ethers } from "hardhat";
-import { AccountRegistry } from "../ts/accountTree";
-import { Group, txMassMigrationFactory } from "../ts/factory";
-import { StateTree } from "../ts/stateTree";
-import { hexToUint8Array, randHex } from "../ts/utils";
+import { AccountRegistry } from "../../ts/accountTree";
+import { Group, txMassMigrationFactory } from "../../ts/factory";
+import { StateTree } from "../../ts/stateTree";
+import { hexToUint8Array, randHex } from "../../ts/utils";
 import {
     BlsAccountRegistryFactory,
     TestMassMigrationFactory
-} from "../types/ethers-contracts";
-import * as mcl from "../ts/mcl";
-import { TestMassMigration } from "../types/ethers-contracts/TestMassMigration";
-import { serialize } from "../ts/tx";
+} from "../../types/ethers-contracts";
+import * as mcl from "../../ts/mcl";
+import { TestMassMigration } from "../../types/ethers-contracts/TestMassMigration";
+import { serialize } from "../../ts/tx";
 import { assert } from "chai";
-import { Result } from "../ts/interfaces";
+import { Result } from "../../ts/interfaces";
 import { constants } from "ethers";
-import { MassMigrationCommitment } from "../ts/commitments";
-import { EMPTY_SIGNATURE } from "../ts/constants";
+import { MassMigrationCommitment } from "../../ts/commitments";
+import { EMPTY_SIGNATURE } from "../../ts/constants";
 
 const DOMAIN = hexToUint8Array(randHex(32));
 const COMMIT_SIZE = 32;

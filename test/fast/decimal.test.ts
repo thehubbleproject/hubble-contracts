@@ -1,6 +1,6 @@
 import { assert } from "chai";
-import { USDT } from "../ts/decimal";
-import { EncodingError } from "../ts/exceptions";
+import { USDT } from "../../ts/decimal";
+import { EncodingError } from "../../ts/exceptions";
 
 describe("Decimal", () => {
     const goodCases: number[] = [0, 1, 10000, 12.13, 0.1234, 18690000000];

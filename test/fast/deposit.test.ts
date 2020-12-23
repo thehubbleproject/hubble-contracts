@@ -2,16 +2,16 @@ import { ethers } from "hardhat";
 import { assert } from "chai";
 import { constants } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
-import { allContracts } from "../ts/allContractsInterfaces";
-import { TESTING_PARAMS } from "../ts/constants";
-import { deployAll } from "../ts/deploy";
-import { State } from "../ts/state";
-import { Tree } from "../ts/tree";
-import { randomLeaves } from "../ts/utils";
-import { TestDepositCore } from "../types/ethers-contracts/TestDepositCore";
-import { TestDepositCoreFactory } from "../types/ethers-contracts/TestDepositCoreFactory";
-import { TransferCommitment } from "../ts/commitments";
-import { StateTree } from "../ts/stateTree";
+import { allContracts } from "../../ts/allContractsInterfaces";
+import { TESTING_PARAMS } from "../../ts/constants";
+import { deployAll } from "../../ts/deploy";
+import { State } from "../../ts/state";
+import { Tree } from "../../ts/tree";
+import { randomLeaves } from "../../ts/utils";
+import { TestDepositCore } from "../../types/ethers-contracts/TestDepositCore";
+import { TestDepositCoreFactory } from "../../types/ethers-contracts/TestDepositCoreFactory";
+import { TransferCommitment } from "../../ts/commitments";
+import { StateTree } from "../../ts/stateTree";
 
 describe("Deposit Core", async function() {
     let contract: TestDepositCore;

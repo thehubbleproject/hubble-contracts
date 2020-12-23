@@ -1,18 +1,17 @@
-import { deployAll } from "../ts/deploy";
-import { TESTING_PARAMS } from "../ts/constants";
+import { deployAll } from "../../ts/deploy";
+import { TESTING_PARAMS } from "../../ts/constants";
 import { ethers } from "hardhat";
-import { StateTree } from "../ts/stateTree";
-import { AccountRegistry } from "../ts/accountTree";
-import { TxMassMigration } from "../ts/tx";
-import * as mcl from "../ts/mcl";
-import { allContracts } from "../ts/allContractsInterfaces";
+import { StateTree } from "../../ts/stateTree";
+import { AccountRegistry } from "../../ts/accountTree";
+import { TxMassMigration } from "../../ts/tx";
+import * as mcl from "../../ts/mcl";
+import { allContracts } from "../../ts/allContractsInterfaces";
 import { assert } from "chai";
-import { getGenesisProof, MassMigrationCommitment } from "../ts/commitments";
-import { USDT } from "../ts/decimal";
-import { Result } from "../ts/interfaces";
-import { hexToUint8Array, mineBlocks } from "../ts/utils";
-import { expectRevert } from "../ts/utils";
-import { Group, txMassMigrationFactory } from "../ts/factory";
+import { getGenesisProof, MassMigrationCommitment } from "../../ts/commitments";
+import { USDT } from "../../ts/decimal";
+import { Result } from "../../ts/interfaces";
+import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
+import { Group, txMassMigrationFactory } from "../../ts/factory";
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;

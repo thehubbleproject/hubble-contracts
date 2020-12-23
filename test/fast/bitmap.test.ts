@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { TestBitmapFactory } from "../types/ethers-contracts";
-import { TestBitmap } from "../types/ethers-contracts/TestBitmap";
+import { TestBitmapFactory } from "../../types/ethers-contracts";
+import { TestBitmap } from "../../types/ethers-contracts/TestBitmap";
 
 describe("Bitmap", async () => {
     let contract: TestBitmap;

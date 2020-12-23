@@ -1,6 +1,6 @@
-import * as mcl from "../ts/mcl";
+import * as mcl from "../../ts/mcl";
 import { assert } from "chai";
-import { expandMsg } from "../ts/hashToField";
+import { expandMsg } from "../../ts/hashToField";
 import { hexlify } from "ethers/lib/utils";
 
 const DOMAIN_STR = "QUUX-V01-CS02-with-expander";
