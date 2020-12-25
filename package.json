@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "repl": "ts-node ./scripts/repl.ts",
     "test": "hardhat test",
     "solhint": "solhint \"contracts/**/*.sol\" -f unix",
     "lint": "prettier --check \"**/*.{sol,ts,js}\"",
