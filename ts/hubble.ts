@@ -22,7 +22,8 @@ import {
     VaultFactory,
     WithdrawManagerFactory
 } from "../types/ethers-contracts";
-import { Signer } from "ethers";
+import { ethers, Signer } from "ethers";
+import { solG2 } from "./mcl";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -74,7 +75,40 @@ export class Hubble {
         return new Hubble(parameters, contracts);
     }
 
-    show() {
-        console.log(this.contracts);
+    static fromDefault(
+        providerUrl = "http://localhost:8545",
+        genesisPath = "./genesis.json"
+    ) {
+        const genesis = fs.readFileSync(genesisPath).toString();
+        const { parameters, addresses } = JSON.parse(genesis);
+        const provider = new ethers.providers.JsonRpcProvider(providerUrl);
+        const signer = provider.getSigner();
+        return Hubble.fromGenesis(parameters, addresses, signer);
+    }
+
+    async registerPublicKeys(pubkeys: string[]) {
+        const registry = this.contracts.blsAccountRegistry;
+        const filter = registry.filters.PubkeyRegistered(null, null);
+        const accountIDs: number[] = [];
+        console.log(`Registering ${pubkeys.length} public keys`);
+        for (const pubkeyRaw of pubkeys) {
+            const parsedPubkey: solG2 = [
+                "0x" + pubkeyRaw.slice(64, 128),
+                "0x" + pubkeyRaw.slice(0, 64),
+                "0x" + pubkeyRaw.slice(192, 256),
+                "0x" + pubkeyRaw.slice(128, 192)
+            ];
+            console.log("Registering", parsedPubkey);
+            const accID = await registry.callStatic.register(parsedPubkey);
+            const tx = await registry.register(parsedPubkey);
+            await tx.wait();
+            accountIDs.push(accID.toNumber());
+            console.log(
+                "Done registering pubkey",
+                pubkeyRaw.slice(0, 5),
+                accID.toNumber()
+            );
+        }
+        return accountIDs;
     }
 }
