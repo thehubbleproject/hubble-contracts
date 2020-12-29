@@ -24,6 +24,7 @@ import {
 } from "../types/ethers-contracts";
 import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
+import { toWei } from "./utils";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -64,7 +65,8 @@ function parseGenesis(
 export class Hubble {
     private constructor(
         public parameters: DeploymentParameters,
-        public contracts: allContracts
+        public contracts: allContracts,
+        public signer: Signer
     ) {}
     static fromGenesis(
         parameters: DeploymentParameters,
@@ -72,7 +74,7 @@ export class Hubble {
         signer: Signer
     ) {
         const contracts = parseGenesis(parameters, addresses, signer);
-        return new Hubble(parameters, contracts);
+        return new Hubble(parameters, contracts, signer);
     }
 
     static fromDefault(
@@ -88,7 +90,6 @@ export class Hubble {
 
     async registerPublicKeys(pubkeys: string[]) {
         const registry = this.contracts.blsAccountRegistry;
-        const filter = registry.filters.PubkeyRegistered(null, null);
         const accountIDs: number[] = [];
         console.log(`Registering ${pubkeys.length} public keys`);
         for (const pubkeyRaw of pubkeys) {
@@ -110,5 +111,33 @@ export class Hubble {
             );
         }
         return accountIDs;
+    }
+    async depositFor(pubkeyIDs: number[], tokenID: number, amount: number) {
+        console.log(
+            `Depositing tokenID ${tokenID} for pubkeyID ${pubkeyIDs} each with amount ${amount}`
+        );
+        const { tokenRegistry, depositManager } = this.contracts;
+        const tokenAddress = await tokenRegistry.safeGetAddress(tokenID);
+        const erc20 = ExampleTokenFactory.connect(tokenAddress, this.signer);
+        // approve depositmanager for amount
+        const totalAmount = pubkeyIDs.length * amount;
+        console.log("Approving total amount", totalAmount);
+        const approveTx = await erc20.approve(
+            depositManager.address,
+            toWei(totalAmount.toString())
+        );
+        await approveTx.wait();
+
+        console.log("token approved", approveTx.hash.toString());
+
+        for (const pubkeyID of pubkeyIDs) {
+            console.log(`Depositing ${amount} for pubkeyID ${pubkeyID}`);
+            const tx = await depositManager.depositFor(
+                pubkeyID,
+                amount,
+                tokenID
+            );
+            await tx.wait();
+        }
     }
 }
