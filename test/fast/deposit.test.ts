@@ -23,39 +23,41 @@ describe("Deposit Core", async function() {
         );
     });
     it("insert and merge many deposits", async function() {
-        const maxSubtreeSize = 2 ** maxSubtreeDepth;
-        const leaves = randomLeaves(maxSubtreeSize);
-        const tree = Tree.new(maxSubtreeDepth);
-        for (let i = 0; i < maxSubtreeSize; i++) {
-            const {
-                gasCost,
-                readySubtree
-            } = await contract.callStatic.testInsertAndMerge(leaves[i]);
-            console.log(
-                `Insert leaf ${i} \t Operation cost: ${gasCost.toNumber()}`
-            );
-            await contract.testInsertAndMerge(leaves[i]);
-            tree.updateSingle(i, leaves[i]);
-            if (i !== maxSubtreeSize - 1) {
-                assert.equal(
-                    readySubtree,
-                    constants.HashZero,
-                    "Not a ready subtree yet"
+        for (let j = 0; j < 5; j++) {
+            const maxSubtreeSize = 2 ** maxSubtreeDepth;
+            const leaves = randomLeaves(maxSubtreeSize);
+            const tree = Tree.new(maxSubtreeDepth);
+            for (let i = 0; i < maxSubtreeSize; i++) {
+                const {
+                    gasCost,
+                    readySubtree
+                } = await contract.callStatic.testInsertAndMerge(leaves[i]);
+                console.log(
+                    `Insert leaf ${i} \t Operation cost: ${gasCost.toNumber()}`
                 );
-            } else {
-                assert.equal(
-                    readySubtree,
-                    tree.root,
-                    "Should be the merkle root of all leaves"
-                );
+                await contract.testInsertAndMerge(leaves[i]);
+                tree.updateSingle(i, leaves[i]);
+                if (i !== maxSubtreeSize - 1) {
+                    assert.equal(
+                        readySubtree,
+                        constants.HashZero,
+                        "Not a ready subtree yet"
+                    );
+                } else {
+                    assert.equal(
+                        readySubtree,
+                        tree.root,
+                        "Should be the merkle root of all leaves"
+                    );
+                }
             }
+            assert.equal((await contract.back()).toNumber(), j + 1);
+            assert.equal(
+                await contract.getQueue(j + 1),
+                tree.root,
+                "subtree root should be in the subtree queue now"
+            );
         }
-        assert.equal((await contract.back()).toNumber(), 1);
-        assert.equal(
-            await contract.getQueue(1),
-            tree.root,
-            "subtree root should be in the subtree queue now"
-        );
     });
 });
 
