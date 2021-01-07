@@ -73,21 +73,12 @@ contract DepositCore is SubtreeQueue {
         if (depositCount == paramMaxSubtreeSize) {
             readySubtree = babyTrees[0];
             enqueue(readySubtree);
-            reset();
+            // reset
+            babyTreesLength = 0;
+            depositCount = 0;
         } else {
             readySubtree = bytes32(0);
         }
-    }
-
-    function reset() internal {
-        // Reset babyTrees
-        uint256 len = babyTreesLength;
-        for (uint256 i = 0; i < len; i++) {
-            delete babyTrees[i];
-        }
-        babyTreesLength = 0;
-        // Reset depositCount
-        depositCount = 0;
     }
 }
 
