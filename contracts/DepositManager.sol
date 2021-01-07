@@ -63,8 +63,6 @@ contract DepositCore is SubtreeQueue {
             babyTrees[len - 2] = keccak256(
                 abi.encode(babyTrees[len - 2], babyTrees[len - 1])
             );
-            // Discard the right node
-            delete babyTrees[len - 1];
             len--;
             i >>= 1;
         }
