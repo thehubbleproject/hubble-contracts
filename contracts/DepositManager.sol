@@ -36,10 +36,12 @@ contract SubtreeQueue {
 }
 
 contract DepositCore is SubtreeQueue {
-    // An element in this array is a deposit tree root of any depth.
+    // An element is a deposit tree root of any depth.
     // It could be just a leaf of a new deposit or
     // a root of a full grown subtree.
-    bytes32[] public babyTrees;
+    mapping(uint256 => bytes32) public babyTrees;
+    uint256 public babyTreesLength = 0;
+
     uint256 public depositCount = 0;
 
     uint256 public paramMaxSubtreeSize = 2;
@@ -48,46 +50,33 @@ contract DepositCore is SubtreeQueue {
         internal
         returns (bytes32 readySubtree)
     {
-        babyTrees.push(depositLeaf);
         depositCount++;
         uint256 i = depositCount;
+
+        uint256 len = babyTreesLength;
+        babyTrees[len] = depositLeaf;
+        len++;
         // As long as we have a pair to merge, we merge
         // the number of iteration is bounded by maxSubtreeDepth
         while (i & 1 == 0) {
-            // Override the left node with the merged result
-            babyTrees[babyTrees.length - 2] = keccak256(
-                abi.encode(
-                    // left node
-                    babyTrees[babyTrees.length - 2],
-                    // right node
-                    babyTrees[babyTrees.length - 1]
-                )
+            // Override the left node with the merged left and right nodes
+            babyTrees[len - 2] = keccak256(
+                abi.encode(babyTrees[len - 2], babyTrees[len - 1])
             );
-            // Discard the right node
-            delete babyTrees[babyTrees.length - 1];
-            babyTrees.length--;
-
+            len--;
             i >>= 1;
         }
+        babyTreesLength = len;
         // Subtree is ready, send to SubtreeQueue
         if (depositCount == paramMaxSubtreeSize) {
             readySubtree = babyTrees[0];
             enqueue(readySubtree);
-            reset();
+            // reset
+            babyTreesLength = 0;
+            depositCount = 0;
         } else {
             readySubtree = bytes32(0);
         }
-    }
-
-    function reset() internal {
-        // Reset babyTrees
-        uint256 numberOfDeposits = babyTrees.length;
-        for (uint256 i = 0; i < numberOfDeposits; i++) {
-            delete babyTrees[i];
-        }
-        babyTrees.length = 0;
-        // Reset depositCount
-        depositCount = 0;
     }
 }
 
