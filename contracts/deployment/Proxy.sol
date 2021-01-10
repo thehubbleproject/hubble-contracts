@@ -10,9 +10,7 @@ contract Proxy {
         _fallback();
     }
 
-    // solium-disable-next-line no-empty-blocks
-    constructor() public {}
-
+    // solhint-disable-next-line func-name-mixedcase
     function __initialize__(address implementation) external {
         require(_implementation() == address(0), "Proxy: already initialized");
         require(implementation != address(0), "Proxy: zero address");
@@ -21,17 +19,17 @@ contract Proxy {
             "Proxy: non contract address"
         );
         bytes32 slot = IMPLEMENTATION_SLOT;
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             sstore(slot, implementation)
         }
     }
 
+    // solhint-disable-next-line func-name-mixedcase
     function __implementation__() external view returns (address) {
         return _implementation();
     }
 
-    // solium-disable-next-line no-empty-blocks
+    // solhint-disable-next-line no-empty-blocks
     function _willFallback() internal {}
 
     function _fallback() internal {
@@ -40,7 +38,6 @@ contract Proxy {
     }
 
     function _delegate(address implementation) internal {
-        // solium-disable-next-line security/no-inline-assembly
         assembly {
             calldatacopy(0, 0, calldatasize)
             let result := delegatecall(

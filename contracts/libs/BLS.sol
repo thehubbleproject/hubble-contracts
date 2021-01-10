@@ -39,7 +39,7 @@ library BLS {
 
     // estimator address
     address
-        private constant PairingPrecompileCostEstimatorAddress = 0x181f9Ced8f72AB7a8917E4D0a35084288492fC7f;
+        private constant COST_ESTIMATOR_ADDRESS = 0x181f9Ced8f72AB7a8917E4D0a35084288492fC7f;
 
     function verifySingle(
         uint256[2] memory signature,
@@ -132,7 +132,7 @@ library BLS {
         returns (uint256)
     {
         // prettier-ignore
-        return BNPairingPrecompileCostEstimator(PairingPrecompileCostEstimatorAddress).gasCost(inputSize);
+        return BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).gasCost(inputSize);
     }
 
     /**

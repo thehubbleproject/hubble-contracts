@@ -4,7 +4,7 @@ import { Proxy } from "./Proxy.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 contract Deployer {
-    uint8 internal CREATE2_PREFIX = 0xff;
+    uint8 private constant CREATE2_PREFIX = 0xff;
 
     function deploy(address implementation, bytes32 salt)
         external
