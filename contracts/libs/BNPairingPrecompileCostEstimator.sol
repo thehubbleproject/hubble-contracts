@@ -28,7 +28,7 @@ contract BNPairingPrecompileCostEstimator {
         _run();
     }
 
-    function gasCost(uint256 pairCount) external returns (uint256) {
+    function gasCost(uint256 pairCount) external view returns (uint256) {
         return pairCount * perPairCost + baseCost;
     }
 

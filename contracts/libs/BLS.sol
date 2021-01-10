@@ -1,6 +1,9 @@
 pragma solidity ^0.5.15;
 
 import { ModexpInverse, ModexpSqrt } from "./ModExp.sol";
+import {
+    BNPairingPrecompileCostEstimator
+} from "./BNPairingPrecompileCostEstimator.sol";
 
 /**
     @title  Boneh–Lynn–Shacham (BLS) signature scheme on Barreto-Naehrig 254 bit curve (BN-254)
@@ -33,6 +36,10 @@ library BLS {
     uint256 private constant T24 = 0x1000000000000000000000000000000000000000000000000;
     // prettier-ignore
     uint256 private constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
+
+    // estimator address
+    address
+        private constant PairingPrecompileCostEstimatorAddress = 0x181f9Ced8f72AB7a8917E4D0a35084288492fC7f;
 
     function verifySingle(
         uint256[2] memory signature,
@@ -101,7 +108,7 @@ library BLS {
             input[i * 6 + 11] = pubkeys[i][2];
         }
         uint256[1] memory out;
-        uint256 precompileGasCost = pairingPrecompileCallGasCost(size);
+        uint256 precompileGasCost = pairingPrecompileCallGasCost(inputSize);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             callSuccess := staticcall(
@@ -119,14 +126,13 @@ library BLS {
         return (out[0] != 0, true);
     }
 
-    function pairingPrecompileCallGasCost(uint256 pubkeyLen)
+    function pairingPrecompileCallGasCost(uint256 inputSize)
         internal
-        pure
+        view
         returns (uint256)
     {
-        uint256 base = 45000;
-        uint256 pair = 34000;
-        return base + pair * (pubkeyLen + 1);
+        // prettier-ignore
+        return BNPairingPrecompileCostEstimator(PairingPrecompileCostEstimatorAddress).gasCost(inputSize);
     }
 
     /**
