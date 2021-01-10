@@ -3,7 +3,6 @@ import { keylessDeploy } from "../../ts/deployment/keylessDeployment";
 import { SimpleStorageFactory } from "../../types/ethers-contracts/SimpleStorageFactory";
 import { BigNumber, Wallet, utils, Signer } from "ethers";
 import { assert } from "chai";
-import { DeployerFactory } from "../../types/ethers-contracts/DeployerFactory";
 import { randHex } from "../../ts/utils";
 import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
 import { deployDeployer } from "../../ts/deployment/deployDeployer";
