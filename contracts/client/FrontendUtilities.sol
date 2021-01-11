@@ -1,24 +1,19 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 
-import { NameRegistry } from "../NameRegistry.sol";
 import { DepositManager } from "../DepositManager.sol";
 import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
-import { ParamManager } from "../libs/ParamManager.sol";
 
 contract FrontendUtilities {
-    NameRegistry public nameRegistry;
     DepositManager public depositManager;
     BLSAccountRegistry public accountRegistry;
 
-    constructor(NameRegistry registry) public {
-        nameRegistry = registry;
-        depositManager = DepositManager(
-            nameRegistry.getContractDetails(ParamManager.depositManager())
-        );
-        accountRegistry = BLSAccountRegistry(
-            nameRegistry.getContractDetails(ParamManager.accountRegistry())
-        );
+    constructor(
+        DepositManager _depositManager,
+        BLSAccountRegistry _accountRegistry
+    ) public {
+        depositManager = _depositManager;
+        accountRegistry = _accountRegistry;
     }
 
     function deposit(

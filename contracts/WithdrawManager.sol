@@ -1,11 +1,9 @@
 pragma solidity ^0.5.15;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
-import { ParamManager } from "./libs/ParamManager.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Tx } from "./libs/Tx.sol";
-import { NameRegistry as Registry } from "./NameRegistry.sol";
 import { Vault } from "./Vault.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
@@ -14,7 +12,6 @@ import { Bitmap } from "./libs/Bitmap.sol";
 contract WithdrawManager {
     using Tx for bytes;
     using Types for Types.UserState;
-    Registry public nameRegistry;
     Vault public vault;
 
     // withdrawRoot => a bitmap of whether a publicIndex owner has the token claimed
@@ -24,19 +21,14 @@ contract WithdrawManager {
     ITokenRegistry public tokenRegistry;
     bytes32 public appID;
 
-    constructor(address _registryAddr) public {
-        nameRegistry = Registry(_registryAddr);
-        tokenRegistry = ITokenRegistry(
-            nameRegistry.getContractDetails(ParamManager.tokenRegistry())
-        );
-        vault = Vault(nameRegistry.getContractDetails(ParamManager.vault()));
-        appID = keccak256(
-            abi.encodePacked(
-                address(
-                    nameRegistry.getContractDetails(ParamManager.rollupCore())
-                )
-            )
-        );
+    constructor(
+        ITokenRegistry _tokenRegistry,
+        Vault _vault,
+        address _rollup
+    ) public {
+        tokenRegistry = _tokenRegistry;
+        vault = _vault;
+        appID = keccak256(abi.encodePacked(_rollup));
     }
 
     function processWithdrawCommitment(
