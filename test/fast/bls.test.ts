@@ -79,11 +79,15 @@ describe("BLS", async () => {
             messages.push(mcl.g1ToHex(messagePoint));
             pubkeys.push(mcl.g2ToHex(pubkey));
             signatures.push(signature);
+            const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
+            const { 0: checkResult, 1: callSuccess } = await bls.verifyMultiple(
+                aggSignature,
+                pubkeys,
+                messages
+            );
+            assert.isTrue(callSuccess, `call failed i=${i}`);
+            assert.isTrue(checkResult, `check failed i=${i}`);
         }
-        const aggSignature = mcl.g1ToHex(mcl.aggregateRaw(signatures));
-        const res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
-        assert.isTrue(res[0]);
-        assert.isTrue(res[1]);
     });
     it("verify aggregated signature: fail bad signature", async function() {
         const n = 10;
