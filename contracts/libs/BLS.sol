@@ -124,8 +124,8 @@ library BLS {
         pure
         returns (uint256)
     {
-        uint256 base = 34000;
-        uint256 pair = 45000;
+        uint256 base = 45000;
+        uint256 pair = 34000;
         return base + pair * pubkeyLen;
     }
 
