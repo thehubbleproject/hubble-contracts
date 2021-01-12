@@ -126,7 +126,7 @@ library BLS {
     {
         uint256 base = 45000;
         uint256 pair = 34000;
-        return base + pair * pubkeyLen;
+        return base + pair * (pubkeyLen + 1);
     }
 
     /**
