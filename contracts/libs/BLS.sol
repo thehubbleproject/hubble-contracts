@@ -61,7 +61,10 @@ library BLS {
             pubkey[2]
         ];
         uint256[1] memory out;
-        uint256 precompileGasCost = pairingPrecompileCallGasCost(2);
+        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(
+            COST_ESTIMATOR_ADDRESS
+        )
+            .gasCost(2);
         bool callSuccess;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
@@ -108,7 +111,9 @@ library BLS {
             input[i * 6 + 11] = pubkeys[i][2];
         }
         uint256[1] memory out;
-        uint256 precompileGasCost = pairingPrecompileCallGasCost(inputSize);
+
+        // prettier-ignore
+        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).gasCost(inputSize);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             callSuccess := staticcall(
@@ -124,15 +129,6 @@ library BLS {
             return (false, false);
         }
         return (out[0] != 0, true);
-    }
-
-    function pairingPrecompileCallGasCost(uint256 inputSize)
-        internal
-        view
-        returns (uint256)
-    {
-        // prettier-ignore
-        return BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).gasCost(inputSize);
     }
 
     /**
