@@ -33,12 +33,18 @@ async function main() {
     parameters.GENESIS_STATE_ROOT =
         argv.root || getDefaultGenesisRoot(parameters);
 
+    const genesisEth1Block = await provider.getBlockNumber();
     const contracts = await deployAll(signer, parameters, true);
     let addresses: { [key: string]: string } = {};
     Object.keys(contracts).map((contract: string) => {
         addresses[contract] = contracts[contract as keyof allContracts].address;
     });
-    const configs = { parameters, addresses };
+    const appID = await contracts.rollup.appID();
+    const auxiliary = {
+        domain: appID,
+        genesisEth1Block
+    };
+    const configs = { parameters, addresses, auxiliary };
     console.log("Writing genesis.json");
     fs.writeFileSync("genesis.json", JSON.stringify(configs, null, 4));
     console.log("Successsfully deployed", configs);
