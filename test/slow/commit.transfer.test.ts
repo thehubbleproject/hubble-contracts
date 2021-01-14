@@ -111,9 +111,6 @@ describe("Rollup Transfer Commitment", () => {
             fewSenderGroup,
             COMMIT_SIZE
         );
-        for (const tx of txs) {
-            console.log(`${tx}`);
-        }
         const pubkeys = senders.map(sender => sender.pubkey);
         const pubkeyWitnesses = senders.map(sender =>
             registry.witness(sender.pubkeyID)
