@@ -205,9 +205,10 @@ export function txTransferFactory(
 export function txCreate2TransferFactory(
     registered: Group,
     unregistered: Group
-): { txs: TxCreate2Transfer[]; signature: solG1 } {
+): { txs: TxCreate2Transfer[]; signature: solG1; senders: User[] } {
     const txs: TxCreate2Transfer[] = [];
     const signatures = [];
+    const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
     const n = Math.max(registered.size, unregistered.size);
     for (let i = 0; i < n; i++) {
@@ -233,9 +234,10 @@ export function txCreate2TransferFactory(
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
+        senders.push(sender);
     }
     const signature = aggregate(signatures).sol;
-    return { txs, signature };
+    return { txs, signature, senders };
 }
 
 export function txMassMigrationFactory(

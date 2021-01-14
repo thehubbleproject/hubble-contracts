@@ -131,6 +131,45 @@ describe("Rollup Create2Transfer Commitment", () => {
         const receipt = await checkSigTx.wait();
         console.log("transaction gas cost:", receipt.gasUsed?.toNumber());
     }).timeout(800000);
+    it("transfer commitment: signature check, with 2 more tx from same sender", async function() {
+        const fewSenderGroup = usersWithState.slice(5);
+        const { txs, signature, senders } = txCreate2TransferFactory(
+            fewSenderGroup,
+            usersWithoutState
+        );
+        const pubkeysSender = senders.map(sender => sender.pubkey);
+        const pubkeysReceiver = usersWithoutState.getPubkeys();
+        const pubkeyWitnessesSender = senders.map(sender =>
+            registry.witness(sender.pubkeyID)
+        );
+        const pubkeyWitnessesReceiver = usersWithoutState
+            .getPubkeyIDs()
+            .map(pubkeyID => registry.witness(pubkeyID));
+        stateTree.processCreate2TransferCommit(txs, 0);
+
+        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const proof = {
+            states: postProofs.map(proof => proof.state),
+            stateWitnesses: postProofs.map(proof => proof.witness),
+            pubkeysSender,
+            pubkeyWitnessesSender,
+            pubkeysReceiver: pubkeysReceiver,
+            pubkeyWitnessesReceiver: pubkeyWitnessesReceiver
+        };
+        const {
+            0: gasCost,
+            1: result
+        } = await rollup.callStatic._checkSignature(
+            signature,
+            proof,
+            stateTree.root,
+            registry.root(),
+            DOMAIN,
+            serialize(txs)
+        );
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
+        console.log("operation gas cost:", gasCost.toString());
+    }).timeout(400000);
     it("create2trasnfer commitment: processTx", async function() {
         const { txs } = txCreate2TransferFactory(
             usersWithState,
