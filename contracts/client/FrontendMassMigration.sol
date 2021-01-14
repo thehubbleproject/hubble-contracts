@@ -173,15 +173,13 @@ contract FrontendMassMigration {
         uint256 spokeID,
         bytes memory txs
     ) public view returns (Types.Result) {
-        return
-            Authenticity.verifyMassMigration(
-                signature,
-                proof,
-                stateRoot,
-                accountRoot,
-                domain,
-                spokeID,
-                txs
-            );
+        Types.AuthCommon memory common = Types.AuthCommon({
+            signature: signature,
+            stateRoot: stateRoot,
+            accountRoot: accountRoot,
+            domain: domain,
+            txs: txs
+        });
+        return Authenticity.verifyMassMigration(common, proof, spokeID);
     }
 }

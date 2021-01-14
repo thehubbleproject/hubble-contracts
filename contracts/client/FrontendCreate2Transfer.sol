@@ -196,14 +196,14 @@ contract FrontendCreate2Transfer {
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        return
-            Authenticity.verifyCreate2Transfer(
-                signature,
-                proof,
-                stateRoot,
-                accountRoot,
-                domain,
-                txs
-            );
+        Types.AuthCommon memory common = Types.AuthCommon({
+            signature: signature,
+            stateRoot: stateRoot,
+            accountRoot: accountRoot,
+            domain: domain,
+            txs: txs
+        });
+
+        return Authenticity.verifyCreate2Transfer(common, proof);
     }
 }
