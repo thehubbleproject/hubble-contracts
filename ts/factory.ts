@@ -219,6 +219,7 @@ export function txCreate2TransferFactory(
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
             : senderState.nonce;
+        seenNonce[sender.stateID] = nonce;
 
         const tx = new TxCreate2Transfer(
             sender.stateID,
@@ -252,6 +253,7 @@ export function txMassMigrationFactory(
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
             : senderState.nonce;
+        seenNonce[sender.stateID] = nonce;
 
         const tx = new TxMassMigration(
             sender.stateID,

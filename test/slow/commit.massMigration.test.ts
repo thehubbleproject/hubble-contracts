@@ -88,7 +88,7 @@ describe("Rollup Mass Migration", () => {
         assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
-    it.only("checks signature: same sender", async function() {
+    it("checks signature: same sender", async function() {
         const smallGroup = users.slice(4);
         let manySameSenderGroup = smallGroup;
         for (let i = 0; i < 7; i++) {
@@ -131,7 +131,7 @@ describe("Rollup Mass Migration", () => {
         );
         assert.equal(result, Result.Ok, `Got ${Result[result]}`);
         console.log("operation gas cost:", gasCost.toString());
-    }).timeout(400000);
+    }).timeout(800000);
 
     it("checks state transitions", async function() {
         const { txs } = txMassMigrationFactory(users, spokeID);
