@@ -15,51 +15,56 @@ library Authenticity {
     using Types for Types.UserState;
 
     function verifyTransfer(
-        uint256[2] memory signature,
-        Types.SignatureProof memory proof,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes32 domain,
-        bytes memory txs
+        Types.AuthCommon memory common,
+        Types.SignatureProof memory proof
     ) internal view returns (Types.Result) {
-        uint256 size = txs.transferSize();
+        uint256 size = common.txs.transferSize();
         uint256[2][] memory messages = new uint256[2][](size);
-        for (uint256 i = 0; i < size; i++) {
-            Tx.Transfer memory _tx = txs.transferDecode(i);
+        uint256[] memory senders = new uint256[](size);
+        // We reverse loop the transactions to compute nonce correctly
+        for (uint256 j = 0; j < size; j++) {
+            // i is the index counting down from tail
+            uint256 i = size - j - 1;
+            Tx.Transfer memory _tx = common.txs.transferDecode(i);
             // check state inclusion
             require(
                 MerkleTree.verify(
-                    stateRoot,
+                    common.stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
                 "Authenticity: state inclusion signer"
             );
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
             // check pubkey inclusion
             require(
                 MerkleTree.verify(
-                    accountRoot,
+                    common.accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
                     proof.states[i].pubkeyID,
                     proof.pubkeyWitnesses[i]
                 ),
                 "Authenticity: account does not exists"
             );
+            uint256 nonce = proof.states[i].nonce - 1;
+            // Add a huge value to avoid collision to the array initial value 0
+            uint256 safeIndex = _tx.fromIndex + 1000000000000000;
 
+            for (uint256 k = 0; k < j; k++) {
+                // Update nonce if the sender is seen before
+                if (senders[k] == safeIndex) nonce--;
+            }
+            senders[j] = safeIndex;
             // construct the message
-            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
-            bytes memory txMsg = Tx.transferMessageOf(
-                _tx,
-                proof.states[i].nonce - 1
-            );
-            messages[i] = BLS.hashToPoint(domain, txMsg);
+            bytes memory txMsg = Tx.transferMessageOf(_tx, nonce);
+            messages[i] = BLS.hashToPoint(common.domain, txMsg);
         }
         bool callSuccess;
         bool checkSuccess;
         (checkSuccess, callSuccess) = BLS.verifyMultiple(
-            signature,
+            common.signature,
             proof.pubkeys,
             messages
         );
@@ -73,33 +78,32 @@ library Authenticity {
     }
 
     function verifyMassMigration(
-        uint256[2] memory signature,
+        Types.AuthCommon memory common,
         Types.SignatureProof memory proof,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes32 domain,
-        uint256 spokeID,
-        bytes memory txs
+        uint256 spokeID
     ) internal view returns (Types.Result) {
-        uint256 size = txs.massMigrationSize();
+        uint256 size = common.txs.massMigrationSize();
         uint256[2][] memory messages = new uint256[2][](size);
-        for (uint256 i = 0; i < size; i++) {
-            Tx.MassMigration memory _tx = txs.massMigrationDecode(i);
+        uint256[] memory senders = new uint256[](size);
+        for (uint256 j = 0; j < size; j++) {
+            uint256 i = size - j - 1;
+            Tx.MassMigration memory _tx = common.txs.massMigrationDecode(i);
             // check state inclusion
             require(
                 MerkleTree.verify(
-                    stateRoot,
+                    common.stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
                 "Authenticity: state inclusion signer"
             );
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
             // check pubkey inclusion
             require(
                 MerkleTree.verify(
-                    accountRoot,
+                    common.accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeys[i])),
                     proof.states[i].pubkeyID,
                     proof.pubkeyWitnesses[i]
@@ -107,19 +111,20 @@ library Authenticity {
                 "Authenticity: account does not exists"
             );
 
-            // construct the message
-            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
-            bytes memory txMsg = Tx.massMigrationMessageOf(
-                _tx,
-                proof.states[i].nonce - 1,
-                spokeID
-            );
-            messages[i] = BLS.hashToPoint(domain, txMsg);
+            uint256 nonce = proof.states[i].nonce - 1;
+            uint256 safeIndex = _tx.fromIndex + 1000000000000000;
+
+            for (uint256 k = 0; k < j; k++) {
+                if (senders[k] == safeIndex) nonce--;
+            }
+            senders[j] = safeIndex;
+            bytes memory txMsg = Tx.massMigrationMessageOf(_tx, nonce, spokeID);
+            messages[i] = BLS.hashToPoint(common.domain, txMsg);
         }
         bool callSuccess;
         bool checkSuccess;
         (checkSuccess, callSuccess) = BLS.verifyMultiple(
-            signature,
+            common.signature,
             proof.pubkeys,
             messages
         );
@@ -134,33 +139,32 @@ library Authenticity {
     }
 
     function verifyCreate2Transfer(
-        uint256[2] memory signature,
-        Types.SignatureProofWithReceiver memory proof,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes32 domain,
-        bytes memory txs
+        Types.AuthCommon memory common,
+        Types.SignatureProofWithReceiver memory proof
     ) internal view returns (Types.Result) {
-        uint256 size = txs.create2TransferSize();
+        uint256 size = common.txs.create2TransferSize();
         uint256[2][] memory messages = new uint256[2][](size);
-        for (uint256 i = 0; i < size; i++) {
-            Tx.Create2Transfer memory _tx = txs.create2TransferDecode(i);
+        uint256[] memory senders = new uint256[](size);
+        for (uint256 j = 0; j < size; j++) {
+            uint256 i = size - j - 1;
+            Tx.Create2Transfer memory _tx = common.txs.create2TransferDecode(i);
 
             // check state inclusion
             require(
                 MerkleTree.verify(
-                    stateRoot,
+                    common.stateRoot,
                     keccak256(proof.states[i].encode()),
                     _tx.fromIndex,
                     proof.stateWitnesses[i]
                 ),
                 "Authenticity: state inclusion signer"
             );
+            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
             // check pubkey inclusion
             require(
                 MerkleTree.verify(
-                    accountRoot,
+                    common.accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysSender[i])),
                     proof.states[i].pubkeyID,
                     proof.pubkeyWitnessesSender[i]
@@ -171,7 +175,7 @@ library Authenticity {
             // check receiver pubkey inclusion at committed accID
             require(
                 MerkleTree.verify(
-                    accountRoot,
+                    common.accountRoot,
                     keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
                     _tx.toPubkeyID,
                     proof.pubkeyWitnessesReceiver[i]
@@ -180,20 +184,26 @@ library Authenticity {
             );
 
             // construct the message
-            require(proof.states[i].nonce > 0, "Authenticity: zero nonce");
 
+            uint256 nonce = proof.states[i].nonce - 1;
+            uint256 safeIndex = _tx.fromIndex + 1000000000000000;
+
+            for (uint256 k = 0; k < j; k++) {
+                if (senders[k] == safeIndex) nonce--;
+            }
+            senders[j] = safeIndex;
             bytes memory txMsg = Tx.create2TransferMessageOf(
                 _tx,
-                proof.states[i].nonce - 1,
+                nonce,
                 proof.pubkeysReceiver[i]
             );
 
-            messages[i] = BLS.hashToPoint(domain, txMsg);
+            messages[i] = BLS.hashToPoint(common.domain, txMsg);
         }
         bool callSuccess;
         bool checkSuccess;
         (checkSuccess, callSuccess) = BLS.verifyMultiple(
-            signature,
+            common.signature,
             proof.pubkeysSender,
             messages
         );

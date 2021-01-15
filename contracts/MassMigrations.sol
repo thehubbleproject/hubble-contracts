@@ -13,24 +13,11 @@ contract MassMigration {
     using Tx for bytes;
 
     function checkSignature(
-        uint256[2] memory signature,
+        Types.AuthCommon memory common,
         Types.SignatureProof memory proof,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes32 domain,
-        uint256 spokeID,
-        bytes memory txs
+        uint256 spokeID
     ) public view returns (Types.Result) {
-        return
-            Authenticity.verifyMassMigration(
-                signature,
-                proof,
-                stateRoot,
-                accountRoot,
-                domain,
-                spokeID,
-                txs
-            );
+        return Authenticity.verifyMassMigration(common, proof, spokeID);
     }
 
     /**

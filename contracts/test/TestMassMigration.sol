@@ -15,15 +15,14 @@ contract TestMassMigration is MassMigration {
         bytes memory txs
     ) public view returns (uint256 gasCost, Types.Result result) {
         gasCost = gasleft();
-        result = checkSignature(
-            signature,
-            proof,
-            stateRoot,
-            accountRoot,
-            domain,
-            spokeID,
-            txs
-        );
+        Types.AuthCommon memory common = Types.AuthCommon({
+            signature: signature,
+            stateRoot: stateRoot,
+            accountRoot: accountRoot,
+            domain: domain,
+            txs: txs
+        });
+        result = checkSignature(common, proof, spokeID);
         gasCost = gasCost - gasleft();
     }
 

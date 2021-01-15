@@ -12,22 +12,10 @@ contract Transfer {
     using Tx for bytes;
 
     function checkSignature(
-        uint256[2] memory signature,
-        Types.SignatureProof memory proof,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes32 domain,
-        bytes memory txs
+        Types.AuthCommon memory common,
+        Types.SignatureProof memory proof
     ) public view returns (Types.Result) {
-        return
-            Authenticity.verifyTransfer(
-                signature,
-                proof,
-                stateRoot,
-                accountRoot,
-                domain,
-                txs
-            );
+        return Authenticity.verifyTransfer(common, proof);
     }
 
     /**

@@ -21,6 +21,14 @@ library Types {
         bytes32[][] pubkeyWitnessesReceiver;
     }
 
+    struct AuthCommon {
+        uint256[2] signature;
+        bytes32 stateRoot;
+        bytes32 accountRoot;
+        bytes32 domain;
+        bytes txs;
+    }
+
     enum Usage { Genesis, Transfer, MassMigration, Create2Transfer, Deposit }
 
     // Batch represents the batch submitted periodically to the ethereum chain

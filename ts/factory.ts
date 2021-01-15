@@ -174,18 +174,23 @@ export function txTransferFactory(
     const txs: TxTransfer[] = [];
     const signatures = [];
     const senders = [];
+    const seenNonce: { [stateID: number]: number } = {};
     for (let i = 0; i < n; i++) {
         const sender = group.getUser(i % group.size);
         const receiver = group.getUser((i + 5) % group.size);
         const senderState = group.getState(sender);
         const amount = USDT.castBigNumber(senderState.balance.div(10));
         const fee = USDT.castBigNumber(amount.div(10));
+        const nonce = seenNonce[sender.stateID]
+            ? seenNonce[sender.stateID] + 1
+            : senderState.nonce;
+        seenNonce[sender.stateID] = nonce;
         const tx = new TxTransfer(
             sender.stateID,
             receiver.stateID,
             amount,
             fee,
-            senderState.nonce,
+            nonce,
             USDT
         );
         txs.push(tx);
@@ -200,17 +205,22 @@ export function txTransferFactory(
 export function txCreate2TransferFactory(
     registered: Group,
     unregistered: Group
-): { txs: TxCreate2Transfer[]; signature: solG1 } {
+): { txs: TxCreate2Transfer[]; signature: solG1; senders: User[] } {
     const txs: TxCreate2Transfer[] = [];
     const signatures = [];
-    if (registered.size != unregistered.size)
-        throw new Error("This factory supports same number of users only");
-    for (let i = 0; i < registered.size; i++) {
-        const sender = registered.getUser(i);
-        const reciver = unregistered.getUser(i);
+    const senders = [];
+    const seenNonce: { [stateID: number]: number } = {};
+    const n = Math.max(registered.size, unregistered.size);
+    for (let i = 0; i < n; i++) {
+        const sender = registered.getUser(i % registered.size);
+        const reciver = unregistered.getUser(i % unregistered.size);
         const senderState = registered.getState(sender);
         const amount = USDT.castBigNumber(senderState.balance.div(10));
         const fee = USDT.castBigNumber(amount.div(10));
+        const nonce = seenNonce[sender.stateID]
+            ? seenNonce[sender.stateID] + 1
+            : senderState.nonce;
+        seenNonce[sender.stateID] = nonce;
 
         const tx = new TxCreate2Transfer(
             sender.stateID,
@@ -219,14 +229,15 @@ export function txCreate2TransferFactory(
             reciver.pubkeyID,
             amount,
             fee,
-            senderState.nonce,
+            nonce,
             USDT
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
+        senders.push(sender);
     }
     const signature = aggregate(signatures).sol;
-    return { txs, signature };
+    return { txs, signature, senders };
 }
 
 export function txMassMigrationFactory(
@@ -236,16 +247,22 @@ export function txMassMigrationFactory(
     const txs: TxMassMigration[] = [];
     const signatures = [];
     const senders = [];
+    const seenNonce: { [stateID: number]: number } = {};
     for (const sender of group.userIterator()) {
         const senderState = group.getState(sender);
         const amount = USDT.castBigNumber(senderState.balance.div(10));
         const fee = USDT.castBigNumber(amount.div(10));
+        const nonce = seenNonce[sender.stateID]
+            ? seenNonce[sender.stateID] + 1
+            : senderState.nonce;
+        seenNonce[sender.stateID] = nonce;
+
         const tx = new TxMassMigration(
             sender.stateID,
             amount,
             spokeID,
             fee,
-            senderState.nonce,
+            nonce,
             USDT
         );
         txs.push(tx);

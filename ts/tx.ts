@@ -143,6 +143,9 @@ export class TxTransfer implements SignableTx {
         ]);
         return hexlify(concated);
     }
+    public toString(): string {
+        return `<Transfer ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
+    }
 }
 
 export class TxMassMigration implements SignableTx {
@@ -220,6 +223,9 @@ export class TxMassMigration implements SignableTx {
             this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
+    }
+    public toString(): string {
+        return `<Migration ${this.fromIndex}->${this.spokeID} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
     }
 }
 
@@ -331,5 +337,8 @@ export class TxCreate2Transfer implements SignableTx {
             this.decimal.encodeInt(this.fee)
         ]);
         return hexlify(concated);
+    }
+    public toString(): string {
+        return `<Create2Transfer ${this.fromIndex}->${this.toIndex} (${this.toPubkeyID}) $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
     }
 }

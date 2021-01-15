@@ -341,15 +341,14 @@ contract RollupCore is BatchManager {
             checkInclusion(batches[batchID].commitmentRoot, target),
             "Rollup: Commitment not present in batch"
         );
-
-        Types.Result result = transfer.checkSignature(
-            target.commitment.body.signature,
-            signatureProof,
-            target.commitment.stateRoot,
-            target.commitment.body.accountRoot,
-            appID,
-            target.commitment.body.txs
-        );
+        Types.AuthCommon memory common = Types.AuthCommon({
+            signature: target.commitment.body.signature,
+            stateRoot: target.commitment.stateRoot,
+            accountRoot: target.commitment.body.accountRoot,
+            domain: appID,
+            txs: target.commitment.body.txs
+        });
+        Types.Result result = transfer.checkSignature(common, signatureProof);
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
     }
@@ -363,15 +362,18 @@ contract RollupCore is BatchManager {
             checkInclusion(batches[batchID].commitmentRoot, target),
             "Commitment not present in batch"
         );
+        Types.AuthCommon memory common = Types.AuthCommon({
+            signature: target.commitment.body.signature,
+            stateRoot: target.commitment.stateRoot,
+            accountRoot: target.commitment.body.accountRoot,
+            domain: appID,
+            txs: target.commitment.body.txs
+        });
 
         Types.Result result = massMigration.checkSignature(
-            target.commitment.body.signature,
+            common,
             signatureProof,
-            target.commitment.stateRoot,
-            target.commitment.body.accountRoot,
-            appID,
-            target.commitment.body.spokeID,
-            target.commitment.body.txs
+            target.commitment.body.spokeID
         );
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
@@ -386,14 +388,17 @@ contract RollupCore is BatchManager {
             checkInclusion(batches[batchID].commitmentRoot, target),
             "Rollup: Commitment not present in batch"
         );
+        Types.AuthCommon memory common = Types.AuthCommon({
+            signature: target.commitment.body.signature,
+            stateRoot: target.commitment.stateRoot,
+            accountRoot: target.commitment.body.accountRoot,
+            domain: appID,
+            txs: target.commitment.body.txs
+        });
 
         Types.Result result = create2Transfer.checkSignature(
-            target.commitment.body.signature,
-            signatureProof,
-            target.commitment.stateRoot,
-            target.commitment.body.accountRoot,
-            appID,
-            target.commitment.body.txs
+            common,
+            signatureProof
         );
 
         if (result != Types.Result.Ok) startRollingBack(batchID);

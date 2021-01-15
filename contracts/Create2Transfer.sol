@@ -11,22 +11,10 @@ contract Create2Transfer {
     using SafeMath for uint256;
 
     function checkSignature(
-        uint256[2] memory signature,
-        Types.SignatureProofWithReceiver memory proof,
-        bytes32 stateRoot,
-        bytes32 accountRoot,
-        bytes32 domain,
-        bytes memory txs
+        Types.AuthCommon memory common,
+        Types.SignatureProofWithReceiver memory proof
     ) public view returns (Types.Result) {
-        return
-            Authenticity.verifyCreate2Transfer(
-                signature,
-                proof,
-                stateRoot,
-                accountRoot,
-                domain,
-                txs
-            );
+        return Authenticity.verifyCreate2Transfer(common, proof);
     }
 
     /**
