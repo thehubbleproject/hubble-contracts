@@ -1,11 +1,5 @@
-*node_modules/*
-logs
+node_modules/
 genesis.json
-types
-build
-users.json
-test-blockchain/data
-.env
-commitments.json
+types/
 cache/
 artifacts/
