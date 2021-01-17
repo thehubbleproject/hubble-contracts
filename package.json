@@ -2,7 +2,6 @@
   "name": "hubble-contracts",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "repl": "ts-node ./scripts/repl.ts",
     "test": "hardhat test",
@@ -19,17 +18,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vaibhavchellani/BOPR-contracts.git"
+    "url": "git+https://github.com/thehubbleproject/hubble-contracts.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
-    "url": "https://github.com/vaibhavchellani/BOPR-contracts/issues"
+    "url": "https://github.com/thehubbleproject/hubble-contracts/issues"
   },
-  "config": {
-    "mnemonics": "clock radar mass judge dismiss just intact mind resemble fringe diary casino"
-  },
-  "homepage": "https://github.com/vaibhavchellani/BOPR-contracts#readme",
+  "homepage": "https://github.com/thehubbleproject/hubble-contracts",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@openzeppelin/contracts": "^2.4.0",
