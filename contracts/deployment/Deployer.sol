@@ -9,10 +9,7 @@ contract Deployer {
         external
         returns (Proxy proxy)
     {
-        require(
-            !isContract(_calculateAddress(salt)),
-            "Deployer: salt is used"
-        );
+        require(!isContract(_calculateAddress(salt)), "Deployer: salt is used");
 
         bytes memory deploymentData = getDeploymentData();
 
