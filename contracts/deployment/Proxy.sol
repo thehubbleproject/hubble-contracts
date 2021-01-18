@@ -1,7 +1,5 @@
 pragma solidity ^0.5.15;
 
-import "@openzeppelin/contracts/utils/Address.sol";
-
 contract Proxy {
     bytes32
         private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
@@ -14,10 +12,6 @@ contract Proxy {
     function __initialize__(address implementation) external {
         require(_implementation() == address(0), "Proxy: already initialized");
         require(implementation != address(0), "Proxy: zero address");
-        require(
-            Address.isContract(implementation),
-            "Proxy: non contract address"
-        );
         bytes32 slot = IMPLEMENTATION_SLOT;
         assembly {
             sstore(slot, implementation)
