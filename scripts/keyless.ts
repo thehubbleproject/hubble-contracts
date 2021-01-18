@@ -1,4 +1,4 @@
-import { ethers } from "ethers";
+import { ethers, providers } from "ethers";
 import {
     calculateAddresses,
     DEPLOYER_ADDRESS,
@@ -13,28 +13,27 @@ const argv = require("minimist")(process.argv.slice(2), {
 });
 
 async function main() {
+    const provider = new ethers.providers.JsonRpcProvider(argv.url);
     if (argv.check) {
-        await checkKeylessDeploymentSetup();
+        await checkKeylessDeploymentSetup(provider);
     } else if (argv.deploy) {
-        await deploy();
+        await deploy(provider);
     }
 }
 
 // npx hardhat node
 // npm run keyless:deploy -- --url http://localhost:8545
-async function deploy() {
-    const provider = new ethers.providers.JsonRpcProvider(argv.url);
+async function deploy(provider: providers.JsonRpcProvider) {
     const signer = provider.getSigner();
     const verbose = true;
-    //
     await deployKeyless(signer, verbose);
 }
 
 // npx hardhat node
 // npm run keyless:check -- --url http://localhost:8545
-async function checkKeylessDeploymentSetup() {
-    const provider = new ethers.providers.JsonRpcProvider(argv.url);
-
+async function checkKeylessDeploymentSetup(
+    provider: providers.JsonRpcProvider
+) {
     // Gas Limit
     const keylessTxGasCost = await calculateGasLimit(provider);
 
@@ -63,7 +62,7 @@ async function checkKeylessDeploymentSetup() {
     expected: ${addresses.deployer}
     have: ${DEPLOYER_ADDRESS}\n`);
     } else {
-        console.log("Deployer Address is OK");
+        console.log("Deployer Address is OK\n");
     }
 
     console.log("Adresses:\n");

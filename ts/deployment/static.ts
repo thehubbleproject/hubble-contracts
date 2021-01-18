@@ -20,7 +20,7 @@ export const KEYLESS_DEPLOYMENT = {
     GAS_LIMIT: BigNumber.from(383544)
 };
 
-export const DEPLOYER_ADDRESS = "0xEe7216e1aA7280fc7E2F8BB8a1Bed629c54ba74b";
+export const DEPLOYER_ADDRESS = "0xF9C88b8e9b02fa24E50Ecc44Bda0Ac2D3307C53f";
 
 export interface StaticAdresses {
     deployer: string;
