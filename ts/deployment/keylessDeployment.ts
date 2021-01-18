@@ -31,7 +31,7 @@ export interface KeylessDeploymentResult extends KeylessDeployment {
 }
 
 export async function calculateKeylessDeployment(
-    provider: Provider,
+    provider: Provider | undefined,
     bytecode: string,
     gasPrice: BigNumber,
     gasLimit: BigNumber,
@@ -49,7 +49,10 @@ export async function calculateKeylessDeployment(
     const rawDeplotmentTx = serialize(rawTransaction, signature);
     const parsedDeploymentTx: Transaction = parse(rawDeplotmentTx);
 
-    const estimatedGasCost = await provider.estimateGas(parsedDeploymentTx);
+    let estimatedGasCost = BigNumber.from(0);
+    if (provider) {
+        estimatedGasCost = await provider.estimateGas(parsedDeploymentTx);
+    }
 
     // now we must have a transaction hash
     assert(parsedDeploymentTx.hash);
@@ -66,10 +69,12 @@ export async function calculateKeylessDeployment(
         nonce: 0
     });
 
-    const code = await provider.getCode(contractAddress);
     let alreadyDeployed = false;
-    if (code != "0x") {
-        alreadyDeployed = true;
+    if (provider) {
+        const code = await provider.getCode(contractAddress);
+        if (code != "0x") {
+            alreadyDeployed = true;
+        }
     }
 
     return {

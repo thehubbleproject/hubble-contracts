@@ -23,19 +23,23 @@ export const KEYLESS_DEPLOYMENT = {
 export const DEPLOYER_ADDRESS = "0xc8dc24aF494c7417A5039429Bb04575a6Ed32E09";
 
 export interface StaticAdresses {
+    keyless: string;
     deployer: string;
     bnPairingCostEstimator: string;
 }
 
 export async function calculateAddresses(
-    provider: Provider
+    provider?: Provider
 ): Promise<StaticAdresses> {
-    const deployer = await calculateDeployerAddress(provider);
+    const deployerResult = await calculateDeployerAddress(provider);
+    const deployer = deployerResult.deployerAddress;
+    const keyless = deployerResult.keylessAccount;
     const bnPairingCostEstimator = calculateAddress(
         deployer,
         SALT.PAIRING_GAS_ESTIMATOR
     );
     const addresses = {
+        keyless,
         deployer,
         bnPairingCostEstimator
     };

@@ -9,13 +9,17 @@ import { deployKeyless } from "../ts/deployment/deploy";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root"],
-    boolean: ["check", "deploy"]
+    boolean: ["check", "deploy", "offline"]
 });
 
 async function main() {
     const provider = new ethers.providers.JsonRpcProvider(argv.url);
     if (argv.check) {
-        await checkKeylessDeploymentSetup(provider);
+        if (argv.offline) {
+            await checkKeylessDeploymentSetup();
+        } else {
+            await checkKeylessDeploymentSetup(provider);
+        }
     } else if (argv.deploy) {
         await deploy(provider);
     }
@@ -32,27 +36,30 @@ async function deploy(provider: providers.JsonRpcProvider) {
 // npx hardhat node
 // npm run keyless:check -- --url http://localhost:8545
 async function checkKeylessDeploymentSetup(
-    provider: providers.JsonRpcProvider
+    provider?: providers.JsonRpcProvider
 ) {
     // Gas Limit
-    const keylessTxGasCost = await calculateGasLimit(provider);
-
-    if (keylessTxGasCost.gt(KEYLESS_DEPLOYMENT.GAS_LIMIT)) {
-        console.log(`WARNING: Gas Limit Insufficient
-    expected: ${keylessTxGasCost.toString()}
-    have: ${KEYLESS_DEPLOYMENT.GAS_LIMIT.toString()}\n`);
-    } else {
-        console.log("Gas Limit is OK\n");
+    if (provider) {
+        const keylessTxGasCost = await calculateGasLimit(provider);
+        if (keylessTxGasCost.gt(KEYLESS_DEPLOYMENT.GAS_LIMIT)) {
+            console.log(`WARNING: Gas Limit Insufficient
+        expected: ${keylessTxGasCost.toString()}
+        have: ${KEYLESS_DEPLOYMENT.GAS_LIMIT.toString()}\n`);
+        } else {
+            console.log("Gas Limit is OK\n");
+        }
     }
 
     // Gas Cost
-    const currentGasPrice = await provider.getGasPrice();
-    if (currentGasPrice.gt(KEYLESS_DEPLOYMENT.GAS_PRICE)) {
-        console.log(`WARNING: Gas Price Insufficient
-    expected: ${currentGasPrice.toString()}
-    have: ${KEYLESS_DEPLOYMENT.GAS_LIMIT.toString()}\n`);
-    } else {
-        console.log("Gas Price is OK (for now)\n");
+    if (provider) {
+        const currentGasPrice = await provider.getGasPrice();
+        if (currentGasPrice.gt(KEYLESS_DEPLOYMENT.GAS_PRICE)) {
+            console.log(`WARNING: Gas Price Insufficient
+            expected: ${currentGasPrice.toString()}
+            have: ${KEYLESS_DEPLOYMENT.GAS_LIMIT.toString()}\n`);
+        } else {
+            console.log("Gas Price is OK (for now)\n");
+        }
     }
 
     const addresses = await calculateAddresses(provider);

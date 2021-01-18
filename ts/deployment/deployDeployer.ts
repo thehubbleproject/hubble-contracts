@@ -8,8 +8,8 @@ import { DEPLOYER_ADDRESS, KEYLESS_DEPLOYMENT } from "./static";
 import { logDeployment } from "../../scripts/logger";
 
 export async function calculateDeployerAddress(
-    provider: Provider
-): Promise<string> {
+    provider?: Provider
+): Promise<{ deployerAddress: string; keylessAccount: string }> {
     let result = await calculateKeylessDeployment(
         provider,
         bytecode(),
@@ -17,7 +17,10 @@ export async function calculateDeployerAddress(
         KEYLESS_DEPLOYMENT.GAS_LIMIT,
         false
     );
-    return result.contractAddress;
+    return {
+        deployerAddress: result.contractAddress,
+        keylessAccount: result.keylessAccount
+    };
 }
 
 export async function calculateGasLimit(
