@@ -19,6 +19,7 @@ import {
     STATE_TREE_DEPTH,
     COMMIT_SIZE
 } from "../../ts/constants";
+import { deployKeyless } from "../../ts/deployment/deploy";
 
 const DOMAIN = hexToUint8Array(randHex(32));
 const tokenID = 5566;
@@ -33,6 +34,7 @@ describe("Rollup Mass Migration", () => {
     before(async function() {
         await mcl.init();
         const [signer] = await ethers.getSigners();
+        await deployKeyless(signer, false);
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
