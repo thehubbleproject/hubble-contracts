@@ -26,9 +26,9 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - run: npm ci
-    - run: npm run keyless:check -- --offline
     - run: npm run lint && npm run solhint
     - run: npm run generate
+    - run: npm run keyless:check -- --offline
     - run: npm run test -- test/fast/*
     - run: npm run test -- test/slow/*
     - run: npm run test -- test/integration.test.ts
