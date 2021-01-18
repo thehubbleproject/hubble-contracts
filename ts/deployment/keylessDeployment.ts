@@ -45,6 +45,7 @@ export async function calculateKeylessDeployment(
         data: bytecode,
         gasLimit: gasLimit
     };
+    console.log("rawTransaction", rawTransaction);
 
     const rawDeplotmentTx = serialize(rawTransaction, signature);
     const parsedDeploymentTx: Transaction = parse(rawDeplotmentTx);
