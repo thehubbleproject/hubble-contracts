@@ -1,9 +1,9 @@
 import { BigNumber, utils } from "ethers";
 import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
-import { calculateDeployerAddress } from "./deployDeployer";
+import { calculateDeployerAddress, proxyBytecode } from "./deployDeployer";
 import { Provider } from "@ethersproject/providers";
 
-export const PROXY_CODE_HASH = utils.keccak256(new ProxyFactory().bytecode);
+export const PROXY_CODE_HASH = utils.keccak256(proxyBytecode());
 
 export const SALT = {
     PAIRING_GAS_ESTIMATOR: utils.keccak256(
