@@ -3,7 +3,11 @@ import { BigNumber } from "ethers";
 import assert from "assert";
 import { keylessDeploy, calculateKeylessDeployment } from "./keylessDeployment";
 import { Provider } from "@ethersproject/providers";
-import { deployerBytecode, DEPLOYER_ADDRESS, KEYLESS_DEPLOYMENT } from "./static";
+import {
+    deployerBytecode,
+    DEPLOYER_ADDRESS,
+    KEYLESS_DEPLOYMENT
+} from "./static";
 import { logAddress, logDeployment } from "../../scripts/logger";
 
 export async function calculateDeployerAddress(

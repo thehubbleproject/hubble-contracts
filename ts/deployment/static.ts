@@ -1,8 +1,8 @@
 import { BigNumber, utils } from "ethers";
 import { calculateDeployerAddress } from "./deployDeployer";
 import { Provider } from "@ethersproject/providers";
-import { ProxyFactory } from '../../types/ethers-contracts/ProxyFactory';
-import { DeployerFactory } from '../../types/ethers-contracts/DeployerFactory';
+import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
+import { DeployerFactory } from "../../types/ethers-contracts/DeployerFactory";
 
 export const PROXY_BYTECODE = proxyBytecode();
 export const PROXY_CODE_HASH = utils.keccak256(PROXY_BYTECODE);
