@@ -34,8 +34,8 @@ contract BatchManager is Parameters {
 
     event NewBatch(address committer, uint256 index, Types.Usage batchType);
     event StakeWithdraw(address committed, uint256 batchID);
-    event BatchRollback(uint256 batchID);
-    event RollbackFinalisation(uint256 totalBatchesSlashed);
+    event RollbackComplete(uint256 startID, uint256 nDeleted);
+    event RollbackPartiallyComplete(uint256 startID, uint256 nDeleted);
 
     modifier isNotRollingBack() {
         require(invalidBatchMarker == 0, "BatchManager: Is rolling back");
@@ -79,32 +79,33 @@ contract BatchManager is Parameters {
     function rollback() internal {
         bytes32 depositSubTreeRoot;
         uint256 batchID;
-        uint256 minID = invalidBatchMarker;
-        uint256 nExpect = nextBatchID - minID;
+        uint256 nExpect = nextBatchID - invalidBatchMarker;
         uint256 nActual = 0;
+        uint256 startID = nextBatchID - 1;
         while (nActual < nExpect) {
-            batchID = minID + nExpect - 1 - nActual;
             if (gasleft() <= paramMinGasLeft) break;
+            batchID = startID - nActual;
 
             delete batches[batchID];
 
             depositSubTreeRoot = deposits[batchID];
             if (depositSubTreeRoot != bytes32(0))
                 depositManager.reenqueue(depositSubTreeRoot);
-
-            emit BatchRollback(batchID);
             nActual++;
         }
         nextBatchID -= nActual;
-        if (nActual == nExpect) invalidBatchMarker = 0;
+        if (nActual == nExpect) {
+            invalidBatchMarker = 0;
+            emit RollbackComplete(startID, nActual);
+        } else {
+            emit RollbackPartiallyComplete(startID, nActual);
+        }
 
         uint256 slashedAmount = nActual.mul(paramStakeAmount);
         uint256 reward = slashedAmount.mul(2).div(3);
         uint256 burn = slashedAmount.sub(reward);
         msg.sender.transfer(reward);
         address(0).transfer(burn);
-
-        emit RollbackFinalisation(nActual);
     }
 
     function keepRollingBack() external isRollingBack {
