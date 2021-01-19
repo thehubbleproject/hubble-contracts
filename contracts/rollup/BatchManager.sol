@@ -78,12 +78,12 @@ contract BatchManager is Parameters {
 
     function rollback() internal {
         bytes32 depositSubTreeRoot;
-        uint256 totalSlashings = 0;
-        for (
-            uint256 batchID = nextBatchID - 1;
-            batchID >= invalidBatchMarker;
-            batchID--
-        ) {
+        uint256 batchID;
+        uint256 minID = invalidBatchMarker;
+        uint256 nExpect = nextBatchID - minID;
+        uint256 nActual = 0;
+        while (nActual < nExpect) {
+            batchID = minID + nExpect - nActual;
             if (gasleft() <= paramMinGasLeft) break;
 
             delete batches[batchID];
@@ -92,20 +92,19 @@ contract BatchManager is Parameters {
             if (depositSubTreeRoot != bytes32(0))
                 depositManager.reenqueue(depositSubTreeRoot);
 
-            totalSlashings++;
-            nextBatchID--;
-
             emit BatchRollback(batchID);
+            nActual++;
         }
-        if (nextBatchID == invalidBatchMarker) invalidBatchMarker = 0;
+        nextBatchID -= nActual;
+        if (nActual == nExpect) invalidBatchMarker = 0;
 
-        uint256 slashedAmount = totalSlashings.mul(paramStakeAmount);
+        uint256 slashedAmount = nActual.mul(paramStakeAmount);
         uint256 reward = slashedAmount.mul(2).div(3);
         uint256 burn = slashedAmount.sub(reward);
         msg.sender.transfer(reward);
         address(0).transfer(burn);
 
-        emit RollbackFinalisation(totalSlashings);
+        emit RollbackFinalisation(nActual);
     }
 
     function keepRollingBack() external isRollingBack {
