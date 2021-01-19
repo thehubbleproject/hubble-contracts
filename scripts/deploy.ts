@@ -5,6 +5,7 @@ import { DeploymentParameters } from "../ts/interfaces";
 import fs from "fs";
 import { PRODUCTION_PARAMS } from "../ts/constants";
 import { StateTree } from "../ts/stateTree";
+import { execSync } from "child_process";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root"]
@@ -40,9 +41,13 @@ async function main() {
         addresses[contract] = contracts[contract as keyof allContracts].address;
     });
     const appID = await contracts.rollup.appID();
+    const version = execSync("git rev-parse HEAD")
+        .toString()
+        .trim();
     const auxiliary = {
         domain: appID,
-        genesisEth1Block
+        genesisEth1Block,
+        version
     };
     const configs = { parameters, addresses, auxiliary };
     console.log("Writing genesis.json");
