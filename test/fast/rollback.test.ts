@@ -44,26 +44,28 @@ describe("Rollback", function() {
         const tx = await rollup.testRollback(numOfBatches - 1, {
             gasLimit: 1000000
         });
-        const [complete] = await rollup.queryFilter(
-            rollup.filters.RollbackComplete(null, null),
+        const [status] = await rollup.queryFilter(
+            rollup.filters.RollbackStatus(null, null, null),
             tx.blockHash
         );
 
         assert.equal(await getTipBatchID(), numOfBatches - 2);
         assert.equal(Number(await rollup.invalidBatchMarker()), 0);
-        assert.equal(Number(complete.args?.startID), numOfBatches - 1);
-        assert.equal(Number(complete.args?.nDeleted), 1);
+        assert.isTrue(status.args?.completed);
+        assert.equal(Number(status.args?.startID), numOfBatches - 1);
+        assert.equal(Number(status.args?.nDeleted), 1);
     });
     it("Test rollback exactly 0 batch", async function() {
         // Set a high minGasLeft to skip loop
         await rollup.setMinGasLeft("12000000");
         const tx = await rollup.testRollback(1);
-        const [partial] = await rollup.queryFilter(
-            rollup.filters.RollbackPartiallyComplete(null, null),
+        const [status] = await rollup.queryFilter(
+            rollup.filters.RollbackStatus(null, null, null),
             tx.blockHash
         );
-        assert.equal(Number(partial.args?.startID), await getTipBatchID());
-        assert.equal(Number(partial.args?.nDeleted), 0);
+        assert.isFalse(status.args?.completed);
+        assert.equal(Number(status.args?.startID), await getTipBatchID());
+        assert.equal(Number(status.args?.nDeleted), 0);
     });
     it("profile gas usage out of the loop", async function() {
         // Set a high minGasLeft to skip loop
@@ -76,13 +78,14 @@ describe("Rollback", function() {
         const nBatches = await getTipBatchID();
         const tx = await rollup.testRollback(1, { gasLimit: 9500000 });
 
-        const [complete] = await rollup.queryFilter(
-            rollup.filters.RollbackComplete(null, null),
+        const [status] = await rollup.queryFilter(
+            rollup.filters.RollbackStatus(null, null, null),
             tx.blockHash
         );
         // Want to roll all the way to the start
-        assert.equal(Number(complete.args?.startID), numOfBatches - 1);
-        assert.equal(Number(complete.args?.nDeleted), numOfBatches - 1);
+        assert.isTrue(status.args?.completed);
+        assert.equal(Number(status.args?.startID), numOfBatches - 1);
+        assert.equal(Number(status.args?.nDeleted), numOfBatches - 1);
         assert.equal(await getTipBatchID(), 0);
         const gasUsed = (await tx.wait()).gasUsed.toNumber();
         console.log(`Rolled back ${nBatches} batches with ${gasUsed} gas`);
@@ -95,13 +98,19 @@ describe("Rollback", function() {
 
         const tx0 = await rollup.testRollback(badBatchID, { gasLimit: 500000 });
         expect(await getTipBatchID()).to.be.greaterThan(badBatchID);
-        const [partial] = await rollup.queryFilter(
-            rollup.filters.RollbackPartiallyComplete(null, null),
+        const [status0] = await rollup.queryFilter(
+            rollup.filters.RollbackStatus(null, null, null),
             tx0.blockHash
         );
-        assert.equal(Number(partial.args?.startID), tipBatchID);
+        assert.isFalse(status0.args?.completed);
+        assert.equal(Number(status0.args?.startID), tipBatchID);
 
-        await rollup.keepRollingBack({ gasLimit: 8000000 });
+        const tx1 = await rollup.keepRollingBack({ gasLimit: 8000000 });
+        const [status1] = await rollup.queryFilter(
+            rollup.filters.RollbackStatus(null, null, null),
+            tx1.blockHash
+        );
+        assert.isTrue(status1.args?.completed);
         assert.equal(Number(await rollup.invalidBatchMarker()), 0);
         assert.equal(await getTipBatchID(), goodBatchID);
     });

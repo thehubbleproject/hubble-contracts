@@ -34,8 +34,7 @@ contract BatchManager is Parameters {
 
     event NewBatch(address committer, uint256 index, Types.Usage batchType);
     event StakeWithdraw(address committed, uint256 batchID);
-    event RollbackComplete(uint256 startID, uint256 nDeleted);
-    event RollbackPartiallyComplete(uint256 startID, uint256 nDeleted);
+    event RollbackStatus(uint256 startID, uint256 nDeleted, bool completed);
 
     modifier isNotRollingBack() {
         require(invalidBatchMarker == 0, "BatchManager: Is rolling back");
@@ -94,12 +93,9 @@ contract BatchManager is Parameters {
             nActual++;
         }
         nextBatchID -= nActual;
-        if (nActual == nExpect) {
-            invalidBatchMarker = 0;
-            emit RollbackComplete(startID, nActual);
-        } else {
-            emit RollbackPartiallyComplete(startID, nActual);
-        }
+        bool completed = nActual == nExpect;
+        if (completed) invalidBatchMarker = 0;
+        emit RollbackStatus(startID, nActual, completed);
 
         uint256 slashedAmount = nActual.mul(paramStakeAmount);
         uint256 reward = slashedAmount.mul(2).div(3);
