@@ -83,7 +83,7 @@ contract BatchManager is Parameters {
         uint256 nExpect = nextBatchID - minID;
         uint256 nActual = 0;
         while (nActual < nExpect) {
-            batchID = minID + nExpect - nActual;
+            batchID = minID + nExpect - 1 - nActual;
             if (gasleft() <= paramMinGasLeft) break;
 
             delete batches[batchID];
