@@ -31,6 +31,9 @@ import { serialize } from "../ts/tx";
 import { ExampleToken } from "../types/ethers-contracts/ExampleToken";
 import { ExampleTokenFactory } from "../types/ethers-contracts";
 import { USDT } from "../ts/decimal";
+import { keylessDeploy } from "../ts/deployment/keylessDeployment";
+import { deployKeyless } from "../ts/deployment/deploy";
+import { deployerBytecode } from "../ts/deployment/static";
 
 // In the deploy script, we already have a TestToken registered with tokenID 0
 // We are deploying a new token with tokenID 1
@@ -58,6 +61,7 @@ describe("Integration Test", function() {
     before(async function() {
         await mcl.init();
         [deployer, coordinator, withdrawer] = await ethers.getSigners();
+        await deployKeyless(deployer, false);
         parameters = PRODUCTION_PARAMS;
         parameters.BLOCKS_TO_FINALISE = 100;
         stateTree = StateTree.new(parameters.MAX_DEPTH);
