@@ -26,6 +26,7 @@ describe("Rollup Create2Transfer Commitment", () => {
     let usersWithoutState: Group;
 
     before(async function() {
+        this.timeout(10000);
         await mcl.init();
         const [signer] = await ethers.getSigners();
         await deployKeyless(signer, false);
