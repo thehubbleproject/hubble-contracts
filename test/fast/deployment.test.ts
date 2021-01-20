@@ -27,9 +27,10 @@ describe("Deployer", async () => {
         });
     });
 
-    it("keyless", async function() {
+    it.only("keyless", async function() {
         const factory = new SimpleStorageFactory(signer);
         const bytecode = factory.bytecode;
+        console.log("SimpleFactory bytecode", bytecode)
         const gasPrice = BigNumber.from(10e10);
         const gasLimit = await provider.estimateGas(
             factory.getDeployTransaction()
