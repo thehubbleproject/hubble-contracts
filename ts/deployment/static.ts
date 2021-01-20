@@ -17,10 +17,10 @@ export const KEYLESS_DEPLOYMENT = {
     // Caution:
     // Gas price in mainnet is wildly volatile
     GAS_PRICE: BigNumber.from(10e10),
-    GAS_LIMIT: BigNumber.from(383544)
+    GAS_LIMIT: BigNumber.from(500000)
 };
 
-export const DEPLOYER_ADDRESS = "0x26B1e7Da4Eb8bECE73D0B981BF83Aa03b4Dd5a34";
+export const DEPLOYER_ADDRESS = "0x3aa015e50fda3e33C852d000c421C0cE48C7295B";
 
 export interface StaticAdresses {
     deployer: string;

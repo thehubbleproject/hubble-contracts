@@ -49,8 +49,8 @@ export async function deployDeployer(
     if (result.alreadyDeployed) {
         return true;
     }
-    assert(KEYLESS_DEPLOYMENT.GAS_LIMIT.gte(result.estimatedGasCost));
-    assert(DEPLOYER_ADDRESS == result.contractAddress);
+    if (!KEYLESS_DEPLOYMENT.GAS_LIMIT.gte(result.estimatedGasCost)) throw Error(`gas issue ${KEYLESS_DEPLOYMENT.GAS_LIMIT} ${result.estimatedGasCost}`)
+    if (DEPLOYER_ADDRESS != result.contractAddress) throw Error(`Address issue: expect ${DEPLOYER_ADDRESS} actual ${result.contractAddress}`)
     const _result = await keylessDeploy(
         signer,
         bytecode(),
