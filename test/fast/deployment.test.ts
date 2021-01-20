@@ -27,7 +27,7 @@ describe("Deployer", async () => {
         });
     });
 
-    it.only("keyless", async function() {
+    it("keyless", async function() {
         const factory = new SimpleStorageFactory(signer);
         const bytecode = factory.bytecode;
         console.log("SimpleFactory bytecode", bytecode)
