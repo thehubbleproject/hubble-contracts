@@ -11,12 +11,11 @@ import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../../ts/utils";
 import { Result } from "../../ts/interfaces";
 import { Group, txTransferFactory } from "../../ts/factory";
+import { STATE_TREE_DEPTH, COMMIT_SIZE } from "../../ts/constants";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
 const BAD_DOMAIN = hexToUint8Array(randHex(32));
-let COMMIT_SIZE = 32;
-let STATE_TREE_DEPTH = 32;
 const tokenID = 5566;
 
 describe("Rollup Transfer Commitment", () => {

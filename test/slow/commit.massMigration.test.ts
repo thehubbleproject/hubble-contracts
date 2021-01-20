@@ -14,11 +14,13 @@ import { assert } from "chai";
 import { Result } from "../../ts/interfaces";
 import { constants } from "ethers";
 import { MassMigrationCommitment } from "../../ts/commitments";
-import { EMPTY_SIGNATURE } from "../../ts/constants";
+import {
+    EMPTY_SIGNATURE,
+    STATE_TREE_DEPTH,
+    COMMIT_SIZE
+} from "../../ts/constants";
 
 const DOMAIN = hexToUint8Array(randHex(32));
-const COMMIT_SIZE = 32;
-const STATE_TREE_DEPTH = 32;
 const tokenID = 5566;
 const spokeID = 1;
 
