@@ -27,14 +27,18 @@ describe("Rollup Create2Transfer Commitment", () => {
 
     before(async function() {
         this.timeout(10000);
+        console.log("d1");
         await mcl.init();
         const [signer] = await ethers.getSigners();
         await deployKeyless(signer, false);
+        console.log("d2");
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
 
+        console.log("d3");
         registry = await AccountRegistry.new(registryContract);
+        console.log("d4");
         const nUsersWithStates = 32;
         const nUserWithoutState = nUsersWithStates;
         usersWithState = Group.new({
@@ -49,13 +53,15 @@ describe("Rollup Create2Transfer Commitment", () => {
             initialPubkeyID: nUsersWithStates,
             domain: DOMAIN
         });
-
+        
         for (const user of usersWithState.userIterator()) {
             await registry.register(user.pubkey);
         }
+        console.log("d5");
         for (const user of usersWithoutState.userIterator()) {
             await registry.register(user.pubkey);
         }
+        console.log("d6");
     });
 
     beforeEach(async function() {
