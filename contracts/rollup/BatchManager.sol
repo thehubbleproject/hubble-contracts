@@ -34,8 +34,7 @@ contract BatchManager is Parameters {
 
     event NewBatch(address committer, uint256 index, Types.Usage batchType);
     event StakeWithdraw(address committed, uint256 batchID);
-    event BatchRollback(uint256 batchID);
-    event RollbackFinalisation(uint256 totalBatchesSlashed);
+    event RollbackStatus(uint256 startID, uint256 nDeleted, bool completed);
 
     modifier isNotRollingBack() {
         require(invalidBatchMarker == 0, "BatchManager: Is rolling back");
@@ -79,32 +78,30 @@ contract BatchManager is Parameters {
     function rollback() internal {
         bytes32 depositSubTreeRoot;
         uint256 batchID;
-        uint256 minID = invalidBatchMarker;
-        uint256 nExpect = nextBatchID - minID;
+        uint256 nExpect = nextBatchID - invalidBatchMarker;
         uint256 nActual = 0;
+        uint256 startID = nextBatchID - 1;
         while (nActual < nExpect) {
-            batchID = minID + nExpect - nActual;
             if (gasleft() <= paramMinGasLeft) break;
+            batchID = startID - nActual;
 
             delete batches[batchID];
 
             depositSubTreeRoot = deposits[batchID];
             if (depositSubTreeRoot != bytes32(0))
                 depositManager.reenqueue(depositSubTreeRoot);
-
-            emit BatchRollback(batchID);
             nActual++;
         }
         nextBatchID -= nActual;
-        if (nActual == nExpect) invalidBatchMarker = 0;
+        bool completed = nActual == nExpect;
+        if (completed) invalidBatchMarker = 0;
+        emit RollbackStatus(startID, nActual, completed);
 
         uint256 slashedAmount = nActual.mul(paramStakeAmount);
         uint256 reward = slashedAmount.mul(2).div(3);
         uint256 burn = slashedAmount.sub(reward);
         msg.sender.transfer(reward);
         address(0).transfer(burn);
-
-        emit RollbackFinalisation(nActual);
     }
 
     function keepRollingBack() external isRollingBack {
