@@ -6,7 +6,7 @@ import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerF
 import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
 import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
 
-import { Signer, Contract } from "ethers";
+import { Signer, Contract, ContractTransaction } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
 import {
@@ -96,8 +96,12 @@ export async function deployAll(
     // deploy example token
     const exampleToken = await new ExampleTokenFactory(signer).deploy();
     await waitAndRegister(exampleToken, "exampleToken", verbose);
-    await tokenRegistry.requestRegistration(exampleToken.address);
-    await tokenRegistry.finaliseRegistration(exampleToken.address);
+    await waitUntilMined(
+        tokenRegistry.requestRegistration(exampleToken.address)
+    );
+    await waitUntilMined(
+        tokenRegistry.finaliseRegistration(exampleToken.address)
+    );
 
     const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
     await waitAndRegister(spokeRegistry, "spokeRegistry", verbose);
@@ -135,7 +139,7 @@ export async function deployAll(
     await waitAndRegister(rollup, "rollup", verbose);
 
     await vault.setRollupAddress(rollup.address);
-    await depositManager.setRollupAddress(rollup.address);
+    await waitUntilMined(depositManager.setRollupAddress(rollup.address));
 
     const withdrawManager = await new WithdrawManagerFactory(signer).deploy(
         tokenRegistry.address,
@@ -143,7 +147,7 @@ export async function deployAll(
         rollup.address
     );
     await waitAndRegister(withdrawManager, "withdrawManager", verbose);
-    await spokeRegistry.registerSpoke(withdrawManager.address);
+    await waitUntilMined(spokeRegistry.registerSpoke(withdrawManager.address));
 
     return {
         frontendGeneric,
@@ -163,4 +167,8 @@ export async function deployAll(
         rollup,
         withdrawManager
     };
+}
+
+async function waitUntilMined(tx: Promise<ContractTransaction>) {
+    await (await tx).wait();
 }
