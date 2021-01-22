@@ -1,4 +1,5 @@
 node_modules/
+parameters.json
 genesis.json
 types/
 cache/

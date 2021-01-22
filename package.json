@@ -14,7 +14,8 @@
     "deploy": "ts-node ./scripts/deploy.ts",
     "deposit": "ts-node ./scripts/deposit.ts",
     "bench": "hardhat run ./scripts/benchmark.ts",
-    "slither": "slither ."
+    "slither": "slither .",
+    "genParam": "ts-node ./scripts/genParam.ts"
   },
   "repository": {
     "type": "git",
