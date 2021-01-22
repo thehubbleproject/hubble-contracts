@@ -8,7 +8,7 @@ import { StateTree } from "../ts/stateTree";
 import { execSync } from "child_process";
 
 const argv = require("minimist")(process.argv.slice(2), {
-    string: ["url", "root", "key"]
+    string: ["url", "root", "key", "input", "output"]
 });
 /*
     Note separate pubkeys with commas
@@ -17,6 +17,9 @@ const argv = require("minimist")(process.argv.slice(2), {
 
     You can also specify a private key
     > npm run deploy -- --key 0xYourPrivateKey 
+
+    You can use a custom parameters.json
+    > npm run deploy -- --input parameters.json --output ../hubbe-commander/genesis.json
 */
 
 function getDefaultGenesisRoot(parameters: DeploymentParameters) {
@@ -34,9 +37,16 @@ async function main() {
         ? new ethers.Wallet(argv.key).connect(provider)
         : provider.getSigner();
 
-    const parameters = PRODUCTION_PARAMS;
+    const parameters = argv.input
+        ? JSON.parse(fs.readFileSync(argv.input).toString())
+        : PRODUCTION_PARAMS;
+
     parameters.GENESIS_STATE_ROOT =
         argv.root || getDefaultGenesisRoot(parameters);
+
+    const genesisPath = argv.output ?? "genesis.json";
+
+    console.log("Deploy with parameters", parameters);
 
     const genesisEth1Block = await provider.getBlockNumber();
     const contracts = await deployAll(signer, parameters, true);
@@ -54,8 +64,8 @@ async function main() {
         version
     };
     const configs = { parameters, addresses, auxiliary };
-    console.log("Writing genesis.json");
-    fs.writeFileSync("genesis.json", JSON.stringify(configs, null, 4));
+    console.log("Writing genesis file to", genesisPath);
+    fs.writeFileSync(genesisPath, JSON.stringify(configs, null, 4));
     console.log("Successsfully deployed", configs);
 }
 
