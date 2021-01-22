@@ -15,12 +15,12 @@ export const TESTING_PARAMS: DeploymentParameters = {
 
 export const PRODUCTION_PARAMS: DeploymentParameters = {
     MAX_DEPTH: 32,
-    MAX_DEPOSIT_SUBTREE_DEPTH: 2,
-    STAKE_AMOUNT: toWei("0.1"),
+    MAX_DEPOSIT_SUBTREE_DEPTH: 1,
+    STAKE_AMOUNT: toWei("1"),
     BLOCKS_TO_FINALISE: 7 * 24 * 60 * 4, // 7 days of blocks
     MIN_GAS_LEFT: 10000,
     MAX_TXS_PER_COMMIT: 32,
-    USE_BURN_AUCTION: true,
+    USE_BURN_AUCTION: false,
     DONATION_ADDRESS: "0x00000000000000000000000000000000000000d0",
     DONATION_NUMERATOR: 7500
 };
