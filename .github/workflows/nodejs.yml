@@ -25,11 +25,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
-    - run: sudo apt install jq -y
     - run: npm ci
     - run: npm run generate
-    - run: cat artifacts/contracts/test/SimpleStorage.sol/SimpleStorage.json |jq '.bytecode'
-    - run: find artifacts/build-info/* |xargs  head -5
+    - run: npm run print
     - run: npm run test -- test/fast/deployment.test.ts
     # - run: npm run test -- test/slow/*
     # - run: npm run test -- test/integration.test.ts
