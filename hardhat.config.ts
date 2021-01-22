@@ -11,8 +11,12 @@ module.exports = {
     solidity: {
         version: "0.5.15",
         settings: {
+            metadata: {
+                useLiteralContent: true
+            },
             optimizer: {
-                enabled: false,
+                enabled: true,
+                runs: 200,
             }
         }
     }
