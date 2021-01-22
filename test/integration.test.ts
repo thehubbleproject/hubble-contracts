@@ -3,7 +3,7 @@ import { Signer } from "ethers";
 import { ethers } from "hardhat";
 import { AccountRegistry } from "../ts/accountTree";
 import { allContracts } from "../ts/allContractsInterfaces";
-import { BLOCKS_PER_SLOT, PRODUCTION_PARAMS } from "../ts/constants";
+import { BLOCKS_PER_SLOT, FULL_FEATURE_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import {
     Group,
@@ -58,7 +58,7 @@ describe("Integration Test", function() {
     before(async function() {
         await mcl.init();
         [deployer, coordinator, withdrawer] = await ethers.getSigners();
-        parameters = PRODUCTION_PARAMS;
+        parameters = FULL_FEATURE_PARAMS;
         parameters.BLOCKS_TO_FINALISE = 100;
         stateTree = StateTree.new(parameters.MAX_DEPTH);
         genesisRoot = stateTree.root;

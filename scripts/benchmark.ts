@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { TransferBatch, TransferCommitment } from "../ts/commitments";
-import { TESTING_PARAMS } from "../ts/constants";
+import { FULL_FEATURE_PARAMS } from "../ts/constants";
 import { deployAll } from "../ts/deploy";
 import { serialize, TxTransfer } from "../ts/tx";
 import { execSync } from "child_process";
@@ -12,11 +12,12 @@ const blockTime = 13;
 const blockGasLimit = 12500000;
 
 async function main() {
-    const [signer, ...rest] = await ethers.getSigners();
-    const parameters = TESTING_PARAMS;
+    const [signer] = await ethers.getSigners();
+    const parameters = FULL_FEATURE_PARAMS;
+    parameters.USE_BURN_AUCTION = false;
 
     const constracts = await deployAll(signer, {
-        ...TESTING_PARAMS,
+        ...parameters,
         GENESIS_STATE_ROOT: constants.HashZero
     });
     let commitments = [];
@@ -31,10 +32,7 @@ async function main() {
     }
     const batch = new TransferBatch(commitments);
 
-    const tx = await batch.submit(
-        constracts.rollup,
-        TESTING_PARAMS.STAKE_AMOUNT
-    );
+    const tx = await batch.submit(constracts.rollup, parameters.STAKE_AMOUNT);
     const receipt = await tx.wait();
 
     const revision = execSync("git rev-parse HEAD")

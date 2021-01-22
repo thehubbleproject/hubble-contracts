@@ -3,7 +3,7 @@ import { allContracts } from "../ts/allContractsInterfaces";
 import { deployAll } from "../ts/deploy";
 import { DeploymentParameters } from "../ts/interfaces";
 import fs from "fs";
-import { PRODUCTION_PARAMS } from "../ts/constants";
+import { CLIENT_COMPETIBLE_PARAMS } from "../ts/constants";
 import { StateTree } from "../ts/stateTree";
 import { execSync } from "child_process";
 
@@ -34,7 +34,7 @@ async function main() {
         ? new ethers.Wallet(argv.key).connect(provider)
         : provider.getSigner();
 
-    const parameters = PRODUCTION_PARAMS;
+    const parameters = CLIENT_COMPETIBLE_PARAMS;
     parameters.GENESIS_STATE_ROOT =
         argv.root || getDefaultGenesisRoot(parameters);
 

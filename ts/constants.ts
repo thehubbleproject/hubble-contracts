@@ -13,7 +13,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
     DONATION_NUMERATOR: 7500
 };
 
-export const PRODUCTION_PARAMS: DeploymentParameters = {
+export const FULL_FEATURE_PARAMS: DeploymentParameters = {
     MAX_DEPTH: 32,
     MAX_DEPOSIT_SUBTREE_DEPTH: 2,
     STAKE_AMOUNT: toWei("0.1"),
@@ -23,6 +23,15 @@ export const PRODUCTION_PARAMS: DeploymentParameters = {
     USE_BURN_AUCTION: true,
     DONATION_ADDRESS: "0x00000000000000000000000000000000000000d0",
     DONATION_NUMERATOR: 7500
+};
+
+// Features Hubble-conmander currently supports
+export const CLIENT_COMPETIBLE_PARAMS = {
+    ...FULL_FEATURE_PARAMS,
+    // burn auction not supported yet
+    USE_BURN_AUCTION: false,
+    // supports only integer number of ether as staking amount
+    STAKE_AMOUNT: toWei("1")
 };
 
 export const COMMIT_SIZE = 32;
