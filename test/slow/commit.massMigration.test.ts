@@ -32,7 +32,7 @@ describe("Rollup Mass Migration", () => {
     let users: Group;
 
     before(async function() {
-        this.timeout(10000);
+        this.timeout(100000);
         await mcl.init();
         const [signer] = await ethers.getSigners();
         await deployKeyless(signer, false);
