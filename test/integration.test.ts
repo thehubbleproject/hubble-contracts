@@ -59,7 +59,7 @@ describe("Integration Test", function() {
     let lastBiddedSlot: number = -100;
 
     before(async function() {
-        this.timeout(10000);
+        this.timeout(100000);
         await mcl.init();
         [deployer, coordinator, withdrawer] = await ethers.getSigners();
         await deployKeyless(deployer, false);
