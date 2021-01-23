@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 // Modified from https://github.com/iden3/rollup/blob/master/contracts/RollupBurnAuction.sol
 pragma solidity ^0.6.12;
 import { Chooser } from "./Chooser.sol";
