@@ -1,4 +1,4 @@
-pragma solidity ^0.5.15;
+pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import { BatchManager } from "../rollup/BatchManager.sol";
@@ -8,11 +8,11 @@ import { IDepositManager } from "../DepositManager.sol";
 contract MockDepositManager is IDepositManager {
     event EnqueSubtree(bytes32 subtreeRoot);
 
-    function dequeueToSubmit() external returns (bytes32 subtreeRoot) {
+    function dequeueToSubmit() external override returns (bytes32 subtreeRoot) {
         return bytes32(0);
     }
 
-    function reenqueue(bytes32 subtreeRoot) external {
+    function reenqueue(bytes32 subtreeRoot) external override {
         emit EnqueSubtree(subtreeRoot);
     }
 }

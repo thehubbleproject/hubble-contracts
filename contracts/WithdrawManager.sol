@@ -1,4 +1,4 @@
-pragma solidity ^0.5.15;
+pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";

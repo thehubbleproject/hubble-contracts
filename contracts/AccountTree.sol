@@ -1,4 +1,4 @@
-pragma solidity ^0.5.15;
+pragma solidity ^0.6.12;
 
 /**
     @notice The account tree is a `DEPTH + 1` Merkle tree of public keys.

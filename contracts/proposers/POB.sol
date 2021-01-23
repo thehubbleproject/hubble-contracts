@@ -1,4 +1,4 @@
-pragma solidity ^0.5.15;
+pragma solidity ^0.6.12;
 
 import { Chooser } from "./Chooser.sol";
 
@@ -9,7 +9,7 @@ contract ProofOfBurn is Chooser {
         coordinator = msg.sender;
     }
 
-    function getProposer() external view returns (address) {
+    function getProposer() external view override returns (address) {
         return coordinator;
     }
 }

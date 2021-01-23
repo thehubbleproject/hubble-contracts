@@ -1,4 +1,4 @@
-pragma solidity ^0.5.15;
+pragma solidity ^0.6.12;
 
 /**
     @notice types defined here are passing between users and the client, but not on chain.
