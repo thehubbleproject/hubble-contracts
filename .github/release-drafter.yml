@@ -1,0 +1,14 @@
+categories:
+  - title: ':sparkles: New Feature'
+    label: 'enhancement'
+  - title: ':bug: BugFix'
+    label: 'bugfix'
+  - title: ':zap: Performance'
+    label: 'performance'
+version-resolver:
+  default: minor
+prerelease: true
+template: |
+  ## What’s Changed
+
+  $CHANGES
