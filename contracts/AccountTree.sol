@@ -81,8 +81,8 @@ contract AccountTree {
 
         // i > 0
         for (uint256 i = 1; i < BATCH_DEPTH; i++) {
-            uint256 n = (BATCH_DEPTH - i - 1);
-            for (uint256 j = 0; j < 1 << n; j++) {
+            uint256 n = 1 << (BATCH_DEPTH - i - 1);
+            for (uint256 j = 0; j < n; j++) {
                 uint256 k = j << 1;
                 buf[j] = keccak256(abi.encode(buf[k], buf[k + 1]));
             }
