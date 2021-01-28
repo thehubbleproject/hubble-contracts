@@ -114,7 +114,7 @@ library BLS {
         uint256[1] memory out;
 
         // prettier-ignore
-        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).getGasCost(inputSize);
+        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).getGasCost(size + 1);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             callSuccess := staticcall(
