@@ -29,7 +29,7 @@ contract BNPairingPrecompileCostEstimator {
         _run();
     }
 
-    function gasCost(uint256 pairCount) external view returns (uint256) {
+    function getGasCost(uint256 pairCount) external view returns (uint256) {
         return pairCount * perPairCost + baseCost;
     }
 
@@ -40,7 +40,7 @@ contract BNPairingPrecompileCostEstimator {
         baseCost = gasCost1Pair - perPairCost;
     }
 
-    function _gasCost1Pair() internal returns (uint256) {
+    function _gasCost1Pair() internal view returns (uint256) {
         uint256[6] memory input = [G1_X, G1_Y, G2_X1, G2_X0, G2_Y1, G2_Y0];
         uint256[1] memory out;
         bool callSuccess;
@@ -66,7 +66,7 @@ contract BNPairingPrecompileCostEstimator {
         return gasCost;
     }
 
-    function _gasCost2Pair() internal returns (uint256) {
+    function _gasCost2Pair() internal view returns (uint256) {
         uint256[12] memory input = [
             G1_X,
             G1_Y,
