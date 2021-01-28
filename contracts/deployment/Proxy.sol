@@ -2,6 +2,7 @@
 pragma solidity ^0.6.12;
 
 contract Proxy {
+    // IMPLEMENTATION_SLOT is an arbitrary random hex
     bytes32
         private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
 

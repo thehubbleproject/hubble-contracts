@@ -12,6 +12,7 @@ import { logAddress, logDeployment, logTx } from "../../scripts/logger";
 
 const zero = BigNumber.from(0);
 
+// r and s are arbitrary random hexes
 const signature: SignatureLike = {
     v: 27,
     r: "0x0001abb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1e",
