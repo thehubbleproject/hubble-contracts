@@ -25,6 +25,12 @@ contract AccountTree {
     bytes32[DEPTH - BATCH_DEPTH] public filledSubtreesRight;
 
     constructor() public {
+        // prettier-ignore
+        bytes32 firstZero = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+        // i = 0
+        zeros[0] = firstZero;
+        filledSubtreesLeft[0] = firstZero;
+        // i > 0
         for (uint256 i = 1; i < DEPTH; i++) {
             zeros[i] = keccak256(abi.encode(zeros[i - 1], zeros[i - 1]));
             if (DEPTH > i) {

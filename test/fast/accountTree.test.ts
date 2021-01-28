@@ -4,6 +4,7 @@ import { Tree, Hasher } from "../../ts/tree";
 import { ethers } from "hardhat";
 import { assert } from "chai";
 import { randHex, randomLeaves } from "../../ts/utils";
+import { ZERO_BYTES32 } from "../../ts/constants";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
@@ -17,9 +18,9 @@ describe("Account Tree", async () => {
         accountTree = await new TestAccountTreeFactory(accounts[0]).deploy();
         DEPTH = (await accountTree.DEPTH()).toNumber();
         BATCH_DEPTH = (await accountTree.BATCH_DEPTH()).toNumber();
-        treeLeft = Tree.new(DEPTH);
-        treeRight = Tree.new(DEPTH);
-        hasher = treeLeft.hasher;
+        hasher = Hasher.new("bytes", ZERO_BYTES32);
+        treeLeft = Tree.new(DEPTH, hasher);
+        treeRight = Tree.new(DEPTH, hasher);
     });
     it("empty tree construction", async function() {
         for (let i = 0; i < DEPTH; i++) {
