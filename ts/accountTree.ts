@@ -1,8 +1,9 @@
-import { Tree } from "./tree";
+import { Hasher, Tree } from "./tree";
 import { BlsAccountRegistry } from "../types/ethers-contracts/BlsAccountRegistry";
 import { ethers } from "ethers";
 import { solG2 } from "./mcl";
 import { RegistrationFail, WrongBatchSize } from "./exceptions";
+import { ZERO_BYTES32 } from "./constants";
 
 // Tree is 32 level depth, the index is still smaller than Number.MAX_SAFE_INTEGER
 export class AccountRegistry {
@@ -25,8 +26,10 @@ export class AccountRegistry {
         private readonly depth: number,
         private readonly batchDepth: number
     ) {
-        this.treeLeft = Tree.new(depth);
-        this.treeRight = Tree.new(depth);
+        // Want the treeLeft and treeRight to have default hashes start with ZERO_BYTES32
+        const hasher = Hasher.new("bytes", ZERO_BYTES32);
+        this.treeLeft = Tree.new(depth, hasher);
+        this.treeRight = Tree.new(depth, hasher);
         this.setSize = 2 ** depth;
         this.batchSize = 2 ** batchDepth;
     }
