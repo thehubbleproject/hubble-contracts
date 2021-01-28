@@ -82,16 +82,33 @@ library MerkleTree {
         hashes[5] = 0xdefff6d330bb5403f63b14f33b578274160de3a50df4efecf0e0db73bcdd3da5;
         uint256 odd = nodes.length & 1;
         uint256 n = (nodes.length + 1) >> 1;
-        uint256 level = 0;
+        // mutate on buffers to avoid damaging the input nodes
+        bytes32[] memory buffers = new bytes32[](n);
+        // at level = 0, we copy input nodes to buffer
+        uint256 i = 0;
+        for (; i < n - odd; i++) {
+            uint256 j = i << 1;
+            buffers[i] = keccak256(abi.encode(nodes[j], nodes[j + 1]));
+        }
+        if (odd == 1) {
+            buffers[i] = keccak256(
+                abi.encode(nodes[i << 1], bytes32(hashes[0]))
+            );
+        }
+        if (n == 1) return buffers[0];
+        odd = (n & 1);
+        n = (n + 1) >> 1;
+        // at level = 1 and above, we ascend and get the parent hashes of the previous level
+        uint256 level = 1;
         while (true) {
-            uint256 i = 0;
+            i = 0;
             for (; i < n - odd; i++) {
                 uint256 j = i << 1;
-                nodes[i] = keccak256(abi.encode(nodes[j], nodes[j + 1]));
+                buffers[i] = keccak256(abi.encode(buffers[j], buffers[j + 1]));
             }
             if (odd == 1) {
-                nodes[i] = keccak256(
-                    abi.encode(nodes[i << 1], bytes32(hashes[level]))
+                buffers[i] = keccak256(
+                    abi.encode(buffers[i << 1], bytes32(hashes[level]))
                 );
             }
             if (n == 1) {
@@ -101,6 +118,6 @@ library MerkleTree {
             n = (n + 1) >> 1;
             level += 1;
         }
-        return nodes[0];
+        return buffers[0];
     }
 }
