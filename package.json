@@ -12,6 +12,8 @@
     "compile": "hardhat compile",
     "node": "hardhat node",
     "deploy": "ts-node ./scripts/deploy.ts",
+    "keyless:check": "ts-node ./scripts/keyless.ts --check",
+    "keyless:deploy": "ts-node ./scripts/keyless.ts --deploy",
     "deposit": "ts-node ./scripts/deposit.ts",
     "bench": "hardhat run ./scripts/benchmark.ts",
     "slither": "slither .",
