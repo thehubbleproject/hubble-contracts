@@ -35,7 +35,7 @@ library MerkleTree {
     }
 
     function getRoot(uint256 level) internal pure returns (bytes32) {
-        uint256[32] memory hashes;
+        bytes32[32] memory hashes;
         hashes[0] = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
         hashes[1] = 0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d;
         hashes[2] = 0x890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d;
@@ -68,12 +68,12 @@ library MerkleTree {
         hashes[29] = 0x7e275adf313a996c7e2950cac67caba02a5ff925ebf9906b58949f3e77aec5b9;
         hashes[30] = 0x8f6162fa308d2b3a15dc33cffac85f13ab349173121645aedf00f471663108be;
         hashes[31] = 0x78ccaaab73373552f207a63599de54d7d8d0c1805f86ce7da15818d09f4cff62;
-        return bytes32(hashes[level]);
+        return hashes[level];
     }
 
     function merklise(bytes32[] memory leaves) internal pure returns (bytes32) {
         require(leaves.length <= 32, "MerkleTree: Too many leaves");
-        uint256[6] memory hashes;
+        bytes32[6] memory hashes;
         hashes[0] = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
         hashes[1] = 0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d;
         hashes[2] = 0x890740a8eb06ce9be422cb8da5cdafc2b58c0a5e24036c578de2a433c828ff7d;
@@ -94,9 +94,7 @@ library MerkleTree {
                 nodes[i] = keccak256(abi.encode(pNodes[j], pNodes[j + 1]));
             }
             if (odd == 1) {
-                nodes[i] = keccak256(
-                    abi.encode(pNodes[i << 1], bytes32(hashes[level]))
-                );
+                nodes[i] = keccak256(abi.encode(pNodes[i << 1], hashes[level]));
             }
             if (n == 1) {
                 break;
