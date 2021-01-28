@@ -71,8 +71,8 @@ library MerkleTree {
         return bytes32(hashes[level]);
     }
 
-    function merklise(bytes32[] memory nodes) internal pure returns (bytes32) {
-        require(nodes.length <= 32, "MerkleTree: Too many nodes");
+    function merklise(bytes32[] memory leaves) internal pure returns (bytes32) {
+        require(leaves.length <= 32, "MerkleTree: Too many leaves");
         uint256[6] memory hashes;
         hashes[0] = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
         hashes[1] = 0x633dc4d7da7256660a892f8f1604a44b5432649cc8ec5cb3ced4c4e6ac94dd1d;
@@ -80,18 +80,22 @@ library MerkleTree {
         hashes[3] = 0x3b8ec09e026fdc305365dfc94e189a81b38c7597b3d941c279f042e8206e0bd8;
         hashes[4] = 0xecd50eee38e386bd62be9bedb990706951b65fe053bd9d8a521af753d139e2da;
         hashes[5] = 0xdefff6d330bb5403f63b14f33b578274160de3a50df4efecf0e0db73bcdd3da5;
-        uint256 odd = nodes.length & 1;
-        uint256 n = (nodes.length + 1) >> 1;
+        uint256 odd = leaves.length & 1;
+        uint256 n = (leaves.length + 1) >> 1;
+        bytes32[] memory nodes = new bytes32[](n);
+        // pNodes are nodes in previous level. They are input leaves in level 0, and are `nodes` in other levels.
+        // We use pNodes to avoid damaging the input leaves.
+        bytes32[] memory pNodes = leaves;
         uint256 level = 0;
         while (true) {
             uint256 i = 0;
             for (; i < n - odd; i++) {
                 uint256 j = i << 1;
-                nodes[i] = keccak256(abi.encode(nodes[j], nodes[j + 1]));
+                nodes[i] = keccak256(abi.encode(pNodes[j], pNodes[j + 1]));
             }
             if (odd == 1) {
                 nodes[i] = keccak256(
-                    abi.encode(nodes[i << 1], bytes32(hashes[level]))
+                    abi.encode(pNodes[i << 1], bytes32(hashes[level]))
                 );
             }
             if (n == 1) {
@@ -100,6 +104,7 @@ library MerkleTree {
             odd = (n & 1);
             n = (n + 1) >> 1;
             level += 1;
+            pNodes = nodes;
         }
         return nodes[0];
     }
