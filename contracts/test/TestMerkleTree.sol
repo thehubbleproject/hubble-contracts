@@ -20,9 +20,12 @@ contract TestMerkleTree {
         public
         returns (bytes32, uint256)
     {
-        uint256 gasCost = gasleft();
+        bytes32 inputNode = nodes[0];
+        uint256 left = gasleft();
         bytes32 root = MerkleTree.merklise(nodes);
-        return (root, gasCost - gasleft());
+        uint256 cost = left - gasleft();
+        require(nodes[0] == inputNode, "input mutated");
+        return (root, cost);
     }
 
     function testGetRoot(uint256 level) public returns (bytes32, uint256) {
