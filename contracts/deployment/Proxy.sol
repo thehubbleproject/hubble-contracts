@@ -1,10 +1,11 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 contract Proxy {
     bytes32
         private constant IMPLEMENTATION_SLOT = 0x7050c9e0f4ca769c69bd3a8ef740bc37934f8e2c036e5a723fd8ee048ed3f8c3;
 
-    function() external payable {
+    fallback() external payable {
         _fallback();
     }
 
@@ -33,22 +34,22 @@ contract Proxy {
 
     function _delegate(address implementation) internal {
         assembly {
-            calldatacopy(0, 0, calldatasize)
+            calldatacopy(0, 0, calldatasize())
             let result := delegatecall(
-                gas,
+                gas(),
                 implementation,
                 0,
-                calldatasize,
+                calldatasize(),
                 0,
                 0
             )
-            returndatacopy(0, 0, returndatasize)
+            returndatacopy(0, 0, returndatasize())
             switch result
                 case 0 {
-                    revert(0, returndatasize)
+                    revert(0, returndatasize())
                 }
                 default {
-                    return(0, returndatasize)
+                    return(0, returndatasize())
                 }
         }
     }
