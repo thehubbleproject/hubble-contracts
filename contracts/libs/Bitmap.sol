@@ -1,4 +1,5 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 /**
     @notice A cheap way to check if some asset has been claimed before and set it claimed

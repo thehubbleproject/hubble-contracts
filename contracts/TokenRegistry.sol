@@ -1,4 +1,5 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 interface ITokenRegistry {
     event RegisteredToken(uint256 tokenID, address tokenContract);
@@ -17,7 +18,12 @@ contract TokenRegistry is ITokenRegistry {
 
     uint256 public nextTokenID = 0;
 
-    function safeGetAddress(uint256 tokenID) external view returns (address) {
+    function safeGetAddress(uint256 tokenID)
+        external
+        view
+        override
+        returns (address)
+    {
         address tokenContract = registeredTokens[tokenID];
         require(
             tokenContract != address(0),
@@ -30,7 +36,7 @@ contract TokenRegistry is ITokenRegistry {
      * @notice Requests addition of a new token to the chain, can be called by anyone
      * @param tokenContract Address for the new token being added
      */
-    function requestRegistration(address tokenContract) public {
+    function requestRegistration(address tokenContract) public override {
         require(
             !pendingRegistrations[tokenContract],
             "Token already registered."
@@ -44,7 +50,7 @@ contract TokenRegistry is ITokenRegistry {
      * @param tokenContract Deposit tree depth or depth of subtree that is being deposited
      * TODO: add a modifier to allow only coordinator
      */
-    function finaliseRegistration(address tokenContract) public {
+    function finaliseRegistration(address tokenContract) public override {
         require(
             pendingRegistrations[tokenContract],
             "Token was not registered"

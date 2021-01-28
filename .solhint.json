@@ -1,6 +1,7 @@
 {
   "extends": "solhint:recommended",
   "rules": {
+    "compiler-version": ["error","^0.6.12"],
     "reason-string": ["warn",{"maxLength":80}],
     "var-name-mixedcase": ["error"],
     "func-name-mixedcase": ["error"],
