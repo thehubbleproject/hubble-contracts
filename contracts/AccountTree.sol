@@ -71,15 +71,23 @@ contract AccountTree {
             "AccountTree: right set is full "
         );
 
-        // Fill the subtree
-        for (uint256 i = 0; i < BATCH_DEPTH; i++) {
-            uint256 n = (BATCH_DEPTH - i - 1);
-            for (uint256 j = 0; j < 1 << n; j++) {
+        bytes32[BATCH_SIZE / 2] memory buf;
+
+        // i = 0
+        for (uint256 j = 0; j < 1 << (BATCH_DEPTH - 1); j++) {
+            uint256 k = j << 1;
+            buf[j] = keccak256(abi.encode(leafs[k], leafs[k + 1]));
+        }
+
+        // i > 0
+        for (uint256 i = 1; i < BATCH_DEPTH; i++) {
+            uint256 n = 1 << (BATCH_DEPTH - i - 1);
+            for (uint256 j = 0; j < n; j++) {
                 uint256 k = j << 1;
-                leafs[j] = keccak256(abi.encode(leafs[k], leafs[k + 1]));
+                buf[j] = keccak256(abi.encode(buf[k], buf[k + 1]));
             }
         }
-        bytes32 leaf = leafs[0];
+        bytes32 leaf = buf[0];
 
         // Ascend to the root
         uint256 path = leafIndexRight / BATCH_SIZE;
