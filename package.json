@@ -17,7 +17,8 @@
     "deposit": "ts-node ./scripts/deposit.ts",
     "bench": "hardhat run ./scripts/benchmark.ts",
     "slither": "slither .",
-    "genParam": "ts-node ./scripts/genParam.ts"
+    "genParam": "ts-node ./scripts/genParam.ts",
+    "monitor": "ts-node ./scripts/monitor.ts"
   },
   "repository": {
     "type": "git",
