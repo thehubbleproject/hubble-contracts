@@ -23,6 +23,7 @@ import {
 import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
+import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -134,6 +135,28 @@ export class Hubble {
                 tokenID
             );
             await tx.wait();
+        }
+    }
+    registerHandlers() {
+        const watchedContracts = [
+            this.contracts.rollup,
+            this.contracts.depositManager,
+            this.contracts.tokenRegistry,
+            this.contracts.chooser as BurnAuction
+        ];
+        for (const contract of watchedContracts) {
+            Object.entries(contract.interface.events).map(
+                ([eventName, eventFragment]) =>
+                    contract.on(eventName, (...args) => {
+                        const eventKV: { [key: string]: string } = {};
+                        for (const i in eventFragment.inputs) {
+                            eventKV[eventFragment.inputs[i].name] = args[
+                                i
+                            ].toString();
+                        }
+                        console.log(eventFragment.name, eventKV);
+                    })
+            );
         }
     }
 }

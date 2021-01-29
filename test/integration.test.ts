@@ -34,6 +34,7 @@ import { USDT } from "../ts/decimal";
 import { keylessDeploy } from "../ts/deployment/keylessDeployment";
 import { deployKeyless } from "../ts/deployment/deploy";
 import { deployerBytecode } from "../ts/deployment/static";
+import { Hubble } from "../ts/hubble";
 
 // In the deploy script, we already have a TestToken registered with tokenID 0
 // We are deploying a new token with tokenID 1
@@ -77,6 +78,13 @@ describe("Integration Test", function() {
         accountRegistry = await AccountRegistry.new(
             blsAccountRegistry.connect(coordinator)
         );
+        let addresses: { [key: string]: string } = {};
+        Object.keys(contracts).map((contract: string) => {
+            addresses[contract] =
+                contracts[contract as keyof allContracts].address;
+        });
+        const hubble = Hubble.fromGenesis(parameters, addresses, deployer);
+        hubble.registerHandlers();
     });
     beforeEach(async function() {
         // Remember to bid when a new slot starts
