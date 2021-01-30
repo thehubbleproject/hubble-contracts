@@ -131,9 +131,9 @@ contract RollupCore is BatchManager {
                 )
             );
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
-            // console.logBytes32(leaves[i]);
+            console.logBytes32(leaves[i]);
         }
-        //  console.logBytes32(MerkleTree.merklise(leaves));
+         console.logBytes32(MerkleTree.merklise(leaves));
         submitBatch(
             MerkleTree.merklise(leaves),
             stateRoots.length,
