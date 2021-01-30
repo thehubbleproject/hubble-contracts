@@ -14,11 +14,11 @@ contract BatchManager is Parameters {
     using Types for Types.Batch;
 
     // External contracts
-    IDepositManager public depositManager;
-    Chooser public chooser;
+    IDepositManager internal depositManager;
+    Chooser internal chooser;
 
     // batchID -> Batch
-    mapping(uint256 => Types.Batch) public batches;
+    mapping(uint256 => Types.Batch) internal batches;
     // nextBatchID also represents how many batches in `batches`
     uint256 public nextBatchID = 0;
 
@@ -131,7 +131,7 @@ contract BatchManager is Parameters {
     /**
      * @notice Withdraw delay allows coordinators to withdraw their stake after the batch has been finalised
      */
-    function withdrawStake(uint256 batchID) public {
+    function withdrawStake(uint256 batchID) external {
         require(
             msg.sender == batches[batchID].committer(),
             "You are not the correct committer for this batch"

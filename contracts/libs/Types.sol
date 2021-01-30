@@ -6,7 +6,7 @@ pragma solidity ^0.6.12;
  */
 library Types {
     // prettier-ignore
-    uint256 public constant ADDRESS_MASK = 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
+    uint256 private constant ADDRESS_MASK = 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
     struct SignatureProof {
         Types.UserState[] states;
         bytes32[][] stateWitnesses;

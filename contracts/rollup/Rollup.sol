@@ -20,13 +20,13 @@ contract RollupCore is BatchManager {
     using Types for Types.MassMigrationCommitment;
 
     // External contracts
-    BLSAccountRegistry public accountRegistry;
-    Transfer public transfer;
-    MassMigration public massMigration;
-    Create2Transfer public create2Transfer;
+    BLSAccountRegistry private accountRegistry;
+    Transfer private transfer;
+    MassMigration private massMigration;
+    Create2Transfer private create2Transfer;
 
     bytes32
-        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+        private constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     bytes32 public appID;
 

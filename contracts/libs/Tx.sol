@@ -17,43 +17,43 @@ library Tx {
     uint256 private constant CREATE2TRANSFER = 3;
     uint256 private constant MASS_MIGRATION = 5;
 
-    uint256 public constant MASK_PUBKEY_ID = 0xffffffff;
-    uint256 public constant MASK_STATE_ID = 0xffffffff;
-    uint256 public constant MASK_AMOUNT = 0xffffffff;
-    uint256 public constant MASK_FEE = 0xffffffff;
-    uint256 public constant MASK_EXPONENT = 0xf000;
-    uint256 public constant MANTISSA_BITS = 12;
-    uint256 public constant MASK_MANTISSA = 0x0fff;
-    uint256 public constant MASK_NONCE = 0xffffffff;
-    uint256 public constant MASK_TOKEN_ID = 0xffff;
-    uint256 public constant MASK_BYTE = 0xff;
+    uint256 private constant MASK_PUBKEY_ID = 0xffffffff;
+    uint256 private constant MASK_STATE_ID = 0xffffffff;
+    uint256 private constant MASK_AMOUNT = 0xffffffff;
+    uint256 private constant MASK_FEE = 0xffffffff;
+    uint256 private constant MASK_EXPONENT = 0xf000;
+    uint256 private constant MANTISSA_BITS = 12;
+    uint256 private constant MASK_MANTISSA = 0x0fff;
+    uint256 private constant MASK_NONCE = 0xffffffff;
+    uint256 private constant MASK_TOKEN_ID = 0xffff;
+    uint256 private constant MASK_BYTE = 0xff;
 
     // transaction_type: transfer
     // [sender_state_id<4>|receiver_state_id<4>|amount<2>|fee<2>]
-    uint256 public constant TX_LEN_0 = 12;
+    uint256 private constant TX_LEN_0 = 12;
     // positions in bytes
-    uint256 public constant POSITION_SENDER_0 = 4;
-    uint256 public constant POSITION_RECEIVER_0 = 8;
-    uint256 public constant POSITION_AMOUNT_0 = 10;
-    uint256 public constant POSITION_FEE_0 = 12;
+    uint256 private constant POSITION_SENDER_0 = 4;
+    uint256 private constant POSITION_RECEIVER_0 = 8;
+    uint256 private constant POSITION_AMOUNT_0 = 10;
+    uint256 private constant POSITION_FEE_0 = 12;
 
     // transaction_type: create2Transfer
     // [sender_state_id<4>|receiver_state_id<4>|receiver_acc_id<4>|amount<2>|fee<2>]
-    uint256 public constant TX_LEN_1 = 16;
+    uint256 private constant TX_LEN_1 = 16;
     // positions in bytes
-    uint256 public constant POSITION_SENDER_1 = 4;
-    uint256 public constant POSITION_RECEIVER_1 = 8;
-    uint256 public constant POSITION_RECEIVER_ACCID_1 = 12;
-    uint256 public constant POSITION_AMOUNT_1 = 14;
-    uint256 public constant POSITION_FEE_1 = 16;
+    uint256 private constant POSITION_SENDER_1 = 4;
+    uint256 private constant POSITION_RECEIVER_1 = 8;
+    uint256 private constant POSITION_RECEIVER_ACCID_1 = 12;
+    uint256 private constant POSITION_AMOUNT_1 = 14;
+    uint256 private constant POSITION_FEE_1 = 16;
 
     // transaction_type: Mass Migrations
     // [sender_state_id<4>|amount<2>|fee<2>]
-    uint256 public constant TX_LEN_5 = 8;
+    uint256 private constant TX_LEN_5 = 8;
     // positions in bytes
-    uint256 public constant POSITION_SENDER_5 = 4;
-    uint256 public constant POSITION_AMOUNT_5 = 6;
-    uint256 public constant POSITION_FEE_5 = 8;
+    uint256 private constant POSITION_SENDER_5 = 4;
+    uint256 private constant POSITION_AMOUNT_5 = 6;
+    uint256 private constant POSITION_FEE_5 = 8;
 
     struct Transfer {
         uint256 fromIndex;
