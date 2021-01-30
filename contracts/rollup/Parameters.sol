@@ -1,4 +1,5 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 contract Parameters {
     uint256 public paramStakeAmount = 0.1 ether;

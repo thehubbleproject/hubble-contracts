@@ -6,6 +6,7 @@ import { Tree, Hasher } from "../../ts/tree";
 import * as mcl from "../../ts/mcl";
 import { ethers } from "hardhat";
 import { assert } from "chai";
+import { ZERO_BYTES32 } from "../../ts/constants";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
@@ -30,8 +31,9 @@ describe("Registry", async () => {
         registry = await new BlsAccountRegistryFactory(accounts[0]).deploy();
         DEPTH = (await registry.DEPTH()).toNumber();
         BATCH_DEPTH = (await registry.BATCH_DEPTH()).toNumber();
-        treeLeft = Tree.new(DEPTH);
-        treeRight = Tree.new(DEPTH);
+        hasher = Hasher.new("bytes", ZERO_BYTES32);
+        treeLeft = Tree.new(DEPTH, hasher);
+        treeRight = Tree.new(DEPTH, hasher);
         hasher = treeLeft.hasher;
     });
 

@@ -1,5 +1,6 @@
+// SPDX-License-Identifier: MIT
 // Modified from https://github.com/iden3/rollup/blob/master/contracts/RollupBurnAuction.sol
-pragma solidity ^0.5.15;
+pragma solidity ^0.6.12;
 import { Chooser } from "./Chooser.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -92,7 +93,7 @@ contract BurnAuction is Chooser {
         emit NewBestBid(auctionSlot, coordinator, bidAmount);
     }
 
-    function getProposer() external view returns (address) {
+    function getProposer() external view override returns (address) {
         uint32 _currentSlot = currentSlot();
         require(
             auction[_currentSlot].initialized,
@@ -143,7 +144,7 @@ contract BurnAuction is Chooser {
      * @dev Retrieve block number. THIS FUNCTION IS USEFULL FOR DEBUGGING PURPOSES
      * @return current block number
      */
-    function getBlockNumber() public view returns (uint256) {
+    function getBlockNumber() public view virtual returns (uint256) {
         return block.number;
     }
 

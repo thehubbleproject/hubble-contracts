@@ -11,6 +11,7 @@ import { hexToUint8Array, randHex } from "../../ts/utils";
 import { Result } from "../../ts/interfaces";
 import { Group, txCreate2TransferFactory } from "../../ts/factory";
 import { STATE_TREE_DEPTH } from "../../ts/constants";
+import { deployKeyless } from "../../ts/deployment/deploy";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
@@ -25,12 +26,13 @@ describe("Rollup Create2Transfer Commitment", () => {
     let usersWithoutState: Group;
 
     before(async function() {
+        this.timeout(100000);
         await mcl.init();
         const [signer] = await ethers.getSigners();
+        await deployKeyless(signer, false);
         const registryContract = await new BlsAccountRegistryFactory(
             signer
         ).deploy();
-
         registry = await AccountRegistry.new(registryContract);
         const nUsersWithStates = 32;
         const nUserWithoutState = nUsersWithStates;

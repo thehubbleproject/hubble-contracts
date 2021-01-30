@@ -1,4 +1,5 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 import { Chooser } from "../proposers/Chooser.sol";
 import { BurnAuction } from "../proposers/BurnAuction.sol";
@@ -27,7 +28,7 @@ contract TestBurnAuction is BurnAuction {
         blockNumber = _blockNumber;
     }
 
-    function getBlockNumber() public view returns (uint256) {
+    function getBlockNumber() public view override returns (uint256) {
         return blockNumber;
     }
 }

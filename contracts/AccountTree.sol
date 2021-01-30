@@ -1,4 +1,5 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 /**
     @notice The account tree is a `DEPTH + 1` Merkle tree of public keys.
@@ -24,6 +25,12 @@ contract AccountTree {
     bytes32[DEPTH - BATCH_DEPTH] public filledSubtreesRight;
 
     constructor() public {
+        // prettier-ignore
+        bytes32 firstZero = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+        // i = 0
+        zeros[0] = firstZero;
+        filledSubtreesLeft[0] = firstZero;
+        // i > 0
         for (uint256 i = 1; i < DEPTH; i++) {
             zeros[i] = keccak256(abi.encode(zeros[i - 1], zeros[i - 1]));
             if (DEPTH > i) {
@@ -71,15 +78,23 @@ contract AccountTree {
             "AccountTree: right set is full "
         );
 
-        // Fill the subtree
-        for (uint256 i = 0; i < BATCH_DEPTH; i++) {
-            uint256 n = (BATCH_DEPTH - i - 1);
-            for (uint256 j = 0; j < 1 << n; j++) {
+        bytes32[BATCH_SIZE / 2] memory buf;
+
+        // i = 0
+        for (uint256 j = 0; j < 1 << (BATCH_DEPTH - 1); j++) {
+            uint256 k = j << 1;
+            buf[j] = keccak256(abi.encode(leafs[k], leafs[k + 1]));
+        }
+
+        // i > 0
+        for (uint256 i = 1; i < BATCH_DEPTH; i++) {
+            uint256 n = 1 << (BATCH_DEPTH - i - 1);
+            for (uint256 j = 0; j < n; j++) {
                 uint256 k = j << 1;
-                leafs[j] = keccak256(abi.encode(leafs[k], leafs[k + 1]));
+                buf[j] = keccak256(abi.encode(buf[k], buf[k + 1]));
             }
         }
-        bytes32 leaf = leafs[0];
+        bytes32 leaf = buf[0];
 
         // Ascend to the root
         uint256 path = leafIndexRight / BATCH_SIZE;

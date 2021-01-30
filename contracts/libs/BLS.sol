@@ -1,6 +1,10 @@
-pragma solidity ^0.5.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.6.12;
 
 import { ModexpInverse, ModexpSqrt } from "./ModExp.sol";
+import {
+    BNPairingPrecompileCostEstimator
+} from "./BNPairingPrecompileCostEstimator.sol";
 
 /**
     @title  Boneh–Lynn–Shacham (BLS) signature scheme on Barreto-Naehrig 254 bit curve (BN-254)
@@ -34,6 +38,10 @@ library BLS {
     // prettier-ignore
     uint256 private constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
 
+    // estimator address
+    address
+        private constant COST_ESTIMATOR_ADDRESS = 0x079d8077C465BD0BF0FC502aD2B846757e415661;
+
     function verifySingle(
         uint256[2] memory signature,
         uint256[4] memory pubkey,
@@ -54,7 +62,10 @@ library BLS {
             pubkey[2]
         ];
         uint256[1] memory out;
-        uint256 precompileGasCost = pairingPrecompileCallGasCost(2);
+        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(
+            COST_ESTIMATOR_ADDRESS
+        )
+            .getGasCost(2);
         bool callSuccess;
         // solium-disable-next-line security/no-inline-assembly
         assembly {
@@ -101,7 +112,9 @@ library BLS {
             input[i * 6 + 11] = pubkeys[i][2];
         }
         uint256[1] memory out;
-        uint256 precompileGasCost = pairingPrecompileCallGasCost(size);
+
+        // prettier-ignore
+        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).getGasCost(size + 1);
         // solium-disable-next-line security/no-inline-assembly
         assembly {
             callSuccess := staticcall(
@@ -117,16 +130,6 @@ library BLS {
             return (false, false);
         }
         return (out[0] != 0, true);
-    }
-
-    function pairingPrecompileCallGasCost(uint256 pubkeyLen)
-        internal
-        pure
-        returns (uint256)
-    {
-        uint256 base = 45000;
-        uint256 pair = 34000;
-        return base + pair * (pubkeyLen + 1);
     }
 
     /**

@@ -7,6 +7,7 @@ import * as mcl from "../../ts/mcl";
 import { ethers } from "hardhat";
 import { randomBytes, hexlify, arrayify } from "ethers/lib/utils";
 import { expandMsg, hashToField } from "../../ts/hashToField";
+import { deployKeyless } from "../../ts/deployment/deploy";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = arrayify(DOMAIN_HEX);
@@ -21,6 +22,8 @@ const g2PointOnIncorrectSubgroup = [
 describe("BLS", async () => {
     let bls: TestBls;
     before(async function() {
+        const signer = ethers.provider.getSigner();
+        await deployKeyless(signer, false, { PairingGasEstimators: true });
         await mcl.init();
         const accounts = await ethers.getSigners();
         bls = await new TestBlsFactory(accounts[0]).deploy();
