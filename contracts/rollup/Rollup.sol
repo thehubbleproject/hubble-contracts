@@ -13,6 +13,8 @@ import { Create2Transfer } from "../Create2Transfer.sol";
 import { BatchManager } from "./BatchManager.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
+import "hardhat/console.sol";
+
 contract RollupCore is BatchManager {
     using Tx for bytes;
     using Types for Types.Commitment;
@@ -129,7 +131,9 @@ contract RollupCore is BatchManager {
                 )
             );
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
+            // console.logBytes32(leaves[i]);
         }
+        //  console.logBytes32(MerkleTree.merklise(leaves));
         submitBatch(
             MerkleTree.merklise(leaves),
             stateRoots.length,
@@ -212,6 +216,7 @@ contract RollupCore is BatchManager {
             previous.path == batches[preBatchID].size() - 1,
             "previous commitment has wrong path"
         );
+        //   console.logBytes32(batches[preBatchID].commitmentRoot);
         require(
             checkInclusion(batches[preBatchID].commitmentRoot, previous),
             "previous commitment is absent in the previous batch"

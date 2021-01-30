@@ -111,6 +111,7 @@ describe("Custom test", async function() {
         assert.equal(subtreeReadyEvents2.length, 1);
 
         const previousProof2 = batch.proofCompressed(0);
+        console.log("deposit 2", previousProof2);
         await rollup.submitDeposits(previousProof2, vacant1, {
             value: parameters.STAKE_AMOUNT
         });
