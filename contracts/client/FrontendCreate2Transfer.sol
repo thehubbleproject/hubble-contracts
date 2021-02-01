@@ -100,7 +100,7 @@ contract FrontendCreate2Transfer {
         uint256[4] calldata pubkeySender,
         uint256[4] calldata pubkeyReceiver,
         bytes32 domain
-    ) external view {
+    ) external view returns (bool) {
         Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
             encodedTx
         );
@@ -128,6 +128,8 @@ contract FrontendCreate2Transfer {
         );
         require(callSuccess, "Precompile call failed");
         require(checkSuccess, "Bad signature");
+        // return something here otherwise the function doesn't raise error when revert. See #462
+        return true;
     }
 
     function validateAndApply(

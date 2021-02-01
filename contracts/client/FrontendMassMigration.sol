@@ -80,7 +80,7 @@ contract FrontendMassMigration {
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
         bytes32 domain
-    ) external view {
+    ) external view returns (bool) {
         Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
             encodedTx
         );
@@ -106,6 +106,8 @@ contract FrontendMassMigration {
         );
         require(callSuccess, "Precompile call failed");
         require(checkSuccess, "Bad signature");
+        // return something here otherwise the function doesn't raise error when revert. See #462
+        return true;
     }
 
     function validateAndApply(
