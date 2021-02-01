@@ -6,6 +6,7 @@ import fs from "fs";
 import { PRODUCTION_PARAMS } from "../ts/constants";
 import { StateTree } from "../ts/stateTree";
 import { execSync } from "child_process";
+import { deployKeyless } from "../ts/deployment/deploy";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root", "key", "input", "output"]
@@ -49,6 +50,7 @@ async function main() {
     console.log("Deploy with parameters", parameters);
 
     const genesisEth1Block = await provider.getBlockNumber();
+    await deployKeyless(signer, true);
     const contracts = await deployAll(signer, parameters, true);
     let addresses: { [key: string]: string } = {};
     Object.keys(contracts).map((contract: string) => {
