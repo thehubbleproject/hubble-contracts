@@ -78,21 +78,18 @@ contract AccountTree {
             "AccountTree: right set is full "
         );
 
-        bytes32[BATCH_SIZE / 2] memory buf;
+        bytes32[BATCH_SIZE] memory buf;
+        // pNodes are nodes in previous level. They are input leaves in level 0, and are `nodes` in other levels.
+        // We use pNodes to avoid damaging the input leaves.
+        bytes32[BATCH_SIZE] memory pNodes = leafs;
 
-        // i = 0
-        for (uint256 j = 0; j < 1 << (BATCH_DEPTH - 1); j++) {
-            uint256 k = j << 1;
-            buf[j] = keccak256(abi.encode(leafs[k], leafs[k + 1]));
-        }
-
-        // i > 0
-        for (uint256 i = 1; i < BATCH_DEPTH; i++) {
+        for (uint256 i = 0; i < BATCH_DEPTH; i++) {
             uint256 n = 1 << (BATCH_DEPTH - i - 1);
             for (uint256 j = 0; j < n; j++) {
                 uint256 k = j << 1;
-                buf[j] = keccak256(abi.encode(buf[k], buf[k + 1]));
+                buf[j] = keccak256(abi.encode(pNodes[k], pNodes[k + 1]));
             }
+            pNodes = buf;
         }
         bytes32 leaf = buf[0];
 
