@@ -82,6 +82,24 @@ export async function expectRevert(
     );
 }
 
+export async function expectCallRevert(
+    tx: Promise<any>,
+    revertReason: string | null
+) {
+    await tx.then(
+        () => {
+            assert.fail(`Expect tx to fail with reason: ${revertReason}`);
+        },
+        error => {
+            if (revertReason === null) {
+                assert.isNull(error.reason);
+            } else {
+                expect(error.reason).to.have.string(revertReason);
+            }
+        }
+    );
+}
+
 export async function getBatchID(rollup: Rollup): Promise<number> {
     return Number(await rollup.nextBatchID()) - 1;
 }
