@@ -82,7 +82,7 @@ contract FrontendTransfer {
         uint256[2] calldata signature,
         uint256[4] calldata pubkey,
         bytes32 domain
-    ) external view {
+    ) external view returns (bool) {
         Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
@@ -103,6 +103,8 @@ contract FrontendTransfer {
         );
         require(callSuccess, "Precompile call failed");
         require(checkSuccess, "Bad signature");
+        // return something here otherwise the function doesn't raise error when revert. See #462
+        return true;
     }
 
     function validateAndApply(
