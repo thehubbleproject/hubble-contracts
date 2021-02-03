@@ -251,6 +251,7 @@ library Types {
         BadWithdrawRoot,
         BadCompression,
         TooManyTx,
-        BadPrecompileCall
+        BadPrecompileCall,
+        BadNonce
     }
 }

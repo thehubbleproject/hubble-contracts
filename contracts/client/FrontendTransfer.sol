@@ -149,6 +149,9 @@ contract FrontendTransfer {
         Offchain.Transfer memory offchainTx = Offchain.decodeTransfer(
             encodedTx
         );
+        if (from.state.nonce+1 != offchainTx.nonce) {
+            return (newRoot, Types.Result.BadNonce); 
+        }
         Tx.Transfer memory _tx = Tx.Transfer(
             offchainTx.fromIndex,
             offchainTx.toIndex,
