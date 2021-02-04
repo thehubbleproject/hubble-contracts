@@ -4,15 +4,13 @@ import { ethers } from "ethers";
 const argv = require("minimist")(process.argv.slice(2));
 
 // Assuming a node is already running `npm run node`
-// npx ts-node ./scripts/mineBlocks.ts -n 5
+// npx ts-node ./scripts/mineBlocks.ts
 async function main() {
     const provider = new ethers.providers.JsonRpcProvider(argv.url);
-    await mineBlocks(provider, argv.n);
+
+    setInterval(()=>{
+        mineBlocks(provider, 1);
+    }, 1000)
 }
 
 main()
-    .then(() => process.exit(0))
-    .catch(error => {
-        console.error(error);
-        process.exit(1);
-    });
