@@ -15,12 +15,14 @@ import { FrontendMassMigration } from "../types/ethers-contracts/FrontendMassMig
 import { FrontendCreate2Transfer } from "../types/ethers-contracts/FrontendCreate2Transfer";
 import { Create2Transfer } from "../types/ethers-contracts/Create2Transfer";
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
+import { FrontendUtilities } from "../types/ethers-contracts/FrontendUtilities";
 
 export interface allContracts {
     frontendGeneric: FrontendGeneric;
     frontendTransfer: FrontendTransfer;
     frontendMassMigration: FrontendMassMigration;
     frontendCreate2Transfer: FrontendCreate2Transfer;
+    frontendUtilities: FrontendUtilities;
     blsAccountRegistry: BlsAccountRegistry;
     tokenRegistry: TokenRegistry;
     transfer: Transfer;

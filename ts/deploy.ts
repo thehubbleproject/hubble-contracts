@@ -14,6 +14,7 @@ import {
     FrontendTransferFactory,
     FrontendMassMigrationFactory,
     FrontendCreate2TransferFactory,
+    FrontendUtilitiesFactory,
     SpokeRegistryFactory,
     VaultFactory,
     WithdrawManagerFactory,
@@ -63,6 +64,7 @@ export async function deployAll(
         "frontendCreate2Transfer",
         verbose
     );
+
     // deploy a chooser
     let chooser: ProofOfBurn | BurnAuction;
     if (parameters.USE_BURN_AUCTION) {
@@ -120,6 +122,12 @@ export async function deployAll(
     );
     await waitAndRegister(depositManager, "depositManager", verbose);
 
+    const frontendUtilities = await new FrontendUtilitiesFactory(signer).deploy(
+        depositManager.address,
+        blsAccountRegistry.address
+    );
+    await waitAndRegister(frontendUtilities, "frontendUtilities", verbose);
+
     if (!parameters.GENESIS_STATE_ROOT) throw new GenesisNotSpecified();
 
     // deploy Rollup core
@@ -154,6 +162,7 @@ export async function deployAll(
         frontendTransfer,
         frontendMassMigration,
         frontendCreate2Transfer,
+        frontendUtilities,
         blsAccountRegistry,
         tokenRegistry,
         transfer,
