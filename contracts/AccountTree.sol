@@ -11,7 +11,7 @@ contract AccountTree {
     uint256 public constant DEPTH = 31;
     uint256 public constant WITNESS_LENGTH = DEPTH;
     uint256 public constant SET_SIZE = 1 << DEPTH;
-    uint256 public constant BATCH_DEPTH = 4;
+    uint256 public constant BATCH_DEPTH = 10;
     uint256 public constant BATCH_SIZE = 1 << BATCH_DEPTH;
 
     bytes32 public rootLeft;
