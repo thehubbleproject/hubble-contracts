@@ -17,6 +17,16 @@ contract FrontendUtilities {
         accountRegistry = _accountRegistry;
     }
 
+    function registerMultiple(uint256[4][] calldata pubkeys)
+        external
+        returns (uint256)
+    {
+        uint256 len = pubkeys.length;
+        for (uint256 i = 0; i < len; i++) {
+            accountRegistry.register(pubkeys[i]);
+        }
+    }
+
     function deposit(
         uint256[4] calldata pubkey,
         uint256 amount,
@@ -24,5 +34,17 @@ contract FrontendUtilities {
     ) external {
         uint256 pubkeyID = accountRegistry.register(pubkey);
         depositManager.depositFor(pubkeyID, amount, tokenID);
+    }
+
+    function depositMultiple(
+        uint256[4][] calldata pubkeys,
+        uint256 amount,
+        uint256 tokenID
+    ) external returns (uint256) {
+        uint256 len = pubkeys.length;
+        for (uint256 i = 0; i < len; i++) {
+            uint256 pubkeyID = accountRegistry.register(pubkeys[i]);
+            depositManager.depositFor(pubkeyID, amount, tokenID);
+        }
     }
 }
