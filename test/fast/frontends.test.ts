@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
-import { User } from "../../ts/factory";
+import { Group, User } from "../../ts/factory";
 import { TxCreate2Transfer, TxMassMigration, TxTransfer } from "../../ts/tx";
-import { expectCallRevert, hexToUint8Array, randHex } from "../../ts/utils";
+import { expectCallRevert, randHex } from "../../ts/utils";
 import * as mcl from "../../ts/mcl";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import {
@@ -11,16 +11,22 @@ import {
 } from "../../types/ethers-contracts";
 import { Signer } from "ethers";
 import { assert } from "chai";
+import { deployAll } from "../../ts/deploy";
+import { TESTING_PARAMS } from "../../ts/constants";
+import { allContracts } from "../../ts/allContractsInterfaces";
+import { arrayify } from "ethers/lib/utils";
+
+const domain = arrayify(randHex(32));
 
 describe("Frontend", function() {
     let user: User;
     let badSig: mcl.solG1;
     let signer: Signer;
-    const domain = randHex(32);
+
     before(async function() {
         await mcl.init();
         [signer] = await ethers.getSigners();
-        user = User.new(0, 0, hexToUint8Array(domain));
+        user = User.new(0, 0, domain);
         badSig = user.signRaw("0xf00d").sol;
     });
     beforeEach(async function() {
@@ -111,5 +117,26 @@ describe("Frontend", function() {
             ),
             "Bad signature"
         );
+    });
+});
+
+describe("Frontend Utilities", function() {
+    let signer: Signer;
+    let contracts: allContracts;
+    let group: Group;
+    before(async function() {
+        await mcl.init();
+        [signer] = await ethers.getSigners();
+        contracts = await deployAll(signer, {
+            ...TESTING_PARAMS,
+            GENESIS_STATE_ROOT: randHex(32)
+        });
+        group = Group.new({ n: 20, domain });
+    });
+    it.only("registerMultiple", async function() {
+        const { frontendUtilities, exampleToken, depositManager } = contracts;
+        // The deploy contract has deploy and registered exampleToken in tokenID 0 and ethers signer has unlimited mint of token
+        await exampleToken.approve(depositManager.address, 1000);
+        await frontendUtilities.deposit(group.getUser(0).pubkey, 10, 0);
     });
 });
