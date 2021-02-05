@@ -59,6 +59,10 @@ contract BurnAuction is Chooser {
         donationNumerator = _donationNumerator;
     }
 
+    function deposit(address beneficiary) external payable {
+        updateBalance(beneficiary, msg.value, 0);
+    }
+
     /**
      * @dev Receive a bid from an coordinator. If the bid is higher than the current bid it replace the existing bid
      */
