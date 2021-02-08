@@ -24,7 +24,11 @@ import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
 import { StateProvider, StateTree } from "./stateTree";
-import { Tx, TxTransfer } from "./tx";
+import { serialize, Tx, TxTransfer } from "./tx";
+import { TransferBatch, TransferCommitment } from "./commitments";
+import { ZERO_BYTES32 } from "./constants";
+import { aggregate, SignatureInterface } from "./blsSigner";
+import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -82,19 +86,25 @@ class TxPool {
     add(tx: TxTransfer) {
         this.heap.push(tx);
     }
-    pick(n: number) {
+    pick(n: number): TxTransfer[] {
         this.heap.sort(compare);
-        const result = [];
-        for (let i = 0; i < n; i++) {
-            result.push(this.heap.pop());
+        const result: TxTransfer[] = [];
+        const resultSize = Math.min(n, this.heap.length);
+        for (let i = 0; i < resultSize; i++) {
+            result.push(this.heap.pop() as TxTransfer);
         }
         return result;
     }
 }
 
+interface Context {
+    currentSlot: number;
+}
+
 export class Hubble {
     public stateTree: StateTree;
     public txpool: TxPool;
+    public context: Context;
     private constructor(
         public parameters: DeploymentParameters,
         public contracts: allContracts,
@@ -102,6 +112,7 @@ export class Hubble {
     ) {
         this.stateTree = new StateTree(parameters.MAX_DEPTH);
         this.txpool = new TxPool();
+        this.context = { currentSlot: -1 };
     }
     static fromGenesis(
         parameters: DeploymentParameters,
@@ -125,6 +136,59 @@ export class Hubble {
 
     getState(stateID: number) {
         return this.stateTree.getState(stateID).state;
+    }
+    async bid() {
+        const burnAuction = this.contracts.chooser as BurnAuction;
+        const currentSlot = await burnAuction.currentSlot();
+        if (currentSlot > this.context.currentSlot) {
+            console.log("New slot", currentSlot);
+            this.context.currentSlot = currentSlot;
+            const value = "1";
+            await burnAuction.bid(value, { value });
+            console.log("Bid", value);
+        }
+    }
+
+    async aggregate() {
+        const maxBatchSize = 32;
+        const commits = [];
+        for (let i = 0; i < maxBatchSize; i++) {
+            const txs = this.txpool.pick(this.parameters.MAX_TXS_PER_COMMIT);
+
+            if (txs.length == 0) break;
+            const aggsig = aggregate(
+                txs.map(tx => tx?.signature as SignatureInterface)
+            );
+            const commit = TransferCommitment.new(
+                ZERO_BYTES32,
+                ZERO_BYTES32,
+                aggsig.sol,
+                0,
+                serialize(txs)
+            );
+            commits.push(commit);
+            console.log("Packing", txs.length, "txs");
+        }
+        const batch = new TransferBatch(commits);
+        const chooser = this.contracts.chooser as BurnAuction;
+        let proposer = "";
+        try {
+            proposer = await chooser.getProposer();
+        } catch (error) {
+            if (error.message.includes("Auction has not been initialized")) {
+                console.warn("Auction has not been initialized");
+            }
+        }
+
+        if (proposer == (await this.signer.getAddress())) {
+            console.info("We are a proposer, can propose");
+            await batch.submit(
+                this.contracts.rollup,
+                this.parameters.STAKE_AMOUNT
+            );
+        } else {
+            console.info("We are not a proposer, skip this slot");
+        }
     }
 
     async registerPublicKeys(pubkeys: string[]) {

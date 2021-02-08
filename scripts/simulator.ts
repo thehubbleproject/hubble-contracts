@@ -15,7 +15,9 @@ const argv = require("minimist")(process.argv.slice(2), {});
 const emitter = new Emittery();
 
 const events = {
-    genTx: "genTx"
+    genTx: "genTx",
+    bid: "bid",
+    aggregate: "aggregate"
 };
 
 function sleep(ms: number) {
@@ -26,6 +28,8 @@ async function main() {
     await mcl.init();
     const provider = new ethers.providers.JsonRpcProvider();
     const signer = provider.getSigner();
+    const bob = provider.getSigner(1);
+    const bobAddress = await bob.getAddress();
 
     const parameters = PRODUCTION_PARAMS;
     const stateTree = StateTree.new(parameters.MAX_DEPTH);
@@ -71,10 +75,22 @@ async function main() {
         console.log(tx.toString());
         hubble.txpool.add(tx);
     });
+    emitter.on(events.bid, () => {
+        hubble.bid();
+    });
+    emitter.on(events.aggregate, () => {
+        hubble.aggregate();
+    });
+    let programCounter = 0;
     while (true) {
         await sleep(1000);
         emitter.emit(events.genTx);
         console.log("Hubble pool size", hubble.txpool.size);
+        if (programCounter % 5 == 0) emitter.emit(events.bid);
+        if (programCounter % 10 == 0) emitter.emit(events.aggregate);
+        // send tx to mine block
+        await signer.sendTransaction({ to: bobAddress, value: 1 });
+        programCounter++;
     }
 }
 
