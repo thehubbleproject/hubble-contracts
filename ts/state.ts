@@ -35,6 +35,11 @@ export class State {
             [this.pubkeyID, this.tokenID, this.balance, this.nonce]
         );
     }
+    public toString(): string {
+        return `<State key[${this.pubkeyID}]  #${
+            this.tokenID
+        } $${this.balance.toString()}  nonce${this.nonce}>`;
+    }
 }
 
 export const ZERO_STATE = State.new(0, 0, 0, 0);

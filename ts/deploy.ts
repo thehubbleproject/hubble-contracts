@@ -24,6 +24,9 @@ import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
 import { ProofOfBurn } from "../types/ethers-contracts/ProofOfBurn";
 import { GenesisNotSpecified } from "./exceptions";
+import { execSync } from "child_process";
+import fs from "fs";
+import { deployKeyless } from "./deployment/deploy";
 
 async function waitAndRegister(
     contract: Contract,
@@ -167,6 +170,34 @@ export async function deployAll(
         rollup,
         withdrawManager
     };
+}
+
+export async function deployAndWriteGenesis(
+    signer: Signer,
+    parameters: DeploymentParameters,
+    genesisPath: string = "genesis.json"
+) {
+    let addresses: { [key: string]: string } = {};
+    const genesisEth1Block = await signer.provider?.getBlockNumber();
+    await deployKeyless(signer, true);
+    const contracts = await deployAll(signer, parameters, true);
+
+    Object.keys(contracts).map((contract: string) => {
+        addresses[contract] = contracts[contract as keyof allContracts].address;
+    });
+    const appID = await contracts.rollup.appID();
+    const version = execSync("git rev-parse HEAD")
+        .toString()
+        .trim();
+    const auxiliary = {
+        domain: appID,
+        genesisEth1Block,
+        version
+    };
+    const configs = { parameters, addresses, auxiliary };
+    console.log("Writing genesis file to", genesisPath);
+    fs.writeFileSync(genesisPath, JSON.stringify(configs, null, 4));
+    console.log("Successsfully deployed", configs);
 }
 
 async function waitUntilMined(tx: Promise<ContractTransaction>) {

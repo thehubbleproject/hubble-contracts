@@ -1,4 +1,4 @@
-import { BigNumber } from "ethers";
+import { BigNumber, Wallet } from "ethers";
 import {
     aggregate,
     BlsSigner,
@@ -18,8 +18,13 @@ import {
 } from "./tx";
 
 export class User {
-    static new(stateID: number, pubkeyID: number, domain?: Domain) {
-        const signer = domain ? BlsSigner.new(domain) : nullBlsSigner;
+    static new(
+        stateID: number,
+        pubkeyID: number,
+        domain?: Domain,
+        privKey?: string
+    ) {
+        const signer = domain ? BlsSigner.new(domain, privKey) : nullBlsSigner;
         return new this(signer, stateID, pubkeyID);
     }
     constructor(
@@ -46,12 +51,16 @@ export class User {
     }
 }
 
+const defaultMnemonic =
+    "test test test test test test test test test test test junk";
+
 interface GroupOptions {
     n: number;
     domain?: Domain;
     stateProvider?: StateProvider;
     initialStateID?: number;
     initialPubkeyID?: number;
+    mnemonic?: string;
 }
 
 interface createStateOptions {
@@ -65,11 +74,15 @@ export class Group {
         const initialStateID = options.initialStateID || 0;
         const initialPubkeyID = options.initialPubkeyID || 0;
         const stateProvider = options.stateProvider || nullProvider;
+        const mnemonic = options.mnemonic ?? defaultMnemonic;
         const users: User[] = [];
         for (let i = 0; i < options.n; i++) {
+            const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${i}`);
             const stateID = initialStateID + i;
             const pubkeyID = initialPubkeyID + i;
-            users.push(User.new(stateID, pubkeyID, options.domain));
+            users.push(
+                User.new(stateID, pubkeyID, options.domain, wallet.privateKey)
+            );
         }
         return new this(users, stateProvider);
     }

@@ -23,6 +23,7 @@ import {
 import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
+import { StateProvider, StateTree } from "./stateTree";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -59,11 +60,14 @@ function parseGenesis(
 }
 
 export class Hubble {
+    public stateTree: StateTree;
     private constructor(
         public parameters: DeploymentParameters,
         public contracts: allContracts,
         public signer: Signer
-    ) {}
+    ) {
+        this.stateTree = new StateTree(parameters.MAX_DEPTH);
+    }
     static fromGenesis(
         parameters: DeploymentParameters,
         addresses: { [key: string]: string },
@@ -82,6 +86,10 @@ export class Hubble {
         const provider = new ethers.providers.JsonRpcProvider(providerUrl);
         const signer = provider.getSigner();
         return Hubble.fromGenesis(parameters, addresses, signer);
+    }
+
+    getState(stateID: number) {
+        return this.stateTree.getState(stateID).state;
     }
 
     async registerPublicKeys(pubkeys: string[]) {
