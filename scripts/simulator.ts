@@ -52,11 +52,11 @@ async function main() {
     const hubble = Hubble.fromDefault();
     group.setupSigners(arrayify(await hubble.contracts.rollup.appID()));
     hubble.stateTree = stateTree;
+    hubble.registerHandlers();
     emitter.on(events.genTx, () => {
         const { user: sender } = group.pickRandom();
         const { user: receiver } = group.pickRandom();
         const senderState = hubble.getState(sender.stateID);
-        console.log(sender.stateID, senderState.toString());
         const randomPercent = Math.floor(Math.random() * 100);
         const amount = USDT.castBigNumber(
             senderState.balance.div(100).mul(randomPercent)
@@ -72,7 +72,6 @@ async function main() {
             USDT
         );
         tx.signature = sender.sign(tx);
-        console.log(tx.toString());
         hubble.txpool.add(tx);
     });
     emitter.on(events.bid, () => {

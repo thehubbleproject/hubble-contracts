@@ -190,6 +190,29 @@ export class Hubble {
             console.info("We are not a proposer, skip this slot");
         }
     }
+    registerHandlers() {
+        const watchedContracts = [
+            this.contracts.rollup,
+            this.contracts.depositManager,
+            this.contracts.tokenRegistry,
+            this.contracts.chooser as BurnAuction
+        ];
+        for (const contract of watchedContracts) {
+            Object.entries(contract.interface.events).map(
+                ([eventName, eventFragment]) =>
+                    contract.on(eventName, (...args) => {
+                        const eventKV: { [key: string]: string } = {};
+                        for (const i in eventFragment.inputs) {
+                            eventKV[eventFragment.inputs[i].name] = args[
+                                i
+                            ].toString();
+                        }
+                        console.log(eventFragment.name, eventKV);
+                    })
+            );
+        }
+    }
+
 
     async registerPublicKeys(pubkeys: string[]) {
         const registry = this.contracts.blsAccountRegistry;
