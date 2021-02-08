@@ -24,6 +24,7 @@ import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
 import { StateProvider, StateTree } from "./stateTree";
+import { Tx, TxTransfer } from "./tx";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -59,14 +60,48 @@ function parseGenesis(
     return contracts;
 }
 
+function compare(a: TxTransfer, b: TxTransfer) {
+    if (a.fee.lt(b.fee)) {
+        return -1;
+    }
+    if (a.fee.gt(b.fee)) {
+        return 1;
+    }
+    // a must be equal to b
+    return 0;
+}
+
+class TxPool {
+    private heap: TxTransfer[];
+    constructor() {
+        this.heap = [];
+    }
+    get size() {
+        return this.heap.length;
+    }
+    add(tx: TxTransfer) {
+        this.heap.push(tx);
+    }
+    pick(n: number) {
+        this.heap.sort(compare);
+        const result = [];
+        for (let i = 0; i < n; i++) {
+            result.push(this.heap.pop());
+        }
+        return result;
+    }
+}
+
 export class Hubble {
     public stateTree: StateTree;
+    public txpool: TxPool;
     private constructor(
         public parameters: DeploymentParameters,
         public contracts: allContracts,
         public signer: Signer
     ) {
         this.stateTree = new StateTree(parameters.MAX_DEPTH);
+        this.txpool = new TxPool();
     }
     static fromGenesis(
         parameters: DeploymentParameters,
@@ -82,7 +117,7 @@ export class Hubble {
         genesisPath = "./genesis.json"
     ) {
         const genesis = fs.readFileSync(genesisPath).toString();
-        const { parameters, addresses } = JSON.parse(genesis);
+        const { parameters, addresses, axiliary } = JSON.parse(genesis);
         const provider = new ethers.providers.JsonRpcProvider(providerUrl);
         const signer = provider.getSigner();
         return Hubble.fromGenesis(parameters, addresses, signer);

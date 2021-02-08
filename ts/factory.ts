@@ -92,8 +92,12 @@ export class Group {
         return this;
     }
     public setupSigners(domain: Domain) {
-        for (const user of this.users) {
-            const signer = BlsSigner.new(domain);
+        for (const [index, user] of this.users.entries()) {
+            const wallet = Wallet.fromMnemonic(
+                defaultMnemonic,
+                `m/44'/60'/0'/0/${index}`
+            );
+            const signer = BlsSigner.new(domain, wallet.privateKey);
             user.connect(signer);
         }
     }

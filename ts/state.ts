@@ -38,7 +38,7 @@ export class State {
     public toString(): string {
         return `<State key[${this.pubkeyID}]  #${
             this.tokenID
-        } $${this.balance.toString()}  nonce${this.nonce}>`;
+        } $${this.balance.toString()}  nonce ${this.nonce}>`;
     }
 }
 

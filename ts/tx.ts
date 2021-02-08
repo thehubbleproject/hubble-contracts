@@ -4,6 +4,8 @@ import { Float, float16 } from "./decimal";
 import { MismatchByteLength } from "./exceptions";
 import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
+import { solG1 } from "./mcl";
+import { SignatureInterface } from "./blsSigner";
 
 const amountLen = 2;
 const feeLen = 2;
@@ -85,7 +87,8 @@ export class TxTransfer implements SignableTx {
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly float: Float
+        public readonly float: Float,
+        public signature?: SignatureInterface
     ) {
         checkByteLength(float, "amount", amountLen);
         checkByteLength(float, "fee", feeLen);
@@ -140,7 +143,9 @@ export class TxTransfer implements SignableTx {
         return hexlify(concated);
     }
     public toString(): string {
-        return `<Transfer ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
+        const amount = this.decimal.decode(this.decimal.encodeInt(this.amount));
+        const fee = this.decimal.decode(this.decimal.encodeInt(this.fee));
+        return `<Transfer ${this.fromIndex}->${this.toIndex} $${amount}  fee $${fee}  nonce ${this.nonce}>`;
     }
 }
 
@@ -174,7 +179,8 @@ export class TxMassMigration implements SignableTx {
         public readonly spokeID: number,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly float: Float
+        public readonly float: Float,
+        public signature?: SignatureInterface
     ) {
         checkByteLength(float, "amount", amountLen);
         checkByteLength(float, "fee", feeLen);
@@ -269,7 +275,8 @@ export class TxCreate2Transfer implements SignableTx {
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly float: Float
+        public readonly float: Float,
+        public signature?: SignatureInterface
     ) {
         checkByteLength(float, "amount", amountLen);
         checkByteLength(float, "fee", feeLen);
