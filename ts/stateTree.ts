@@ -39,7 +39,7 @@ class NullProvider implements StateProvider {
 }
 export const nullProvider = new NullProvider();
 
-interface SolStateMerkleProof {
+export interface SolStateMerkleProof {
     state: State;
     witness: string[];
 }

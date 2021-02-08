@@ -137,6 +137,13 @@ export class ReceiverNotExist extends StateTreeExceptions {
     }
 }
 
+export class StateNotExist extends StateTreeExceptions {
+    constructor(message?: string) {
+        super(message);
+        this.name = "StateNotExist";
+    }
+}
+
 export class StateAlreadyExist extends StateTreeExceptions {
     constructor(message?: string) {
         super(message);
