@@ -152,6 +152,8 @@ export class Hubble {
     async aggregate() {
         const maxBatchSize = 32;
         const commits = [];
+        const accountRoot = await this.contracts.blsAccountRegistry.root();
+        const feeReceiver = 0;
         for (let i = 0; i < maxBatchSize; i++) {
             const txs = this.txpool.pick(this.parameters.MAX_TXS_PER_COMMIT);
 
@@ -159,15 +161,22 @@ export class Hubble {
             const aggsig = aggregate(
                 txs.map(tx => tx?.signature as SignatureInterface)
             );
+            this.stateTree.processTransferCommit(txs, feeReceiver);
             const commit = TransferCommitment.new(
-                ZERO_BYTES32,
-                ZERO_BYTES32,
+                this.stateTree.root,
+                accountRoot,
                 aggsig.sol,
-                0,
+                feeReceiver,
                 serialize(txs)
             );
             commits.push(commit);
-            console.log("Packing", txs.length, "txs");
+            console.log(
+                "Packing",
+                txs.length,
+                "txs",
+                "post root",
+                this.stateTree.root
+            );
         }
         const batch = new TransferBatch(commits);
         const chooser = this.contracts.chooser as BurnAuction;
@@ -212,7 +221,6 @@ export class Hubble {
             );
         }
     }
-
 
     async registerPublicKeys(pubkeys: string[]) {
         const registry = this.contracts.blsAccountRegistry;
