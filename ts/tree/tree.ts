@@ -22,12 +22,20 @@ export type Witness = {
     depth?: number;
 };
 
+interface JournalEntry {
+    index: number;
+    leaf: Node;
+}
+
 export class Tree {
     public readonly zeros: Array<Node>;
     public readonly depth: number;
     public readonly setSize: number;
     public readonly hasher: Hasher;
     private readonly tree: Array<Level> = [];
+    private cache: Array<Level> = [];
+    private journal: JournalEntry[] = [];
+    private cachingMode: boolean = false;
 
     public static new(depth: number, hasher?: Hasher): Tree {
         return new Tree(depth, hasher || Hasher.new());
@@ -51,6 +59,13 @@ export class Tree {
         }
         this.hasher = hasher;
         this.zeros = this.hasher.zeros(depth);
+        this.cleanupCache();
+    }
+    private cleanupCache() {
+        this.cache = [];
+        for (let i = 0; i < this.depth + 1; i++) {
+            this.cache.push({});
+        }
     }
 
     get root(): Node {
@@ -58,7 +73,39 @@ export class Tree {
     }
 
     public getNode(level: number, index: number): Node {
-        return this.tree[level][index] || this.zeros[level];
+        return (
+            this.cache[level][index] ||
+            this.tree[level][index] ||
+            this.zeros[level]
+        );
+    }
+    private updateNode(level: number, index: number, node: Node) {
+        if (this.cachingMode) {
+            this.cache[level][index] = node;
+        } else {
+            this.tree[level][index] = node;
+        }
+    }
+
+    public begin() {
+        if (this.cachingMode) throw new Error("Already in caching mode");
+        this.cachingMode = true;
+    }
+
+    public commit() {
+        if (!this.cachingMode) throw new Error("Not in caching mode");
+        this.cachingMode = false;
+        for (const entry of this.journal) {
+            this.updateSingle(entry.index, entry.leaf);
+        }
+        this.journal = [];
+        this.cleanupCache();
+    }
+    public rollback() {
+        if (!this.cachingMode) throw new Error("Not in caching mode");
+        this.cachingMode = false;
+        this.journal = [];
+        this.cleanupCache();
     }
 
     // witnessForBatch given merging subtree offset and depth constructs a witness
@@ -140,14 +187,14 @@ export class Tree {
     // insertSingle updates tree with a single raw data at given index
     public insertSingle(leafIndex: number, data: Data) {
         this.checkSetSize(leafIndex);
-        this.tree[this.depth][leafIndex] = this.hasher.toLeaf(data);
+        this.updateNode(this.depth, leafIndex, this.hasher.toLeaf(data));
         this.ascend(leafIndex, 1);
     }
 
     // updateSingle updates tree with a leaf at given index
     public updateSingle(leafIndex: number, leaf: Node) {
         this.checkSetSize(leafIndex);
-        this.tree[this.depth][leafIndex] = leaf;
+        this.updateNode(this.depth, leafIndex, leaf);
         this.ascend(leafIndex, 1);
     }
 
@@ -158,7 +205,11 @@ export class Tree {
         const lastIndex = len + offset - 1;
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
-            this.tree[this.depth][offset + i] = this.hasher.toLeaf(data[i]);
+            this.updateNode(
+                this.depth,
+                offset + i,
+                this.hasher.toLeaf(data[i])
+            );
         }
         this.ascend(offset, len);
     }
@@ -170,7 +221,7 @@ export class Tree {
         const lastIndex = len + offset - 1;
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
-            this.tree[this.depth][offset + i] = leaves[i];
+            this.updateNode(this.depth, offset + i, leaves[i]);
         }
         this.ascend(offset, len);
     }
@@ -198,7 +249,7 @@ export class Tree {
 
     private updateCouple(level: number, leafIndex: number) {
         const n = this.hashCouple(level, leafIndex);
-        this.tree[level - 1][leafIndex >> 1] = n;
+        this.updateNode(level - 1, leafIndex >> 1, n);
     }
 
     private hashCouple(level: number, leafIndex: number) {
