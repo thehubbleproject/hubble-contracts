@@ -244,6 +244,7 @@ contract RollupCore is BatchManager {
         );
         // Same effect as `MerkleTree.merklise`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
+        // AccountRoot doesn't matter for deposit, add dummy value
         submitBatch(root, 1, bytes32(0), Types.Usage.Deposit);
     }
 
@@ -452,6 +453,7 @@ contract Rollup is RollupCore {
                 block.number // genesis finalise instantly
             )
         });
+        // AccountRoot doesn't matter for genesis, add dummy value
         emit NewBatch(nextBatchID, bytes32(0), Types.Usage.Genesis);
         nextBatchID++;
         appID = keccak256(abi.encodePacked(address(this)));
