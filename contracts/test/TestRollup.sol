@@ -32,12 +32,12 @@ contract TestRollup is BatchManager {
     }
 
     function submitDummyBatch() external payable {
-        submitBatch(bytes32(0), 0, Types.Usage.Transfer);
+        submitBatch(bytes32(0), 0, bytes32(0), Types.Usage.Transfer);
     }
 
     function submitDeposits(bytes32 depositSubTreeRoot) external payable {
         deposits[nextBatchID] = depositSubTreeRoot;
-        submitBatch(bytes32(0), 0, Types.Usage.Transfer);
+        submitBatch(bytes32(0), 0, bytes32(0), Types.Usage.Transfer);
     }
 
     function testRollback(uint256 batchID) external returns (uint256) {
