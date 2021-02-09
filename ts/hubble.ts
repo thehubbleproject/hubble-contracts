@@ -148,8 +148,11 @@ export class Hubble {
             console.log("Bid", value);
         }
     }
-
-    async aggregate() {
+    async handleNewBatch(ethTxHash: string) {
+        const ethTx = await this.signer.provider?.getTransaction(ethTxHash);
+        const txdata = ethTx?.data;
+    }
+    async pack() {
         const maxBatchSize = 32;
         const commits = [];
         const accountRoot = await this.contracts.blsAccountRegistry.root();
@@ -184,6 +187,10 @@ export class Hubble {
             );
         }
         const batch = new TransferBatch(commits);
+        return batch;
+    }
+
+    async aggregate() {
         const chooser = this.contracts.chooser as BurnAuction;
         let proposer = "";
         try {
@@ -196,6 +203,7 @@ export class Hubble {
 
         if (proposer == (await this.signer.getAddress())) {
             console.info("We are a proposer, can propose");
+            const batch = await this.pack();
             await batch.submit(
                 this.contracts.rollup,
                 this.parameters.STAKE_AMOUNT

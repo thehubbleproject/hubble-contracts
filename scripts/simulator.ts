@@ -10,6 +10,7 @@ import { TxTransfer } from "../ts/tx";
 import { arrayify } from "ethers/lib/utils";
 import * as mcl from "../ts/mcl";
 import { MemEngine } from "../ts/stateEngine";
+import { Usage } from "../ts/interfaces";
 
 const argv = require("minimist")(process.argv.slice(2), {});
 
@@ -86,6 +87,17 @@ async function main() {
     emitter.on(events.aggregate, () => {
         hubble.aggregate();
     });
+    hubble.contracts.rollup.on(
+        hubble.contracts.rollup.filters.NewBatch(null, null, null),
+        (committer, index, batchType, event: ethers.Event) => {
+            console.log(
+                `Batch #${index} [${Usage[batchType]}] by ${committer}`
+            );
+
+            hubble.handleNewBatch(event.transactionHash);
+        }
+    );
+
     let programCounter = 0;
     while (true) {
         await sleep(1000);
