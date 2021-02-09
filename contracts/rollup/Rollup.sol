@@ -452,7 +452,7 @@ contract Rollup is RollupCore {
                 block.number // genesis finalise instantly
             )
         });
-        emit NewBatch(msg.sender, nextBatchID, bytes32(0), Types.Usage.Genesis);
+        emit NewBatch(nextBatchID, bytes32(0), Types.Usage.Genesis);
         nextBatchID++;
         appID = keccak256(abi.encodePacked(address(this)));
     }
