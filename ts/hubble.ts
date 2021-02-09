@@ -148,9 +148,20 @@ export class Hubble {
             console.log("Bid", value);
         }
     }
-    async handleNewBatch(ethTxHash: string) {
+    async handleNewBatch(ethTxHash: string, batchID: number) {
         const ethTx = await this.signer.provider?.getTransaction(ethTxHash);
-        const txdata = ethTx?.data;
+        const txdata = ethTx?.data as string;
+        const txDescription = this.contracts.rollup.interface.parseTransaction({
+            data: txdata
+        });
+        const accountRoot = await this.contracts.blsAccountRegistry.root();
+        const batch = TransferBatch.fromCalldata(
+            txDescription.args,
+            accountRoot
+        );
+        const commitmentRoot = (await this.contracts.rollup.batches(batchID))
+            .commitmentRoot;
+        console.log(batch.commitmentRoot, commitmentRoot);
     }
     async pack() {
         const maxBatchSize = 32;

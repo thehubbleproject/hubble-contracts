@@ -268,6 +268,21 @@ export class TransferBatch extends Batch {
     constructor(public readonly commitments: TransferCommitment[]) {
         super(commitments);
     }
+    static fromCalldata(args: any, accountRoot: string) {
+        const { stateRoots, signatures, feeReceivers, txss } = args;
+        const commitments = [];
+        for (let i = 0; i < stateRoots.length; i++) {
+            const commitment = TransferCommitment.new(
+                stateRoots[i],
+                accountRoot,
+                signatures[i],
+                feeReceivers[i],
+                txss[i]
+            );
+            commitments.push(commitment);
+        }
+        return new this(commitments);
+    }
 
     async submit(rollup: Rollup, stakingAmount: Wei) {
         return await rollup.submitTransfer(

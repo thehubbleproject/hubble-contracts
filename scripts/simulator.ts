@@ -94,7 +94,7 @@ async function main() {
                 `Batch #${index} [${Usage[batchType]}] by ${committer}`
             );
 
-            hubble.handleNewBatch(event.transactionHash);
+            hubble.handleNewBatch(event.transactionHash, index);
         }
     );
 
