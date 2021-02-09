@@ -19,6 +19,9 @@ export interface StateEngine {
     get(stateID: number): Promise<SolStateMerkleProof>;
     update(stateID: number, state: State): Promise<void>;
     create(stateID: number, state: State): Promise<void>;
+    begin(): void;
+    commit(): void;
+    rollback(): void;
     root: string;
 }
 
@@ -95,24 +98,33 @@ async function processTransfer(
     return [senderProof, receiverProof];
 }
 
-async function* processTransferCommit(
+export async function* processTransferCommit(
     txs: TxTransfer[],
     feeReceiverID: number,
     engine: StateEngine
 ): AsyncGenerator<SolStateMerkleProof> {
     const tokenID = (await engine.getNoWitness(feeReceiverID)).tokenID;
+    let acceptedTxs = [];
     for (const tx of txs) {
-        const [senderProof, receiverProof] = await processTransfer(
-            tx,
-            tokenID,
-            engine
-        );
-        yield senderProof;
-        yield receiverProof;
+        engine.begin();
+        try {
+            const [senderProof, receiverProof] = await processTransfer(
+                tx,
+                tokenID,
+                engine
+            );
+            yield senderProof;
+            yield receiverProof;
+            engine.commit();
+            acceptedTxs.push(tx);
+        } catch (err) {
+            console.log("Drop tx due to ", err.message);
+            engine.rollback();
+        }
     }
     const proof = await processReceiver(
         feeReceiverID,
-        sum(txs.map(tx => tx.fee)),
+        sum(acceptedTxs.map(tx => tx.fee)),
         tokenID,
         engine
     );
@@ -164,5 +176,14 @@ export class MemEngine implements StateEngine {
         if (this.states[stateID])
             throw new StateAlreadyExist(`stateID: ${stateID}`);
         this.update(stateID, state);
+    }
+    public begin() {
+        this.tree.begin();
+    }
+    public commit() {
+        this.tree.commit();
+    }
+    public rollback() {
+        this.tree.rollback();
     }
 }

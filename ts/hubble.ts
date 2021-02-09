@@ -29,6 +29,7 @@ import { TransferBatch, TransferCommitment } from "./commitments";
 import { ZERO_BYTES32 } from "./constants";
 import { aggregate, SignatureInterface } from "./blsSigner";
 import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
+import { MemEngine, processTransferCommit, StateEngine } from "./stateEngine";
 
 function parseGenesis(
     parameters: DeploymentParameters,
@@ -102,7 +103,7 @@ interface Context {
 }
 
 export class Hubble {
-    public stateTree: StateTree;
+    public engine: StateEngine;
     public txpool: TxPool;
     public context: Context;
     private constructor(
@@ -110,7 +111,7 @@ export class Hubble {
         public contracts: allContracts,
         public signer: Signer
     ) {
-        this.stateTree = new StateTree(parameters.MAX_DEPTH);
+        this.engine = new MemEngine(parameters.MAX_DEPTH);
         this.txpool = new TxPool();
         this.context = { currentSlot: -1 };
     }
@@ -135,7 +136,7 @@ export class Hubble {
     }
 
     getState(stateID: number) {
-        return this.stateTree.getState(stateID).state;
+        return this.engine.getNoWitness(stateID);
     }
     async bid() {
         const burnAuction = this.contracts.chooser as BurnAuction;
@@ -161,13 +162,16 @@ export class Hubble {
             const aggsig = aggregate(
                 txs.map(tx => tx?.signature as SignatureInterface)
             );
-            this.stateTree.processTransferCommit(txs, feeReceiver);
+            const actualTxs = []
+            for await(const tx of processTransferCommit(txs, feeReceiver, this.engine)){
+                actualTxs.push(tx)
+            }
             const commit = TransferCommitment.new(
-                this.stateTree.root,
+                this.engine.root,
                 accountRoot,
                 aggsig.sol,
                 feeReceiver,
-                serialize(txs)
+                serialize(actualTxs)
             );
             commits.push(commit);
             console.log(
@@ -175,7 +179,7 @@ export class Hubble {
                 txs.length,
                 "txs",
                 "post root",
-                this.stateTree.root
+                this.engine.root
             );
         }
         const batch = new TransferBatch(commits);
