@@ -9,6 +9,7 @@ import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
 import { State } from "./state";
+import { Entry } from "./stateEngine";
 import { nullProvider, StateProvider } from "./stateTree";
 import {
     TxTransfer,
@@ -170,6 +171,7 @@ export class Group {
         const tokenID = options?.tokenID === undefined ? 5678 : options.tokenID;
         const zeroNonce = options?.zeroNonce || false;
         const arbitraryInitialNonce = 9;
+        let states: Entry[] = [];
         for (let i = 0; i < this.users.length; i++) {
             const user = this.users[i];
             const nonce = zeroNonce ? 0 : arbitraryInitialNonce + i;
@@ -179,8 +181,9 @@ export class Group {
                 initialBalance,
                 nonce
             );
-            this.stateProvider.createState(user.stateID, state);
+            states.push({ stateID: user.stateID, state });
         }
+        return states;
     }
 }
 

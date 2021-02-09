@@ -19,6 +19,7 @@ export function randHex(n: number): string {
 }
 
 export function sum(xs: BigNumber[]): BigNumber {
+    if (xs.length == 0) return ZERO;
     return xs.reduce((a, b) => a.add(b));
 }
 

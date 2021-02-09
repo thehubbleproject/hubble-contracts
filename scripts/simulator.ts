@@ -9,6 +9,7 @@ import { USDT } from "../ts/decimal";
 import { TxTransfer } from "../ts/tx";
 import { arrayify } from "ethers/lib/utils";
 import * as mcl from "../ts/mcl";
+import { MemEngine } from "../ts/stateEngine";
 
 const argv = require("minimist")(process.argv.slice(2), {});
 
@@ -32,31 +33,36 @@ async function main() {
     const bobAddress = await bob.getAddress();
 
     const parameters = PRODUCTION_PARAMS;
-    const stateTree = StateTree.new(parameters.MAX_DEPTH);
+    const engine = MemEngine.new(parameters.MAX_DEPTH);
 
-    const group = Group.new({ n: 20, stateProvider: stateTree });
+    const group = Group.new({ n: 20 });
 
     for (const user of group.userIterator()) {
         console.log(`${user}`);
     }
-    group.createStates({
+    const states = group.createStates({
         initialBalance: USDT.castInt(1000000000.0),
         tokenID: 0,
         zeroNonce: true
     });
 
-    parameters.GENESIS_STATE_ROOT = stateTree.root;
+    for (const { stateID, state } of states) {
+        await engine.update(stateID, state);
+    }
+    await engine.commit();
+
+    parameters.GENESIS_STATE_ROOT = engine.root;
 
     await deployAndWriteGenesis(signer, parameters);
 
     const hubble = Hubble.fromDefault();
     group.setupSigners(arrayify(await hubble.contracts.rollup.appID()));
-    hubble.stateTree = stateTree;
+    hubble.engine = engine;
     hubble.registerHandlers();
-    emitter.on(events.genTx, () => {
+    emitter.on(events.genTx, async () => {
         const { user: sender } = group.pickRandom();
         const { user: receiver } = group.pickRandom();
-        const senderState = hubble.getState(sender.stateID);
+        const senderState = await hubble.getState(sender.stateID);
         const randomPercent = Math.floor(Math.random() * 100);
         const amount = USDT.castBigNumber(
             senderState.balance.div(100).mul(randomPercent)

@@ -23,7 +23,6 @@ import {
 import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
-import { StateProvider, StateTree } from "./stateTree";
 import { serialize, Tx, TxTransfer } from "./tx";
 import { TransferBatch, TransferCommitment } from "./commitments";
 import { ZERO_BYTES32 } from "./constants";
@@ -135,8 +134,8 @@ export class Hubble {
         return Hubble.fromGenesis(parameters, addresses, signer);
     }
 
-    getState(stateID: number) {
-        return this.engine.getNoWitness(stateID);
+    async getState(stateID: number) {
+        return await this.engine.get(stateID);
     }
     async bid() {
         const burnAuction = this.contracts.chooser as BurnAuction;
@@ -159,13 +158,15 @@ export class Hubble {
             const txs = this.txpool.pick(this.parameters.MAX_TXS_PER_COMMIT);
 
             if (txs.length == 0) break;
-            const aggsig = aggregate(
-                txs.map(tx => tx?.signature as SignatureInterface)
+
+            const actualTxs = await processTransferCommit(
+                txs,
+                feeReceiver,
+                this.engine
             );
-            const actualTxs = []
-            for await(const tx of processTransferCommit(txs, feeReceiver, this.engine)){
-                actualTxs.push(tx)
-            }
+            const aggsig = aggregate(
+                actualTxs.map(tx => tx?.signature as SignatureInterface)
+            );
             const commit = TransferCommitment.new(
                 this.engine.root,
                 accountRoot,
@@ -176,7 +177,7 @@ export class Hubble {
             commits.push(commit);
             console.log(
                 "Packing",
-                txs.length,
+                `${actualTxs.length}/${txs.length}`,
                 "txs",
                 "post root",
                 this.engine.root

@@ -5,23 +5,27 @@ import {
     InsufficientFund,
     WrongTokenID,
     ExceedStateTreeSize,
-    StateNotExist,
-    StateAlreadyExist
+    StateAlreadyExist,
+    StateNotExist
 } from "./exceptions";
 import { State } from "./state";
-import { SolStateMerkleProof } from "./stateTree";
 import { Tree, Hasher } from "./tree";
 import { TxTransfer } from "./tx";
 import { sum } from "./utils";
 
+export interface StateAndWitness {
+    state: State;
+    witness: string[];
+}
+
 export interface StateEngine {
-    getNoWitness(stateID: number): Promise<State>;
-    get(stateID: number): Promise<SolStateMerkleProof>;
+    get(stateID: number): Promise<State>;
     update(stateID: number, state: State): Promise<void>;
     create(stateID: number, state: State): Promise<void>;
-    begin(): void;
-    commit(): void;
-    rollback(): void;
+    getWithWitness(stateID: number): Promise<StateAndWitness>;
+    getCheckpoint(): number;
+    revert(checkpoint?: number): void;
+    commit(): Promise<void>;
     root: string;
 }
 
@@ -42,9 +46,10 @@ async function processSender(
     tokenID: number,
     amount: BigNumber,
     fee: BigNumber,
+    nonce: number,
     engine: StateEngine
-): Promise<SolStateMerkleProof> {
-    const { state, witness } = await engine.get(senderID);
+): Promise<void> {
+    const state = await engine.get(senderID);
     if (amount.isZero()) throw new ZeroAmount();
     const decrement = amount.add(fee);
     if (state.balance.lt(decrement))
@@ -55,10 +60,12 @@ async function processSender(
         throw new WrongTokenID(
             `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
         );
+    if (state.nonce != nonce) {
+        throw new Error(`Bad nonce state: ${state.nonce}  tx: ${nonce}`);
+    }
 
     const postState = applySender(state, decrement);
     await engine.update(senderID, postState);
-    return { state, witness };
 }
 
 async function processReceiver(
@@ -66,70 +73,58 @@ async function processReceiver(
     increment: BigNumber,
     tokenID: number,
     engine: StateEngine
-): Promise<SolStateMerkleProof> {
-    const { state, witness } = await engine.get(receiverID);
+): Promise<void> {
+    const state = await engine.get(receiverID);
     if (state.tokenID != tokenID)
         throw new WrongTokenID(
             `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
         );
     const postState = applyReceiver(state, increment);
     await engine.update(receiverID, postState);
-    return { state, witness };
 }
 
 async function processTransfer(
     tx: TxTransfer,
     tokenID: number,
     engine: StateEngine
-): Promise<SolStateMerkleProof[]> {
-    const senderProof = await processSender(
+): Promise<void> {
+    await processSender(
         tx.fromIndex,
         tokenID,
         tx.amount,
         tx.fee,
+        tx.nonce,
         engine
     );
-    const receiverProof = await processReceiver(
-        tx.toIndex,
-        tx.amount,
-        tokenID,
-        engine
-    );
-    return [senderProof, receiverProof];
+    await processReceiver(tx.toIndex, tx.amount, tokenID, engine);
 }
 
-export async function* processTransferCommit(
+export async function processTransferCommit(
     txs: TxTransfer[],
     feeReceiverID: number,
     engine: StateEngine
-): AsyncGenerator<SolStateMerkleProof> {
-    const tokenID = (await engine.getNoWitness(feeReceiverID)).tokenID;
+): Promise<TxTransfer[]> {
+    const tokenID = (await engine.get(feeReceiverID)).tokenID;
     let acceptedTxs = [];
     for (const tx of txs) {
-        engine.begin();
+        const checkpoint = engine.getCheckpoint();
         try {
-            const [senderProof, receiverProof] = await processTransfer(
-                tx,
-                tokenID,
-                engine
-            );
-            yield senderProof;
-            yield receiverProof;
+            await processTransfer(tx, tokenID, engine);
             engine.commit();
             acceptedTxs.push(tx);
         } catch (err) {
             console.log("Drop tx due to ", err.message);
-            engine.rollback();
+            engine.revert(checkpoint);
         }
     }
-    const proof = await processReceiver(
-        feeReceiverID,
-        sum(acceptedTxs.map(tx => tx.fee)),
-        tokenID,
-        engine
-    );
-    yield proof;
-    return;
+    const fees = sum(acceptedTxs.map(tx => tx.fee));
+    await processReceiver(feeReceiverID, fees, tokenID, engine);
+    return acceptedTxs;
+}
+
+export interface Entry {
+    stateID: number;
+    state: State;
 }
 
 export class MemEngine implements StateEngine {
@@ -138,6 +133,8 @@ export class MemEngine implements StateEngine {
     }
     private tree: Tree;
     private states: { [key: number]: State } = {};
+    private cache: { [key: number]: State } = {};
+    private journal: Entry[] = [];
     constructor(stateDepth: number) {
         this.tree = Tree.new(stateDepth, Hasher.new("bytes", ZERO_BYTES32));
     }
@@ -152,22 +149,25 @@ export class MemEngine implements StateEngine {
         return this.tree.root;
     }
 
-    public async getNoWitness(stateID: number): Promise<State> {
+    public async get(stateID: number): Promise<State> {
         this.checkSize(stateID);
-        const state = this.states[stateID];
+        const state = this.cache[stateID] ?? this.states[stateID];
         if (!state) throw new StateNotExist(`stateID: ${stateID}`);
         return state;
     }
 
-    public async get(stateID: number): Promise<SolStateMerkleProof> {
-        const state = await this.getNoWitness(stateID);
+    public async getWithWitness(stateID: number): Promise<StateAndWitness> {
+        const state = await this.get(stateID);
         const witness = this.tree.witness(stateID).nodes;
         return { state, witness };
     }
 
-    /** Side effect! */
     public async update(stateID: number, state: State) {
         this.checkSize(stateID);
+        this.cache[stateID] = state;
+        this.journal.push({ stateID, state });
+    }
+    private async trueUpdate(stateID: number, state: State) {
         this.states[stateID] = state;
         this.tree.updateSingle(stateID, state.toStateLeaf());
     }
@@ -177,13 +177,18 @@ export class MemEngine implements StateEngine {
             throw new StateAlreadyExist(`stateID: ${stateID}`);
         this.update(stateID, state);
     }
-    public begin() {
-        this.tree.begin();
+
+    public getCheckpoint(): number {
+        return this.journal.length;
     }
-    public commit() {
-        this.tree.commit();
+    public revert(checkpoint: number = 0) {
+        this.journal = this.journal.slice(0, checkpoint);
     }
-    public rollback() {
-        this.tree.rollback();
+    public async commit() {
+        for (const entry of this.journal) {
+            await this.trueUpdate(entry.stateID, entry.state);
+        }
+        this.journal = [];
+        this.cache = {};
     }
 }
