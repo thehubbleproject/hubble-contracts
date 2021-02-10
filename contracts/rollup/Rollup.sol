@@ -133,6 +133,7 @@ contract RollupCore is BatchManager {
         submitBatch(
             MerkleTree.merklise(leaves),
             stateRoots.length,
+            accountRoot,
             Types.Usage.Transfer
         );
     }
@@ -164,6 +165,7 @@ contract RollupCore is BatchManager {
         submitBatch(
             MerkleTree.merklise(leaves),
             stateRoots.length,
+            accountRoot,
             Types.Usage.Create2Transfer
         );
     }
@@ -199,6 +201,7 @@ contract RollupCore is BatchManager {
         submitBatch(
             MerkleTree.merklise(leaves),
             stateRoots.length,
+            accountRoot,
             Types.Usage.MassMigration
         );
     }
@@ -241,7 +244,8 @@ contract RollupCore is BatchManager {
         );
         // Same effect as `MerkleTree.merklise`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
-        submitBatch(root, 1, Types.Usage.Deposit);
+        // AccountRoot doesn't matter for deposit, add dummy value
+        submitBatch(root, 1, bytes32(0), Types.Usage.Deposit);
     }
 
     function disputeTransitionTransfer(
@@ -449,7 +453,8 @@ contract Rollup is RollupCore {
                 block.number // genesis finalise instantly
             )
         });
-        emit NewBatch(msg.sender, nextBatchID, Types.Usage.Genesis);
+        // AccountRoot doesn't matter for genesis, add dummy value
+        emit NewBatch(nextBatchID, bytes32(0), Types.Usage.Genesis);
         nextBatchID++;
         appID = keccak256(abi.encodePacked(address(this)));
     }

@@ -33,7 +33,7 @@ contract BatchManager is Parameters {
     // will be reset to 0 once rollback is completed
     uint256 public invalidBatchMarker;
 
-    event NewBatch(address committer, uint256 index, Types.Usage batchType);
+    event NewBatch(uint256 batchID, bytes32 accountRoot, Types.Usage batchType);
     event StakeWithdraw(address committed, uint256 batchID);
     event RollbackStatus(uint256 startID, uint256 nDeleted, bool completed);
 
@@ -112,6 +112,7 @@ contract BatchManager is Parameters {
     function submitBatch(
         bytes32 commitmentRoot,
         uint256 size,
+        bytes32 accountRoot,
         Types.Usage batchType
     ) internal {
         require(msg.value >= paramStakeAmount, "Rollup: wrong stake amount");
@@ -124,7 +125,7 @@ contract BatchManager is Parameters {
                 block.number + paramBlocksToFinalise
             )
         });
-        emit NewBatch(msg.sender, nextBatchID, batchType);
+        emit NewBatch(nextBatchID, accountRoot, batchType);
         nextBatchID++;
     }
 
