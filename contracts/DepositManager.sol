@@ -118,8 +118,6 @@ contract DepositManager is DepositCore, IDepositManager {
         uint256 amount,
         uint256 tokenID
     ) external {
-        // check amount is greater than 0
-        require(amount > 0, "token deposit must be greater than 0");
         IERC20 tokenContract = IERC20(tokenRegistry.safeGetAddress(tokenID));
         // transfer from msg.sender to vault
         require(
