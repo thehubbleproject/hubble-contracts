@@ -26,22 +26,21 @@ contract SubtreeQueue {
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
     function enqueue(bytes32 subtreeRoot) internal {
-        uint256 _back = back + 1;
-        back = _back;
-        queue[_back] = subtreeRoot;
-        emit DepositSubTreeReady(_back, subtreeRoot);
+        uint256 subtreeID = back + 1;
+        back = subtreeID;
+        queue[subtreeID] = subtreeRoot;
+        emit DepositSubTreeReady(subtreeID, subtreeRoot);
     }
 
     function dequeue()
         internal
         returns (uint256 subtreeID, bytes32 subtreeRoot)
     {
-        uint256 _front = front;
-        require(back >= _front, "Deposit Core: Queue should be non-empty");
-        subtreeRoot = queue[_front];
-        delete queue[_front];
-        front = _front + 1;
-        return (_front, subtreeRoot);
+        subtreeID = front;
+        require(back >= subtreeID, "Deposit Core: Queue should be non-empty");
+        subtreeRoot = queue[subtreeID];
+        delete queue[subtreeID];
+        front = subtreeID + 1;
     }
 }
 
