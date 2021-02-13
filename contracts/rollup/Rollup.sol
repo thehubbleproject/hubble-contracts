@@ -30,7 +30,11 @@ contract RollupCore is BatchManager {
 
     bytes32 public appID;
 
-    event DepositsFinalised(bytes32 depositSubTreeRoot, uint256 pathToSubTree);
+    event DepositsFinalised(
+        uint256 subtreeID,
+        bytes32 depositSubTreeRoot,
+        uint256 pathToSubTree
+    );
 
     modifier onlyCoordinator() {
         require(
@@ -228,11 +232,16 @@ contract RollupCore is BatchManager {
             ),
             "Rollup: State subtree is not vacant"
         );
-        bytes32 depositSubTreeRoot = depositManager.dequeueToSubmit();
+        (uint256 subtreeID, bytes32 depositSubTreeRoot) = depositManager
+            .dequeueToSubmit();
         uint256 postBatchID = preBatchID + 1;
         // This deposit subtree is included in the batch whose ID is postBatchID
         deposits[postBatchID] = depositSubTreeRoot;
-        emit DepositsFinalised(depositSubTreeRoot, vacant.pathAtDepth);
+        emit DepositsFinalised(
+            subtreeID,
+            depositSubTreeRoot,
+            vacant.pathAtDepth
+        );
 
         bytes32 newRoot = MerkleTree.computeRoot(
             depositSubTreeRoot,

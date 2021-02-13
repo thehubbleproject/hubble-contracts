@@ -8,9 +8,11 @@ import { Rollup } from "./rollup/Rollup.sol";
 
 interface IDepositManager {
     event DepositQueued(uint256 pubkeyID, bytes data);
-    event DepositSubTreeReady(bytes32 root);
+    event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
-    function dequeueToSubmit() external returns (bytes32 subtreeRoot);
+    function dequeueToSubmit()
+        external
+        returns (uint256 subtreeID, bytes32 subtreeRoot);
 
     function reenqueue(bytes32 subtreeRoot) external;
 }
@@ -21,16 +23,23 @@ contract SubtreeQueue {
     uint256 public front = 1;
     uint256 public back = 0;
 
-    function enqueue(bytes32 subtreeRoot) internal {
-        back += 1;
-        queue[back] = subtreeRoot;
+    function enqueue(bytes32 subtreeRoot) internal returns (uint256 subtreeID) {
+        uint256 _back = back + 1;
+        back = _back;
+        queue[_back] = subtreeRoot;
+        return _back;
     }
 
-    function dequeue() internal returns (bytes32 subtreeRoot) {
-        require(back >= front, "Deposit Core: Queue should be non-empty");
-        subtreeRoot = queue[front];
-        delete queue[front];
-        front += 1;
+    function dequeue()
+        internal
+        returns (uint256 subtreeID, bytes32 subtreeRoot)
+    {
+        uint256 _front = front;
+        require(back >= _front, "Deposit Core: Queue should be non-empty");
+        subtreeRoot = queue[_front];
+        delete queue[_front];
+        front = _front + 1;
+        return (_front, subtreeRoot);
     }
 }
 
@@ -47,7 +56,7 @@ contract DepositCore is SubtreeQueue {
 
     function insertAndMerge(bytes32 depositLeaf)
         internal
-        returns (bytes32 readySubtree)
+        returns (uint256 subtreeID, bytes32 readySubtree)
     {
         depositCount++;
         uint256 i = depositCount;
@@ -69,12 +78,10 @@ contract DepositCore is SubtreeQueue {
         // Subtree is ready, send to SubtreeQueue
         if (depositCount == paramMaxSubtreeSize) {
             readySubtree = babyTrees[0];
-            enqueue(readySubtree);
+            subtreeID = enqueue(readySubtree);
             // reset
             babyTreesLength = 0;
             depositCount = 0;
-        } else {
-            readySubtree = bytes32(0);
         }
     }
 }
@@ -140,9 +147,11 @@ contract DepositManager is DepositCore, IDepositManager {
         // get new state hash
         bytes memory encodedState = newState.encode();
         emit DepositQueued(pubkeyID, encodedState);
-        bytes32 readySubtree = insertAndMerge(keccak256(encodedState));
+        (uint256 subtreeID, bytes32 readySubtree) = insertAndMerge(
+            keccak256(encodedState)
+        );
         if (readySubtree != bytes32(0)) {
-            emit DepositSubTreeReady(readySubtree);
+            emit DepositSubTreeReady(subtreeID, readySubtree);
         }
     }
 
@@ -150,12 +159,13 @@ contract DepositManager is DepositCore, IDepositManager {
         external
         override
         onlyRollup
-        returns (bytes32 subtreeRoot)
+        returns (uint256 subtreeID, bytes32 subtreeRoot)
     {
         return dequeue();
     }
 
     function reenqueue(bytes32 subtreeRoot) external override onlyRollup {
-        enqueue(subtreeRoot);
+        uint256 subtreeID = enqueue(subtreeRoot);
+        emit DepositSubTreeReady(subtreeID, subtreeRoot);
     }
 }

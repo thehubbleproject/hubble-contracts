@@ -116,10 +116,10 @@ describe("DepositManager", async function() {
         assert.equal(event1.args?.data, deposit1.encode());
 
         const [eventReady] = await depositManager.queryFilter(
-            depositManager.filters.DepositSubTreeReady(null),
+            depositManager.filters.DepositSubTreeReady(null, null),
             txDeposit1.blockHash
         );
-        assert.equal(eventReady.args?.root, pendingDeposit);
+        assert.equal(eventReady.args?.subtreeRoot, pendingDeposit);
     });
 
     it("submit a deposit Batch to rollup", async function() {

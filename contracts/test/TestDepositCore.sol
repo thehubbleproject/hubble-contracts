@@ -13,7 +13,7 @@ contract TestDepositCore is DepositCore {
         returns (uint256 gasCost, bytes32 readySubtree)
     {
         uint256 operationCost = gasleft();
-        readySubtree = insertAndMerge(depositLeaf);
+        (, readySubtree) = insertAndMerge(depositLeaf);
         gasCost = operationCost - gasleft();
     }
 
