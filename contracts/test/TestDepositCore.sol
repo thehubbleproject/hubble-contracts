@@ -10,10 +10,10 @@ contract TestDepositCore is DepositCore {
 
     function testInsertAndMerge(bytes32 depositLeaf)
         external
-        returns (uint256 gasCost, bytes32 readySubtree)
+        returns (uint256 gasCost)
     {
         uint256 operationCost = gasleft();
-        (, readySubtree) = insertAndMerge(depositLeaf);
+        insertAndMerge(depositLeaf);
         gasCost = operationCost - gasleft();
     }
 

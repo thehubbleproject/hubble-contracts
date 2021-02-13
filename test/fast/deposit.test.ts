@@ -28,24 +28,27 @@ describe("Deposit Core", async function() {
             const leaves = randomLeaves(maxSubtreeSize);
             const tree = Tree.new(maxSubtreeDepth);
             for (let i = 0; i < maxSubtreeSize; i++) {
-                const {
-                    gasCost,
-                    readySubtree
-                } = await contract.callStatic.testInsertAndMerge(leaves[i]);
+                const gasCost = await contract.callStatic.testInsertAndMerge(
+                    leaves[i]
+                );
                 console.log(
                     `Insert leaf ${i} \t Operation cost: ${gasCost.toNumber()}`
                 );
-                await contract.testInsertAndMerge(leaves[i]);
+                const tx = await contract.testInsertAndMerge(leaves[i]);
+                const events = await contract.queryFilter(
+                    contract.filters.DepositSubTreeReady(null, null),
+                    tx.blockHash
+                );
                 tree.updateSingle(i, leaves[i]);
                 if (i !== maxSubtreeSize - 1) {
                     assert.equal(
-                        readySubtree,
-                        constants.HashZero,
-                        "Not a ready subtree yet"
+                        events.length,
+                        0,
+                        "No ready subtree should be emitted"
                     );
                 } else {
                     assert.equal(
-                        readySubtree,
+                        events[0].args?.subtreeRoot,
                         tree.root,
                         "Should be the merkle root of all leaves"
                     );

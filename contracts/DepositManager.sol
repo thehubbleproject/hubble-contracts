@@ -23,11 +23,13 @@ contract SubtreeQueue {
     uint256 public front = 1;
     uint256 public back = 0;
 
-    function enqueue(bytes32 subtreeRoot) internal returns (uint256 subtreeID) {
+    event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
+
+    function enqueue(bytes32 subtreeRoot) internal {
         uint256 _back = back + 1;
         back = _back;
         queue[_back] = subtreeRoot;
-        return _back;
+        emit DepositSubTreeReady(_back, subtreeRoot);
     }
 
     function dequeue()
@@ -54,10 +56,7 @@ contract DepositCore is SubtreeQueue {
 
     uint256 public paramMaxSubtreeSize = 2;
 
-    function insertAndMerge(bytes32 depositLeaf)
-        internal
-        returns (uint256 subtreeID, bytes32 readySubtree)
-    {
+    function insertAndMerge(bytes32 depositLeaf) internal {
         depositCount++;
         uint256 i = depositCount;
 
@@ -77,8 +76,7 @@ contract DepositCore is SubtreeQueue {
         babyTreesLength = len;
         // Subtree is ready, send to SubtreeQueue
         if (depositCount == paramMaxSubtreeSize) {
-            readySubtree = babyTrees[0];
-            subtreeID = enqueue(readySubtree);
+            enqueue(babyTrees[0]);
             // reset
             babyTreesLength = 0;
             depositCount = 0;
@@ -147,12 +145,7 @@ contract DepositManager is DepositCore, IDepositManager {
         // get new state hash
         bytes memory encodedState = newState.encode();
         emit DepositQueued(pubkeyID, encodedState);
-        (uint256 subtreeID, bytes32 readySubtree) = insertAndMerge(
-            keccak256(encodedState)
-        );
-        if (readySubtree != bytes32(0)) {
-            emit DepositSubTreeReady(subtreeID, readySubtree);
-        }
+        insertAndMerge(keccak256(encodedState));
     }
 
     function dequeueToSubmit()
@@ -165,7 +158,6 @@ contract DepositManager is DepositCore, IDepositManager {
     }
 
     function reenqueue(bytes32 subtreeRoot) external override onlyRollup {
-        uint256 subtreeID = enqueue(subtreeRoot);
-        emit DepositSubTreeReady(subtreeID, subtreeRoot);
+        enqueue(subtreeRoot);
     }
 }
