@@ -1,6 +1,72 @@
 import { BigNumber, BigNumberish, BytesLike, ethers } from "ethers";
+import { hexZeroPad } from "ethers/lib/utils";
 import { EncodingError } from "./exceptions";
 import { randHex } from "./utils";
+
+export function parseERC20(
+    humanValue: number,
+    decimals: number = 18
+): BigNumber {
+    const multiplier = Math.pow(10, decimals);
+    return BigNumber.from(humanValue).div(multiplier);
+}
+
+export function formatERC20(
+    uint256Value: BigNumberish,
+    decimals: number = 18
+): BigNumber {
+    const multiplier = Math.pow(10, decimals);
+    return BigNumber.from(uint256Value).mul(multiplier);
+}
+
+export class Float {
+    private mantissaMax: BigNumber;
+    private exponentMax: number;
+    private exponentMask: BigNumber;
+    public bytesLength: number;
+    constructor(
+        public readonly exponentBits: number,
+        public readonly mantissaBits: number
+    ){
+        this.mantissaMax = BigNumber.from(2 ** mantissaBits - 1);
+        this.exponentMax = 2 ** exponentBits - 1;
+        this.exponentMask = BigNumber.from(this.exponentMax << mantissaBits);
+        this.bytesLength = (mantissaBits + exponentBits) / 8;
+    }
+
+    public compress(input: BigNumberish): string {
+        let exponent = 0;
+        let mantissa = BigNumber.from(input.toString());
+        for (let i = 0; i < this.exponentMax; i++) {
+            if (!mantissa.isZero() && mantissa.mod(10).isZero()) {
+                mantissa = mantissa.div(10);
+                exponent += 1;
+            } else {
+                break;
+            }
+        }
+        if (mantissa.gt(this.mantissaMax)) {
+            throw new EncodingError(
+                `Can not encode input ${input}, mantissa ${mantissa} should not be larger than ${this.mantissaMax}`
+            );
+        }
+        const hex = BigNumber.from(exponent)
+            .shl(this.mantissaBits)
+            .add(mantissa)
+            .toHexString();
+        return ethers.utils.hexZeroPad(hex, this.bytesLength);
+    }
+    public decompress(input: BytesLike): BigNumber {
+        const mantissa = this.mantissaMax.and(input);
+        const exponent = this.exponentMask.and(input).shr(this.mantissaBits);
+
+        return mantissa.mul(BigNumber.from(10).pow(exponent));
+    }
+}
+
+export const float2 = new Float(4, 12)
+
+
 
 export class DecimalCodec {
     private mantissaMax: BigNumber;
