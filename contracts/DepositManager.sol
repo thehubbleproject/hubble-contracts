@@ -20,28 +20,27 @@ interface IDepositManager {
 contract SubtreeQueue {
     // Each element of the queue is a root of a subtree of deposits.
     mapping(uint256 => bytes32) public queue;
-    uint256 public front = 1;
+    uint256 public front = 0;
     uint256 public back = 0;
 
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
     function enqueue(bytes32 subtreeRoot) internal {
-        uint256 _back = back + 1;
-        back = _back;
-        queue[_back] = subtreeRoot;
-        emit DepositSubTreeReady(_back, subtreeRoot);
+        uint256 subtreeID = back;
+        queue[subtreeID] = subtreeRoot;
+        emit DepositSubTreeReady(subtreeID, subtreeRoot);
+        back = subtreeID + 1;
     }
 
     function dequeue()
         internal
         returns (uint256 subtreeID, bytes32 subtreeRoot)
     {
-        uint256 _front = front;
-        require(back >= _front, "Deposit Core: Queue should be non-empty");
-        subtreeRoot = queue[_front];
-        delete queue[_front];
-        front = _front + 1;
-        return (_front, subtreeRoot);
+        subtreeID = front;
+        require(back >= subtreeID, "Deposit Core: Queue should be non-empty");
+        subtreeRoot = queue[subtreeID];
+        delete queue[subtreeID];
+        front = subtreeID + 1;
     }
 }
 

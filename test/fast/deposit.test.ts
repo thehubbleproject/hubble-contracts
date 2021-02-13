@@ -47,6 +47,7 @@ describe("Deposit Core", async function() {
                         "No ready subtree should be emitted"
                     );
                 } else {
+                    assert.equal(events[0].args?.subtreeID.toNumber(), j);
                     assert.equal(
                         events[0].args?.subtreeRoot,
                         tree.root,
@@ -56,7 +57,7 @@ describe("Deposit Core", async function() {
             }
             assert.equal((await contract.back()).toNumber(), j + 1);
             assert.equal(
-                await contract.getQueue(j + 1),
+                await contract.getQueue(j),
                 tree.root,
                 "subtree root should be in the subtree queue now"
             );
