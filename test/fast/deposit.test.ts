@@ -47,6 +47,7 @@ describe("Deposit Core", async function() {
                         "No ready subtree should be emitted"
                     );
                 } else {
+                    assert.equal(events[0].args?.subtreeID, j + 1);
                     assert.equal(
                         events[0].args?.subtreeRoot,
                         tree.root,
