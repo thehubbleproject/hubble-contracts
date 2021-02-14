@@ -158,7 +158,7 @@ describe("Integration Test", function() {
         }
 
         const subtreeReadyEvents = await depositManager.queryFilter(
-            depositManager.filters.DepositSubTreeReady(null),
+            depositManager.filters.DepositSubTreeReady(null, null),
             fromBlockNumber
         );
         assert.equal(subtreeReadyEvents.length, nSubtrees);

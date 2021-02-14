@@ -128,7 +128,7 @@ describe("Rollback", function() {
         await rollup.submitDeposits(subtree3, { value: param.STAKE_AMOUNT });
         const tx = await rollup.testRollback(badBatchID, { gasLimit: 1000000 });
         const events = await depositManager.queryFilter(
-            depositManager.filters.EnqueSubtree(null),
+            depositManager.filters.DepositSubTreeReady(null, null),
             tx.blockHash
         );
         assert.equal(events.length, 3);
