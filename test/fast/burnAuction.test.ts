@@ -28,11 +28,12 @@ describe("BurnAuction", function() {
     let rollup: MockRollup;
     let signer1: Signer;
     let signer2: Signer;
+    let signer3: Signer;
     let gasPrice: BigNumber;
 
     before(async () => {
         let signer: Signer;
-        [signer, signer1, signer2] = await ethers.getSigners();
+        [signer, signer1, signer2, signer3] = await ethers.getSigners();
 
         burnAuction = await new TestBurnAuctionFactory(signer).deploy(
             donationAddress,
@@ -155,6 +156,18 @@ describe("BurnAuction", function() {
         });
         it("slot 2 - withdraw donation", async () => {
             await withdrawDonation(signer1);
+        });
+        it("slot 2 - deposit", async () => {
+            const amount = toWei("5566");
+            const address3 = await signer3.getAddress();
+            const before = await burnAuction.deposits(address3);
+            assert.equal(before.toString(), "0");
+            // Anyone can deposit for arbitrary beneficiary
+            await burnAuction
+                .connect(signer1)
+                .deposit(address3, { value: amount });
+            const after = await burnAuction.deposits(address3);
+            assert.equal(after.toString(), amount.toString());
         });
     });
 
