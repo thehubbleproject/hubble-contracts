@@ -1,22 +1,32 @@
 import { BigNumber, BigNumberish, BytesLike, ethers } from "ethers";
-import { hexZeroPad } from "ethers/lib/utils";
+import { formatUnits, hexZeroPad, parseUnits } from "ethers/lib/utils";
 import { EncodingError } from "./exceptions";
 import { randHex } from "./utils";
 
+/**
+ * Parse the human readable value like "1.23" to the ERC20 integer amount.
+ * @param humanValue could be a fractional number but is string. Like '1.23'
+ * @param decimals The ERC20 decimals()
+ * @returns the ERC20 integer amount. Like '1230000000000000000' but in BigNumber
+ */
 export function parseERC20(
-    humanValue: number,
+    humanValue: string,
     decimals: number = 18
 ): BigNumber {
-    const multiplier = Math.pow(10, decimals);
-    return BigNumber.from(humanValue).div(multiplier);
+    return parseUnits(humanValue, decimals);
 }
 
+/**
+ * Format the ERC20 integer amount to human readable value.
+ * @param uint256Value is an integer like '1230000000000000000'
+ * @param decimals The ERC20 decimals()
+ * @returns Could be a fractional number but in string. Like '1.23'
+ */
 export function formatERC20(
     uint256Value: BigNumberish,
     decimals: number = 18
-): BigNumber {
-    const multiplier = Math.pow(10, decimals);
-    return BigNumber.from(uint256Value).mul(multiplier);
+): string {
+    return formatUnits(uint256Value, decimals);
 }
 
 export class Float {
@@ -27,7 +37,7 @@ export class Float {
     constructor(
         public readonly exponentBits: number,
         public readonly mantissaBits: number
-    ){
+    ) {
         this.mantissaMax = BigNumber.from(2 ** mantissaBits - 1);
         this.exponentMax = 2 ** exponentBits - 1;
         this.exponentMask = BigNumber.from(this.exponentMax << mantissaBits);
@@ -64,9 +74,7 @@ export class Float {
     }
 }
 
-export const float2 = new Float(4, 12)
-
-
+export const float2 = new Float(4, 12);
 
 export class DecimalCodec {
     private mantissaMax: BigNumber;
