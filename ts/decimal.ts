@@ -53,26 +53,22 @@ export class Float {
     }
 
     public compress(input: BigNumberish): string {
-        let exponent = 0;
         let mantissa = BigNumber.from(input.toString());
-        for (let i = 0; i < this.exponentMax; i++) {
-            if (!mantissa.isZero() && mantissa.mod(10).isZero()) {
-                mantissa = mantissa.div(10);
-                exponent += 1;
-            } else {
-                break;
-            }
+        let exponent = 0;
+        for (; exponent < this.exponentMax; exponent++) {
+            if (mantissa.isZero() || !mantissa.mod(10).isZero()) break;
+            mantissa = mantissa.div(10);
         }
-        if (mantissa.gt(this.mantissaMax)) {
+        if (mantissa.gt(this.mantissaMax))
             throw new EncodingError(
-                `Can not encode input ${input}, mantissa ${mantissa} should not be larger than ${this.mantissaMax}`
+                `Cannot compress ${input}, expect mantissa ${mantissa} <= ${this.mantissaMax}`
             );
-        }
+
         const hex = BigNumber.from(exponent)
             .shl(this.mantissaBits)
             .add(mantissa)
             .toHexString();
-        return ethers.utils.hexZeroPad(hex, this.bytesLength);
+        return hexZeroPad(hex, this.bytesLength);
     }
     public decompress(input: BytesLike): BigNumber {
         const mantissa = this.mantissaMax.and(input);
