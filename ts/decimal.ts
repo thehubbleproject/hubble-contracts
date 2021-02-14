@@ -108,10 +108,6 @@ export class DecimalCodec {
         return this.decodeInt(this.rand());
     }
 
-    public randNum(): number {
-        return this.decode(this.rand());
-    }
-
     /**
      * Given an arbitrary js number returns a js number that can be encoded.
      */
@@ -147,23 +143,6 @@ export class DecimalCodec {
             mantissa = mantissa.div(10);
         }
         throw new EncodingError(`Can't cast input ${input.toString()}`);
-    }
-
-    public encode(input: number) {
-        // Use Math.round here to prevent the case
-        // > 32.3 * 10 ** 6
-        // 32299999.999999996
-        const integer = Math.round(input * 10 ** this.place);
-        return this.encodeInt(integer);
-    }
-    public decode(input: BytesLike): number {
-        const integer = this.decodeInt(input);
-        const tens = BigNumber.from(10).pow(this.place);
-        if (integer.gte(Number.MAX_SAFE_INTEGER.toString())) {
-            return integer.div(tens).toNumber();
-        } else {
-            return integer.toNumber() / tens.toNumber();
-        }
     }
 
     public encodeInt(input: BigNumberish): string {
