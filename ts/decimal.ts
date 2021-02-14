@@ -44,6 +44,14 @@ export class Float {
         this.bytesLength = (mantissaBits + exponentBits) / 8;
     }
 
+    public rand(): string {
+        return randHex(this.bytesLength);
+    }
+
+    public randInt(): BigNumber {
+        return this.decompress(this.rand());
+    }
+
     public compress(input: BigNumberish): string {
         let exponent = 0;
         let mantissa = BigNumber.from(input.toString());
