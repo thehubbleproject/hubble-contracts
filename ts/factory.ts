@@ -5,7 +5,7 @@ import {
     BlsSignerInterface,
     nullBlsSigner
 } from "./blsSigner";
-import { USDT } from "./decimal";
+import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
 import { State } from "./state";
@@ -148,7 +148,7 @@ export class Group {
         return states;
     }
     public createStates(options?: createStateOptions) {
-        const initialBalance = options?.initialBalance || USDT.castInt(1000.0);
+        const initialBalance = options?.initialBalance || USDT.parse("1000.0");
         const tokenID = options?.tokenID === undefined ? 5678 : options.tokenID;
         const zeroNonce = options?.zeroNonce || false;
         const arbitraryInitialNonce = 9;
@@ -179,8 +179,8 @@ export function txTransferFactory(
         const sender = group.getUser(i % group.size);
         const receiver = group.getUser((i + 5) % group.size);
         const senderState = group.getState(sender);
-        const amount = USDT.castBigNumber(senderState.balance.div(10));
-        const fee = USDT.castBigNumber(amount.div(10));
+        const amount = float16.round(senderState.balance.div(10));
+        const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
             : senderState.nonce;
@@ -191,7 +191,7 @@ export function txTransferFactory(
             amount,
             fee,
             nonce,
-            USDT
+            float16
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
@@ -215,8 +215,8 @@ export function txCreate2TransferFactory(
         const sender = registered.getUser(i % registered.size);
         const reciver = unregistered.getUser(i % unregistered.size);
         const senderState = registered.getState(sender);
-        const amount = USDT.castBigNumber(senderState.balance.div(10));
-        const fee = USDT.castBigNumber(amount.div(10));
+        const amount = float16.round(senderState.balance.div(10));
+        const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
             : senderState.nonce;
@@ -230,7 +230,7 @@ export function txCreate2TransferFactory(
             amount,
             fee,
             nonce,
-            USDT
+            float16
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
@@ -250,8 +250,8 @@ export function txMassMigrationFactory(
     const seenNonce: { [stateID: number]: number } = {};
     for (const sender of group.userIterator()) {
         const senderState = group.getState(sender);
-        const amount = USDT.castBigNumber(senderState.balance.div(10));
-        const fee = USDT.castBigNumber(amount.div(10));
+        const amount = float16.round(senderState.balance.div(10));
+        const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
             : senderState.nonce;
@@ -263,7 +263,7 @@ export function txMassMigrationFactory(
             spokeID,
             fee,
             nonce,
-            USDT
+            float16
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));

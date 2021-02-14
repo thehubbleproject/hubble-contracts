@@ -50,7 +50,7 @@ describe("Rollup Create2Transfer", async function() {
         });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
 
-        const initialBalance = USDT.castInt(55.6);
+        const initialBalance = USDT.parse("55.6");
         usersWithStates
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: true });

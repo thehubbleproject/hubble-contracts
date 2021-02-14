@@ -8,7 +8,7 @@ import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { getGenesisProof, MassMigrationCommitment } from "../../ts/commitments";
-import { USDT } from "../../ts/decimal";
+import { float16, USDT } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
 import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
@@ -30,7 +30,7 @@ describe("Mass Migrations", async function() {
         const [signer] = await ethers.getSigners();
         users = Group.new({ n: 32, initialStateID: 0, initialPubkeyID: 0 });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
-        const initialBalance = USDT.castInt(1000);
+        const initialBalance = USDT.parse("1000");
         users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
@@ -123,11 +123,11 @@ describe("Mass Migrations", async function() {
         const aliceState = stateTree.getState(alice.stateID).state;
         const tx = new TxMassMigration(
             alice.stateID,
-            USDT.castInt(39.99),
+            USDT.parse("39.99"),
             1,
-            USDT.castInt(0.01),
+            USDT.parse("0.01"),
             aliceState.nonce + 1,
-            USDT
+            float16
         );
         stateTree.processMassMigrationCommit([tx], feeReceiver);
 
