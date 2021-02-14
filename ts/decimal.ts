@@ -52,6 +52,19 @@ export class Float {
         return this.decompress(this.rand());
     }
 
+    /**
+     * Round the input down to a compressible number.
+     */
+    public round(input: BigNumber): BigNumber {
+        let mantissa = input;
+        for (let exponent = 0; exponent < this.exponentMax; exponent++) {
+            if (mantissa.lte(this.mantissaMax))
+                return mantissa.mul(BigNumber.from(10).pow(exponent));
+            mantissa = mantissa.div(10);
+        }
+        throw new EncodingError(`Can't cast input ${input.toString()}`);
+    }
+
     public compress(input: BigNumberish): string {
         let mantissa = BigNumber.from(input.toString());
         let exponent = 0;
