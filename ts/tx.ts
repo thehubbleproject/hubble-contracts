@@ -1,6 +1,6 @@
 import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
-import { DecimalCodec, USDT } from "./decimal";
+import { Float, float16 } from "./decimal";
 import { MismatchByteLength } from "./exceptions";
 import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
@@ -52,14 +52,10 @@ export function serialize(txs: Tx[]): string {
     return hexlify(concat(txs.map(tx => tx.encode())));
 }
 
-function checkByteLength(
-    decimal: DecimalCodec,
-    fieldName: string,
-    expected: number
-) {
-    if (decimal.bytesLength != expected) {
+function checkByteLength(float: Float, fieldName: string, expected: number) {
+    if (float.bytesLength != expected) {
         throw new MismatchByteLength(
-            `Deciaml: ${decimal.bytesLength} bytes, ${fieldName}: ${expected} bytes`
+            `Deciaml: ${float.bytesLength} bytes, ${fieldName}: ${expected} bytes`
         );
     }
 }
@@ -69,10 +65,10 @@ export class TxTransfer implements SignableTx {
     public static rand(): TxTransfer {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
-        const amount = USDT.randInt();
-        const fee = USDT.randInt();
+        const amount = float16.randInt();
+        const fee = float16.randInt();
         const nonce = randomNum(nonceLen);
-        return new TxTransfer(sender, receiver, amount, fee, nonce, USDT);
+        return new TxTransfer(sender, receiver, amount, fee, nonce, float16);
     }
 
     public static buildList(n: number = COMMIT_SIZE): TxTransfer[] {
@@ -89,10 +85,10 @@ export class TxTransfer implements SignableTx {
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly decimal: DecimalCodec
+        public readonly float: Float
     ) {
-        checkByteLength(decimal, "amount", amountLen);
-        checkByteLength(decimal, "fee", feeLen);
+        checkByteLength(float, "amount", amountLen);
+        checkByteLength(float, "fee", feeLen);
     }
 
     public message(): string {
@@ -138,8 +134,8 @@ export class TxTransfer implements SignableTx {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
-            this.decimal.encodeInt(this.amount),
-            this.decimal.encodeInt(this.fee)
+            this.float.compress(this.amount),
+            this.float.compress(this.fee)
         ]);
         return hexlify(concated);
     }
@@ -152,11 +148,18 @@ export class TxMassMigration implements SignableTx {
     private readonly TX_TYPE = "0x05";
     public static rand(): TxMassMigration {
         const sender = randomNum(stateIDLen);
-        const amount = USDT.randInt();
-        const fee = USDT.randInt();
+        const amount = float16.randInt();
+        const fee = float16.randInt();
         const nonce = randomNum(nonceLen);
         const spokeID = randomNum(spokeLen);
-        return new TxMassMigration(sender, amount, spokeID, fee, nonce, USDT);
+        return new TxMassMigration(
+            sender,
+            amount,
+            spokeID,
+            fee,
+            nonce,
+            float16
+        );
     }
     public static buildList(n: number = COMMIT_SIZE): TxMassMigration[] {
         const txs = [];
@@ -171,10 +174,10 @@ export class TxMassMigration implements SignableTx {
         public readonly spokeID: number,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly decimal: DecimalCodec
+        public readonly float: Float
     ) {
-        checkByteLength(decimal, "amount", amountLen);
-        checkByteLength(decimal, "fee", feeLen);
+        checkByteLength(float, "amount", amountLen);
+        checkByteLength(float, "fee", feeLen);
     }
 
     public message(): string {
@@ -219,8 +222,8 @@ export class TxMassMigration implements SignableTx {
     public encode(): string {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
-            this.decimal.encodeInt(this.amount),
-            this.decimal.encodeInt(this.fee)
+            this.float.compress(this.amount),
+            this.float.compress(this.fee)
         ]);
         return hexlify(concated);
     }
@@ -236,8 +239,8 @@ export class TxCreate2Transfer implements SignableTx {
         const receiver = randomNum(stateIDLen);
         const receiverPub: string[] = ["0x00", "0x00", "0x00", "0x00"];
         const toPubkeyID = randomNum(stateIDLen);
-        const amount = USDT.randInt();
-        const fee = USDT.randInt();
+        const amount = float16.randInt();
+        const fee = float16.randInt();
         const nonce = randomNum(nonceLen);
         return new TxCreate2Transfer(
             sender,
@@ -247,7 +250,7 @@ export class TxCreate2Transfer implements SignableTx {
             amount,
             fee,
             nonce,
-            USDT
+            float16
         );
     }
     public static buildList(n: number = COMMIT_SIZE): TxCreate2Transfer[] {
@@ -266,10 +269,10 @@ export class TxCreate2Transfer implements SignableTx {
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly decimal: DecimalCodec
+        public readonly float: Float
     ) {
-        checkByteLength(decimal, "amount", amountLen);
-        checkByteLength(decimal, "fee", feeLen);
+        checkByteLength(float, "amount", amountLen);
+        checkByteLength(float, "fee", feeLen);
     }
 
     public message(): string {
@@ -333,8 +336,8 @@ export class TxCreate2Transfer implements SignableTx {
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
             hexZeroPad(hexlify(this.toPubkeyID), stateIDLen),
-            this.decimal.encodeInt(this.amount),
-            this.decimal.encodeInt(this.fee)
+            this.float.compress(this.amount),
+            this.float.compress(this.fee)
         ]);
         return hexlify(concated);
     }
