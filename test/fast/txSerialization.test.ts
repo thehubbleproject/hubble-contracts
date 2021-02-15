@@ -9,8 +9,9 @@ import {
 import { assert } from "chai";
 import { ethers } from "hardhat";
 import { COMMIT_SIZE } from "../../ts/constants";
-import { USDT } from "../../ts/decimal";
+import { float16 } from "../../ts/decimal";
 import { BigNumber } from "ethers";
+import { hexZeroPad } from "ethers/lib/utils";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -140,10 +141,10 @@ describe("Tx Serialization", async () => {
         ];
         const fuzzCases = [];
         for (let i = 0; i < 100; i++) {
-            fuzzCases.push(USDT.randInt().toString());
+            fuzzCases.push(float16.randInt().toString());
         }
         for (const caseN of edgeCases.concat(fuzzCases)) {
-            const expect = BigNumber.from(USDT.encodeInt(caseN)).toString();
+            const expect = BigNumber.from(float16.compress(caseN)).toString();
             try {
                 const actual = await c.testEncodeDecimal(caseN);
                 assert.equal(actual.toString(), expect);

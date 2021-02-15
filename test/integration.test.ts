@@ -144,7 +144,7 @@ describe("Integration Test", function() {
             initialPubkeyID: 0,
             domain
         }).connect(stateTree);
-        const balance = USDT.castInt(1234.0);
+        const balance = USDT.parse("1234.0");
         const fromBlockNumber = await deployer.provider?.getBlockNumber();
         for (const user of earlyAdopters.userIterator()) {
             const pubkeyID = await accountRegistry.register(user.pubkey);
