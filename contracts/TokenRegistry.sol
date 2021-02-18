@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 interface ITokenRegistry {
     event RegisteredToken(uint256 tokenID, address tokenContract);
     event RegistrationRequest(address tokenContract);
 
-    function safeGetAddress(uint256 tokenID) external view returns (address);
+    function safeGetRecord(uint256 tokenID)
+        external
+        view
+        returns (address, uint256 l2Unit);
 
     function requestRegistration(address tokenContract) external;
 
@@ -13,23 +17,32 @@ interface ITokenRegistry {
 }
 
 contract TokenRegistry is ITokenRegistry {
+    struct Record {
+        address addr;
+        bool useL2Unit;
+    }
     mapping(address => bool) public pendingRegistrations;
-    mapping(uint256 => address) private registeredTokens;
+    mapping(uint256 => Record) private registeredTokens;
 
     uint256 public nextTokenID = 0;
 
-    function safeGetAddress(uint256 tokenID)
+    function safeGetRecord(uint256 tokenID)
         external
         view
         override
-        returns (address)
+        returns (address, uint256 l2Unit)
     {
-        address tokenContract = registeredTokens[tokenID];
+        Record memory record = registeredTokens[tokenID];
         require(
-            tokenContract != address(0),
+            record.addr != address(0),
             "TokenRegistry: Unregistered tokenID"
         );
-        return tokenContract;
+        l2Unit = 1;
+        if (record.useL2Unit) {
+            l2Unit = 10**9;
+        }
+
+        return (record.addr, l2Unit);
     }
 
     /**
@@ -41,21 +54,24 @@ contract TokenRegistry is ITokenRegistry {
             !pendingRegistrations[tokenContract],
             "Token already registered."
         );
+        require(
+            ERC20(tokenContract).decimals() <= 18,
+            "Don't serve deciamls > 18"
+        );
         pendingRegistrations[tokenContract] = true;
         emit RegistrationRequest(tokenContract);
     }
 
-    /**
-     * @notice Add new tokens to the rollup chain by assigning them an tokenID
-     * @param tokenContract Deposit tree depth or depth of subtree that is being deposited
-     * TODO: add a modifier to allow only coordinator
-     */
     function finaliseRegistration(address tokenContract) public override {
         require(
             pendingRegistrations[tokenContract],
             "Token was not registered"
         );
-        registeredTokens[nextTokenID] = tokenContract; // tokenID => token contract address
+        bool useL2Unit = ERC20(tokenContract).decimals() >= 9;
+        registeredTokens[nextTokenID] = Record({
+            addr: tokenContract,
+            useL2Unit: useL2Unit
+        });
         emit RegisteredToken(nextTokenID, tokenContract);
         nextTokenID++;
     }
