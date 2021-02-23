@@ -158,8 +158,10 @@ contract BurnAuction is Chooser {
         uint256 decr
     ) internal {
         if (addr != address(0)) {
-            deposits[addr] = deposits[addr].add(incr);
-            deposits[addr] = deposits[addr].sub(decr);
+            uint256 balance = deposits[addr];
+            balance = balance.add(incr);
+            balance = balance.sub(decr);
+            deposits[addr] = balance;
         }
     }
 }
