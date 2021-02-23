@@ -52,7 +52,7 @@ export function randomLeaves(num: number): string[] {
     return leaves;
 }
 
-// Simulate the tree depth of calling contracts/libs/MerkleTree.sol::MerkleTree.merklise
+// Simulate the tree depth of calling contracts/libs/MerkleTree.sol::MerkleTree.merklize
 // Make the depth as shallow as possible
 // the length 1 is a special case that the formula doesn't work
 export function minTreeDepth(leavesLength: number) {

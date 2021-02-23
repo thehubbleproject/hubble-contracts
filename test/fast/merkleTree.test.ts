@@ -41,7 +41,7 @@ describe("MerkleTree", async function() {
             const {
                 0: root,
                 1: gasCost
-            } = await contract.callStatic.testMerklise(leaves);
+            } = await contract.callStatic.testMerklize(leaves);
             assert.equal(root, Tree.merklize(leaves).root);
             console.log(
                 `Merklizing ${size} leaves onchain`,

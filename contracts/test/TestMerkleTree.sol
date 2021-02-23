@@ -16,13 +16,13 @@ contract TestMerkleTree {
         return (result, gasCost - gasleft());
     }
 
-    function testMerklise(bytes32[] memory nodes)
+    function testMerklize(bytes32[] memory nodes)
         public
         returns (bytes32, uint256)
     {
         bytes32 inputNode = nodes[0];
         uint256 left = gasleft();
-        bytes32 root = MerkleTree.merklise(nodes);
+        bytes32 root = MerkleTree.merklize(nodes);
         uint256 cost = left - gasleft();
         require(nodes[0] == inputNode, "input mutated");
         return (root, cost);

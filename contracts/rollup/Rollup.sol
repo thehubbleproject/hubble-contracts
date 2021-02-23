@@ -135,7 +135,7 @@ contract RollupCore is BatchManager {
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(
-            MerkleTree.merklise(leaves),
+            MerkleTree.merklize(leaves),
             stateRoots.length,
             accountRoot,
             Types.Usage.Transfer
@@ -167,7 +167,7 @@ contract RollupCore is BatchManager {
             leaves[i] = keccak256(abi.encodePacked(stateRoots[i], bodyRoot));
         }
         submitBatch(
-            MerkleTree.merklise(leaves),
+            MerkleTree.merklize(leaves),
             stateRoots.length,
             accountRoot,
             Types.Usage.Create2Transfer
@@ -203,7 +203,7 @@ contract RollupCore is BatchManager {
             );
         }
         submitBatch(
-            MerkleTree.merklise(leaves),
+            MerkleTree.merklize(leaves),
             stateRoots.length,
             accountRoot,
             Types.Usage.MassMigration
@@ -251,7 +251,7 @@ contract RollupCore is BatchManager {
         bytes32 depositCommitment = keccak256(
             abi.encode(newRoot, ZERO_BYTES32)
         );
-        // Same effect as `MerkleTree.merklise`
+        // Same effect as `MerkleTree.merklize`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
         // AccountRoot doesn't matter for deposit, add dummy value
         submitBatch(root, 1, bytes32(0), Types.Usage.Deposit);
@@ -449,7 +449,7 @@ contract Rollup is RollupCore {
             abi.encode(genesisStateRoot, ZERO_BYTES32)
         );
 
-        // Same effect as `MerkleTree.merklise`
+        // Same effect as `MerkleTree.merklize`
         bytes32 commitmentRoot = keccak256(
             abi.encode(genesisCommitment, ZERO_BYTES32)
         );
