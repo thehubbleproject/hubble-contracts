@@ -4,13 +4,18 @@ pragma solidity ^0.6.12;
 import { AccountTree } from "./AccountTree.sol";
 import { BLS } from "./libs/BLS.sol";
 
+/**
+    @dev For gas efficiency reason, public key itself is not logged in events but is
+    expected to be parsed from the calldata.
+ */
 contract BLSAccountRegistry is AccountTree {
-    event PubkeyRegistered(uint256[4] pubkey, uint256 pubkeyID);
+    event SinglePubkeyRegistered(uint256 pubkeyID);
+    event BatchPubkeyRegistered(uint256 startID, uint256 endID);
 
     function register(uint256[4] calldata pubkey) external returns (uint256) {
         bytes32 leaf = keccak256(abi.encodePacked(pubkey));
         uint256 pubkeyID = _updateSingle(leaf);
-        emit PubkeyRegistered(pubkey, pubkeyID);
+        emit SinglePubkeyRegistered(pubkeyID);
         return pubkeyID;
     }
 
@@ -20,11 +25,11 @@ contract BLSAccountRegistry is AccountTree {
     {
         bytes32[BATCH_SIZE] memory leafs;
         for (uint256 i = 0; i < BATCH_SIZE; i++) {
-            emit PubkeyRegistered(pubkeys[i], leafIndexRight + SET_SIZE + i);
             bytes32 leaf = keccak256(abi.encodePacked(pubkeys[i]));
             leafs[i] = leaf;
         }
         uint256 lowerOffset = _updateBatch(leafs);
+        emit BatchPubkeyRegistered(lowerOffset, lowerOffset + BATCH_SIZE - 1);
         return lowerOffset;
     }
 

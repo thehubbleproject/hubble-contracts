@@ -42,7 +42,12 @@ describe("Registry", async () => {
             const { pubkey } = mcl.newKeyPair();
             const { uncompressed, leaf } = pubkeyToLeaf(pubkey);
             treeLeft.updateSingle(i, leaf);
-            await registry.register(uncompressed);
+            const tx = await registry.register(uncompressed);
+            const events = await registry.queryFilter(
+                registry.filters.SinglePubkeyRegistered(null),
+                tx.blockHash
+            );
+            assert.equal(events[0].args?.pubkeyID, i);
         }
         assert.equal(treeLeft.root, await registry.rootLeft());
         assert.equal(treeRight.root, await registry.rootRight());
@@ -61,7 +66,17 @@ describe("Registry", async () => {
                 pubkeys.push(uncompressed);
             }
             treeRight.updateBatch(batchSize * k, leafs);
-            await registry.registerBatch(pubkeys);
+            const tx = await registry.registerBatch(pubkeys);
+            console.log(
+                "Batch update cost",
+                (await tx.wait()).gasUsed.toNumber()
+            );
+            const events = await registry.queryFilter(
+                registry.filters.BatchPubkeyRegistered(null, null),
+                tx.blockHash
+            );
+            assert.equal(events[0].args?.startID, batchSize * k);
+            assert.equal(events[0].args?.endID, batchSize * k + batchSize - 1);
             assert.equal(treeRight.root, await registry.rootRight());
             const root = hasher.hash2(treeLeft.root, treeRight.root);
             assert.equal(root, await registry.root());
