@@ -231,7 +231,8 @@ describe("BurnAuction", function() {
         }
 
         const tx = await _burnAuction.bid(bidAmountWei, { value: valueWei });
-        await tx.wait();
+        const receipt = await tx.wait();
+        console.log("bid cost", receipt.gasUsed.toNumber());
 
         const [event] = await burnAuction.queryFilter(
             burnAuction.filters.NewBestBid(null, null, null),
