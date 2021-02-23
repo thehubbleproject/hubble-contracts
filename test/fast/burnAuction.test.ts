@@ -315,7 +315,7 @@ describe("BurnAuction", function() {
         const coordinator = await signer.getAddress();
         const oldDeposit = await _burnAuction.deposits(coordinator);
         const oldBalance = await ethers.provider.getBalance(coordinator);
-        const tx = await _burnAuction.witdraw(amount);
+        const tx = await _burnAuction.withdraw(amount);
         const receipt = await tx.wait();
         const fee = calculateFee(receipt);
         const newDeposit = await _burnAuction.deposits(coordinator);
@@ -339,7 +339,7 @@ describe("BurnAuction", function() {
         const _burnAuction = burnAuction.connect(signer);
         const coordinator = await signer.getAddress();
         const oldDeposit = await _burnAuction.deposits(coordinator);
-        await expectRevert(_burnAuction.witdraw(amount), withMessage);
+        await expectRevert(_burnAuction.withdraw(amount), withMessage);
         const newDeposit = await _burnAuction.deposits(coordinator);
         expect(oldDeposit.toString()).to.be.equal(newDeposit.toString());
     }

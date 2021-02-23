@@ -71,7 +71,7 @@ library MerkleTree {
         return hashes[level];
     }
 
-    function merklise(bytes32[] memory leaves) internal pure returns (bytes32) {
+    function merklize(bytes32[] memory leaves) internal pure returns (bytes32) {
         require(leaves.length <= 32, "MerkleTree: Too many leaves");
         bytes32[6] memory hashes;
         hashes[0] = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;

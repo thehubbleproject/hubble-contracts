@@ -70,7 +70,7 @@ contract MassMigration {
         if (totalAmount != committed.amount)
             return (stateRoot, Types.Result.MismatchedAmount);
 
-        if (MerkleTree.merklise(withdrawLeaves) != committed.withdrawRoot)
+        if (MerkleTree.merklize(withdrawLeaves) != committed.withdrawRoot)
             return (stateRoot, Types.Result.BadWithdrawRoot);
 
         return (stateRoot, result);
