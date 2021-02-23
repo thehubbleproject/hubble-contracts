@@ -116,7 +116,7 @@ contract BurnAuction is Chooser {
         donationAddress.transfer(donationAmount);
     }
 
-    function witdraw(uint256 amount) external {
+    function withdraw(uint256 amount) external {
         address payable claimer = msg.sender;
         require(
             deposits[claimer] >= amount,
