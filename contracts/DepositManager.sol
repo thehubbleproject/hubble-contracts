@@ -126,7 +126,7 @@ contract DepositManager is DepositCore, IDepositManager {
     ) external {
         (address addr, uint256 l2Unit) = tokenRegistry.safeGetRecord(tokenID);
         require(
-            l1Amount % l2Unit == 0,
+            l1Amount == 0 || l1Amount % l2Unit == 0,
             "l1Amount should be a multiple of l2Unit"
         );
         // transfer from msg.sender to vault

@@ -144,17 +144,17 @@ describe("Integration Test", function() {
             initialPubkeyID: 0,
             domain
         }).connect(stateTree);
-        const balance = USDT.parse("1234.0");
+        const balance = USDT.fromHumanValue("1234.0");
         const fromBlockNumber = await deployer.provider?.getBlockNumber();
         for (const user of earlyAdopters.userIterator()) {
             const pubkeyID = await accountRegistry.register(user.pubkey);
             assert.equal(pubkeyID, user.pubkeyID);
             await newToken
                 .connect(coordinator)
-                .approve(depositManager.address, balance);
+                .approve(depositManager.address, balance.l1Value);
             await depositManager
                 .connect(coordinator)
-                .depositFor(user.pubkeyID, balance, tokenID);
+                .depositFor(user.pubkeyID, balance.l1Value, tokenID);
         }
 
         const subtreeReadyEvents = await depositManager.queryFilter(
@@ -179,7 +179,7 @@ describe("Integration Test", function() {
             const batchID = await getBatchID(rollup);
             stakedBatchIDs.push(batchID);
             subgroup.createStates({
-                initialBalance: balance,
+                initialBalance: balance.l2Value,
                 tokenID,
                 zeroNonce: true
             });

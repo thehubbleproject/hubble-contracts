@@ -30,7 +30,7 @@ describe("Mass Migrations", async function() {
         const [signer] = await ethers.getSigners();
         users = Group.new({ n: 32, initialStateID: 0, initialPubkeyID: 0 });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
-        const initialBalance = USDT.parse("1000");
+        const initialBalance = USDT.fromHumanValue("1000").l2Value;
         users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
@@ -123,9 +123,9 @@ describe("Mass Migrations", async function() {
         const aliceState = stateTree.getState(alice.stateID).state;
         const tx = new TxMassMigration(
             alice.stateID,
-            USDT.parse("39.99"),
+            USDT.fromHumanValue("39.99").l2Value,
             1,
-            USDT.parse("0.01"),
+            USDT.fromHumanValue("0.01").l2Value,
             aliceState.nonce + 1,
             float16
         );

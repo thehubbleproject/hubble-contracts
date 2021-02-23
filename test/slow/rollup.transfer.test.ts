@@ -40,7 +40,7 @@ describe("Rollup", async function() {
 
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
 
-        const initialBalance = USDT.parse("55.6");
+        const initialBalance = USDT.fromHumanValue("55.6").l2Value;
         users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: true });

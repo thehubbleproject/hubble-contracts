@@ -148,7 +148,8 @@ export class Group {
         return states;
     }
     public createStates(options?: createStateOptions) {
-        const initialBalance = options?.initialBalance || USDT.parse("1000.0");
+        const initialBalance =
+            options?.initialBalance || USDT.fromHumanValue("1000.0").l2Value;
         const tokenID = options?.tokenID === undefined ? 5678 : options.tokenID;
         const zeroNonce = options?.zeroNonce || false;
         const arbitraryInitialNonce = 9;

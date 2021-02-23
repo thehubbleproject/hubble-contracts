@@ -1,29 +1,60 @@
-import { BigNumber, BigNumberish, BytesLike, ethers } from "ethers";
+import { BigNumber, BigNumberish, BytesLike } from "ethers";
 import { formatUnits, hexZeroPad, parseUnits } from "ethers/lib/utils";
 import { EncodingError } from "./exceptions";
-import { randHex } from "./utils";
+import { ONE, randHex } from "./utils";
 
-export class ERC20 {
-    constructor(public decimals: number = 18) {}
-    /**
-     * Parse the human readable value like "1.23" to the ERC20 integer amount.
-     * @param humanValue could be a fractional number but is string. Like '1.23'
-     * @returns the ERC20 integer amount. Like '1230000000000000000' but in BigNumber
-     */
-    parse(humanValue: string) {
-        return parseUnits(humanValue, this.decimals);
+export interface Decimals {
+    l1Decimals: number;
+    l2Decimals: number;
+    l2Unit: BigNumber;
+}
+
+export class ERC20ValueFactory {
+    public readonly decimals: Decimals;
+
+    constructor(public readonly l1Decimals: number = 18) {
+        // l2Decimals and l2Unit are determined by the rules of TokenRegistry
+        const l2Decimals = l1Decimals >= 9 ? l1Decimals - 9 : l1Decimals;
+        const l2Unit = l1Decimals >= 9 ? BigNumber.from(1000000000) : ONE;
+        this.decimals = { l1Decimals, l2Decimals, l2Unit };
     }
     /**
-     * Format the ERC20 integer amount to human readable value.
-     * @param uint256Value is an integer like '1230000000000000000'
-     * @returns Could be a fractional number but in string. Like '1.23'
+     * @param humanValue could be a fractional number but is string. Like '1.23'
      */
-    format(uint256Value: BigNumberish) {
-        return formatUnits(uint256Value, this.decimals);
+    fromHumanValue(humanValue: string) {
+        const l1Value = parseUnits(humanValue, this.l1Decimals);
+        return new ERC20Value(this.decimals, l1Value);
+    }
+    /**
+     * @param uint256Value is an integer like '1230000000000000000'
+     */
+    fromL1Value(uint256Value: BigNumberish) {
+        const l1Value = BigNumber.from(uint256Value);
+        return new ERC20Value(this.decimals, l1Value);
+    }
+    /**
+     * @param uint256Value is an integer like '1230000000000000000'
+     */
+    fromL2Value(uint256Value: BigNumberish) {
+        const l1Value = BigNumber.from(uint256Value).mul(this.decimals.l2Unit);
+        return new ERC20Value(this.decimals, l1Value);
     }
 }
 
-export const USDT = new ERC20(6);
+class ERC20Value {
+    constructor(
+        public readonly decimals: Decimals,
+        public readonly l1Value: BigNumber
+    ) {}
+    get l2Value() {
+        return this.l1Value.div(this.decimals.l2Unit);
+    }
+    get humanValue() {
+        return formatUnits(this.l1Value, this.decimals.l1Decimals);
+    }
+}
+
+export const USDT = new ERC20ValueFactory(6);
 
 export class Float {
     private mantissaMax: BigNumber;

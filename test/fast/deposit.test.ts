@@ -12,6 +12,7 @@ import { TestDepositCore } from "../../types/ethers-contracts/TestDepositCore";
 import { TestDepositCoreFactory } from "../../types/ethers-contracts/TestDepositCoreFactory";
 import { TransferCommitment } from "../../ts/commitments";
 import { StateTree } from "../../ts/stateTree";
+import { ERC20ValueFactory } from "../../ts/decimal";
 
 describe("Deposit Core", async function() {
     let contract: TestDepositCore;
@@ -65,11 +66,10 @@ describe("Deposit Core", async function() {
     });
 });
 
-const LARGE_AMOUNT_OF_TOKEN = 1000000;
-
 describe("DepositManager", async function() {
     let contracts: allContracts;
     let tokenID: number;
+    let erc20: ERC20ValueFactory;
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
         contracts = await deployAll(signer, {
@@ -78,6 +78,8 @@ describe("DepositManager", async function() {
         });
         const { exampleToken, tokenRegistry, depositManager } = contracts;
         tokenID = (await tokenRegistry.nextTokenID()).toNumber() - 1;
+        erc20 = new ERC20ValueFactory(await exampleToken.decimals());
+        const LARGE_AMOUNT_OF_TOKEN = erc20.fromHumanValue("1000000").l1Value;
         await exampleToken.approve(
             depositManager.address,
             LARGE_AMOUNT_OF_TOKEN
@@ -85,14 +87,19 @@ describe("DepositManager", async function() {
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
         const { depositManager } = contracts;
-        const deposit0 = State.new(0, tokenID, 10, 0);
-        const deposit1 = State.new(1, tokenID, 10, 0);
+        const amount = erc20.fromHumanValue("10");
+        const deposit0 = State.new(0, tokenID, amount.l2Value, 0);
+        const deposit1 = State.new(1, tokenID, amount.l2Value, 0);
         const pendingDeposit = solidityKeccak256(
             ["bytes", "bytes"],
             [deposit0.toStateLeaf(), deposit1.toStateLeaf()]
         );
 
-        const txDeposit0 = await depositManager.depositFor(0, 10, tokenID);
+        const txDeposit0 = await depositManager.depositFor(
+            0,
+            amount.l1Value,
+            tokenID
+        );
         console.log(
             "Deposit 0 transaction cost",
             (await txDeposit0.wait()).gasUsed.toNumber()
@@ -106,7 +113,11 @@ describe("DepositManager", async function() {
         assert.equal(event0.args?.pubkeyID.toNumber(), 0);
         assert.equal(event0.args?.data, deposit0.encode());
 
-        const txDeposit1 = await depositManager.depositFor(1, 10, tokenID);
+        const txDeposit1 = await depositManager.depositFor(
+            1,
+            amount.l1Value,
+            tokenID
+        );
         console.log(
             "Deposit 1 transaction cost",
             (await txDeposit1.wait()).gasUsed.toNumber()
@@ -142,14 +153,14 @@ describe("DepositManager", async function() {
         );
         const initialBatch = initialCommitment.toBatch();
         await initialBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
-        const amount = 10;
+        const amount = erc20.fromHumanValue("10");
 
         const stateLeaves = [];
         const nDeposits = 1 << TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
 
         for (let i = 0; i < nDeposits; i++) {
-            await depositManager.depositFor(i, amount, tokenID);
-            const state = State.new(i, tokenID, amount, 0);
+            await depositManager.depositFor(i, amount.l1Value, tokenID);
+            const state = State.new(i, tokenID, amount.l2Value, 0);
             stateLeaves.push(state.toStateLeaf());
         }
         await rollup.submitDeposits(
