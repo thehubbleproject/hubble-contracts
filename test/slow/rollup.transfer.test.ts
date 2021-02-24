@@ -11,6 +11,7 @@ import { getGenesisProof, TransferCommitment } from "../../ts/commitments";
 import { USDT } from "../../ts/decimal";
 import { hexToUint8Array } from "../../ts/utils";
 import { Group, txTransferFactory } from "../../ts/factory";
+import { deployKeyless } from "../../ts/deployment/deploy";
 
 const DOMAIN = hexToUint8Array(
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -47,6 +48,7 @@ describe("Rollup", async function() {
 
         genesisRoot = stateTree.root;
 
+        await deployKeyless(signer, false);
         contracts = await deployAll(signer, {
             ...TESTING_PARAMS,
             GENESIS_STATE_ROOT: genesisRoot

@@ -12,6 +12,7 @@ import { float16, USDT } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
 import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
+import { deployKeyless } from "../../ts/deployment/deploy";
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;
@@ -37,6 +38,7 @@ describe("Mass Migrations", async function() {
 
         genesisRoot = stateTree.root;
 
+        await deployKeyless(signer, false);
         contracts = await deployAll(signer, {
             ...TESTING_PARAMS,
             GENESIS_STATE_ROOT: genesisRoot
