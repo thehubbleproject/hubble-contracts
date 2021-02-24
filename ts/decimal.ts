@@ -55,6 +55,7 @@ class ERC20Value {
 }
 
 export const USDT = new ERC20ValueFactory(6);
+export const CommonToken = new ERC20ValueFactory(18);
 
 export class Float {
     private mantissaMax: BigNumber;
