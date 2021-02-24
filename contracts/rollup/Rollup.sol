@@ -13,28 +13,81 @@ import { Create2Transfer } from "../Create2Transfer.sol";
 import { BatchManager } from "./BatchManager.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
-contract RollupCore is BatchManager {
+contract Rollup is BatchManager {
     using Tx for bytes;
     using Types for Types.Commitment;
     using Types for Types.TransferCommitment;
     using Types for Types.MassMigrationCommitment;
 
     // External contracts
-    BLSAccountRegistry public accountRegistry;
-    Transfer public transfer;
-    MassMigration public massMigration;
-    Create2Transfer public create2Transfer;
+    BLSAccountRegistry public immutable accountRegistry;
+    Transfer public immutable transfer;
+    MassMigration public immutable massMigration;
+    Create2Transfer public immutable create2Transfer;
 
     bytes32
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
-    bytes32 public appID;
+    uint256 public immutable paramMaxTxsPerCommit;
+    bytes32 public immutable appID;
 
     event DepositsFinalised(
         uint256 subtreeID,
         bytes32 depositSubTreeRoot,
         uint256 pathToSubTree
     );
+
+    constructor(
+        Chooser _chooser,
+        IDepositManager _depositManager,
+        BLSAccountRegistry _accountRegistry,
+        Transfer _transfer,
+        MassMigration _massMigration,
+        Create2Transfer _create2Transfer,
+        bytes32 genesisStateRoot,
+        uint256 stakeAmount,
+        uint256 blocksToFinalise,
+        uint256 minGasLeft,
+        uint256 maxTxsPerCommit
+    )
+        public
+        BatchManager(
+            stakeAmount,
+            blocksToFinalise,
+            minGasLeft,
+            _chooser,
+            _depositManager
+        )
+    {
+        accountRegistry = _accountRegistry;
+        transfer = _transfer;
+        massMigration = _massMigration;
+        create2Transfer = _create2Transfer;
+
+        paramMaxTxsPerCommit = maxTxsPerCommit;
+
+        bytes32 genesisCommitment = keccak256(
+            abi.encode(genesisStateRoot, ZERO_BYTES32)
+        );
+
+        // Same effect as `MerkleTree.merklize`
+        bytes32 commitmentRoot = keccak256(
+            abi.encode(genesisCommitment, ZERO_BYTES32)
+        );
+        batches[nextBatchID] = Types.Batch({
+            commitmentRoot: commitmentRoot,
+            meta: Types.encodeMeta(
+                uint256(Types.Usage.Genesis),
+                1,
+                msg.sender,
+                block.number // genesis finalise instantly
+            )
+        });
+        // AccountRoot doesn't matter for genesis, add dummy value
+        emit NewBatch(nextBatchID, bytes32(0), Types.Usage.Genesis);
+        nextBatchID++;
+        appID = keccak256(abi.encodePacked(address(this)));
+    }
 
     modifier onlyCoordinator() {
         require(
@@ -416,55 +469,5 @@ contract RollupCore is BatchManager {
         );
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
-    }
-}
-
-contract Rollup is RollupCore {
-    constructor(
-        Chooser _chooser,
-        IDepositManager _depositManager,
-        BLSAccountRegistry _accountRegistry,
-        Transfer _transfer,
-        MassMigration _massMigration,
-        Create2Transfer _create2Transfer,
-        bytes32 genesisStateRoot,
-        uint256 stakeAmount,
-        uint256 blocksToFinalise,
-        uint256 minGasLeft,
-        uint256 maxTxsPerCommit
-    ) public {
-        chooser = _chooser;
-        depositManager = _depositManager;
-        accountRegistry = _accountRegistry;
-        transfer = _transfer;
-        massMigration = _massMigration;
-        create2Transfer = _create2Transfer;
-
-        paramStakeAmount = stakeAmount;
-        paramBlocksToFinalise = blocksToFinalise;
-        paramMinGasLeft = minGasLeft;
-        paramMaxTxsPerCommit = maxTxsPerCommit;
-
-        bytes32 genesisCommitment = keccak256(
-            abi.encode(genesisStateRoot, ZERO_BYTES32)
-        );
-
-        // Same effect as `MerkleTree.merklize`
-        bytes32 commitmentRoot = keccak256(
-            abi.encode(genesisCommitment, ZERO_BYTES32)
-        );
-        batches[nextBatchID] = Types.Batch({
-            commitmentRoot: commitmentRoot,
-            meta: Types.encodeMeta(
-                uint256(Types.Usage.Genesis),
-                1,
-                msg.sender,
-                block.number // genesis finalise instantly
-            )
-        });
-        // AccountRoot doesn't matter for genesis, add dummy value
-        emit NewBatch(nextBatchID, bytes32(0), Types.Usage.Genesis);
-        nextBatchID++;
-        appID = keccak256(abi.encodePacked(address(this)));
     }
 }

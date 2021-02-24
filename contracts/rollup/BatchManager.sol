@@ -4,18 +4,21 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { Types } from "../libs/Types.sol";
-import { Parameters } from "./Parameters.sol";
 import { Bitmap } from "../libs/Bitmap.sol";
 import { IDepositManager } from "../DepositManager.sol";
 import { Chooser } from "../proposers/Chooser.sol";
 
-contract BatchManager is Parameters {
+contract BatchManager {
     using SafeMath for uint256;
     using Types for Types.Batch;
 
+    uint256 public immutable paramStakeAmount;
+    uint256 public immutable paramBlocksToFinalise;
+    uint256 public immutable paramMinGasLeft;
+
     // External contracts
-    IDepositManager public depositManager;
-    Chooser public chooser;
+    IDepositManager public immutable depositManager;
+    Chooser public immutable chooser;
 
     // batchID -> Batch
     mapping(uint256 => Types.Batch) public batches;
@@ -57,6 +60,20 @@ contract BatchManager is Parameters {
             "Already successfully disputed. Roll back in process"
         );
         _;
+    }
+
+    constructor(
+        uint256 _paramStakeAmount,
+        uint256 _paramBlocksToFinalise,
+        uint256 _paramMinGasLeft,
+        Chooser _chooser,
+        IDepositManager _depositManager
+    ) internal {
+        paramStakeAmount = _paramStakeAmount;
+        paramBlocksToFinalise = _paramBlocksToFinalise;
+        paramMinGasLeft = _paramMinGasLeft;
+        chooser = _chooser;
+        depositManager = _depositManager;
     }
 
     function getBatch(uint256 batchID)
