@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { Tx } from "./libs/Tx.sol";
 import { Vault } from "./Vault.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
@@ -13,6 +14,7 @@ import { Bitmap } from "./libs/Bitmap.sol";
 contract WithdrawManager {
     using Tx for bytes;
     using Types for Types.UserState;
+    using SafeERC20 for IERC20;
     Vault public vault;
 
     // withdrawRoot => a bitmap of whether a publicIndex owner has the token claimed
@@ -45,13 +47,10 @@ contract WithdrawManager {
             .body
             .accountRoot;
         // transfer tokens from vault
-        require(
-            tokenContract.transferFrom(
-                address(vault),
-                address(this),
-                commitmentMP.commitment.body.amount
-            ),
-            "WithdrawManager: Token transfer failed"
+        tokenContract.safeTransferFrom(
+            address(vault),
+            address(this),
+            commitmentMP.commitment.body.amount
         );
     }
 
@@ -105,9 +104,6 @@ contract WithdrawManager {
         );
         Bitmap.setClaimed(withdrawal.state.pubkeyID, bitmap[withdrawRoot]);
         // transfer tokens from vault
-        require(
-            tokenContract.transfer(msg.sender, withdrawal.state.balance),
-            "WithdrawManager: Token transfer failed"
-        );
+        tokenContract.safeTransfer(msg.sender, withdrawal.state.balance);
     }
 }

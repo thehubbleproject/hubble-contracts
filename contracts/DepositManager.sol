@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 import { Types } from "./libs/Types.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
 interface IDepositManager {
@@ -85,6 +86,7 @@ contract DepositCore is SubtreeQueue {
 
 contract DepositManager is DepositCore, IDepositManager {
     using Types for Types.UserState;
+    using SafeERC20 for IERC20;
     address public vault;
     address public rollup;
 
@@ -128,10 +130,7 @@ contract DepositManager is DepositCore, IDepositManager {
             tokenContract.allowance(msg.sender, address(this)) >= amount,
             "token allowance not approved"
         );
-        require(
-            tokenContract.transferFrom(msg.sender, vault, amount),
-            "token transfer not approved"
-        );
+        tokenContract.safeTransferFrom(msg.sender, vault, amount);
         // create a new state
         Types.UserState memory newState = Types.UserState(
             pubkeyID,
