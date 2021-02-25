@@ -16,10 +16,10 @@ describe("Decimal", () => {
             18690000000
         ];
         for (const value of losslessCases) {
-            const valueBN = USDT.parse(value.toString());
+            const amount = USDT.fromHumanValue(value.toString());
             assert.equal(
-                float16.round(valueBN).toString(),
-                valueBN.toString(),
+                float16.round(amount.l2Value).toString(),
+                amount.l2Value.toString(),
                 "Casted value should be the same in good cases"
             );
         }
@@ -32,9 +32,12 @@ describe("Decimal", () => {
             { input: 4095, expect: 4095 }
         ];
         for (const _case of lossyCases) {
-            const valueBN = USDT.parse(_case.input.toString());
-            const valueRounded = float16.round(valueBN);
-            assert.equal(Number(USDT.format(valueRounded)), _case.expect);
+            const value = USDT.fromHumanValue(_case.input.toString());
+            const valueRounded = float16.round(value.l2Value);
+            assert.equal(
+                Number(USDT.fromL2Value(valueRounded).humanValue),
+                _case.expect
+            );
         }
     });
 });

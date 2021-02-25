@@ -8,10 +8,11 @@ import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { getGenesisProof, MassMigrationCommitment } from "../../ts/commitments";
-import { float16, USDT } from "../../ts/decimal";
+import { float16, CommonToken } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
 import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
+import { deployKeyless } from "../../ts/deployment/deploy";
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;
@@ -30,13 +31,15 @@ describe("Mass Migrations", async function() {
         const [signer] = await ethers.getSigners();
         users = Group.new({ n: 32, initialStateID: 0, initialPubkeyID: 0 });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
-        const initialBalance = USDT.parse("1000");
+        // The example token is 18 decimals
+        const initialBalance = CommonToken.fromHumanValue("1000").l2Value;
         users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
 
         genesisRoot = stateTree.root;
 
+        await deployKeyless(signer, false);
         contracts = await deployAll(signer, {
             ...TESTING_PARAMS,
             GENESIS_STATE_ROOT: genesisRoot
@@ -123,9 +126,9 @@ describe("Mass Migrations", async function() {
         const aliceState = stateTree.getState(alice.stateID).state;
         const tx = new TxMassMigration(
             alice.stateID,
-            USDT.parse("39.99"),
+            CommonToken.fromHumanValue("39.99").l2Value,
             1,
-            USDT.parse("0.01"),
+            CommonToken.fromHumanValue("0.01").l2Value,
             aliceState.nonce + 1,
             float16
         );
@@ -156,7 +159,10 @@ describe("Mass Migrations", async function() {
 
         // We cheat here a little bit by sending token to the vault manually.
         // Ideally the tokens of the vault should come from the deposits
-        await exampleToken.transfer(vault.address, tx.amount);
+        await exampleToken.transfer(
+            vault.address,
+            CommonToken.fromL2Value(tx.amount).l1Value
+        );
 
         const txProcess = await withdrawManager.processWithdrawCommitment(
             batchId,

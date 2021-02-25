@@ -30,10 +30,8 @@ import { getBatchID, hexToUint8Array, mineBlocks } from "../ts/utils";
 import { serialize } from "../ts/tx";
 import { ExampleToken } from "../types/ethers-contracts/ExampleToken";
 import { ExampleTokenFactory } from "../types/ethers-contracts";
-import { USDT } from "../ts/decimal";
-import { keylessDeploy } from "../ts/deployment/keylessDeployment";
+import { CommonToken } from "../ts/decimal";
 import { deployKeyless } from "../ts/deployment/deploy";
-import { deployerBytecode } from "../ts/deployment/static";
 
 // In the deploy script, we already have a TestToken registered with tokenID 0
 // We are deploying a new token with tokenID 1
@@ -144,17 +142,17 @@ describe("Integration Test", function() {
             initialPubkeyID: 0,
             domain
         }).connect(stateTree);
-        const balance = USDT.parse("1234.0");
+        const balance = CommonToken.fromHumanValue("1234.0");
         const fromBlockNumber = await deployer.provider?.getBlockNumber();
         for (const user of earlyAdopters.userIterator()) {
             const pubkeyID = await accountRegistry.register(user.pubkey);
             assert.equal(pubkeyID, user.pubkeyID);
             await newToken
                 .connect(coordinator)
-                .approve(depositManager.address, balance);
+                .approve(depositManager.address, balance.l1Value);
             await depositManager
                 .connect(coordinator)
-                .depositFor(user.pubkeyID, balance, tokenID);
+                .depositFor(user.pubkeyID, balance.l1Value, tokenID);
         }
 
         const subtreeReadyEvents = await depositManager.queryFilter(
@@ -179,7 +177,7 @@ describe("Integration Test", function() {
             const batchID = await getBatchID(rollup);
             stakedBatchIDs.push(batchID);
             subgroup.createStates({
-                initialBalance: balance,
+                initialBalance: balance.l2Value,
                 tokenID,
                 zeroNonce: true
             });
@@ -340,7 +338,9 @@ describe("Integration Test", function() {
             const postBalance = await newToken.balanceOf(withdrawerAddress);
             assert.equal(
                 postBalance.sub(preBalance).toString(),
-                withdrawProof.state.balance.toString()
+                CommonToken.fromL2Value(
+                    withdrawProof.state.balance
+                ).l1Value.toString()
             );
         }
     }).timeout(240000);

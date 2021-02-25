@@ -116,26 +116,31 @@ contract DepositManager is DepositCore, IDepositManager {
 
     /**
      * @notice Adds a deposit for an address to the deposit queue
-     * @param amount Number of tokens that user wants to deposit
+     * @param l1Amount Number of tokens that user wants to deposit
      * @param tokenID Type of token user is depositing
      */
     function depositFor(
         uint256 pubkeyID,
-        uint256 amount,
+        uint256 l1Amount,
         uint256 tokenID
     ) external {
-        IERC20 tokenContract = IERC20(tokenRegistry.safeGetAddress(tokenID));
+        (address addr, uint256 l2Unit) = tokenRegistry.safeGetRecord(tokenID);
+        require(
+            l1Amount == 0 || l1Amount % l2Unit == 0,
+            "l1Amount should be a multiple of l2Unit"
+        );
         // transfer from msg.sender to vault
         require(
-            tokenContract.allowance(msg.sender, address(this)) >= amount,
+            IERC20(addr).allowance(msg.sender, address(this)) >= l1Amount,
             "token allowance not approved"
         );
-        tokenContract.safeTransferFrom(msg.sender, vault, amount);
+        IERC20(addr).safeTransferFrom(msg.sender, vault, l1Amount);
+        uint256 l2Amount = l1Amount / l2Unit;
         // create a new state
         Types.UserState memory newState = Types.UserState(
             pubkeyID,
             tokenID,
-            amount,
+            l2Amount,
             0
         );
         // get new state hash
