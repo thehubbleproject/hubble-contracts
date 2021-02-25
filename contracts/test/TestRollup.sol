@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import { BatchManager } from "../rollup/BatchManager.sol";
 import { Types } from "../libs/Types.sol";
 import { IDepositManager } from "../DepositManager.sol";
+import { Chooser } from "../proposers/Chooser.sol";
 
 contract MockDepositManager is IDepositManager {
     function dequeueToSubmit()
@@ -26,12 +27,16 @@ contract TestRollup is BatchManager {
         uint256 stakeAmount,
         uint256 blocksToFinalise,
         uint256 minGasLeft
-    ) public {
-        depositManager = _depositManager;
-        paramStakeAmount = stakeAmount;
-        paramBlocksToFinalise = blocksToFinalise;
-        paramMinGasLeft = minGasLeft;
-    }
+    )
+        public
+        BatchManager(
+            stakeAmount,
+            blocksToFinalise,
+            minGasLeft,
+            Chooser(address(0)),
+            _depositManager
+        )
+    {}
 
     function submitDummyBatch() external payable {
         submitBatch(bytes32(0), 0, bytes32(0), Types.Usage.Transfer);
@@ -46,9 +51,5 @@ contract TestRollup is BatchManager {
         uint256 g = gasleft();
         startRollingBack(batchID);
         return g - gasleft();
-    }
-
-    function setMinGasLeft(uint256 minGasLeft) external {
-        paramMinGasLeft = minGasLeft;
     }
 }

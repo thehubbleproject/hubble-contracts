@@ -1,6 +1,7 @@
 import { assert, expect } from "chai";
 import { ethers } from "hardhat";
 import { TESTING_PARAMS } from "../../ts/constants";
+import { DeploymentParameters } from "../../ts/interfaces";
 import { randHex } from "../../ts/utils";
 import {
     MockDepositManagerFactory,
@@ -18,8 +19,7 @@ describe("Rollback", function() {
     async function getTipBatchID() {
         return Number(await rollup.nextBatchID()) - 1;
     }
-
-    beforeEach(async function() {
+    async function setup(param: DeploymentParameters) {
         const [signer] = await ethers.getSigners();
         depositManager = await new MockDepositManagerFactory(signer).deploy();
         rollup = await new TestRollupFactory(signer).deploy(
@@ -37,6 +37,10 @@ describe("Rollback", function() {
                 await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
             }
         }
+    }
+
+    beforeEach(async function() {
+        await setup(param);
     });
     it("Test rollback exactly 1 batch", async function() {
         assert.equal(await getTipBatchID(), numOfBatches - 1);
@@ -56,8 +60,11 @@ describe("Rollback", function() {
         assert.equal(Number(status.args?.nDeleted), 1);
     });
     it("Test rollback exactly 0 batch", async function() {
-        // Set a high minGasLeft to skip loop
-        await rollup.setMinGasLeft("12000000");
+        // Resetup with a high minGasLeft to skip rollback loop
+        const param2 = { ...TESTING_PARAMS, MIN_GAS_LEFT: 12000000 };
+        await setup(param2);
+        const gasleft = await rollup.callStatic.testRollback(1);
+        console.log("Gas usage out of the loop", gasleft.toNumber());
         const tx = await rollup.testRollback(1);
         const [status] = await rollup.queryFilter(
             rollup.filters.RollbackStatus(null, null, null),
@@ -66,12 +73,6 @@ describe("Rollback", function() {
         assert.isFalse(status.args?.completed);
         assert.equal(Number(status.args?.startID), await getTipBatchID());
         assert.equal(Number(status.args?.nDeleted), 0);
-    });
-    it("profile gas usage out of the loop", async function() {
-        // Set a high minGasLeft to skip loop
-        await rollup.setMinGasLeft("12000000");
-        const gasleft = await rollup.callStatic.testRollback(1);
-        console.log("Gas usage out of the loop", gasleft.toNumber());
     });
 
     it("Test a long rollback", async function() {
