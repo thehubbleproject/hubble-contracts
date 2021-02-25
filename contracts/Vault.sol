@@ -13,9 +13,10 @@ contract Vault {
     using Types for Types.MassMigrationCommitment;
     using Types for Types.Batch;
 
+    // Can't be immutable yet. Since the rollup is deployed after Vault
     Rollup public rollup;
-    SpokeRegistry public spokes;
-    ITokenRegistry public tokenRegistry;
+    SpokeRegistry public immutable spokes;
+    ITokenRegistry public immutable tokenRegistry;
 
     mapping(uint256 => uint256) private bitmap;
 

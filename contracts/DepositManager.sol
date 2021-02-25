@@ -87,10 +87,11 @@ contract DepositCore is SubtreeQueue {
 contract DepositManager is DepositCore, IDepositManager {
     using Types for Types.UserState;
     using SafeERC20 for IERC20;
-    address public vault;
+    address public immutable vault;
+    // Can't be immutable yet. Since the rollup is deployed after DepositManager
     address public rollup;
 
-    ITokenRegistry public tokenRegistry;
+    ITokenRegistry public immutable tokenRegistry;
 
     modifier onlyRollup() {
         require(

@@ -15,14 +15,15 @@ contract WithdrawManager {
     using Tx for bytes;
     using Types for Types.UserState;
     using SafeERC20 for IERC20;
-    Vault public vault;
 
     // withdrawRoot => a bitmap of whether a publicIndex owner has the token claimed
     mapping(bytes32 => mapping(uint256 => uint256)) private bitmap;
     // withdrawRoot => accountRoot
     mapping(bytes32 => bytes32) private processed;
-    ITokenRegistry public tokenRegistry;
-    bytes32 public appID;
+
+    ITokenRegistry public immutable tokenRegistry;
+    Vault public immutable vault;
+    bytes32 public immutable appID;
 
     constructor(
         ITokenRegistry _tokenRegistry,

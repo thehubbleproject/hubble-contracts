@@ -6,8 +6,8 @@ import { DepositManager } from "../DepositManager.sol";
 import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
 
 contract FrontendUtilities {
-    DepositManager public depositManager;
-    BLSAccountRegistry public accountRegistry;
+    DepositManager public immutable depositManager;
+    BLSAccountRegistry public immutable accountRegistry;
 
     constructor(
         DepositManager _depositManager,
