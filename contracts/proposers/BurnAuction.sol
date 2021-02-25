@@ -12,13 +12,13 @@ contract BurnAuction is Chooser {
 
     // donation numerator and demoninator are used to calculate donation amount
     uint256 public constant DONATION_DENOMINATOR = 10000;
-    uint256 public donationNumerator;
+    uint256 public immutable donationNumerator;
 
     // Donation address that is fed with portion of burned amount
-    address payable public donationAddress;
+    address payable public immutable donationAddress;
 
     // First block where the first slot begins
-    uint256 public genesisBlock;
+    uint256 public immutable genesisBlock;
 
     // Bid is a structure indicating that
     // "coordinator" is willing to burn certain
@@ -50,7 +50,7 @@ contract BurnAuction is Chooser {
         public
     {
         require(
-            donationNumerator <= DONATION_DENOMINATOR,
+            _donationNumerator <= DONATION_DENOMINATOR,
             "BurnAuction, constructor: bad denominator"
         );
 
