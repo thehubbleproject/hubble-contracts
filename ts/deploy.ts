@@ -20,9 +20,7 @@ import {
     Create2TransferFactory
 } from "../types/ethers-contracts";
 import { BurnAuctionFactory } from "../types/ethers-contracts/BurnAuctionFactory";
-import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
-import { ProofOfBurn } from "../types/ethers-contracts/ProofOfBurn";
 import { GenesisNotSpecified } from "./exceptions";
 
 async function waitAndRegister(
@@ -63,17 +61,17 @@ export async function deployAll(
         "frontendCreate2Transfer",
         verbose
     );
-    // deploy a chooser
-    let chooser: ProofOfBurn | BurnAuction;
-    if (parameters.USE_BURN_AUCTION) {
-        chooser = await new BurnAuctionFactory(signer).deploy(
-            parameters.DONATION_ADDRESS,
-            parameters.DONATION_NUMERATOR
-        );
-    } else {
-        chooser = await new ProofOfBurnFactory(signer).deploy();
+    const burnAuction = await new BurnAuctionFactory(signer).deploy(
+        parameters.DONATION_ADDRESS,
+        parameters.DONATION_NUMERATOR
+    );
+    await waitAndRegister(burnAuction, "burnAuction", verbose);
+    let chooserAddress = burnAuction.address;
+
+    if (!parameters.USE_BURN_AUCTION) {
+        const proofOfBurn = await new ProofOfBurnFactory(signer).deploy();
+        chooserAddress = proofOfBurn.address;
     }
-    await waitAndRegister(chooser, "chooser", verbose);
 
     const blsAccountRegistry = await new BlsAccountRegistryFactory(
         signer
@@ -124,7 +122,7 @@ export async function deployAll(
 
     // deploy Rollup core
     const rollup = await new RollupFactory(signer).deploy(
-        chooser.address,
+        chooserAddress,
         depositManager.address,
         blsAccountRegistry.address,
         transfer.address,
@@ -159,7 +157,7 @@ export async function deployAll(
         transfer,
         massMigration,
         create2Transfer,
-        chooser,
+        burnAuction,
         exampleToken,
         spokeRegistry,
         vault,

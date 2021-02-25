@@ -1,5 +1,4 @@
 import { TokenRegistry } from "../types/ethers-contracts/TokenRegistry";
-import { Pob } from "../types/ethers-contracts/Pob";
 import { Transfer } from "../types/ethers-contracts/Transfer";
 import { ExampleToken } from "../types/ethers-contracts/ExampleToken";
 import { DepositManager } from "../types/ethers-contracts/DepositManager";
@@ -26,7 +25,7 @@ export interface allContracts {
     transfer: Transfer;
     massMigration: MassMigration;
     create2Transfer: Create2Transfer;
-    chooser: Pob | BurnAuction;
+    burnAuction: BurnAuction;
     exampleToken: ExampleToken;
     spokeRegistry: SpokeRegistry;
     vault: Vault;

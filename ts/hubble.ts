@@ -45,9 +45,7 @@ function parseGenesis(
         depositManager: DepositManagerFactory,
         rollup: RollupFactory,
         withdrawManager: WithdrawManagerFactory,
-        chooser: parameters.USE_BURN_AUCTION
-            ? BurnAuctionFactory
-            : ProofOfBurnFactory
+        burnAuction: BurnAuctionFactory
     };
     const contracts: any = {};
     for (const [key, factory] of Object.entries(factories)) {
