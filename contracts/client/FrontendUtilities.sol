@@ -21,8 +21,7 @@ contract FrontendUtilities {
         external
         returns (uint256)
     {
-        uint256 len = pubkeys.length;
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < pubkeys.length; i++) {
             accountRegistry.register(pubkeys[i]);
         }
     }
@@ -33,7 +32,7 @@ contract FrontendUtilities {
         uint256 tokenID
     ) external {
         uint256 pubkeyID = accountRegistry.register(pubkey);
-        depositManager.depositFor(pubkeyID, amount, tokenID);
+        depositManager.depositFor(msg.sender, pubkeyID, amount, tokenID);
     }
 
     function depositMultiple(
@@ -41,10 +40,9 @@ contract FrontendUtilities {
         uint256 amount,
         uint256 tokenID
     ) external returns (uint256) {
-        uint256 len = pubkeys.length;
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = 0; i < pubkeys.length; i++) {
             uint256 pubkeyID = accountRegistry.register(pubkeys[i]);
-            depositManager.depositFor(pubkeyID, amount, tokenID);
+            depositManager.depositFor(msg.sender, pubkeyID, amount, tokenID);
         }
     }
 }

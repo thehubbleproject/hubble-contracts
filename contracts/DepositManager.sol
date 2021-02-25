@@ -120,6 +120,7 @@ contract DepositManager is DepositCore, IDepositManager {
      * @param tokenID Type of token user is depositing
      */
     function depositFor(
+        address sender,
         uint256 pubkeyID,
         uint256 l1Amount,
         uint256 tokenID
@@ -129,12 +130,11 @@ contract DepositManager is DepositCore, IDepositManager {
             l1Amount == 0 || l1Amount % l2Unit == 0,
             "l1Amount should be a multiple of l2Unit"
         );
-        // transfer from msg.sender to vault
         require(
-            IERC20(addr).allowance(msg.sender, address(this)) >= l1Amount,
+            IERC20(addr).allowance(sender, address(this)) >= l1Amount,
             "token allowance not approved"
         );
-        IERC20(addr).safeTransferFrom(msg.sender, vault, l1Amount);
+        IERC20(addr).safeTransferFrom(sender, vault, l1Amount);
         uint256 l2Amount = l1Amount / l2Unit;
         // create a new state
         Types.UserState memory newState = Types.UserState(

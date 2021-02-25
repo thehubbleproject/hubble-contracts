@@ -15,6 +15,7 @@ import { deployAll } from "../../ts/deploy";
 import { TESTING_PARAMS } from "../../ts/constants";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { arrayify } from "ethers/lib/utils";
+import { ERC20ValueFactory } from "../../ts/decimal";
 
 const domain = arrayify(randHex(32));
 
@@ -133,10 +134,34 @@ describe("Frontend Utilities", function() {
         });
         group = Group.new({ n: 20, domain });
     });
-    it.only("registerMultiple", async function() {
+    it("register and deposit", async function() {
         const { frontendUtilities, exampleToken, depositManager } = contracts;
-        // The deploy contract has deploy and registered exampleToken in tokenID 0 and ethers signer has unlimited mint of token
-        await exampleToken.approve(depositManager.address, 1000);
-        await frontendUtilities.deposit(group.getUser(0).pubkey, 10, 0);
+        const tokenID = 0;
+        const erc20 = new ERC20ValueFactory(await exampleToken.decimals());
+        // The deploy contract has deploy and registered exampleToken in tokenID 0
+        await exampleToken.approve(
+            depositManager.address,
+            erc20.fromHumanValue("1000").l1Value
+        );
+        await frontendUtilities.deposit(
+            group.getUser(0).pubkey,
+            erc20.fromHumanValue("10").l1Value,
+            tokenID
+        );
+    });
+    it("register and deposit multiple", async function() {
+        const { frontendUtilities, exampleToken, depositManager } = contracts;
+        const tokenID = 0;
+        const erc20 = new ERC20ValueFactory(await exampleToken.decimals());
+        // The deploy contract has deploy and registered exampleToken in tokenID 0
+        await exampleToken.approve(
+            depositManager.address,
+            erc20.fromHumanValue("1000").l1Value
+        );
+        await frontendUtilities.depositMultiple(
+            group.getPubkeys(),
+            erc20.fromHumanValue("10").l1Value,
+            tokenID
+        );
     });
 });
