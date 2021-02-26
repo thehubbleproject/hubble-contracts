@@ -125,6 +125,15 @@ export function aggregateRaw(signatures: Signature[]): Signature {
     return aggregated;
 }
 
+export function parseFr(hex: string): mclFR {
+    if (!ethers.utils.isHexString(hex)) {
+        throw new Error("message is expected to be hex string");
+    }
+    let fr = new mcl.Fr();
+    fr.setHashOf(hex);
+    return fr;
+}
+
 export function randFr(): mclFR {
     const r = randHex(12);
     let fr = new mcl.Fr();

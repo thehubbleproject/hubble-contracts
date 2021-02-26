@@ -10,7 +10,8 @@ import {
     solG1,
     SecretKey,
     randFr,
-    PublicKey
+    PublicKey,
+    parseFr
 } from "./mcl";
 
 export interface SignatureInterface {
@@ -35,9 +36,9 @@ export class NullBlsSinger implements BlsSignerInterface {
 export const nullBlsSigner = new NullBlsSinger();
 
 export class BlsSigner implements BlsSignerInterface {
-    static new(domain: Domain) {
-        const secret = randFr();
-        return new BlsSigner(domain, secret);
+    static new(domain: Domain, privKey?: string) {
+        const secret = privKey ? parseFr(privKey) : randFr();
+        return new this(domain, secret);
     }
     private _pubkey: PublicKey;
     constructor(public domain: Domain, private secret: SecretKey) {
