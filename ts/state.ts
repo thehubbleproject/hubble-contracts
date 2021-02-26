@@ -1,7 +1,8 @@
 import { BigNumber, BigNumberish, ethers } from "ethers";
 import { solidityPack } from "ethers/lib/utils";
+import { Hashable } from "./interfaces";
 
-export class State {
+export class State implements Hashable {
     public static new(
         pubkeyID: number,
         tokenID: number,
@@ -28,12 +29,15 @@ export class State {
             [this.pubkeyID, this.tokenID, this.balance, this.nonce]
         );
     }
-
-    public toStateLeaf(): string {
+    public hash(): string {
         return ethers.utils.solidityKeccak256(
             ["uint256", "uint256", "uint256", "uint256"],
             [this.pubkeyID, this.tokenID, this.balance, this.nonce]
         );
+    }
+
+    public toStateLeaf(): string {
+        return this.hash();
     }
 }
 
