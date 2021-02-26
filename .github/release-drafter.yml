@@ -1,10 +1,10 @@
 categories:
-  - title: ':sparkles: New Feature'
-    label: 'enhancement'
+  - title: ':memo: Changes in the contracts'
+    label: 'contracts'
+  - title: ':rocket: Changes in the client'
+    label: 'client'
   - title: ':bug: BugFix'
     label: 'bugfix'
-  - title: ':zap: Performance'
-    label: 'performance'
 version-resolver:
   default: minor
 prerelease: true

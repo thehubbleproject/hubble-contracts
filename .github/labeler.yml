@@ -1,0 +1,4 @@
+contracts:
+  - contracts/**/*
+client:
+  - ts/client/**/*
