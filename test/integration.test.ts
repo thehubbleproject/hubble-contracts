@@ -79,7 +79,7 @@ describe("Integration Test", function() {
     beforeEach(async function() {
         // Remember to bid when a new slot starts
         if (lastBiddedSlot > 0) {
-            const burnAuction = contracts.chooser as BurnAuction;
+            const { burnAuction } = contracts;
             const newSlot = Number(await burnAuction.currentSlot());
             if (newSlot + 2 > lastBiddedSlot) {
                 console.log("New slot", newSlot, "bid now");
@@ -102,7 +102,7 @@ describe("Integration Test", function() {
         assert.equal(event.args?.tokenID, tokenID);
     });
     it("Coordinator bid the first auction", async function() {
-        const burnAuction = contracts.chooser as BurnAuction;
+        const { burnAuction } = contracts;
         const genesisBlock = Number(await burnAuction.genesisBlock());
 
         // mine to slot 0
