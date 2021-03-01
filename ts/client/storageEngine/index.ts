@@ -1,1 +1,1 @@
-export { StateMemoryEngine } from "./stateEngine";
+export { StateMemoryEngine, StateStorageEngine } from "./stateEngine";
