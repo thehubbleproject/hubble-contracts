@@ -1,10 +1,11 @@
-import { BigNumber } from "ethers";
+import { BigNumber, Wallet } from "ethers";
 import {
     aggregate,
     BlsSigner,
     BlsSignerInterface,
     nullBlsSigner
 } from "./blsSigner";
+import { DEFAULT_MNEMONIC } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
@@ -18,8 +19,13 @@ import {
 } from "./tx";
 
 export class User {
-    static new(stateID: number, pubkeyID: number, domain?: Domain) {
-        const signer = domain ? BlsSigner.new(domain) : nullBlsSigner;
+    static new(
+        stateID: number,
+        pubkeyID: number,
+        domain?: Domain,
+        privKey?: string
+    ) {
+        const signer = domain ? BlsSigner.new(domain, privKey) : nullBlsSigner;
         return new this(signer, stateID, pubkeyID);
     }
     constructor(
@@ -52,6 +58,7 @@ interface GroupOptions {
     stateProvider?: StateProvider;
     initialStateID?: number;
     initialPubkeyID?: number;
+    mnemonic?: string;
 }
 
 interface createStateOptions {
@@ -65,11 +72,15 @@ export class Group {
         const initialStateID = options.initialStateID || 0;
         const initialPubkeyID = options.initialPubkeyID || 0;
         const stateProvider = options.stateProvider || nullProvider;
+        const mnemonic = options.mnemonic ?? DEFAULT_MNEMONIC;
         const users: User[] = [];
         for (let i = 0; i < options.n; i++) {
+            const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${i}`);
             const stateID = initialStateID + i;
             const pubkeyID = initialPubkeyID + i;
-            users.push(User.new(stateID, pubkeyID, options.domain));
+            users.push(
+                User.new(stateID, pubkeyID, options.domain, wallet.privateKey)
+            );
         }
         return new this(users, stateProvider);
     }
@@ -79,8 +90,12 @@ export class Group {
         return this;
     }
     public setupSigners(domain: Domain) {
-        for (const user of this.users) {
-            const signer = BlsSigner.new(domain);
+        for (const [index, user] of this.users.entries()) {
+            const wallet = Wallet.fromMnemonic(
+                DEFAULT_MNEMONIC,
+                `m/44'/60'/0'/0/${index}`
+            );
+            const signer = BlsSigner.new(domain, wallet.privateKey);
             user.connect(signer);
         }
     }
