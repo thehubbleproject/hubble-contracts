@@ -14,6 +14,7 @@ const spokeLen = 4;
 export interface Tx {
     encode(prefix?: boolean): string;
     encodeOffchain(): string;
+    fee: BigNumber;
 }
 
 export interface SignableTx extends Tx {
@@ -62,11 +63,11 @@ function checkByteLength(float: Float, fieldName: string, expected: number) {
 
 export class TxTransfer implements SignableTx {
     private readonly TX_TYPE = "0x01";
-    public static rand(): TxTransfer {
+    public static rand(options?: { fee?: BigNumber }): TxTransfer {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
         const amount = float16.randInt();
-        const fee = float16.randInt();
+        const fee = options?.fee ?? float16.randInt();
         const nonce = randomNum(nonceLen);
         return new TxTransfer(sender, receiver, amount, fee, nonce, float16);
     }

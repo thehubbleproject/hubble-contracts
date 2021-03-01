@@ -1,7 +1,7 @@
-import { TxTransfer } from "../tx";
+import { Tx, TxTransfer } from "../tx";
 
 // Don't care about token and their exchange rate, just compare the numeric value of fee
-function naiveCompareFee(a: TxTransfer, b: TxTransfer) {
+function naiveCompareFee(a: Tx, b: Tx) {
     if (a.fee.lt(b.fee)) {
         return -1;
     }
@@ -11,23 +11,29 @@ function naiveCompareFee(a: TxTransfer, b: TxTransfer) {
     return 0;
 }
 
-export class TxPool {
-    private heap: TxTransfer[];
-    constructor() {
-        this.heap = [];
+export class TxPool<Item extends Tx> {
+    private queue: Item[];
+    constructor(public maxSize: Number) {
+        this.queue = [];
     }
     get size() {
-        return this.heap.length;
+        return this.queue.length;
     }
-    add(tx: TxTransfer) {
-        this.heap.push(tx);
+    add(tx: Item) {
+        this.queue.push(tx);
+        this.queue.sort(naiveCompareFee);
+        if (this.queue.length > this.maxSize) {
+            this.queue.shift();
+        }
     }
     pick(n: number) {
-        this.heap.sort(naiveCompareFee);
+        const len = Math.min(n, this.queue.length);
         const result = [];
-        for (let i = 0; i < n; i++) {
-            result.push(this.heap.pop());
+        for (let i = 0; i < len; i++) {
+            result.push(this.queue.pop());
         }
         return result;
     }
 }
+
+export class TransferPool extends TxPool<TxTransfer> {}
