@@ -20,6 +20,10 @@ export enum Usage {
     MassMigration
 }
 
+export interface Hashable {
+    hash(): string;
+}
+
 export enum Result {
     Ok,
     InvalidTokenAmount,
