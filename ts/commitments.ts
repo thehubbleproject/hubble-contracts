@@ -1,7 +1,8 @@
+import { TransactionDescription } from "@ethersproject/abi";
 import { BigNumberish, BytesLike, ethers } from "ethers";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "./constants";
-import { Wei } from "./interfaces";
+import { Usage, Wei } from "./interfaces";
 import { State } from "./state";
 import { MigrationTree, StateProvider } from "./stateTree";
 import { Tree } from "./tree";
@@ -264,9 +265,49 @@ export class Batch {
     }
 }
 
+export function batchFactory(
+    batchType: Usage,
+    txDescription: TransactionDescription,
+    accountRoot: string
+): Batch {
+    if (batchType == Usage.Transfer) {
+        return TransferBatch.fromCalldata(txDescription, accountRoot);
+    } else if (batchType == Usage.MassMigration) {
+        return MassMigrationBatch.fromCalldata(txDescription, accountRoot);
+    } else if (batchType == Usage.Create2Transfer) {
+        return MassMigrationBatch.fromCalldata(txDescription, accountRoot);
+    } else {
+        throw new Error(`Invalid or unimplemented batchType ${batchType}`);
+    }
+}
+
 export class TransferBatch extends Batch {
     constructor(public readonly commitments: TransferCommitment[]) {
         super(commitments);
+    }
+
+    static fromCalldata(
+        txDescription: TransactionDescription,
+        accountRoot: string
+    ) {
+        const {
+            stateRoots,
+            signatures,
+            feeReceivers,
+            txss
+        } = txDescription.args;
+        const commitments = [];
+        for (let i = 0; i < stateRoots.length; i++) {
+            const commitment = new TransferCommitment(
+                stateRoots[i],
+                accountRoot,
+                signatures[i],
+                feeReceivers[i],
+                txss[i]
+            );
+            commitments.push(commitment);
+        }
+        return new this(commitments);
     }
 
     async submit(rollup: Rollup, stakingAmount: Wei) {
@@ -284,6 +325,37 @@ export class MassMigrationBatch extends Batch {
     constructor(public readonly commitments: MassMigrationCommitment[]) {
         super(commitments);
     }
+
+    static fromCalldata(
+        txDescription: TransactionDescription,
+        accountRoot: string
+    ) {
+        const {
+            stateRoots,
+            signatures,
+            meta,
+            withdrawRoots,
+            txss
+        } = txDescription.args;
+        const commitments = [];
+        for (let i = 0; i < stateRoots.length; i++) {
+            const [spokeID, tokenID, amount, feeReceiver] = meta[i];
+            const commitment = new MassMigrationCommitment(
+                stateRoots[i],
+                accountRoot,
+                signatures[i],
+                spokeID,
+                withdrawRoots[i],
+                tokenID,
+                amount,
+                feeReceiver,
+                txss[i]
+            );
+            commitments.push(commitment);
+        }
+        return new this(commitments);
+    }
+
     async submit(rollup: Rollup, stakingAmount: Wei) {
         return await rollup.submitMassMigration(
             this.commitments.map(c => c.stateRoot),
@@ -304,6 +376,30 @@ export class MassMigrationBatch extends Batch {
 export class Create2TransferBatch extends Batch {
     constructor(public readonly commitments: TransferCommitment[]) {
         super(commitments);
+    }
+
+    static fromCalldata(
+        txDescription: TransactionDescription,
+        accountRoot: string
+    ) {
+        const {
+            stateRoots,
+            signatures,
+            feeReceivers,
+            txss
+        } = txDescription.args;
+        const commitments = [];
+        for (let i = 0; i < stateRoots.length; i++) {
+            const commitment = new Create2TransferCommitment(
+                stateRoots[i],
+                accountRoot,
+                signatures[i],
+                feeReceivers[i],
+                txss[i]
+            );
+            commitments.push(commitment);
+        }
+        return new this(commitments);
     }
 
     async submit(rollup: Rollup, stakingAmount: Wei) {

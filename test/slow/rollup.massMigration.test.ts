@@ -13,6 +13,7 @@ import { Result } from "../../ts/interfaces";
 import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
+import { handleNewBatch } from "../../ts/client/batchHandler";
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;
@@ -58,10 +59,7 @@ describe("Mass Migrations", async function() {
     it("submit a batch and dispute", async function() {
         const { rollup, massMigration } = contracts;
         const feeReceiver = users.getUser(0).stateID;
-        const { txs, signature, senders } = txMassMigrationFactory(
-            users,
-            spokeID
-        );
+        const { txs, signature } = txMassMigrationFactory(users, spokeID);
         const preStateRoot = stateTree.root;
         const { proofs } = stateTree.processMassMigrationCommit(
             txs,
@@ -93,13 +91,21 @@ describe("Mass Migrations", async function() {
 
         const targetBatch = commitment.toBatch();
 
-        await targetBatch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
+        const _txSubmit = await targetBatch.submit(
+            rollup,
+            TESTING_PARAMS.STAKE_AMOUNT
+        );
 
-        const batchId = Number(await rollup.nextBatchID()) - 1;
-        const batch = await rollup.getBatch(batchId);
+        const [event] = await rollup.queryFilter(
+            rollup.filters.NewBatch(null, null, null),
+            _txSubmit.blockHash
+        );
+        const parsedBatch = await handleNewBatch(event, rollup);
+
+        const batchID = event.args?.batchID;
 
         assert.equal(
-            batch.commitmentRoot,
+            parsedBatch.commitmentRoot,
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
@@ -107,7 +113,7 @@ describe("Mass Migrations", async function() {
         const commitmentMP = targetBatch.proof(0);
 
         await rollup.disputeTransitionMassMigration(
-            batchId,
+            batchID,
             previousMP,
             commitmentMP,
             proofs
