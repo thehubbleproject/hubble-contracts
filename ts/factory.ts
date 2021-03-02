@@ -206,8 +206,7 @@ export function txTransferFactory(
             receiver.stateID,
             amount,
             fee,
-            nonce,
-            float16
+            nonce
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
@@ -245,8 +244,7 @@ export function txCreate2TransferFactory(
             reciver.pubkeyID,
             amount,
             fee,
-            nonce,
-            float16
+            nonce
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));
@@ -278,8 +276,7 @@ export function txMassMigrationFactory(
             amount,
             spokeID,
             fee,
-            nonce,
-            float16
+            nonce
         );
         txs.push(tx);
         signatures.push(sender.sign(tx));

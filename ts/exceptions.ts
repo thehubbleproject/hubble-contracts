@@ -12,13 +12,6 @@ export class EncodingError extends HubbleError {
     }
 }
 
-export class MismatchByteLength extends HubbleError {
-    constructor(message?: string) {
-        super(message);
-        this.name = "MismatchByteLength";
-    }
-}
-
 export class GenesisNotSpecified extends HubbleError {
     constructor(message?: string) {
         super(message);
