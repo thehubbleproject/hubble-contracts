@@ -12,6 +12,7 @@ import { USDT } from "../../ts/decimal";
 import { hexToUint8Array } from "../../ts/utils";
 import { Group, txTransferFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
+import { handleNewBatch } from "../../ts/client/batchHandler";
 
 const DOMAIN = hexToUint8Array(
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -85,16 +86,21 @@ describe("Rollup", async function() {
             rollup,
             TESTING_PARAMS.STAKE_AMOUNT
         );
+        const _txSubmitReceipt = await _txSubmit.wait();
         console.log(
             "submitBatch execution cost",
-            (await _txSubmit.wait()).gasUsed.toNumber()
+            _txSubmitReceipt.gasUsed.toNumber()
         );
 
-        const batchId = Number(await rollup.nextBatchID()) - 1;
-        const batch = await rollup.getBatch(batchId);
+        const [event] = await rollup.queryFilter(
+            rollup.filters.NewBatch(null, null, null),
+            _txSubmit.blockHash
+        );
+        const parsedBatch = await handleNewBatch(event, rollup);
+        const batchID = event.args?.batchID;
 
         assert.equal(
-            batch.commitmentRoot,
+            parsedBatch.commitmentRoot,
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
@@ -102,7 +108,7 @@ describe("Rollup", async function() {
         const commitmentMP = targetBatch.proof(0);
 
         const _tx = await rollup.disputeTransitionTransfer(
-            batchId,
+            batchID,
             previousMP,
             commitmentMP,
             proofs

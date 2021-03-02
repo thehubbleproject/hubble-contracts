@@ -17,7 +17,9 @@ export interface DeploymentParameters {
 export enum Usage {
     Genesis,
     Transfer,
-    MassMigration
+    MassMigration,
+    Create2Transfer,
+    Deposit
 }
 
 export interface Hashable {

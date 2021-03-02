@@ -15,6 +15,7 @@ import { USDT } from "../../ts/decimal";
 import { hexToUint8Array } from "../../ts/utils";
 import { Group, txCreate2TransferFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
+import { handleNewBatch } from "../../ts/client/batchHandler";
 
 const DOMAIN = hexToUint8Array(
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -113,12 +114,16 @@ describe("Rollup Create2Transfer", async function() {
             "submitBatch execution cost",
             (await _txSubmit.wait()).gasUsed.toNumber()
         );
+        const [event] = await rollup.queryFilter(
+            rollup.filters.NewBatch(null, null, null),
+            _txSubmit.blockHash
+        );
+        const parsedBatch = await handleNewBatch(event, rollup);
 
-        const batchId = Number(await rollup.nextBatchID()) - 1;
-        const batch = await rollup.getBatch(batchId);
+        const batchID = event.args?.batchID;
 
         assert.equal(
-            batch.commitmentRoot,
+            parsedBatch.commitmentRoot,
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
@@ -126,7 +131,7 @@ describe("Rollup Create2Transfer", async function() {
         const commitmentMP = targetBatch.proof(0);
 
         const _tx = await rollup.disputeTransitionCreate2Transfer(
-            batchId,
+            batchID,
             previousMP,
             commitmentMP,
             proofs
