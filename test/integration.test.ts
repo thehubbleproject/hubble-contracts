@@ -269,7 +269,7 @@ describe("Integration Test", function() {
         );
         const batchID = await getBatchID(rollup);
         stakedBatchIDs.push(batchID);
-    }).timeout(40000);
+    }).timeout(240000);
     it("Exit via mass migration", async function() {
         const { rollup, withdrawManager } = contracts;
         // The spokeID of the withdrawManager preregistered in the deploy script
