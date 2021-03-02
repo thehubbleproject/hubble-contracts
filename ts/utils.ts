@@ -104,3 +104,7 @@ export async function expectCallRevert(
 export async function getBatchID(rollup: Rollup): Promise<number> {
     return Number(await rollup.nextBatchID()) - 1;
 }
+
+export async function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
