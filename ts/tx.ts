@@ -3,6 +3,8 @@ import { randomNum } from "./utils";
 import { float16 } from "./decimal";
 import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
+import { aggregate, SignatureInterface } from "./blsSigner";
+import { solG1 } from "./mcl";
 
 const stateIDLen = 4;
 const nonceLen = 4;
@@ -16,6 +18,7 @@ export interface Tx {
 
 export interface SignableTx extends Tx {
     message(): string;
+    signature?: SignatureInterface;
 }
 
 export interface OffchainTransfer {
@@ -50,6 +53,15 @@ export function serialize(txs: Tx[]): string {
     return hexlify(concat(txs.map(tx => tx.encode())));
 }
 
+export function getAggregateSig(txs: SignableTx[]): solG1 {
+    const signatures = [];
+    for (const tx of txs) {
+        if (!tx.signature) throw new Error(`tx has no signautre ${tx}`);
+        signatures.push(tx.signature);
+    }
+    return aggregate(signatures).sol;
+}
+
 export class TxTransfer implements SignableTx {
     private readonly TX_TYPE = "0x01";
     public static rand(options?: { fee?: BigNumber }): TxTransfer {
@@ -74,7 +86,8 @@ export class TxTransfer implements SignableTx {
         public readonly toIndex: number,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
-        public nonce: number
+        public nonce: number,
+        public signature?: SignatureInterface
     ) {}
 
     public message(): string {
@@ -152,7 +165,8 @@ export class TxMassMigration implements SignableTx {
         public readonly amount: BigNumber,
         public readonly spokeID: number,
         public readonly fee: BigNumber,
-        public nonce: number
+        public nonce: number,
+        public signature?: SignatureInterface
     ) {}
 
     public message(): string {
@@ -242,7 +256,8 @@ export class TxCreate2Transfer implements SignableTx {
         public readonly toPubkeyID: number,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
-        public nonce: number
+        public nonce: number,
+        public signature?: SignatureInterface
     ) {}
 
     public message(): string {
