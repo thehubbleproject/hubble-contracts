@@ -1,12 +1,11 @@
 import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
-import { Float, float16 } from "./decimal";
-import { MismatchByteLength } from "./exceptions";
+import { float16 } from "./decimal";
 import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
+import { aggregate, SignatureInterface } from "./blsSigner";
+import { solG1 } from "./mcl";
 
-const amountLen = 2;
-const feeLen = 2;
 const stateIDLen = 4;
 const nonceLen = 4;
 const spokeLen = 4;
@@ -19,6 +18,7 @@ export interface Tx {
 
 export interface SignableTx extends Tx {
     message(): string;
+    signature?: SignatureInterface;
 }
 
 export interface OffchainTransfer {
@@ -53,12 +53,13 @@ export function serialize(txs: Tx[]): string {
     return hexlify(concat(txs.map(tx => tx.encode())));
 }
 
-function checkByteLength(float: Float, fieldName: string, expected: number) {
-    if (float.bytesLength != expected) {
-        throw new MismatchByteLength(
-            `Deciaml: ${float.bytesLength} bytes, ${fieldName}: ${expected} bytes`
-        );
+export function getAggregateSig(txs: SignableTx[]): solG1 {
+    const signatures = [];
+    for (const tx of txs) {
+        if (!tx.signature) throw new Error(`tx has no signautre ${tx}`);
+        signatures.push(tx.signature);
     }
+    return aggregate(signatures).sol;
 }
 
 export class TxTransfer implements SignableTx {
@@ -69,7 +70,7 @@ export class TxTransfer implements SignableTx {
         const amount = float16.randInt();
         const fee = options?.fee ?? float16.randInt();
         const nonce = randomNum(nonceLen);
-        return new TxTransfer(sender, receiver, amount, fee, nonce, float16);
+        return new TxTransfer(sender, receiver, amount, fee, nonce);
     }
 
     public static buildList(n: number = COMMIT_SIZE): TxTransfer[] {
@@ -86,11 +87,8 @@ export class TxTransfer implements SignableTx {
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly float: Float
-    ) {
-        checkByteLength(float, "amount", amountLen);
-        checkByteLength(float, "fee", feeLen);
-    }
+        public signature?: SignatureInterface
+    ) {}
 
     public message(): string {
         return solidityPack(
@@ -135,8 +133,8 @@ export class TxTransfer implements SignableTx {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
-            this.float.compress(this.amount),
-            this.float.compress(this.fee)
+            float16.compress(this.amount),
+            float16.compress(this.fee)
         ]);
         return hexlify(concated);
     }
@@ -153,14 +151,7 @@ export class TxMassMigration implements SignableTx {
         const fee = float16.randInt();
         const nonce = randomNum(nonceLen);
         const spokeID = randomNum(spokeLen);
-        return new TxMassMigration(
-            sender,
-            amount,
-            spokeID,
-            fee,
-            nonce,
-            float16
-        );
+        return new TxMassMigration(sender, amount, spokeID, fee, nonce);
     }
     public static buildList(n: number = COMMIT_SIZE): TxMassMigration[] {
         const txs = [];
@@ -175,11 +166,8 @@ export class TxMassMigration implements SignableTx {
         public readonly spokeID: number,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly float: Float
-    ) {
-        checkByteLength(float, "amount", amountLen);
-        checkByteLength(float, "fee", feeLen);
-    }
+        public signature?: SignatureInterface
+    ) {}
 
     public message(): string {
         return solidityPack(
@@ -223,8 +211,8 @@ export class TxMassMigration implements SignableTx {
     public encode(): string {
         const concated = concat([
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
-            this.float.compress(this.amount),
-            this.float.compress(this.fee)
+            float16.compress(this.amount),
+            float16.compress(this.fee)
         ]);
         return hexlify(concated);
     }
@@ -250,8 +238,7 @@ export class TxCreate2Transfer implements SignableTx {
             toPubkeyID,
             amount,
             fee,
-            nonce,
-            float16
+            nonce
         );
     }
     public static buildList(n: number = COMMIT_SIZE): TxCreate2Transfer[] {
@@ -270,11 +257,8 @@ export class TxCreate2Transfer implements SignableTx {
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public readonly float: Float
-    ) {
-        checkByteLength(float, "amount", amountLen);
-        checkByteLength(float, "fee", feeLen);
-    }
+        public signature?: SignatureInterface
+    ) {}
 
     public message(): string {
         return solidityPack(
@@ -337,8 +321,8 @@ export class TxCreate2Transfer implements SignableTx {
             hexZeroPad(hexlify(this.fromIndex), stateIDLen),
             hexZeroPad(hexlify(this.toIndex), stateIDLen),
             hexZeroPad(hexlify(this.toPubkeyID), stateIDLen),
-            this.float.compress(this.amount),
-            this.float.compress(this.fee)
+            float16.compress(this.amount),
+            float16.compress(this.fee)
         ]);
         return hexlify(concated);
     }

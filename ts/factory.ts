@@ -1,10 +1,5 @@
 import { BigNumber, Wallet } from "ethers";
-import {
-    aggregate,
-    BlsSigner,
-    BlsSignerInterface,
-    nullBlsSigner
-} from "./blsSigner";
+import { BlsSigner, BlsSignerInterface, nullBlsSigner } from "./blsSigner";
 import { DEFAULT_MNEMONIC } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
@@ -15,7 +10,8 @@ import {
     TxTransfer,
     TxCreate2Transfer,
     TxMassMigration,
-    SignableTx
+    SignableTx,
+    getAggregateSig
 } from "./tx";
 
 export class User {
@@ -188,7 +184,6 @@ export function txTransferFactory(
     n: number
 ): { txs: TxTransfer[]; signature: solG1; senders: User[] } {
     const txs: TxTransfer[] = [];
-    const signatures = [];
     const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
     for (let i = 0; i < n; i++) {
@@ -206,14 +201,13 @@ export function txTransferFactory(
             receiver.stateID,
             amount,
             fee,
-            nonce,
-            float16
+            nonce
         );
+        tx.signature = sender.sign(tx);
         txs.push(tx);
-        signatures.push(sender.sign(tx));
         senders.push(sender);
     }
-    const signature = aggregate(signatures).sol;
+    const signature = getAggregateSig(txs);
     return { txs, signature, senders };
 }
 
@@ -223,7 +217,6 @@ export function txCreate2TransferFactory(
     unregistered: Group
 ): { txs: TxCreate2Transfer[]; signature: solG1; senders: User[] } {
     const txs: TxCreate2Transfer[] = [];
-    const signatures = [];
     const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
     const n = Math.max(registered.size, unregistered.size);
@@ -245,14 +238,13 @@ export function txCreate2TransferFactory(
             reciver.pubkeyID,
             amount,
             fee,
-            nonce,
-            float16
+            nonce
         );
+        tx.signature = sender.sign(tx);
         txs.push(tx);
-        signatures.push(sender.sign(tx));
         senders.push(sender);
     }
-    const signature = aggregate(signatures).sol;
+    const signature = getAggregateSig(txs);
     return { txs, signature, senders };
 }
 
@@ -261,7 +253,6 @@ export function txMassMigrationFactory(
     spokeID = 0
 ): { txs: TxMassMigration[]; signature: solG1; senders: User[] } {
     const txs: TxMassMigration[] = [];
-    const signatures = [];
     const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
     for (const sender of group.userIterator()) {
@@ -278,13 +269,12 @@ export function txMassMigrationFactory(
             amount,
             spokeID,
             fee,
-            nonce,
-            float16
+            nonce
         );
+        tx.signature = sender.sign(tx);
         txs.push(tx);
-        signatures.push(sender.sign(tx));
         senders.push(sender);
     }
-    const signature = aggregate(signatures).sol;
+    const signature = getAggregateSig(txs);
     return { txs, signature, senders };
 }
