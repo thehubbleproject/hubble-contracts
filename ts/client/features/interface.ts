@@ -55,6 +55,7 @@ export interface StateMachine {
 
 export interface Commitment {
     bodyRoot: BytesLike;
+    hash(): string;
     toSolStruct(): SolStruct;
     toCompressedStruct(): CompressedStruct;
 }
