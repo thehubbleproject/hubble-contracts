@@ -9,8 +9,9 @@ import {
 } from "ethers/lib/utils";
 import { SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
-import { sumNumber } from "../../utils";
-import { StorageManager } from "../storageEngine";
+import { sum, sumNumber } from "../../utils";
+import { processReceiver, processSender } from "../stateTransitions";
+import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
     BatchMeta,
@@ -146,12 +147,33 @@ export class TransferCommitment extends BaseCommitment {
     }
 }
 
+async function processTransfer(
+    tx: TransferCompressedTx,
+    tokenID: number,
+    engine: StateStorageEngine
+): Promise<void> {
+    await processSender(tx.fromIndex, tokenID, tx.amount, tx.fee, engine);
+    await processReceiver(tx.toIndex, tx.amount, tokenID, engine);
+}
+
 export class TransferStateMachine implements StateMachine {
     async validate(
         commitment: TransferCommitment,
         storageManager: StorageManager
     ): Promise<void> {
-        throw new Error("not implemented");
+        const txs = commitment.decompressTxs();
+
+        const feeReceiverID = Number(commitment.feeReceiver);
+        const engine = storageManager.state;
+        const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
+        for (const tx of txs) {
+            await processTransfer(tx, tokenID, engine);
+        }
+        const fees = sum(txs.map(tx => tx.fee));
+        await processReceiver(feeReceiverID, fees, tokenID, engine);
+        await engine.commit();
+        if (engine.root != commitment.stateRoot)
+            throw new Error("Validation failed");
     }
 }
 
