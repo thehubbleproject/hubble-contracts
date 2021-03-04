@@ -7,8 +7,9 @@ import {
     hexZeroPad,
     solidityPack
 } from "ethers/lib/utils";
-import { SignatureInterface } from "../../blsSigner";
+import { aggregate, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
+import { solG1 } from "../../mcl";
 import { sum, sumNumber } from "../../utils";
 import { processReceiver, processSender } from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
@@ -21,7 +22,8 @@ import {
     CompressedTx,
     OffchainTx,
     StateIDLen,
-    FloatLength
+    FloatLength,
+    ProtocolParams
 } from "./interface";
 
 export class TransferCompressedTx implements CompressedTx {
@@ -108,15 +110,46 @@ export class TransferOffchainTx extends TransferCompressedTx
         return `<Transfer ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
     }
 }
+
+export function getAggregateSig(txs: OffchainTx[]): solG1 {
+    const signatures = [];
+    for (const tx of txs) {
+        if (!tx.signature) throw new Error(`tx has no signautre ${tx}`);
+        signatures.push(tx.signature);
+    }
+    return aggregate(signatures).sol;
+}
+
+export function compress(txs: OffchainTx[]): string {
+    return hexlify(concat(txs.map(tx => tx.toCompressed().serialize())));
+}
+
 export class TransferCommitment extends BaseCommitment {
     constructor(
         public stateRoot: BytesLike,
         public accountRoot: BytesLike,
-        public signature: BigNumberish[],
+        public signature: solG1,
         public feeReceiver: BigNumberish,
         public txs: BytesLike
     ) {
         super(stateRoot);
+    }
+
+    static fromTxs(
+        txs: TransferOffchainTx[],
+        stateRoot: BytesLike,
+        accountRoot: BytesLike,
+        feeReceiver: BigNumberish
+    ) {
+        const signature = getAggregateSig(txs);
+        const compressedTx = compress(txs);
+        return new this(
+            stateRoot,
+            accountRoot,
+            signature,
+            feeReceiver,
+            compressedTx
+        );
     }
 
     public toSolStruct(): SolStruct {
@@ -156,7 +189,13 @@ async function processTransfer(
     await processReceiver(tx.toIndex, tx.amount, tokenID, engine);
 }
 
+export interface TransferPackingContext {
+    tokenID: number;
+    feeReceiverID: number;
+}
+
 export class TransferStateMachine implements StateMachine {
+    constructor(public readonly params: ProtocolParams) {}
     async validate(
         commitment: TransferCommitment,
         storageManager: StorageManager
@@ -166,6 +205,8 @@ export class TransferStateMachine implements StateMachine {
         const feeReceiverID = Number(commitment.feeReceiver);
         const engine = storageManager.state;
         const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
+        if (txs.length > this.params.maxTxPerCommitment)
+            throw new Error("Too many tx");
         for (const tx of txs) {
             await processTransfer(tx, tokenID, engine);
         }
@@ -174,6 +215,38 @@ export class TransferStateMachine implements StateMachine {
         await engine.commit();
         if (engine.root != commitment.stateRoot)
             throw new Error("Validation failed");
+    }
+    async pack(
+        source: Generator<TransferOffchainTx>,
+        storageManager: StorageManager,
+        context: TransferPackingContext
+    ): Promise<TransferCommitment> {
+        const engine = storageManager.state;
+        const acceptedTxs = [];
+
+        for (const tx of source) {
+            if (acceptedTxs.length >= this.params.maxTxPerCommitment) break;
+            try {
+                await processTransfer(tx, context.tokenID, engine);
+                acceptedTxs.push(tx);
+            } catch (e) {
+                console.error(`bad tx ${tx}  ${e}`);
+            }
+        }
+        const fees = sum(acceptedTxs.map(tx => tx.fee));
+        await processReceiver(
+            context.feeReceiverID,
+            fees,
+            context.tokenID,
+            engine
+        );
+        await engine.commit();
+        return TransferCommitment.fromTxs(
+            acceptedTxs,
+            engine.root,
+            storageManager.pubkey.root,
+            context.feeReceiverID
+        );
     }
 }
 
@@ -199,7 +272,7 @@ export class TransferFeature implements Feature {
         return new ConcreteBatch(commitments);
     }
 
-    getStateMachine() {
-        return new TransferStateMachine();
+    getStateMachine(params: ProtocolParams) {
+        return new TransferStateMachine(params);
     }
 }

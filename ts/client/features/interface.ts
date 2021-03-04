@@ -42,6 +42,10 @@ export interface OffchainTx extends CompressedTx {
     signature: SignatureInterface;
 }
 
+export interface ProtocolParams {
+    maxTxPerCommitment: number;
+}
+
 export interface StateMachine {
     validate(
         commitment: Commitment,
@@ -68,5 +72,5 @@ export interface Feature {
         txDescription: TransactionDescription,
         batchMeta: BatchMeta
     ): Batch;
-    getStateMachine(): StateMachine;
+    getStateMachine(params: ProtocolParams): StateMachine;
 }
