@@ -1,9 +1,110 @@
 import { TransactionDescription } from "@ethersproject/abi";
-import { BigNumberish, BytesLike } from "ethers";
+import { BigNumber, BigNumberish, BytesLike } from "ethers";
+import {
+    arrayify,
+    concat,
+    hexlify,
+    hexZeroPad,
+    solidityPack
+} from "ethers/lib/utils";
+import { SignatureInterface } from "../../blsSigner";
+import { float16 } from "../../decimal";
 import { StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
-import { BatchMeta, Feature, SolStruct, StateMachine } from "./interface";
+import {
+    BatchMeta,
+    Feature,
+    SolStruct,
+    StateMachine,
+    CompressedTx,
+    OffchainTx,
+    StateIDLen,
+    FloatLength
+} from "./interface";
 
+export class TransferCompressedTx implements CompressedTx {
+    public readonly txType = "0x01";
+    constructor(
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
+        public readonly amount: BigNumber,
+        public readonly fee: BigNumber
+    ) {}
+
+    serialize(): string {
+        const concated = concat([
+            hexZeroPad(hexlify(this.fromIndex), StateIDLen),
+            hexZeroPad(hexlify(this.toIndex), StateIDLen),
+            float16.compress(this.amount),
+            float16.compress(this.fee)
+        ]);
+        return hexlify(concated);
+    }
+    static deserialize(bytes: BytesLike) {
+        const bytesArray = arrayify(bytes);
+        let position = 0;
+        const fromIndex = BigNumber.from(
+            bytesArray.slice(position, position + StateIDLen)
+        ).toNumber();
+        position += StateIDLen;
+        const toIndex = BigNumber.from(
+            bytesArray.slice(position, position + StateIDLen)
+        ).toNumber();
+        position += StateIDLen;
+        const amount = float16.decompress(
+            bytesArray.slice(position, position + FloatLength)
+        );
+        position += FloatLength;
+        const fee = float16.decompress(
+            bytesArray.slice(position, position + FloatLength)
+        );
+        return new this(fromIndex, toIndex, amount, fee);
+    }
+
+    message(nonce: number): string {
+        return solidityPack(
+            ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
+            [
+                this.txType,
+                this.fromIndex,
+                this.toIndex,
+                nonce,
+                this.amount,
+                this.fee
+            ]
+        );
+    }
+}
+export class TransferOffchainTx extends TransferCompressedTx
+    implements OffchainTx {
+    constructor(
+        public readonly fromIndex: number,
+        public readonly toIndex: number,
+        public readonly amount: BigNumber,
+        public readonly fee: BigNumber,
+        public nonce: number,
+        public signature: SignatureInterface
+    ) {
+        super(fromIndex, toIndex, amount, fee);
+    }
+
+    toCompressed() {
+        return new TransferCompressedTx(
+            this.fromIndex,
+            this.toIndex,
+            this.amount,
+            this.fee
+        );
+    }
+
+    public message(): string {
+        return this.toCompressed().message(this.nonce);
+    }
+
+    public toString(): string {
+        return `<Transfer ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
+    }
+}
 export class TransferCommitment extends BaseCommitment {
     constructor(
         public stateRoot: BytesLike,
@@ -33,7 +134,7 @@ export class TransferCommitment extends BaseCommitment {
 }
 
 export class TransferStateMachine implements StateMachine {
-    async apply(
+    async validate(
         commitment: TransferCommitment,
         storageManager: StorageManager
     ): Promise<void> {

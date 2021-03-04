@@ -1,5 +1,6 @@
 import { TransactionDescription } from "@ethersproject/abi";
-import { BytesLike } from "ethers";
+import { BigNumber, BytesLike } from "ethers";
+import { SignatureInterface } from "../../blsSigner";
 import { StorageManager } from "../storageEngine";
 
 export interface CompressedStruct {
@@ -23,8 +24,26 @@ export interface XCommitmentInclusionProof {
     witness: string[];
 }
 
+export const StateIDLen = 4;
+export const FloatLength = 2;
+
+export interface CompressedTx {
+    txType: string;
+    serialize(): string;
+    message(nonce: number): string;
+}
+
+export interface OffchainTx extends CompressedTx {
+    txType: string;
+    toCompressed(): CompressedTx;
+    message(): string;
+    fee: BigNumber;
+    nonce: number;
+    signature: SignatureInterface;
+}
+
 export interface StateMachine {
-    apply(
+    validate(
         commitment: Commitment,
         storageManager: StorageManager
     ): Promise<void>;
