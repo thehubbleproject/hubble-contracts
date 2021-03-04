@@ -39,7 +39,7 @@ export interface OffchainTx extends CompressedTx {
     message(): string;
     fee: BigNumber;
     nonce: number;
-    signature: SignatureInterface;
+    signature?: SignatureInterface;
 }
 
 export interface ProtocolParams {

@@ -7,8 +7,10 @@ import {
     hexZeroPad,
     solidityPack
 } from "ethers/lib/utils";
+import { group } from "node:console";
 import { aggregate, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
+import { Group } from "../../factory";
 import { solG1 } from "../../mcl";
 import { sum, sumNumber } from "../../utils";
 import { processReceiver, processSender } from "../stateTransitions";
@@ -88,7 +90,7 @@ export class TransferOffchainTx extends TransferCompressedTx
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
-        public signature: SignatureInterface
+        public signature?: SignatureInterface
     ) {
         super(fromIndex, toIndex, amount, fee);
     }
@@ -217,14 +219,14 @@ export class TransferStateMachine implements StateMachine {
             throw new Error("Validation failed");
     }
     async pack(
-        source: Generator<TransferOffchainTx>,
+        source: AsyncGenerator<TransferOffchainTx>,
         storageManager: StorageManager,
         context: TransferPackingContext
     ): Promise<TransferCommitment> {
         const engine = storageManager.state;
         const acceptedTxs = [];
 
-        for (const tx of source) {
+        for await (const tx of source) {
             if (acceptedTxs.length >= this.params.maxTxPerCommitment) break;
             try {
                 await processTransfer(tx, context.tokenID, engine);
@@ -247,6 +249,32 @@ export class TransferStateMachine implements StateMachine {
             storageManager.pubkey.root,
             context.feeReceiverID
         );
+    }
+}
+
+export class OffchainTransferFactory {
+    constructor(
+        public readonly group: Group,
+        public readonly engine: StateStorageEngine
+    ) {}
+    async *genTx(): AsyncGenerator<TransferOffchainTx> {
+        while (true) {
+            for (const sender of this.group.userIterator()) {
+                const { user: receiver } = this.group.pickRandom();
+                const senderState = await this.engine.get(sender.stateID);
+                const amount = float16.round(senderState.balance.div(10));
+                const fee = float16.round(amount.div(10));
+                const tx = new TransferOffchainTx(
+                    sender.stateID,
+                    receiver.stateID,
+                    amount,
+                    fee,
+                    senderState.nonce
+                );
+                tx.signature = sender.signRaw(tx.message());
+                yield tx;
+            }
+        }
     }
 }
 
