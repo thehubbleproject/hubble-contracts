@@ -9,6 +9,7 @@ import {
 } from "ethers/lib/utils";
 import { SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
+import { sumNumber } from "../../utils";
 import { StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
@@ -24,6 +25,12 @@ import {
 
 export class TransferCompressedTx implements CompressedTx {
     public readonly txType = "0x01";
+    static readonly byteLengths = [
+        StateIDLen,
+        StateIDLen,
+        FloatLength,
+        FloatLength
+    ];
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
@@ -40,24 +47,19 @@ export class TransferCompressedTx implements CompressedTx {
         ]);
         return hexlify(concated);
     }
-    static deserialize(bytes: BytesLike) {
-        const bytesArray = arrayify(bytes);
+    static deserialize(bytes: Uint8Array) {
         let position = 0;
-        const fromIndex = BigNumber.from(
-            bytesArray.slice(position, position + StateIDLen)
-        ).toNumber();
-        position += StateIDLen;
-        const toIndex = BigNumber.from(
-            bytesArray.slice(position, position + StateIDLen)
-        ).toNumber();
-        position += StateIDLen;
-        const amount = float16.decompress(
-            bytesArray.slice(position, position + FloatLength)
-        );
-        position += FloatLength;
-        const fee = float16.decompress(
-            bytesArray.slice(position, position + FloatLength)
-        );
+        let bytesArray: Uint8Array[] = [];
+        const sum = sumNumber(this.byteLengths);
+        if (bytes.length != sum) throw new Error("invalid bytes");
+        for (const len of this.byteLengths) {
+            bytesArray.push(bytes.slice(position, position + len));
+            position += len;
+        }
+        const fromIndex = BigNumber.from(bytesArray[0]).toNumber();
+        const toIndex = BigNumber.from(bytesArray[1]).toNumber();
+        const amount = float16.decompress(bytesArray[2]);
+        const fee = float16.decompress(bytesArray[3]);
         return new this(fromIndex, toIndex, amount, fee);
     }
 
@@ -126,6 +128,17 @@ export class TransferCommitment extends BaseCommitment {
                 txs: this.txs
             }
         };
+    }
+    public decompressTxs(): TransferCompressedTx[] {
+        const bytes = arrayify(this.txs);
+        const txLen = sumNumber(TransferCompressedTx.byteLengths);
+        if (bytes.length % txLen != 0) throw new Error("invalid bytes");
+        let txs = [];
+        for (let i = 0; i < bytes.length; i += txLen) {
+            const tx = TransferCompressedTx.deserialize(bytes.slice(i, txLen));
+            txs.push(tx);
+        }
+        return txs;
     }
 
     get bodyRoot(): string {
