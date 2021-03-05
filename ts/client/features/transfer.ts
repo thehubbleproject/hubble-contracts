@@ -7,7 +7,6 @@ import {
     hexZeroPad,
     solidityPack
 } from "ethers/lib/utils";
-import { group } from "node:console";
 import { aggregate, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
 import { Group } from "../../factory";
