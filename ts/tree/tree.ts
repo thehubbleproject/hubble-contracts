@@ -22,12 +22,28 @@ export type Witness = {
     depth?: number;
 };
 
+export class JsArrayTree {
+    private readonly tree: Array<Level> = [];
+    constructor(depth: number) {
+        this.tree = [];
+        for (let i = 0; i < depth + 1; i++) {
+            this.tree.push({});
+        }
+    }
+    get(level: number, index: number) {
+        return this.tree[level][index];
+    }
+    update(level: number, index: number, node: Node) {
+        this.tree[level][index] = node;
+    }
+}
+
 export class Tree {
     public readonly zeros: Array<Node>;
     public readonly depth: number;
     public readonly setSize: number;
     public readonly hasher: Hasher;
-    private readonly tree: Array<Level> = [];
+    private readonly tree: JsArrayTree;
 
     public static new(depth: number, hasher?: Hasher): Tree {
         return new Tree(depth, hasher || Hasher.new());
@@ -45,20 +61,17 @@ export class Tree {
     constructor(depth: number, hasher: Hasher) {
         this.depth = depth;
         this.setSize = 2 ** this.depth;
-        this.tree = [];
-        for (let i = 0; i < depth + 1; i++) {
-            this.tree.push({});
-        }
+        this.tree = new JsArrayTree(depth);
         this.hasher = hasher;
         this.zeros = this.hasher.zeros(depth);
     }
 
     get root(): Node {
-        return this.tree[0][0] || this.zeros[0];
+        return this.tree.get(0, 0) || this.zeros[0];
     }
 
     public getNode(level: number, index: number): Node {
-        return this.tree[level][index] || this.zeros[level];
+        return this.tree.get(level, index) || this.zeros[level];
     }
 
     // witnessForBatch given merging subtree offset and depth constructs a witness
@@ -140,14 +153,14 @@ export class Tree {
     // insertSingle updates tree with a single raw data at given index
     public insertSingle(leafIndex: number, data: Data) {
         this.checkSetSize(leafIndex);
-        this.tree[this.depth][leafIndex] = this.hasher.toLeaf(data);
+        this.tree.update(this.depth, leafIndex, this.hasher.toLeaf(data));
         this.ascend(leafIndex, 1);
     }
 
     // updateSingle updates tree with a leaf at given index
     public updateSingle(leafIndex: number, leaf: Node) {
         this.checkSetSize(leafIndex);
-        this.tree[this.depth][leafIndex] = leaf;
+        this.tree.update(this.depth, leafIndex, leaf);
         this.ascend(leafIndex, 1);
     }
 
@@ -158,7 +171,11 @@ export class Tree {
         const lastIndex = len + offset - 1;
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
-            this.tree[this.depth][offset + i] = this.hasher.toLeaf(data[i]);
+            this.tree.update(
+                this.depth,
+                offset + i,
+                this.hasher.toLeaf(data[i])
+            );
         }
         this.ascend(offset, len);
     }
@@ -170,7 +187,7 @@ export class Tree {
         const lastIndex = len + offset - 1;
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
-            this.tree[this.depth][offset + i] = leaves[i];
+            this.tree.update(this.depth, offset + i, leaves[i]);
         }
         this.ascend(offset, len);
     }
@@ -198,7 +215,7 @@ export class Tree {
 
     private updateCouple(level: number, leafIndex: number) {
         const n = this.hashCouple(level, leafIndex);
-        this.tree[level - 1][leafIndex >> 1] = n;
+        this.tree.update(level - 1, leafIndex >> 1, n);
     }
 
     private hashCouple(level: number, leafIndex: number) {
