@@ -170,7 +170,9 @@ export class TransferCommitment extends BaseCommitment {
         if (bytes.length % txLen != 0) throw new Error("invalid bytes");
         let txs = [];
         for (let i = 0; i < bytes.length; i += txLen) {
-            const tx = TransferCompressedTx.deserialize(bytes.slice(i, txLen));
+            const tx = TransferCompressedTx.deserialize(
+                bytes.slice(i, i + txLen)
+            );
             txs.push(tx);
         }
         return txs;
@@ -205,6 +207,7 @@ export class TransferStateMachine implements StateMachine {
 
         const feeReceiverID = Number(commitment.feeReceiver);
         const engine = storageManager.state;
+        console.log("preroot", engine.root);
         const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
         if (txs.length > this.params.maxTxPerCommitment)
             throw new Error("Too many tx");
@@ -215,7 +218,9 @@ export class TransferStateMachine implements StateMachine {
         await processReceiver(feeReceiverID, fees, tokenID, engine);
         await engine.commit();
         if (engine.root != commitment.stateRoot)
-            throw new Error("Validation failed");
+            throw new Error(
+                `Validation failed  expect ${engine.root} got ${commitment.stateRoot}`
+            );
     }
     async pack(
         source: AsyncGenerator<TransferOffchainTx>,

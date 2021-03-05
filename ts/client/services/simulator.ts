@@ -28,6 +28,12 @@ export class Simulator {
             this.storageManager,
             { tokenID: 1, feeReceiverID: 0 }
         );
+        try {
+            await this.stateMachine.validate(commitment, this.storageManager);
+        } catch (e) {
+            console.error(e);
+        }
+
         console.log(commitment);
     }
 
