@@ -23,6 +23,11 @@ export function sum(xs: BigNumber[]): BigNumber {
     return xs.reduce((a, b) => a.add(b));
 }
 
+export function sumNumber(xs: number[]): number {
+    if (xs.length == 0) return 0;
+    return xs.reduce((a, b) => a + b);
+}
+
 export function to32Hex(n: BigNumber): string {
     return hexZeroPad(n.toHexString(), 32);
 }

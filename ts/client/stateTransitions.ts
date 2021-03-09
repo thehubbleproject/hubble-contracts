@@ -17,12 +17,11 @@ function applyReceiver(receiver: State, increment: BigNumber): State {
     return state;
 }
 
-async function processSender(
+export async function processSender(
     senderID: number,
     tokenID: number,
     amount: BigNumber,
     fee: BigNumber,
-    nonce: number,
     engine: StateStorageEngine
 ): Promise<void> {
     const state = await engine.get(senderID);
@@ -36,15 +35,12 @@ async function processSender(
         throw new WrongTokenID(
             `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
         );
-    if (state.nonce != nonce) {
-        throw new Error(`Bad nonce state: ${state.nonce}  tx: ${nonce}`);
-    }
 
     const postState = applySender(state, decrement);
     await engine.update(senderID, postState);
 }
 
-async function processReceiver(
+export async function processReceiver(
     receiverID: number,
     increment: BigNumber,
     tokenID: number,
@@ -64,14 +60,7 @@ async function processTransfer(
     tokenID: number,
     engine: StateStorageEngine
 ): Promise<void> {
-    await processSender(
-        tx.fromIndex,
-        tokenID,
-        tx.amount,
-        tx.fee,
-        tx.nonce,
-        engine
-    );
+    await processSender(tx.fromIndex, tokenID, tx.amount, tx.fee, engine);
     await processReceiver(tx.toIndex, tx.amount, tokenID, engine);
 }
 
