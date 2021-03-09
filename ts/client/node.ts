@@ -4,6 +4,7 @@ import { Group } from "../factory";
 import { Pubkey } from "../pubkey";
 import { State } from "../state";
 import { randHex } from "../utils";
+import fs from "fs";
 import { Simulator } from "./services/simulator";
 import {
     PubkeyMemoryEngine,
@@ -11,11 +12,38 @@ import {
     StorageManager
 } from "./storageEngine";
 import * as mcl from "../../ts/mcl";
+import { BigNumber } from "@ethersproject/bignumber";
+import { BurnAuctionService } from "./services/burnAuction";
+import { ethers } from "ethers";
+import { parseGenesis } from "../hubble";
+
+interface ClientConfigs {
+    willingnessToBid: BigNumber;
+    providerUrl: string;
+    genesisPath: string;
+}
 
 export class HubbleNode {
-    constructor(private simulator: Simulator) {}
+    constructor(
+        private simulator: Simulator,
+        public burnAuction?: BurnAuctionService
+    ) {}
     public static async init() {
         await mcl.init();
+        const config: ClientConfigs = {
+            willingnessToBid: BigNumber.from(1),
+            providerUrl: "http://localhost:8545",
+            genesisPath: "./genesis.json"
+        };
+
+        const genesis = fs.readFileSync(config.genesisPath).toString();
+        const { parameters, addresses } = JSON.parse(genesis);
+        const provider = new ethers.providers.JsonRpcProvider(
+            config.providerUrl
+        );
+        const signer = provider.getSigner();
+        const contracts = parseGenesis(parameters, addresses, signer);
+
         const stateStorage = new StateMemoryEngine(32);
         const pubkeyStorage = new PubkeyMemoryEngine(32);
         const storageManager: StorageManager = {
@@ -39,12 +67,19 @@ export class HubbleNode {
         }
         await stateStorage.commit();
         await pubkeyStorage.commit();
+
         const simulator = new Simulator(storageManager, group);
+        const burnAuctionService = await BurnAuctionService.new(
+            config.willingnessToBid,
+            contracts.burnAuction
+        );
         simulator.start();
-        return new this(simulator);
+        burnAuctionService.start();
+        return new this(simulator, burnAuctionService);
     }
     async close() {
         console.log("Node start closing");
         this.simulator.stop();
+        this.burnAuction?.stop();
     }
 }
