@@ -24,7 +24,7 @@ import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
 
-function parseGenesis(
+export function parseGenesis(
     parameters: DeploymentParameters,
     addresses: { [key: string]: string },
     signer: Signer
