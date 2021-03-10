@@ -13,6 +13,7 @@ import { TestDepositCoreFactory } from "../../types/ethers-contracts/TestDeposit
 import { TransferCommitment } from "../../ts/commitments";
 import { StateTree } from "../../ts/stateTree";
 import { ERC20ValueFactory } from "../../ts/decimal";
+import { DepositPool } from "../../ts/client/features/deposit";
 
 describe("Deposit Core", async function() {
     let contract: TestDepositCore;
@@ -87,6 +88,9 @@ describe("DepositManager", async function() {
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
         const { depositManager } = contracts;
+        const pool = new DepositPool(
+            Number(await depositManager.paramMaxSubtreeSize())
+        );
         const amount = erc20.fromHumanValue("10");
         const deposit0 = State.new(0, tokenID, amount.l2Value, 0);
         const deposit1 = State.new(1, tokenID, amount.l2Value, 0);
@@ -112,6 +116,7 @@ describe("DepositManager", async function() {
 
         assert.equal(event0.args?.pubkeyID.toNumber(), 0);
         assert.equal(event0.args?.data, deposit0.encode());
+        pool.pushDeposit(event0.args?.data);
 
         const txDeposit1 = await depositManager.depositFor(
             1,
@@ -129,12 +134,16 @@ describe("DepositManager", async function() {
 
         assert.equal(event1.args?.pubkeyID.toNumber(), 1);
         assert.equal(event1.args?.data, deposit1.encode());
+        pool.pushDeposit(event1.args?.data);
 
         const [eventReady] = await depositManager.queryFilter(
             depositManager.filters.DepositSubTreeReady(null, null),
             txDeposit1.blockHash
         );
-        assert.equal(eventReady.args?.subtreeRoot, pendingDeposit);
+        const subtreeRoot = eventReady.args?.subtreeRoot;
+        assert.equal(subtreeRoot, pendingDeposit);
+        const { root } = pool.popDepositSubtree();
+        assert.equal(root, subtreeRoot);
     });
 
     it("submit a deposit Batch to rollup", async function() {

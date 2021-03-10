@@ -1,5 +1,5 @@
 import { BigNumber, BigNumberish, ethers } from "ethers";
-import { solidityPack } from "ethers/lib/utils";
+import { BytesLike, solidityPack } from "ethers/lib/utils";
 import { Hashable } from "./interfaces";
 
 export class State implements Hashable {
@@ -10,6 +10,19 @@ export class State implements Hashable {
         nonce: number
     ): State {
         return new State(pubkeyID, tokenID, BigNumber.from(balance), nonce);
+    }
+
+    static fromEncoded(data: BytesLike) {
+        const [
+            pubkeyID,
+            tokenID,
+            balance,
+            nonce
+        ] = ethers.utils.defaultAbiCoder.decode(
+            ["uint256", "uint256", "uint256", "uint256"],
+            data
+        );
+        return new this(pubkeyID, tokenID, balance, nonce);
     }
 
     public clone() {
