@@ -1,6 +1,11 @@
 import { BytesLike } from "@ethersproject/bytes";
+import { Event } from "ethers";
+import { Rollup } from "../../../types/ethers-contracts/Rollup";
+import { ZERO_BYTES32 } from "../../constants";
 import { State } from "../../state";
 import { Tree } from "../../tree";
+import { computeRoot } from "../../utils";
+import { BaseCommitment, ConcreteBatch } from "./base";
 
 interface Subtree {
     root: string;
@@ -34,4 +39,42 @@ export class DepositPool {
         if (!subtree) throw new Error("no subtre available");
         return subtree;
     }
+}
+
+export class DepositCommitment extends BaseCommitment {
+    constructor(public stateRoot: BytesLike) {
+        super(stateRoot);
+    }
+
+    get bodyRoot() {
+        return ZERO_BYTES32;
+    }
+
+    public toSolStruct() {
+        return { stateRoot: this.stateRoot, body: {} };
+    }
+}
+
+export async function handleNewBatch(
+    event: Event,
+    rollup: Rollup
+): Promise<ConcreteBatch> {
+    const ethTx = await event.getTransaction();
+    const data = ethTx?.data as string;
+    const receipt = await event.getTransactionReceipt();
+    const logs = receipt.logs.map(log => rollup.interface.parseLog(log));
+    const depositsFinalisedLog = logs.filter(
+        log => log.signature == "DepositsFinalised(uint256,bytes32,uint256)"
+    )[0];
+    const txDescription = rollup.interface.parseTransaction({ data });
+    const depositSubtreeRoot = depositsFinalisedLog.args?.depositSubTreeRoot;
+    const { vacant } = txDescription.args;
+
+    const stateRoot = computeRoot(
+        depositSubtreeRoot,
+        vacant.pathAtDepth,
+        vacant.witness
+    );
+    const commitment = new DepositCommitment(stateRoot);
+    return new ConcreteBatch([commitment]);
 }
