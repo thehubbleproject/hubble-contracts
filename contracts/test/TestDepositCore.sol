@@ -4,9 +4,7 @@ pragma experimental ABIEncoderV2;
 import { DepositCore } from "../DepositManager.sol";
 
 contract TestDepositCore is DepositCore {
-    constructor(uint256 maxSubtreeDepth) public {
-        paramMaxSubtreeSize = 1 << maxSubtreeDepth;
-    }
+    constructor(uint256 maxSubtreeDepth) public DepositCore(maxSubtreeDepth) {}
 
     function testInsertAndMerge(bytes32 depositLeaf)
         external
