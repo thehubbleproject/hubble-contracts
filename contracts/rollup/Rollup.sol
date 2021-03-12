@@ -29,7 +29,7 @@ contract Rollup is BatchManager {
         public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     uint256 public immutable paramMaxTxsPerCommit;
-    bytes32 public immutable ZERO_HASH_AT_SUBTREE_DEPTH;
+    bytes32 public immutable zeroHashAtSubtreeDepth;
     bytes32 public immutable appID;
 
     event DepositsFinalised(
@@ -66,7 +66,7 @@ contract Rollup is BatchManager {
         create2Transfer = _create2Transfer;
 
         paramMaxTxsPerCommit = maxTxsPerCommit;
-        ZERO_HASH_AT_SUBTREE_DEPTH = MerkleTree.getRoot(
+        zeroHashAtSubtreeDepth = MerkleTree.getRoot(
             _depositManager.paramMaxSubtreeDepth()
         );
 
@@ -283,7 +283,7 @@ contract Rollup is BatchManager {
         require(
             MerkleTree.verify(
                 previous.commitment.stateRoot,
-                ZERO_HASH_AT_SUBTREE_DEPTH,
+                zeroHashAtSubtreeDepth,
                 vacant.pathAtDepth,
                 vacant.witness
             ),
