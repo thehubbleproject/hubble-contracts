@@ -54,7 +54,11 @@ contract DepositCore is SubtreeQueue {
 
     uint256 public depositCount = 0;
 
-    uint256 public paramMaxSubtreeSize = 2;
+    uint256 public immutable paramMaxSubtreeSize;
+
+    constructor(uint256 maxSubtreeDepth) public {
+        paramMaxSubtreeSize = 1 << maxSubtreeDepth;
+    }
 
     function insertAndMerge(bytes32 depositLeaf) internal {
         depositCount++;
@@ -105,10 +109,9 @@ contract DepositManager is DepositCore, IDepositManager {
         ITokenRegistry _tokenRegistry,
         address _vault,
         uint256 maxSubtreeDepth
-    ) public {
+    ) public DepositCore(maxSubtreeDepth) {
         tokenRegistry = _tokenRegistry;
         vault = _vault;
-        paramMaxSubtreeSize = 1 << maxSubtreeDepth;
     }
 
     function setRollupAddress(address _rollup) public {
