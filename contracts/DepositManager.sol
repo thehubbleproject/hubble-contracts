@@ -11,6 +11,8 @@ interface IDepositManager {
     event DepositQueued(uint256 pubkeyID, bytes data);
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
+    function paramMaxSubtreeDepth() external returns (uint256);
+
     function dequeueToSubmit()
         external
         returns (uint256 subtreeID, bytes32 subtreeRoot);
@@ -91,6 +93,8 @@ contract DepositCore is SubtreeQueue {
 contract DepositManager is DepositCore, IDepositManager {
     using Types for Types.UserState;
     using SafeERC20 for IERC20;
+
+    uint256 public immutable override paramMaxSubtreeDepth;
     address public immutable vault;
     // Can't be immutable yet. Since the rollup is deployed after DepositManager
     address public rollup;
@@ -110,6 +114,7 @@ contract DepositManager is DepositCore, IDepositManager {
         address _vault,
         uint256 maxSubtreeDepth
     ) public DepositCore(maxSubtreeDepth) {
+        paramMaxSubtreeDepth = maxSubtreeDepth;
         tokenRegistry = _tokenRegistry;
         vault = _vault;
     }
