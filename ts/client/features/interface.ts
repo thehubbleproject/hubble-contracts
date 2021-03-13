@@ -1,6 +1,8 @@
 import { TransactionDescription } from "@ethersproject/abi";
-import { BigNumber, BytesLike } from "ethers";
+import { BigNumber, BytesLike, Event } from "ethers";
+import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { SignatureInterface } from "../../blsSigner";
+import { DeploymentParameters } from "../../interfaces";
 import { StorageManager } from "../storageEngine";
 
 export interface CompressedStruct {
@@ -54,6 +56,7 @@ export interface StateMachine {
 }
 
 export interface Commitment {
+    stateRoot: BytesLike;
     bodyRoot: BytesLike;
     hash(): string;
     toSolStruct(): SolStruct;
@@ -74,4 +77,13 @@ export interface Feature {
         batchMeta: BatchMeta
     ): Batch;
     getStateMachine(params: ProtocolParams): StateMachine;
+}
+
+export interface BatchHandlingStrategy {
+    parseBatch(event: Event): Promise<Batch>;
+    processBatch(batch: Batch): Promise<void>;
+}
+
+export interface BatchPackingStrategy {
+    pack(): Promise<void>;
 }

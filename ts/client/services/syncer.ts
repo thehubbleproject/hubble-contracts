@@ -1,6 +1,9 @@
 import { Event, EventFilter } from "@ethersproject/contracts";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
+import { Usage } from "../../interfaces";
 import { handleNewBatch } from "../batchHandler";
+import { BatchHandlingContext } from "../contexts";
+import { BatchHandlingStrategy } from "../features/interface";
 
 enum SyncMode {
     INITIAL_SYNCING,
@@ -10,10 +13,16 @@ enum SyncMode {
 export class SyncerService {
     private mode: SyncMode;
     private newBatchFilter: EventFilter;
+    private batchHandlingContext: BatchHandlingContext;
 
-    constructor(private readonly rollup: Rollup, private genesisBlock: number) {
+    constructor(
+        private readonly rollup: Rollup,
+        private genesisBlock: number,
+        private strategies: { [key: string]: BatchHandlingStrategy }
+    ) {
         this.mode = SyncMode.INITIAL_SYNCING;
         this.newBatchFilter = this.rollup.filters.NewBatch(null, null, null);
+        this.batchHandlingContext = new BatchHandlingContext();
     }
 
     getMode() {
@@ -50,8 +59,10 @@ export class SyncerService {
         batchType: null,
         event: Event
     ) => {
-        const batch = await handleNewBatch(event, this.rollup);
-        // Run state transition on that batch
+        const usage = event.args?.batchType as Usage;
+        this.batchHandlingContext.setStrategy(this.strategies[usage]);
+        const batch = await this.batchHandlingContext.parseBatch(event);
+        await this.batchHandlingContext.processBatch(batch);
     };
 
     stop() {

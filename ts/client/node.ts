@@ -7,6 +7,10 @@ import { BurnAuctionService } from "./services/burnAuction";
 import { ethers } from "ethers";
 import { SyncerService } from "./services/syncer";
 import { Genesis } from "../genesis";
+import { TransferHandlingStrategy } from "./features/transfer";
+import { DepositHandlingStrategy, DepositPool } from "./features/deposit";
+import { Usage } from "../interfaces";
+import { BatchHandlingStrategy } from "./features/interface";
 
 interface ClientConfigs {
     willingnessToBid: BigNumber;
@@ -39,6 +43,26 @@ export class HubbleNode {
         const storageManager = await storageManagerFactory(group, {
             stateTreeDepth: parameters.MAX_DEPTH
         });
+        const { rollup } = contracts;
+
+        const depositPool = new DepositPool(
+            parameters.MAX_DEPOSIT_SUBTREE_DEPTH
+        );
+
+        const transferStrategy = new TransferHandlingStrategy(
+            rollup,
+            storageManager,
+            parameters
+        );
+        const depositStrategy = new DepositHandlingStrategy(
+            rollup,
+            storageManager,
+            parameters,
+            depositPool
+        );
+        const strategies: { [key: string]: BatchHandlingStrategy } = {};
+        strategies[Usage.Transfer] = transferStrategy;
+        strategies[Usage.Deposit] = depositStrategy;
 
         const simulator = new Simulator(storageManager, group);
         const burnAuctionService = await BurnAuctionService.new(
@@ -47,7 +71,8 @@ export class HubbleNode {
         );
         const syncer = new SyncerService(
             contracts.rollup,
-            auxiliary.genesisEth1Block
+            auxiliary.genesisEth1Block,
+            strategies
         );
         simulator.start();
         burnAuctionService.start();

@@ -1,5 +1,5 @@
 import { TransactionDescription } from "@ethersproject/abi";
-import { BigNumber, BigNumberish, BytesLike } from "ethers";
+import { BigNumber, BigNumberish, BytesLike, Event } from "ethers";
 import {
     arrayify,
     concat,
@@ -7,9 +7,11 @@ import {
     hexZeroPad,
     solidityPack
 } from "ethers/lib/utils";
+import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { aggregate, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
 import { Group } from "../../factory";
+import { DeploymentParameters } from "../../interfaces";
 import { solG1 } from "../../mcl";
 import { sum, sumNumber } from "../../utils";
 import { processReceiver, processSender } from "../stateTransitions";
@@ -24,7 +26,9 @@ import {
     OffchainTx,
     StateIDLen,
     FloatLength,
-    ProtocolParams
+    ProtocolParams,
+    BatchHandlingStrategy,
+    Commitment
 } from "./interface";
 
 export class TransferCompressedTx implements CompressedTx {
@@ -196,64 +200,57 @@ export interface TransferPackingContext {
     tokenID: number;
     feeReceiverID: number;
 }
+async function process(
+    commitment: TransferCommitment,
+    storageManager: StorageManager,
+    params: DeploymentParameters
+): Promise<void> {
+    const txs = commitment.decompressTxs();
 
-export class TransferStateMachine implements StateMachine {
-    constructor(public readonly params: ProtocolParams) {}
-    async validate(
-        commitment: TransferCommitment,
-        storageManager: StorageManager
-    ): Promise<void> {
-        const txs = commitment.decompressTxs();
-
-        const feeReceiverID = Number(commitment.feeReceiver);
-        const engine = storageManager.state;
-        console.log("preroot", engine.root);
-        const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
-        if (txs.length > this.params.maxTxPerCommitment)
-            throw new Error("Too many tx");
-        for (const tx of txs) {
-            await processTransfer(tx, tokenID, engine);
-        }
-        const fees = sum(txs.map(tx => tx.fee));
-        await processReceiver(feeReceiverID, fees, tokenID, engine);
-        await engine.commit();
-        if (engine.root != commitment.stateRoot)
-            throw new Error(
-                `Validation failed  expect ${engine.root} got ${commitment.stateRoot}`
-            );
+    const feeReceiverID = Number(commitment.feeReceiver);
+    const engine = storageManager.state;
+    console.log("preroot", engine.root);
+    const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
+    if (txs.length > params.MAX_TXS_PER_COMMIT) throw new Error("Too many tx");
+    for (const tx of txs) {
+        await processTransfer(tx, tokenID, engine);
     }
-    async pack(
-        source: AsyncGenerator<TransferOffchainTx>,
-        storageManager: StorageManager,
-        context: TransferPackingContext
-    ): Promise<TransferCommitment> {
-        const engine = storageManager.state;
-        const acceptedTxs = [];
+    const fees = sum(txs.map(tx => tx.fee));
+    await processReceiver(feeReceiverID, fees, tokenID, engine);
+    await engine.commit();
+    if (engine.root != commitment.stateRoot)
+        throw new Error(
+            `Validation failed  expect ${engine.root} got ${commitment.stateRoot}`
+        );
+}
 
-        for await (const tx of source) {
-            if (acceptedTxs.length >= this.params.maxTxPerCommitment) break;
-            try {
-                await processTransfer(tx, context.tokenID, engine);
-                acceptedTxs.push(tx);
-            } catch (e) {
-                console.error(`bad tx ${tx}  ${e}`);
-            }
+async function pack(
+    source: AsyncGenerator<TransferOffchainTx>,
+    storageManager: StorageManager,
+    params: DeploymentParameters,
+    context: TransferPackingContext
+): Promise<TransferCommitment> {
+    const engine = storageManager.state;
+    const acceptedTxs = [];
+
+    for await (const tx of source) {
+        if (acceptedTxs.length >= params.MAX_TXS_PER_COMMIT) break;
+        try {
+            await processTransfer(tx, context.tokenID, engine);
+            acceptedTxs.push(tx);
+        } catch (e) {
+            console.error(`bad tx ${tx}  ${e}`);
         }
-        const fees = sum(acceptedTxs.map(tx => tx.fee));
-        await processReceiver(
-            context.feeReceiverID,
-            fees,
-            context.tokenID,
-            engine
-        );
-        await engine.commit();
-        return TransferCommitment.fromTxs(
-            acceptedTxs,
-            engine.root,
-            storageManager.pubkey.root,
-            context.feeReceiverID
-        );
     }
+    const fees = sum(acceptedTxs.map(tx => tx.fee));
+    await processReceiver(context.feeReceiverID, fees, context.tokenID, engine);
+    await engine.commit();
+    return TransferCommitment.fromTxs(
+        acceptedTxs,
+        engine.root,
+        storageManager.pubkey.root,
+        context.feeReceiverID
+    );
 }
 
 export class OffchainTransferFactory {
@@ -282,8 +279,17 @@ export class OffchainTransferFactory {
     }
 }
 
-export class TransferFeature implements Feature {
-    parseBatch(txDescription: TransactionDescription, batchMeta: BatchMeta) {
+export class TransferHandlingStrategy implements BatchHandlingStrategy {
+    constructor(
+        private rollup: Rollup,
+        private storageManager: StorageManager,
+        private params: DeploymentParameters
+    ) {}
+    async parseBatch(event: Event) {
+        const ethTx = await event.getTransaction();
+        const data = ethTx?.data as string;
+        const accountRoot = event.args?.accountRoot;
+        const txDescription = this.rollup.interface.parseTransaction({ data });
         const {
             stateRoots,
             signatures,
@@ -294,7 +300,7 @@ export class TransferFeature implements Feature {
         for (let i = 0; i < stateRoots.length; i++) {
             const commitment = new TransferCommitment(
                 stateRoots[i],
-                batchMeta.accountRoot,
+                accountRoot,
                 signatures[i],
                 feeReceivers[i],
                 txss[i]
@@ -304,7 +310,9 @@ export class TransferFeature implements Feature {
         return new ConcreteBatch(commitments);
     }
 
-    getStateMachine(params: ProtocolParams) {
-        return new TransferStateMachine(params);
+    async processBatch(batch: ConcreteBatch<TransferCommitment>) {
+        for (const commitment of batch.commitments) {
+            await process(commitment, this.storageManager, this.params);
+        }
     }
 }

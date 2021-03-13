@@ -7,8 +7,9 @@ import { DeploymentParameters } from "../../interfaces";
 import { State } from "../../state";
 import { Tree } from "../../tree";
 import { computeRoot } from "../../utils";
-import { StateStorageEngine } from "../storageEngine";
+import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
+import { BatchHandlingStrategy } from "./interface";
 
 interface Subtree {
     root: string;
@@ -135,4 +136,25 @@ export async function submitBatch(
         { pathAtDepth: vacancy.path, witness: vacancy.witness },
         { value: params.STAKE_AMOUNT }
     );
+}
+
+export class DepositHandlingStrategy implements BatchHandlingStrategy {
+    constructor(
+        private readonly rollup: Rollup,
+        private readonly storageManager: StorageManager,
+        private readonly params: DeploymentParameters,
+        private pool: DepositPool
+    ) {}
+    async parseBatch(event: Event) {
+        return await handleNewBatch(event, this.rollup);
+    }
+
+    async processBatch(batch: ConcreteBatch<DepositCommitment>): Promise<void> {
+        return applyBatch(
+            batch,
+            this.pool,
+            this.params,
+            this.storageManager.state
+        );
+    }
 }

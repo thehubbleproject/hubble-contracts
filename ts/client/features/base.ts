@@ -1,8 +1,10 @@
 import { BytesLike } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
+import { Usage } from "../../interfaces";
 import { Tree } from "../../tree";
 import {
     Batch,
+    BatchHandlingStrategy,
     Commitment,
     CommitmentInclusionProof,
     CompressedStruct,
