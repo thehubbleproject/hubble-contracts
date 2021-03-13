@@ -235,7 +235,6 @@ library Types {
     }
 
     struct SubtreeVacancyProof {
-        uint256 depth;
         uint256 pathAtDepth;
         bytes32[] witness;
     }

@@ -129,7 +129,6 @@ export class StateTree implements StateProvider {
 
         return {
             witness: witness.nodes,
-            depth: subtreeDepth,
             pathAtDepth
         };
     }

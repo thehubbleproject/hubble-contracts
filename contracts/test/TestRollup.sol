@@ -8,6 +8,9 @@ import { IDepositManager } from "../DepositManager.sol";
 import { Chooser } from "../proposers/Chooser.sol";
 
 contract MockDepositManager is IDepositManager {
+    // paramMaxSubtreeDepth is required by the interface, no actual use here.
+    uint256 public constant override paramMaxSubtreeDepth = 0;
+
     function dequeueToSubmit()
         external
         override
