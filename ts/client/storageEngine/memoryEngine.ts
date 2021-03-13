@@ -73,4 +73,10 @@ export class MemoryEngine<Item extends Hashable>
         this.journal = [];
         this.cache = {};
     }
+
+    public async findVacantSubtree(
+        subtreeDepth: number
+    ): Promise<{ path: number; witness: string[] }> {
+        throw new Error("Not implemented");
+    }
 }

@@ -1,10 +1,13 @@
 import { BytesLike } from "@ethersproject/bytes";
-import { Event } from "ethers";
+import { ContractTransaction, Event } from "ethers";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
+import { Batch } from "../../commitments";
 import { ZERO_BYTES32 } from "../../constants";
+import { DeploymentParameters } from "../../interfaces";
 import { State } from "../../state";
 import { Tree } from "../../tree";
 import { computeRoot } from "../../utils";
+import { StateStorageEngine } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 
 interface Subtree {
@@ -77,4 +80,24 @@ export async function handleNewBatch(
     );
     const commitment = new DepositCommitment(stateRoot);
     return new ConcreteBatch([commitment]);
+}
+
+export async function submitBatch(
+    previousBatch: Batch,
+    stateEngine: StateStorageEngine,
+    rollup: Rollup,
+    params: DeploymentParameters
+): Promise<ContractTransaction> {
+    const previousCommitmentProof = previousBatch.proofCompressed(
+        previousBatch.commitments.length - 1
+    );
+
+    const vacancy = await stateEngine.findVacantSubtree(
+        params.MAX_DEPOSIT_SUBTREE_DEPTH
+    );
+    return await rollup.submitDeposits(
+        previousCommitmentProof,
+        { pathAtDepth: vacancy.path, witness: vacancy.witness },
+        { value: params.STAKE_AMOUNT }
+    );
 }
