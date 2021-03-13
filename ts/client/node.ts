@@ -15,6 +15,7 @@ import * as mcl from "../../ts/mcl";
 import { BigNumber } from "@ethersproject/bignumber";
 import { BurnAuctionService } from "./services/burnAuction";
 import { ethers } from "ethers";
+import { SyncerService } from "./services/syncer";
 import { parseGenesis } from "../hubble";
 
 interface ClientConfigs {
@@ -72,6 +73,10 @@ export class HubbleNode {
         const burnAuctionService = await BurnAuctionService.new(
             config.willingnessToBid,
             contracts.burnAuction
+        );
+        const syncer = new SyncerService(
+            contracts.rollup,
+            parameters.auxiliary.genesisEth1Block
         );
         simulator.start();
         burnAuctionService.start();
