@@ -25,6 +25,7 @@ import { GenesisNotSpecified } from "./exceptions";
 import { deployKeyless } from "./deployment/deploy";
 import { execSync } from "child_process";
 import fs from "fs";
+import { Genesis } from "./genesis";
 
 async function waitAndRegister(
     contract: Contract,
@@ -180,7 +181,7 @@ export async function deployAndWriteGenesis(
     genesisPath: string = "genesis.json"
 ) {
     let addresses: { [key: string]: string } = {};
-    const genesisEth1Block = await signer.provider?.getBlockNumber();
+    const genesisEth1Block = (await signer.provider?.getBlockNumber()) as number;
     await deployKeyless(signer, true);
     const contracts = await deployAll(signer, parameters, true);
 
@@ -196,8 +197,8 @@ export async function deployAndWriteGenesis(
         genesisEth1Block,
         version
     };
-    const configs = { parameters, addresses, auxiliary };
+    const genesis = new Genesis(parameters, addresses, auxiliary);
     console.log("Writing genesis file to", genesisPath);
-    fs.writeFileSync(genesisPath, JSON.stringify(configs, null, 4));
-    console.log("Successsfully deployed", configs);
+    genesis.dump(genesisPath);
+    console.log("Successsfully deployed", genesis);
 }

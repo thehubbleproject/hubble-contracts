@@ -2,6 +2,7 @@ import { ethers } from "hardhat";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { TESTING_PARAMS, ZERO_BYTES32 } from "../../ts/constants";
 import { deployAll } from "../../ts/deploy";
+import { Genesis } from "../../ts/genesis";
 import { Hubble } from "../../ts/hubble";
 
 describe("hubble", function() {
@@ -17,6 +18,9 @@ describe("hubble", function() {
             addresses[contract] =
                 contracts[contract as keyof allContracts].address;
         });
-        const hubble = Hubble.fromGenesis(parameters, addresses, signer);
+        const dummyAux = { domain: "", genesisEth1Block: 0, version: "" };
+
+        const genesis = new Genesis(parameters, addresses, dummyAux);
+        const hubble = Hubble.fromGenesis(genesis, signer);
     });
 });

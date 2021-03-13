@@ -1,60 +1,10 @@
 import { allContracts } from "./allContractsInterfaces";
 import { DeploymentParameters } from "./interfaces";
-import fs from "fs";
-import {
-    BlsAccountRegistryFactory,
-    BurnAuctionFactory,
-    Create2TransferFactory,
-    DepositManagerFactory,
-    ExampleTokenFactory,
-    FrontendCreate2TransferFactory,
-    FrontendGenericFactory,
-    FrontendMassMigrationFactory,
-    FrontendTransferFactory,
-    MassMigrationFactory,
-    ProofOfBurnFactory,
-    RollupFactory,
-    SpokeRegistryFactory,
-    TokenRegistryFactory,
-    TransferFactory,
-    VaultFactory,
-    WithdrawManagerFactory
-} from "../types/ethers-contracts";
+import { ExampleTokenFactory } from "../types/ethers-contracts";
 import { ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
-
-export function parseGenesis(
-    parameters: DeploymentParameters,
-    addresses: { [key: string]: string },
-    signer: Signer
-): allContracts {
-    const factories = {
-        frontendGeneric: FrontendGenericFactory,
-        frontendTransfer: FrontendTransferFactory,
-        frontendMassMigration: FrontendMassMigrationFactory,
-        frontendCreate2Transfer: FrontendCreate2TransferFactory,
-        blsAccountRegistry: BlsAccountRegistryFactory,
-        tokenRegistry: TokenRegistryFactory,
-        transfer: TransferFactory,
-        massMigration: MassMigrationFactory,
-        create2Transfer: Create2TransferFactory,
-        exampleToken: ExampleTokenFactory,
-        spokeRegistry: SpokeRegistryFactory,
-        vault: VaultFactory,
-        depositManager: DepositManagerFactory,
-        rollup: RollupFactory,
-        withdrawManager: WithdrawManagerFactory,
-        burnAuction: BurnAuctionFactory
-    };
-    const contracts: any = {};
-    for (const [key, factory] of Object.entries(factories)) {
-        const address = addresses[key];
-        if (!address) throw `Bad Genesis: Find no address for ${key} contract`;
-        contracts[key] = factory.connect(address, signer);
-    }
-    return contracts;
-}
+import { Genesis } from "./genesis";
 
 export class Hubble {
     private constructor(
@@ -62,24 +12,19 @@ export class Hubble {
         public contracts: allContracts,
         public signer: Signer
     ) {}
-    static fromGenesis(
-        parameters: DeploymentParameters,
-        addresses: { [key: string]: string },
-        signer: Signer
-    ) {
-        const contracts = parseGenesis(parameters, addresses, signer);
-        return new Hubble(parameters, contracts, signer);
+    static fromGenesis(genesis: Genesis, signer: Signer) {
+        const contracts = genesis.getContracts(signer);
+        return new Hubble(genesis.parameters, contracts, signer);
     }
 
     static fromDefault(
         providerUrl = "http://localhost:8545",
         genesisPath = "./genesis.json"
     ) {
-        const genesis = fs.readFileSync(genesisPath).toString();
-        const { parameters, addresses } = JSON.parse(genesis);
         const provider = new ethers.providers.JsonRpcProvider(providerUrl);
         const signer = provider.getSigner();
-        return Hubble.fromGenesis(parameters, addresses, signer);
+        const genesis = Genesis.fromConfig(genesisPath);
+        return Hubble.fromGenesis(genesis, signer);
     }
 
     async registerPublicKeys(pubkeys: string[]) {

@@ -4,7 +4,6 @@ import { Group } from "../factory";
 import { Pubkey } from "../pubkey";
 import { State } from "../state";
 import { randHex } from "../utils";
-import fs from "fs";
 import { Simulator } from "./services/simulator";
 import {
     PubkeyMemoryEngine,
@@ -16,7 +15,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import { BurnAuctionService } from "./services/burnAuction";
 import { ethers } from "ethers";
 import { SyncerService } from "./services/syncer";
-import { parseGenesis } from "../hubble";
+import { Genesis } from "../genesis";
 
 interface ClientConfigs {
     willingnessToBid: BigNumber;
@@ -37,13 +36,13 @@ export class HubbleNode {
             genesisPath: "./genesis.json"
         };
 
-        const genesis = fs.readFileSync(config.genesisPath).toString();
-        const { parameters, addresses } = JSON.parse(genesis);
+        const genesis = Genesis.fromConfig(config.genesisPath);
         const provider = new ethers.providers.JsonRpcProvider(
             config.providerUrl
         );
         const signer = provider.getSigner();
-        const contracts = parseGenesis(parameters, addresses, signer);
+        const contracts = genesis.getContracts(signer);
+        const { parameters, auxiliary } = genesis;
 
         const stateStorage = new StateMemoryEngine(32);
         const pubkeyStorage = new PubkeyMemoryEngine(32);
@@ -76,7 +75,7 @@ export class HubbleNode {
         );
         const syncer = new SyncerService(
             contracts.rollup,
-            parameters.auxiliary.genesisEth1Block
+            auxiliary.genesisEth1Block
         );
         simulator.start();
         burnAuctionService.start();
