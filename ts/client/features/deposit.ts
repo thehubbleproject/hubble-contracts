@@ -44,8 +44,17 @@ export class DepositPool {
     }
 }
 
+interface FinalizationContext {
+    subtreeID: number;
+    depositSubtreeRoot: string;
+    pathToSubTree: number;
+}
+
 export class DepositCommitment extends BaseCommitment {
-    constructor(public stateRoot: BytesLike) {
+    constructor(
+        public readonly stateRoot: BytesLike,
+        public readonly context: FinalizationContext
+    ) {
         super(stateRoot);
     }
 
@@ -61,7 +70,7 @@ export class DepositCommitment extends BaseCommitment {
 export async function handleNewBatch(
     event: Event,
     rollup: Rollup
-): Promise<ConcreteBatch> {
+): Promise<ConcreteBatch<DepositCommitment>> {
     const ethTx = await event.getTransaction();
     const data = ethTx?.data as string;
     const receipt = await event.getTransactionReceipt();
@@ -71,6 +80,7 @@ export async function handleNewBatch(
     )[0];
     const txDescription = rollup.interface.parseTransaction({ data });
     const depositSubtreeRoot = depositsFinalisedLog.args?.depositSubTreeRoot;
+    const subtreeID = depositsFinalisedLog.args?.subtreeID;
     const { vacant } = txDescription.args;
 
     const stateRoot = computeRoot(
@@ -78,8 +88,33 @@ export async function handleNewBatch(
         vacant.pathAtDepth,
         vacant.witness
     );
-    const commitment = new DepositCommitment(stateRoot);
+    const context: FinalizationContext = {
+        subtreeID,
+        depositSubtreeRoot,
+        pathToSubTree: vacant.pathAtDepth
+    };
+    const commitment = new DepositCommitment(stateRoot, context);
     return new ConcreteBatch([commitment]);
+}
+
+export async function applyBatch(
+    batch: ConcreteBatch<DepositCommitment>,
+    pool: DepositPool,
+    params: DeploymentParameters,
+    stateEngine: StateStorageEngine
+) {
+    const { context } = batch.commitments[0];
+    const subtree = pool.popDepositSubtree();
+    if (subtree.root != context.depositSubtreeRoot) {
+        throw new Error(
+            `Fatal: mismatched deposit root. onchain: ${context.depositSubtreeRoot}  pool: ${subtree.root}`
+        );
+    }
+    await stateEngine.updateBatch(
+        context.pathToSubTree,
+        params.MAX_DEPOSIT_SUBTREE_DEPTH,
+        subtree.states
+    );
 }
 
 export async function submitBatch(

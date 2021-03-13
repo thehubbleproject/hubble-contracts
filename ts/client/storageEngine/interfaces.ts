@@ -12,6 +12,7 @@ export interface StorageEngine<Item> {
     findVacantSubtree(
         subtreeDepth: number
     ): Promise<{ path: number; witness: string[] }>;
+    updateBatch(path: number, depth: number, items: Item[]): Promise<void>;
     revert(checkpoint?: number): void;
     commit(): Promise<void>;
     root: string;

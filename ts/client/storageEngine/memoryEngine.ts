@@ -79,4 +79,11 @@ export class MemoryEngine<Item extends Hashable>
     ): Promise<{ path: number; witness: string[] }> {
         throw new Error("Not implemented");
     }
+    public async updateBatch(
+        path: number,
+        depth: number,
+        items: Item[]
+    ): Promise<void> {
+        throw new Error("Not implemented");
+    }
 }
