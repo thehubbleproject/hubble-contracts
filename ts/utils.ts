@@ -1,6 +1,13 @@
 import { ethers } from "ethers";
 import { BigNumber } from "ethers";
-import { randomBytes, hexlify, hexZeroPad, parseEther } from "ethers/lib/utils";
+import {
+    randomBytes,
+    hexlify,
+    hexZeroPad,
+    parseEther,
+    BytesLike,
+    solidityKeccak256
+} from "ethers/lib/utils";
 import { Wei } from "./interfaces";
 import { ContractTransaction } from "ethers";
 import { assert, expect } from "chai";
@@ -112,4 +119,26 @@ export async function getBatchID(rollup: Rollup): Promise<number> {
 
 export async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+export function computeRoot(
+    leafInput: BytesLike,
+    path: number,
+    witness: BytesLike[]
+) {
+    let leaf = leafInput;
+    for (let i = 0; i < witness.length; i++) {
+        if (((path >> i) & 1) == 0) {
+            leaf = solidityKeccak256(
+                ["bytes32", "bytes32"],
+                [leaf, witness[i]]
+            );
+        } else {
+            leaf = solidityKeccak256(
+                ["bytes32", "bytes32"],
+                [witness[i], leaf]
+            );
+        }
+    }
+    return leaf;
 }

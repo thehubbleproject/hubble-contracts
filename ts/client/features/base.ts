@@ -29,9 +29,9 @@ export abstract class BaseCommitment implements Commitment {
     }
 }
 
-export class ConcreteBatch implements Batch {
+export class ConcreteBatch<T extends Commitment> implements Batch {
     private tree: Tree;
-    constructor(public readonly commitments: Commitment[]) {
+    constructor(public readonly commitments: T[]) {
         this.tree = Tree.merklize(commitments.map(c => c.hash()));
     }
 

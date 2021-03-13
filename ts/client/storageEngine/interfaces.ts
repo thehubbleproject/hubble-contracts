@@ -9,6 +9,10 @@ export interface StorageEngine<Item> {
     create(itemID: number, item: Item): Promise<void>;
     getWithWitness(itemID: number): Promise<WithWitness<Item>>;
     getCheckpoint(): number;
+    findVacantSubtree(
+        subtreeDepth: number
+    ): Promise<{ path: number; witness: string[] }>;
+    updateBatch(path: number, depth: number, items: Item[]): Promise<void>;
     revert(checkpoint?: number): void;
     commit(): Promise<void>;
     root: string;

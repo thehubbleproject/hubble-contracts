@@ -1,6 +1,14 @@
 import { BytesLike } from "@ethersproject/bytes";
+import { ContractTransaction, Event } from "ethers";
+import { Rollup } from "../../../types/ethers-contracts/Rollup";
+import { Batch } from "../../commitments";
+import { ZERO_BYTES32 } from "../../constants";
+import { DeploymentParameters } from "../../interfaces";
 import { State } from "../../state";
 import { Tree } from "../../tree";
+import { computeRoot } from "../../utils";
+import { StateStorageEngine } from "../storageEngine";
+import { BaseCommitment, ConcreteBatch } from "./base";
 
 interface Subtree {
     root: string;
@@ -34,4 +42,97 @@ export class DepositPool {
         if (!subtree) throw new Error("no subtre available");
         return subtree;
     }
+}
+
+interface FinalizationContext {
+    subtreeID: number;
+    depositSubtreeRoot: string;
+    pathToSubTree: number;
+}
+
+export class DepositCommitment extends BaseCommitment {
+    constructor(
+        public readonly stateRoot: BytesLike,
+        public readonly context: FinalizationContext
+    ) {
+        super(stateRoot);
+    }
+
+    get bodyRoot() {
+        return ZERO_BYTES32;
+    }
+
+    public toSolStruct() {
+        return { stateRoot: this.stateRoot, body: {} };
+    }
+}
+
+export async function handleNewBatch(
+    event: Event,
+    rollup: Rollup
+): Promise<ConcreteBatch<DepositCommitment>> {
+    const ethTx = await event.getTransaction();
+    const data = ethTx?.data as string;
+    const receipt = await event.getTransactionReceipt();
+    const logs = receipt.logs.map(log => rollup.interface.parseLog(log));
+    const depositsFinalisedLog = logs.filter(
+        log => log.signature == "DepositsFinalised(uint256,bytes32,uint256)"
+    )[0];
+    const txDescription = rollup.interface.parseTransaction({ data });
+    const depositSubtreeRoot = depositsFinalisedLog.args?.depositSubTreeRoot;
+    const subtreeID = depositsFinalisedLog.args?.subtreeID;
+    const { vacant } = txDescription.args;
+
+    const stateRoot = computeRoot(
+        depositSubtreeRoot,
+        vacant.pathAtDepth,
+        vacant.witness
+    );
+    const context: FinalizationContext = {
+        subtreeID,
+        depositSubtreeRoot,
+        pathToSubTree: vacant.pathAtDepth
+    };
+    const commitment = new DepositCommitment(stateRoot, context);
+    return new ConcreteBatch([commitment]);
+}
+
+export async function applyBatch(
+    batch: ConcreteBatch<DepositCommitment>,
+    pool: DepositPool,
+    params: DeploymentParameters,
+    stateEngine: StateStorageEngine
+) {
+    const { context } = batch.commitments[0];
+    const subtree = pool.popDepositSubtree();
+    if (subtree.root != context.depositSubtreeRoot) {
+        throw new Error(
+            `Fatal: mismatched deposit root. onchain: ${context.depositSubtreeRoot}  pool: ${subtree.root}`
+        );
+    }
+    await stateEngine.updateBatch(
+        context.pathToSubTree,
+        params.MAX_DEPOSIT_SUBTREE_DEPTH,
+        subtree.states
+    );
+}
+
+export async function submitBatch(
+    previousBatch: Batch,
+    stateEngine: StateStorageEngine,
+    rollup: Rollup,
+    params: DeploymentParameters
+): Promise<ContractTransaction> {
+    const previousCommitmentProof = previousBatch.proofCompressed(
+        previousBatch.commitments.length - 1
+    );
+
+    const vacancy = await stateEngine.findVacantSubtree(
+        params.MAX_DEPOSIT_SUBTREE_DEPTH
+    );
+    return await rollup.submitDeposits(
+        previousCommitmentProof,
+        { pathAtDepth: vacancy.path, witness: vacancy.witness },
+        { value: params.STAKE_AMOUNT }
+    );
 }
