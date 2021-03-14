@@ -84,6 +84,6 @@ export interface BatchHandlingStrategy {
     processBatch(batch: Batch): Promise<void>;
 }
 
-export interface BatchPackingStrategy {
+export interface BatchPackingCommand {
     pack(): Promise<void>;
 }

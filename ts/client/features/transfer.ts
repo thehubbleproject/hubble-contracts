@@ -28,7 +28,8 @@ import {
     FloatLength,
     ProtocolParams,
     BatchHandlingStrategy,
-    Commitment
+    Commitment,
+    BatchPackingCommand
 } from "./interface";
 
 export class TransferCompressedTx implements CompressedTx {
@@ -314,5 +315,29 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
         for (const commitment of batch.commitments) {
             await process(commitment, this.storageManager, this.params);
         }
+    }
+}
+
+const MAX_COMMIT_PER_BATCH = 32;
+
+export class TransferPackingCommand implements BatchPackingCommand {
+    constructor(
+        private params: DeploymentParameters,
+        private storageManager: StorageManager
+    ) {}
+    async pack() {
+        const commitments = [];
+        for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
+            const source = undefined;
+            const context = undefined;
+            const commitment = await pack(
+                source,
+                this.storageManager,
+                this.params,
+                context
+            );
+            commitments.push(commitment);
+        }
+        return new ConcreteBatch(commitments);
     }
 }
