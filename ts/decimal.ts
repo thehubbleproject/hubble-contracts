@@ -41,7 +41,7 @@ export class ERC20ValueFactory {
     }
 }
 
-class ERC20Value {
+export class ERC20Value {
     constructor(
         public readonly decimals: Decimals,
         public readonly l1Value: BigNumber
