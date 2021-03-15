@@ -197,10 +197,6 @@ async function processTransfer(
     await processReceiver(tx.toIndex, tx.amount, tokenID, engine);
 }
 
-export interface TransferPackingContext {
-    tokenID: number;
-    feeReceiverID: number;
-}
 async function process(
     commitment: TransferCommitment,
     storageManager: StorageManager,
@@ -225,32 +221,37 @@ async function process(
         );
 }
 
+export interface TransferPipe {
+    source: AsyncGenerator<TransferOffchainTx>;
+    tokenID: number;
+    feeReceiverID: number;
+}
+
 async function pack(
-    source: AsyncGenerator<TransferOffchainTx>,
+    pipe: TransferPipe,
     storageManager: StorageManager,
-    params: DeploymentParameters,
-    context: TransferPackingContext
+    params: DeploymentParameters
 ): Promise<TransferCommitment> {
     const engine = storageManager.state;
     const acceptedTxs = [];
 
-    for await (const tx of source) {
+    for await (const tx of pipe.source) {
         if (acceptedTxs.length >= params.MAX_TXS_PER_COMMIT) break;
         try {
-            await processTransfer(tx, context.tokenID, engine);
+            await processTransfer(tx, pipe.tokenID, engine);
             acceptedTxs.push(tx);
         } catch (e) {
             console.error(`bad tx ${tx}  ${e}`);
         }
     }
     const fees = sum(acceptedTxs.map(tx => tx.fee));
-    await processReceiver(context.feeReceiverID, fees, context.tokenID, engine);
+    await processReceiver(pipe.feeReceiverID, fees, pipe.tokenID, engine);
     await engine.commit();
     return TransferCommitment.fromTxs(
         acceptedTxs,
         engine.root,
         storageManager.pubkey.root,
-        context.feeReceiverID
+        pipe.feeReceiverID
     );
 }
 
@@ -318,23 +319,49 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
     }
 }
 
+export interface TransferPool {
+    getNextPipe(): TransferPipe;
+}
+
+export class SimulatorPool extends OffchainTransferFactory
+    implements TransferPool {
+    private tokenID?: number;
+    private feeReceiverID?: number;
+    async setTokenID() {
+        const stateID = this.group.getUser(0).stateID;
+        const state = await this.engine.get(stateID);
+        this.tokenID = state.tokenID;
+        this.feeReceiverID = stateID;
+    }
+
+    getNextPipe() {
+        const source = this.genTx();
+        if (!this.tokenID || !this.feeReceiverID)
+            throw new Error("tokenID or feeReceiver undefined");
+        return {
+            source,
+            tokenID: this.tokenID,
+            feeReceiverID: this.feeReceiverID
+        };
+    }
+}
+
 const MAX_COMMIT_PER_BATCH = 32;
 
 export class TransferPackingCommand implements BatchPackingCommand {
     constructor(
         private params: DeploymentParameters,
-        private storageManager: StorageManager
+        private storageManager: StorageManager,
+        private pool: TransferPool
     ) {}
     async pack() {
         const commitments = [];
         for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
-            const source = undefined;
-            const context = undefined;
+            const pipe = this.pool.getNextPipe();
             const commitment = await pack(
-                source,
+                pipe,
                 this.storageManager,
-                this.params,
-                context
+                this.params
             );
             commitments.push(commitment);
         }
