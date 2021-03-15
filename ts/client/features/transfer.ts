@@ -1,4 +1,3 @@
-import { TransactionDescription } from "@ethersproject/abi";
 import { BigNumber, BigNumberish, BytesLike, Event } from "ethers";
 import {
     arrayify,
@@ -18,17 +17,12 @@ import { processReceiver, processSender } from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
-    BatchMeta,
-    Feature,
     SolStruct,
-    StateMachine,
     CompressedTx,
     OffchainTx,
     StateIDLen,
     FloatLength,
-    ProtocolParams,
     BatchHandlingStrategy,
-    Commitment,
     BatchPackingCommand
 } from "./interface";
 
