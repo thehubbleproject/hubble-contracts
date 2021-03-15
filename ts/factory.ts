@@ -1,5 +1,5 @@
 import { BigNumber, Wallet } from "ethers";
-import { BlsSigner, BlsSignerInterface, nullBlsSigner } from "./blsSigner";
+import { BlsSigner } from "./blsSigner";
 import { DEFAULT_MNEMONIC } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
@@ -21,11 +21,11 @@ export class User {
         domain?: Domain,
         privKey?: string
     ) {
-        const signer = domain ? BlsSigner.new(domain, privKey) : nullBlsSigner;
+        const signer = BlsSigner.new(domain, privKey);
         return new this(signer, stateID, pubkeyID);
     }
     constructor(
-        public blsSigner: BlsSignerInterface,
+        public blsSigner: BlsSigner,
         public stateID: number,
         public pubkeyID: number
     ) {}
@@ -35,8 +35,8 @@ export class User {
     public signRaw(message: string) {
         return this.blsSigner.sign(message);
     }
-    public connect(signer: BlsSignerInterface) {
-        this.blsSigner = signer;
+    public setDomain(domain: Domain) {
+        this.blsSigner.setDomain(domain);
         return this;
     }
 
@@ -86,13 +86,8 @@ export class Group {
         return this;
     }
     public setupSigners(domain: Domain) {
-        for (const [index, user] of this.users.entries()) {
-            const wallet = Wallet.fromMnemonic(
-                DEFAULT_MNEMONIC,
-                `m/44'/60'/0'/0/${index}`
-            );
-            const signer = BlsSigner.new(domain, wallet.privateKey);
-            user.connect(signer);
+        for (const user of this.users) {
+            user.setDomain(domain);
         }
     }
     get size() {

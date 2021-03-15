@@ -19,36 +19,25 @@ export interface SignatureInterface {
     sol: solG1;
 }
 
-export interface BlsSignerInterface {
-    pubkey: solG2;
-    sign(message: string): SignatureInterface;
-}
-
-export class NullBlsSinger implements BlsSignerInterface {
-    get pubkey(): solG2 {
-        throw new Error("NullBlsSinger has no public key");
-    }
-    sign(message: string): SignatureInterface {
-        throw new Error("NullBlsSinger dosen't sign");
-    }
-}
-
-export const nullBlsSigner = new NullBlsSinger();
-
-export class BlsSigner implements BlsSignerInterface {
-    static new(domain: Domain, privKey?: string) {
+export class BlsSigner {
+    static new(domain?: Domain, privKey?: string) {
         const secret = privKey ? parseFr(privKey) : randFr();
-        return new this(domain, secret);
+        return new this(secret, domain);
     }
     private _pubkey: PublicKey;
-    constructor(public domain: Domain, private secret: SecretKey) {
+    constructor(private secret: SecretKey, private domain?: Domain) {
         this._pubkey = getPubkey(secret);
     }
     get pubkey(): solG2 {
         return g2ToHex(this._pubkey);
     }
 
+    setDomain(domain: Domain) {
+        this.domain = domain;
+    }
+
     public sign(message: string): SignatureInterface {
+        if (!this.domain) throw new Error("No domain is set");
         const { signature } = sign(message, this.secret, this.domain);
         const sol = g1ToHex(signature);
         return { mcl: signature, sol };
