@@ -348,23 +348,48 @@ export class SimulatorPool extends OffchainTransferFactory
 
 const MAX_COMMIT_PER_BATCH = 32;
 
+async function packBatch(
+    pool: TransferPool,
+    storageManager: StorageManager,
+    params: DeploymentParameters
+) {
+    const commitments = [];
+    for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
+        const pipe = pool.getNextPipe();
+        const commitment = await pack(pipe, storageManager, params);
+        commitments.push(commitment);
+    }
+    return new ConcreteBatch(commitments);
+}
+
+async function submitTransfer(
+    batch: ConcreteBatch<TransferCommitment>,
+    rollup: Rollup,
+    stakingAmount: BigNumberish
+) {
+    return await rollup.submitTransfer(
+        batch.commitments.map(c => c.stateRoot),
+        batch.commitments.map(c => c.signature),
+        batch.commitments.map(c => c.feeReceiver),
+        batch.commitments.map(c => c.txs),
+        { value: stakingAmount }
+    );
+}
+
 export class TransferPackingCommand implements BatchPackingCommand {
     constructor(
         private params: DeploymentParameters,
         private storageManager: StorageManager,
-        private pool: TransferPool
+        private pool: TransferPool,
+        private rollup: Rollup
     ) {}
-    async pack() {
-        const commitments = [];
-        for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
-            const pipe = this.pool.getNextPipe();
-            const commitment = await pack(
-                pipe,
-                this.storageManager,
-                this.params
-            );
-            commitments.push(commitment);
-        }
-        return new ConcreteBatch(commitments);
+
+    async packAndSubmit() {
+        const batch = await packBatch(
+            this.pool,
+            this.storageManager,
+            this.params
+        );
+        await submitTransfer(batch, this.rollup, this.params.STAKE_AMOUNT);
     }
 }
