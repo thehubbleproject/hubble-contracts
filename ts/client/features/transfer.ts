@@ -4,6 +4,7 @@ import {
     concat,
     hexlify,
     hexZeroPad,
+    solidityKeccak256,
     solidityPack
 } from "ethers/lib/utils";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
@@ -178,7 +179,10 @@ export class TransferCommitment extends BaseCommitment {
     }
 
     get bodyRoot(): string {
-        throw new Error("not implemented");
+        return solidityKeccak256(
+            ["bytes32", "uint256[2]", "uint256", "bytes"],
+            [this.accountRoot, this.signature, this.feeReceiver, this.txs]
+        );
     }
 }
 
@@ -200,7 +204,6 @@ async function process(
 
     const feeReceiverID = Number(commitment.feeReceiver);
     const engine = storageManager.state;
-    console.log("preroot", engine.root);
     const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
     if (txs.length > params.MAX_TXS_PER_COMMIT) throw new Error("Too many tx");
     for (const tx of txs) {
@@ -330,8 +333,9 @@ export class SimulatorPool extends OffchainTransferFactory
 
     getNextPipe() {
         const source = this.genTx();
-        if (!this.tokenID || !this.feeReceiverID)
-            throw new Error("tokenID or feeReceiver undefined");
+        if (this.tokenID === undefined) throw new Error("tokenID not set");
+        if (this.feeReceiverID === undefined)
+            throw new Error("feeReceiver not set");
         return {
             source,
             tokenID: this.tokenID,

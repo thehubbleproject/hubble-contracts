@@ -2,6 +2,7 @@ import { Event } from "@ethersproject/contracts";
 import { allContracts } from "../allContractsInterfaces";
 import { DeploymentParameters, Usage } from "../interfaces";
 import { DepositHandlingStrategy, DepositPool } from "./features/deposit";
+import { GenesisHandlingStrategy } from "./features/genesis";
 import { Batch, BatchHandlingStrategy } from "./features/interface";
 import { TransferHandlingStrategy } from "./features/transfer";
 import { StorageManager } from "./storageEngine";
@@ -12,6 +13,9 @@ export function buildStrategies(
     parameters: DeploymentParameters,
     depositPool: DepositPool
 ) {
+    const genesisStrategy = new GenesisHandlingStrategy(
+        storageManager.state.root
+    );
     const transferStrategy = new TransferHandlingStrategy(
         contracts.rollup,
         storageManager,
@@ -24,6 +28,7 @@ export function buildStrategies(
         depositPool
     );
     const strategies: { [key: string]: BatchHandlingStrategy } = {};
+    strategies[Usage.Genesis] = genesisStrategy;
     strategies[Usage.Transfer] = transferStrategy;
     strategies[Usage.Deposit] = depositStrategy;
     return strategies;
