@@ -9,7 +9,7 @@ import { Tree } from "../../tree";
 import { computeRoot } from "../../utils";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
-import { BatchHandlingStrategy } from "./interface";
+import { BatchHandlingStrategy, BatchPackingCommand } from "./interface";
 
 interface Subtree {
     root: string;
@@ -156,5 +156,11 @@ export class DepositHandlingStrategy implements BatchHandlingStrategy {
             this.params,
             this.storageManager.state
         );
+    }
+}
+
+export class DepositPackingCommand implements BatchPackingCommand {
+    async packAndSubmit() {
+        throw new Error("Not implemented");
     }
 }
