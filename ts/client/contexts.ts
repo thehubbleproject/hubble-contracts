@@ -1,5 +1,33 @@
 import { Event } from "@ethersproject/contracts";
+import { allContracts } from "../allContractsInterfaces";
+import { DeploymentParameters, Usage } from "../interfaces";
+import { DepositHandlingStrategy, DepositPool } from "./features/deposit";
 import { Batch, BatchHandlingStrategy } from "./features/interface";
+import { TransferHandlingStrategy } from "./features/transfer";
+import { StorageManager } from "./storageEngine";
+
+export function buildStrategies(
+    contracts: allContracts,
+    storageManager: StorageManager,
+    parameters: DeploymentParameters,
+    depositPool: DepositPool
+) {
+    const transferStrategy = new TransferHandlingStrategy(
+        contracts.rollup,
+        storageManager,
+        parameters
+    );
+    const depositStrategy = new DepositHandlingStrategy(
+        contracts.rollup,
+        storageManager,
+        parameters,
+        depositPool
+    );
+    const strategies: { [key: string]: BatchHandlingStrategy } = {};
+    strategies[Usage.Transfer] = transferStrategy;
+    strategies[Usage.Deposit] = depositStrategy;
+    return strategies;
+}
 
 export class BatchHandlingContext {
     private _strategy?: BatchHandlingStrategy;
