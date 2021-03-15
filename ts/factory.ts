@@ -1,9 +1,15 @@
 import { BigNumber, Wallet } from "ethers";
 import { BlsSigner } from "./blsSigner";
+import {
+    StateMemoryEngine,
+    PubkeyMemoryEngine,
+    StorageManager
+} from "./client/storageEngine";
 import { DEFAULT_MNEMONIC } from "./constants";
-import { float16, USDT } from "./decimal";
+import { ERC20Value, ERC20ValueFactory, float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
+import { Pubkey } from "./pubkey";
 import { State } from "./state";
 import { nullProvider, StateProvider } from "./stateTree";
 import {
@@ -272,4 +278,42 @@ export function txMassMigrationFactory(
     }
     const signature = getAggregateSig(txs);
     return { txs, signature, senders };
+}
+
+interface StorageManagerFactoryOptions {
+    stateTreeDepth?: number;
+    pubkeyTreeDepth?: number;
+    tokenID?: number;
+    initialBalance?: ERC20Value;
+}
+
+export async function storageManagerFactory(
+    group: Group,
+    options?: StorageManagerFactoryOptions
+) {
+    const stateTreeDepth = options?.stateTreeDepth ?? 32;
+    const pubkeyTreeDepth = options?.pubkeyTreeDepth ?? 32;
+    const tokenID = options?.tokenID ?? 1;
+    const initialBalance =
+        options?.initialBalance ?? USDT.fromHumanValue("100.12");
+    const stateStorage = new StateMemoryEngine(stateTreeDepth);
+    const pubkeyStorage = new PubkeyMemoryEngine(pubkeyTreeDepth);
+    const storageManager: StorageManager = {
+        pubkey: pubkeyStorage,
+        state: stateStorage
+    };
+    for (const user of group.userIterator()) {
+        const state = State.new(
+            user.pubkeyID,
+            tokenID,
+            initialBalance.l2Value,
+            0
+        );
+        await stateStorage.update(user.stateID, state);
+
+        await pubkeyStorage.update(user.pubkeyID, new Pubkey(user.pubkey));
+    }
+    await stateStorage.commit();
+    await pubkeyStorage.commit();
+    return storageManager;
 }

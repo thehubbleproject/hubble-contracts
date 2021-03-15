@@ -24,7 +24,6 @@ import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory
 import { GenesisNotSpecified } from "./exceptions";
 import { deployKeyless } from "./deployment/deploy";
 import { execSync } from "child_process";
-import fs from "fs";
 import { Genesis } from "./genesis";
 
 async function waitAndRegister(
