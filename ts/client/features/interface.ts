@@ -1,7 +1,5 @@
-import { TransactionDescription } from "@ethersproject/abi";
-import { BigNumber, BytesLike } from "ethers";
+import { BigNumber, BytesLike, Event } from "ethers";
 import { SignatureInterface } from "../../blsSigner";
-import { StorageManager } from "../storageEngine";
 
 export interface CompressedStruct {
     stateRoot: BytesLike;
@@ -42,18 +40,8 @@ export interface OffchainTx extends CompressedTx {
     signature?: SignatureInterface;
 }
 
-export interface ProtocolParams {
-    maxTxPerCommitment: number;
-}
-
-export interface StateMachine {
-    validate(
-        commitment: Commitment,
-        storageManager: StorageManager
-    ): Promise<void>;
-}
-
 export interface Commitment {
+    stateRoot: BytesLike;
     bodyRoot: BytesLike;
     hash(): string;
     toSolStruct(): SolStruct;
@@ -64,14 +52,11 @@ export interface Batch {
     commitments: Commitment[];
 }
 
-export interface BatchMeta {
-    accountRoot: string;
+export interface BatchHandlingStrategy {
+    parseBatch(event: Event): Promise<Batch>;
+    processBatch(batch: Batch): Promise<void>;
 }
 
-export interface Feature {
-    parseBatch(
-        txDescription: TransactionDescription,
-        batchMeta: BatchMeta
-    ): Batch;
-    getStateMachine(params: ProtocolParams): StateMachine;
+export interface BatchPackingCommand {
+    packAndSubmit(): Promise<void>;
 }

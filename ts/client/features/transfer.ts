@@ -1,5 +1,4 @@
-import { TransactionDescription } from "@ethersproject/abi";
-import { BigNumber, BigNumberish, BytesLike } from "ethers";
+import { BigNumber, BigNumberish, BytesLike, Event } from "ethers";
 import {
     arrayify,
     concat,
@@ -7,24 +6,24 @@ import {
     hexZeroPad,
     solidityPack
 } from "ethers/lib/utils";
+import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { aggregate, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
 import { Group } from "../../factory";
+import { DeploymentParameters } from "../../interfaces";
 import { solG1 } from "../../mcl";
 import { sum, sumNumber } from "../../utils";
 import { processReceiver, processSender } from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
-    BatchMeta,
-    Feature,
     SolStruct,
-    StateMachine,
     CompressedTx,
     OffchainTx,
     StateIDLen,
     FloatLength,
-    ProtocolParams
+    BatchHandlingStrategy,
+    BatchPackingCommand
 } from "./interface";
 
 export class TransferCompressedTx implements CompressedTx {
@@ -192,68 +191,62 @@ async function processTransfer(
     await processReceiver(tx.toIndex, tx.amount, tokenID, engine);
 }
 
-export interface TransferPackingContext {
+async function process(
+    commitment: TransferCommitment,
+    storageManager: StorageManager,
+    params: DeploymentParameters
+): Promise<void> {
+    const txs = commitment.decompressTxs();
+
+    const feeReceiverID = Number(commitment.feeReceiver);
+    const engine = storageManager.state;
+    console.log("preroot", engine.root);
+    const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
+    if (txs.length > params.MAX_TXS_PER_COMMIT) throw new Error("Too many tx");
+    for (const tx of txs) {
+        await processTransfer(tx, tokenID, engine);
+    }
+    const fees = sum(txs.map(tx => tx.fee));
+    await processReceiver(feeReceiverID, fees, tokenID, engine);
+    await engine.commit();
+    if (engine.root != commitment.stateRoot)
+        throw new Error(
+            `Validation failed  expect ${engine.root} got ${commitment.stateRoot}`
+        );
+}
+
+export interface TransferPipe {
+    source: AsyncGenerator<TransferOffchainTx>;
     tokenID: number;
     feeReceiverID: number;
 }
 
-export class TransferStateMachine implements StateMachine {
-    constructor(public readonly params: ProtocolParams) {}
-    async validate(
-        commitment: TransferCommitment,
-        storageManager: StorageManager
-    ): Promise<void> {
-        const txs = commitment.decompressTxs();
+async function pack(
+    pipe: TransferPipe,
+    storageManager: StorageManager,
+    params: DeploymentParameters
+): Promise<TransferCommitment> {
+    const engine = storageManager.state;
+    const acceptedTxs = [];
 
-        const feeReceiverID = Number(commitment.feeReceiver);
-        const engine = storageManager.state;
-        console.log("preroot", engine.root);
-        const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
-        if (txs.length > this.params.maxTxPerCommitment)
-            throw new Error("Too many tx");
-        for (const tx of txs) {
-            await processTransfer(tx, tokenID, engine);
+    for await (const tx of pipe.source) {
+        if (acceptedTxs.length >= params.MAX_TXS_PER_COMMIT) break;
+        try {
+            await processTransfer(tx, pipe.tokenID, engine);
+            acceptedTxs.push(tx);
+        } catch (e) {
+            console.error(`bad tx ${tx}  ${e}`);
         }
-        const fees = sum(txs.map(tx => tx.fee));
-        await processReceiver(feeReceiverID, fees, tokenID, engine);
-        await engine.commit();
-        if (engine.root != commitment.stateRoot)
-            throw new Error(
-                `Validation failed  expect ${engine.root} got ${commitment.stateRoot}`
-            );
     }
-    async pack(
-        source: AsyncGenerator<TransferOffchainTx>,
-        storageManager: StorageManager,
-        context: TransferPackingContext
-    ): Promise<TransferCommitment> {
-        const engine = storageManager.state;
-        const acceptedTxs = [];
-
-        for await (const tx of source) {
-            if (acceptedTxs.length >= this.params.maxTxPerCommitment) break;
-            try {
-                await processTransfer(tx, context.tokenID, engine);
-                acceptedTxs.push(tx);
-            } catch (e) {
-                console.error(`bad tx ${tx}  ${e}`);
-            }
-        }
-        const fees = sum(acceptedTxs.map(tx => tx.fee));
-        await processReceiver(
-            context.feeReceiverID,
-            fees,
-            context.tokenID,
-            engine
-        );
-        await engine.commit();
-        return TransferCommitment.fromTxs(
-            acceptedTxs,
-            engine.root,
-            storageManager.pubkey.root,
-            context.feeReceiverID
-        );
-    }
+    const fees = sum(acceptedTxs.map(tx => tx.fee));
+    await processReceiver(pipe.feeReceiverID, fees, pipe.tokenID, engine);
+    await engine.commit();
+    return TransferCommitment.fromTxs(
+        acceptedTxs,
+        engine.root,
+        storageManager.pubkey.root,
+        pipe.feeReceiverID
+    );
 }
 
 export class OffchainTransferFactory {
@@ -282,8 +275,17 @@ export class OffchainTransferFactory {
     }
 }
 
-export class TransferFeature implements Feature {
-    parseBatch(txDescription: TransactionDescription, batchMeta: BatchMeta) {
+export class TransferHandlingStrategy implements BatchHandlingStrategy {
+    constructor(
+        private rollup: Rollup,
+        private storageManager: StorageManager,
+        private params: DeploymentParameters
+    ) {}
+    async parseBatch(event: Event) {
+        const ethTx = await event.getTransaction();
+        const data = ethTx?.data as string;
+        const accountRoot = event.args?.accountRoot;
+        const txDescription = this.rollup.interface.parseTransaction({ data });
         const {
             stateRoots,
             signatures,
@@ -294,7 +296,7 @@ export class TransferFeature implements Feature {
         for (let i = 0; i < stateRoots.length; i++) {
             const commitment = new TransferCommitment(
                 stateRoots[i],
-                batchMeta.accountRoot,
+                accountRoot,
                 signatures[i],
                 feeReceivers[i],
                 txss[i]
@@ -304,7 +306,84 @@ export class TransferFeature implements Feature {
         return new ConcreteBatch(commitments);
     }
 
-    getStateMachine(params: ProtocolParams) {
-        return new TransferStateMachine(params);
+    async processBatch(batch: ConcreteBatch<TransferCommitment>) {
+        for (const commitment of batch.commitments) {
+            await process(commitment, this.storageManager, this.params);
+        }
+    }
+}
+
+export interface TransferPool {
+    getNextPipe(): TransferPipe;
+}
+
+export class SimulatorPool extends OffchainTransferFactory
+    implements TransferPool {
+    private tokenID?: number;
+    private feeReceiverID?: number;
+    async setTokenID() {
+        const stateID = this.group.getUser(0).stateID;
+        const state = await this.engine.get(stateID);
+        this.tokenID = state.tokenID;
+        this.feeReceiverID = stateID;
+    }
+
+    getNextPipe() {
+        const source = this.genTx();
+        if (!this.tokenID || !this.feeReceiverID)
+            throw new Error("tokenID or feeReceiver undefined");
+        return {
+            source,
+            tokenID: this.tokenID,
+            feeReceiverID: this.feeReceiverID
+        };
+    }
+}
+
+const MAX_COMMIT_PER_BATCH = 32;
+
+async function packBatch(
+    pool: TransferPool,
+    storageManager: StorageManager,
+    params: DeploymentParameters
+) {
+    const commitments = [];
+    for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
+        const pipe = pool.getNextPipe();
+        const commitment = await pack(pipe, storageManager, params);
+        commitments.push(commitment);
+    }
+    return new ConcreteBatch(commitments);
+}
+
+async function submitTransfer(
+    batch: ConcreteBatch<TransferCommitment>,
+    rollup: Rollup,
+    stakingAmount: BigNumberish
+) {
+    return await rollup.submitTransfer(
+        batch.commitments.map(c => c.stateRoot),
+        batch.commitments.map(c => c.signature),
+        batch.commitments.map(c => c.feeReceiver),
+        batch.commitments.map(c => c.txs),
+        { value: stakingAmount }
+    );
+}
+
+export class TransferPackingCommand implements BatchPackingCommand {
+    constructor(
+        private params: DeploymentParameters,
+        private storageManager: StorageManager,
+        private pool: TransferPool,
+        private rollup: Rollup
+    ) {}
+
+    async packAndSubmit() {
+        const batch = await packBatch(
+            this.pool,
+            this.storageManager,
+            this.params
+        );
+        await submitTransfer(batch, this.rollup, this.params.STAKE_AMOUNT);
     }
 }
