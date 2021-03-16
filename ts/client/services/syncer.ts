@@ -35,26 +35,37 @@ export class SyncerService {
     }
 
     async initialSync() {
-        const chunksize = 100;
+        const initChunksize = 100;
         let syncedBlock = this.genesisBlock;
         let latestBlock = await this.rollup.provider.getBlockNumber();
+        let nextChunksize = initChunksize;
         while (syncedBlock <= latestBlock) {
+            const start = syncedBlock;
+            const end = syncedBlock + nextChunksize;
+            console.info(`Syncing from block ${start} -- ${end}`);
             const events = await this.rollup.queryFilter(
                 this.newBatchFilter,
-                syncedBlock,
-                syncedBlock + chunksize
+                start,
+                end
             );
             for (const event of events) {
                 await this.handleNewBatch(event);
             }
-            syncedBlock += Math.min(chunksize, latestBlock - syncedBlock);
+            syncedBlock += nextChunksize;
+            nextChunksize = Math.min(initChunksize, latestBlock - syncedBlock);
             latestBlock = await this.rollup.provider.getBlockNumber();
         }
     }
 
     async handleNewBatch(event: Event) {
         const usage = event.args?.batchType as Usage;
-        this.batchHandlingContext.setStrategy(this.strategies[usage]);
+        console.info(`#${event.args?.batchID}\t[${Usage[usage]}]`);
+        const strategy = this.strategies[usage];
+        if (!strategy)
+            throw new Error(
+                `Fatal: No strategy for usage: ${usage} (${Usage[usage]})`
+            );
+        this.batchHandlingContext.setStrategy(strategy);
         const batch = await this.batchHandlingContext.parseBatch(event);
         await this.batchHandlingContext.processBatch(batch);
     }
