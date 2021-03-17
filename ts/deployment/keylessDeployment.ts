@@ -51,6 +51,7 @@ export async function calculateKeylessDeployment(
     const parsedDeploymentTx: Transaction = parse(rawDeplotmentTx);
 
     let estimatedGasCost = BigNumber.from(0);
+
     if (provider) {
         estimatedGasCost = await provider.estimateGas(parsedDeploymentTx);
     }

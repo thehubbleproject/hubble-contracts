@@ -9,12 +9,13 @@ import {
     KEYLESS_DEPLOYMENT
 } from "./static";
 import { logAddress, logDeployment } from "../../scripts/logger";
+import { isDeployerDeployed } from "./deployer";
 
 export async function calculateDeployerAddress(
     provider?: Provider
 ): Promise<{ deployerAddress: string; keylessAccount: string }> {
     let result = await calculateKeylessDeployment(
-        provider,
+        undefined,
         deployerBytecode(),
         KEYLESS_DEPLOYMENT.GAS_PRICE,
         KEYLESS_DEPLOYMENT.GAS_LIMIT,
@@ -44,25 +45,10 @@ export async function deployDeployer(
     verbose: boolean
 ): Promise<boolean> {
     assert(signer.provider);
-    const provider = signer.provider;
-    const result = await calculateKeylessDeployment(
-        provider,
-        deployerBytecode(),
-        KEYLESS_DEPLOYMENT.GAS_PRICE,
-        KEYLESS_DEPLOYMENT.GAS_LIMIT,
-        verbose
-    );
-
-    if (result.alreadyDeployed) {
-        logAddress(
-            verbose,
-            "Deployer is ALREADY deployed",
-            result.contractAddress
-        );
+    if (await isDeployerDeployed(signer.provider)) {
+        logAddress(verbose, "Deployer is ALREADY deployed", DEPLOYER_ADDRESS);
         return true;
     }
-    assert(KEYLESS_DEPLOYMENT.GAS_LIMIT.gte(result.estimatedGasCost));
-    assert(DEPLOYER_ADDRESS == result.contractAddress);
     const _result = await keylessDeploy(
         signer,
         deployerBytecode(),
