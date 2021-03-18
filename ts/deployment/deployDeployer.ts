@@ -14,7 +14,12 @@ export async function deployDeployer(
 ): Promise<boolean> {
     assert(signer.provider);
     const provider = signer.provider;
-    const deployer = new KeylessDeployer(deployerBytecode()).connect(provider);
+    // Need exact GAS_PRICE and GAS_LIMIT to derive correct DEPLOYER_ADDRESS
+    const deployer = new KeylessDeployer(
+        deployerBytecode(),
+        KEYLESS_DEPLOYMENT.GAS_PRICE,
+        KEYLESS_DEPLOYMENT.GAS_LIMIT
+    ).connect(provider);
 
     if (await deployer.alreadyDeployed()) {
         logAddress(
