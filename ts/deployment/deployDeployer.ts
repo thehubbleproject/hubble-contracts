@@ -29,7 +29,6 @@ export async function deployDeployer(
         );
         return true;
     }
-    assert(KEYLESS_DEPLOYMENT.GAS_LIMIT.gte(await deployer.estimateGas()));
     assert(DEPLOYER_ADDRESS == deployer.contractAddress);
 
     const receipt = await deployer.fundAndDeploy(signer);
