@@ -1,6 +1,5 @@
 import { arrayify } from "@ethersproject/bytes";
 import { Group, storageManagerFactory } from "../factory";
-import { Simulator } from "./services/simulator";
 import * as mcl from "../../ts/mcl";
 import { BigNumber } from "@ethersproject/bignumber";
 import { Bidder } from "./services/bidder";
@@ -9,6 +8,8 @@ import { SyncerService } from "./services/syncer";
 import { Genesis } from "../genesis";
 import { DepositPool } from "./features/deposit";
 import { buildStrategies } from "./contexts";
+import { Packer } from "./services/packer";
+import { SimulatorPool } from "./features/transfer";
 
 interface ClientConfigs {
     willingnessToBid: BigNumber;
@@ -17,7 +18,7 @@ interface ClientConfigs {
 }
 
 export class HubbleNode {
-    constructor(private simulator: Simulator, public bidder?: Bidder) {}
+    constructor(private packer?: Packer, public bidder?: Bidder) {}
     public static async init() {
         await mcl.init();
         const config: ClientConfigs = {
@@ -49,7 +50,15 @@ export class HubbleNode {
             depositPool
         );
 
-        const simulator = new Simulator(storageManager, group);
+        const simPool = new SimulatorPool(group, storageManager.state);
+        await simPool.setTokenID();
+
+        const packer = new Packer(
+            storageManager,
+            parameters,
+            contracts,
+            simPool
+        );
         const bidder = await Bidder.new(
             config.willingnessToBid,
             contracts.burnAuction
@@ -59,13 +68,14 @@ export class HubbleNode {
             auxiliary.genesisEth1Block,
             strategies
         );
-        simulator.start();
+        syncer.start();
         bidder.start();
-        return new this(simulator, bidder);
+        packer.start();
+        return new this(packer, bidder);
     }
     async close() {
         console.log("Node start closing");
-        this.simulator.stop();
+        this.packer?.stop();
         this.bidder?.stop();
     }
 }

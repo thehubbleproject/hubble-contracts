@@ -1,4 +1,4 @@
-import { BigNumber, BytesLike, Event } from "ethers";
+import { BigNumber, BytesLike, ContractTransaction, Event } from "ethers";
 import { SignatureInterface } from "../../blsSigner";
 
 export interface CompressedStruct {
@@ -58,5 +58,5 @@ export interface BatchHandlingStrategy {
 }
 
 export interface BatchPackingCommand {
-    packAndSubmit(): Promise<void>;
+    packAndSubmit(): Promise<ContractTransaction>;
 }
