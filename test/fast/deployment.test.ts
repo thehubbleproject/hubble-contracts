@@ -1,5 +1,5 @@
 import { ethers } from "hardhat";
-import { keylessDeploy } from "../../ts/deployment/keylessDeployment";
+import { KeylessDeployer } from "../../ts/deployment/keylessDeployment";
 import { SimpleStorageFactory } from "../../types/ethers-contracts/SimpleStorageFactory";
 import { BigNumber, Wallet, utils, Signer } from "ethers";
 import { assert } from "chai";
@@ -34,9 +34,9 @@ describe("Deployer", async () => {
         const gasLimit = await provider.estimateGas(
             factory.getDeployTransaction()
         );
-        // prettier-ignore
-        const result = await keylessDeploy(feeder, bytecode, gasPrice, gasLimit, verbose);
-        const simpleStorage = factory.attach(result.contractAddress);
+        const deployer = new KeylessDeployer(bytecode, gasPrice, gasLimit);
+        await deployer.fundAndDeploy(signer, verbose);
+        const simpleStorage = factory.attach(deployer.contractAddress);
         await simpleStorage.setValue(23);
         const value = await simpleStorage.getValue();
         assert.isTrue(value.eq(23));

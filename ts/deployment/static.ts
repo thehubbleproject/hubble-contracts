@@ -1,8 +1,7 @@
 import { BigNumber, utils } from "ethers";
-import { calculateDeployerAddress } from "./deployDeployer";
-import { Provider } from "@ethersproject/providers";
 import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
 import { DeployerFactory } from "../../types/ethers-contracts/DeployerFactory";
+import { KeylessDeployer } from "./keylessDeployment";
 
 export const PROXY_BYTECODE = proxyBytecode();
 export const PROXY_CODE_HASH = utils.keccak256(PROXY_BYTECODE);
@@ -30,19 +29,16 @@ export interface StaticAdresses {
     bnPairingCostEstimator: string;
 }
 
-export async function calculateAddresses(
-    provider?: Provider
-): Promise<StaticAdresses> {
-    const deployerResult = await calculateDeployerAddress(provider);
-    const deployer = deployerResult.deployerAddress;
-    const keyless = deployerResult.keylessAccount;
+export function calculateAddresses(): StaticAdresses {
+    const deployer = new KeylessDeployer(deployerBytecode());
+
     const bnPairingCostEstimator = calculateAddress(
-        deployer,
+        deployer.contractAddress,
         SALT.PAIRING_GAS_ESTIMATOR
     );
     const addresses = {
-        keyless,
-        deployer,
+        deployer: deployer.contractAddress,
+        keyless: deployer.keylessAccount,
         bnPairingCostEstimator
     };
     return addresses;

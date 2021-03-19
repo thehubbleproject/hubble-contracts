@@ -1,11 +1,12 @@
 import { ethers, providers } from "ethers";
 import {
     calculateAddresses,
+    deployerBytecode,
     DEPLOYER_ADDRESS,
     KEYLESS_DEPLOYMENT
 } from "../ts/deployment/static";
-import { calculateGasLimit } from "../ts/deployment/deployDeployer";
 import { deployKeyless } from "../ts/deployment/deploy";
+import { KeylessDeployer } from "../ts/deployment/keylessDeployment";
 
 const argv = require("minimist")(process.argv.slice(2), {
     string: ["url", "root"],
@@ -40,7 +41,10 @@ async function checkKeylessDeploymentSetup(
 ) {
     // Gas Limit
     if (provider) {
-        const keylessTxGasCost = await calculateGasLimit(provider);
+        const deployer = new KeylessDeployer(deployerBytecode()).connect(
+            provider
+        );
+        const keylessTxGasCost = await deployer.estimateGas();
         if (keylessTxGasCost.gt(KEYLESS_DEPLOYMENT.GAS_LIMIT)) {
             console.log(`WARNING: Gas Limit Insufficient
         expected: ${keylessTxGasCost.toString()}
@@ -62,7 +66,7 @@ async function checkKeylessDeploymentSetup(
         }
     }
 
-    const addresses = await calculateAddresses(provider);
+    const addresses = calculateAddresses();
 
     if (addresses.deployer != DEPLOYER_ADDRESS) {
         console.log(`WARNING: Bad Deployer Adress

@@ -6,9 +6,9 @@ import {
     parse
 } from "@ethersproject/transactions";
 import { SignatureLike } from "@ethersproject/bytes";
-import { Provider, TransactionReceipt } from "@ethersproject/providers";
-import assert from "assert";
-import { logAddress, logDeployment, logTx } from "../../scripts/logger";
+import { Provider } from "@ethersproject/providers";
+import { logDeployment, logTx } from "../../scripts/logger";
+import { KEYLESS_DEPLOYMENT } from "./static";
 
 const zero = BigNumber.from(0);
 
@@ -19,125 +19,83 @@ const signature: SignatureLike = {
     s: "0x0002abb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1eabb1e"
 };
 
-export interface KeylessDeployment {
-    keylessAccount: string;
-    contractAddress: string;
-    alreadyDeployed: boolean;
-    estimatedGasCost: BigNumber;
-    rawTx: string;
-}
+export class KeylessDeployer {
+    public readonly unsignedTx: UnsignedTransaction;
+    public readonly rawDeploymentTx: string;
+    public readonly deploymentTx: Transaction;
+    public readonly keylessAccount: string;
+    public readonly contractAddress: string;
+    private provider?: Provider;
 
-export interface KeylessDeploymentResult extends KeylessDeployment {
-    receipt: TransactionReceipt;
-}
-
-export async function calculateKeylessDeployment(
-    provider: Provider | undefined,
-    bytecode: string,
-    gasPrice: BigNumber,
-    gasLimit: BigNumber,
-    verbose: boolean
-): Promise<KeylessDeployment> {
-    const rawTransaction: UnsignedTransaction = {
-        chainId: 0, // If the chain ID is 0 or null, then EIP-155 is disabled and legacy signing is used, unless overridden in a signature.
-        nonce: 0,
-        gasPrice: gasPrice,
-        value: zero,
-        data: bytecode,
-        gasLimit: gasLimit
-    };
-
-    const rawDeplotmentTx = serialize(rawTransaction, signature);
-    const parsedDeploymentTx: Transaction = parse(rawDeplotmentTx);
-
-    let estimatedGasCost = BigNumber.from(0);
-    if (provider) {
-        estimatedGasCost = await provider.estimateGas(parsedDeploymentTx);
+    constructor(
+        public readonly bytecode: string,
+        private readonly gasPrice: BigNumber = KEYLESS_DEPLOYMENT.GAS_PRICE,
+        private readonly gasLimit: BigNumber = KEYLESS_DEPLOYMENT.GAS_LIMIT
+    ) {
+        this.unsignedTx = {
+            chainId: 0, // If the chain ID is 0 or null, then EIP-155 is disabled and legacy signing is used, unless overridden in a signature.
+            nonce: 0,
+            gasPrice: this.gasPrice,
+            value: zero,
+            data: this.bytecode,
+            gasLimit: this.gasLimit
+        };
+        this.rawDeploymentTx = serialize(this.unsignedTx, signature);
+        this.deploymentTx = parse(this.rawDeploymentTx);
+        if (!this.deploymentTx.from) throw new Error("No tx.from");
+        this.keylessAccount = this.deploymentTx.from;
+        this.contractAddress = ethers.utils.getContractAddress({
+            from: this.keylessAccount,
+            nonce: 0
+        });
+    }
+    connect(provider: Provider) {
+        this.provider = provider;
+        return this;
     }
 
-    // now we must have a transaction hash
-    assert(parsedDeploymentTx.hash);
-    // and a sender
-    assert(parsedDeploymentTx.from);
-
-    const keylessAccount = parsedDeploymentTx.from;
-    if (verbose) {
-        console.info(`Keyless account is derived:\n${keylessAccount}\n`);
+    async estimateGas() {
+        if (!this.provider)
+            throw new Error("Please connect to a provider first");
+        return await this.provider.estimateGas(this.deploymentTx);
+    }
+    async alreadyDeployed(): Promise<boolean> {
+        if (!this.provider)
+            throw new Error("Please connect to a provider first");
+        const code = await this.provider.getCode(this.contractAddress);
+        return code != "0x";
     }
 
-    const contractAddress = ethers.utils.getContractAddress({
-        from: keylessAccount,
-        nonce: 0
-    });
-
-    let alreadyDeployed = false;
-    if (provider) {
-        const code = await provider.getCode(contractAddress);
-        if (code != "0x") {
-            alreadyDeployed = true;
+    private async fundKeylessAccount(feeder: Signer) {
+        const ethAmtForDeployment = this.gasLimit.mul(this.gasPrice);
+        return await feeder.sendTransaction({
+            to: this.keylessAccount,
+            value: ethAmtForDeployment
+        });
+    }
+    private async deploy() {
+        if (!this.provider)
+            throw new Error("Please connect to a provider first");
+        return await this.provider.sendTransaction(this.rawDeploymentTx);
+    }
+    async fundAndDeploy(feeder: Signer, verbose = false) {
+        if (!this.provider) {
+            if (!feeder.provider) throw new Error("No provider");
+            this.provider = feeder.provider;
         }
-    }
-
-    return {
-        contractAddress,
-        keylessAccount,
-        estimatedGasCost,
-        alreadyDeployed,
-        rawTx: rawDeplotmentTx
-    };
-}
-
-export async function keylessDeploy(
-    feeder: Signer,
-    bytecode: string,
-    gasPrice: BigNumber,
-    gasLimit: BigNumber,
-    verbose: boolean
-): Promise<KeylessDeploymentResult> {
-    assert(feeder.provider);
-    const provider = feeder.provider;
-    const result = await calculateKeylessDeployment(
-        provider,
-        bytecode,
-        gasPrice,
-        gasLimit,
-        verbose
-    );
-
-    if (result.alreadyDeployed) {
-        logAddress(
+        const feedTx = await this.fundKeylessAccount(feeder);
+        logTx(verbose, "Tx: waiting, keyless account feed", feedTx.hash);
+        await feedTx.wait();
+        logTx(verbose, "Tx: keyless account is feeded", feedTx.hash);
+        const deployTx = await this.deploy();
+        logTx(verbose, "Tx: waiting, keyless depleyment", deployTx.hash);
+        const receipt = await deployTx.wait();
+        logDeployment(
             verbose,
-            "Keyless deployment is ALREADY done",
-            result.contractAddress
+            "Deployed: keyless",
+            deployTx.hash,
+            receipt.contractAddress
         );
-        return result as KeylessDeploymentResult;
+        return receipt;
     }
-
-    const keylessAccount = result.keylessAccount;
-    const contractAddress = result.contractAddress;
-    const rawDeploymentTx = result.rawTx;
-
-    // feed keyless account
-    const ethAmtForDeployment = gasLimit.mul(gasPrice);
-    const feedTx = await feeder.sendTransaction({
-        to: keylessAccount,
-        value: ethAmtForDeployment
-    });
-    logTx(verbose, "Tx: waiting, keyless account feed", feedTx.hash);
-    let receipt = await feedTx.wait();
-    logTx(verbose, "Tx: keyless account is feeded", feedTx.hash);
-
-    const deploymentTx = await provider.sendTransaction(rawDeploymentTx);
-    logTx(verbose, "Tx: waiting, keyless depleyment", deploymentTx.hash);
-    receipt = await deploymentTx.wait();
-    assert(receipt.contractAddress == contractAddress);
-    logDeployment(
-        verbose,
-        "Deployed: keyless",
-        deploymentTx.hash,
-        receipt.contractAddress
-    );
-    let _result = result as KeylessDeploymentResult;
-    _result.receipt = receipt;
-    return _result;
 }
