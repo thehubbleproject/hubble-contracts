@@ -5,7 +5,7 @@ import { BurnAuction } from "../../../types/ethers-contracts/BurnAuction";
 /**
  * Given the amount we are willing bid, the service secure a proposer slot for the client
  */
-export class BurnAuctionService {
+export class Bidder {
     private constructor(
         public willingnessToBid: BigNumber,
         public burnAuction: BurnAuction,
