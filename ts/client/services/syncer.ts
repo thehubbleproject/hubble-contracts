@@ -5,7 +5,7 @@ import { BatchHandlingContext } from "../contexts";
 import { BatchHandlingStrategy } from "../features/interface";
 import { SyncedPoint } from "../node";
 
-enum SyncMode {
+export enum SyncMode {
     INITIAL_SYNCING,
     REGULAR_SYNCING
 }

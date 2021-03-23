@@ -1,6 +1,10 @@
-import { HubbleNode } from "../ts/client/node";
+import { HubbleNode, NodeType } from "../ts/client/node";
 import { AbortController } from "abort-controller";
 import { sleep } from "../ts/utils";
+
+const argv = require("minimist")(process.argv.slice(2), {
+    boolean: ["proposer"]
+});
 
 async function main() {
     const abortController = new AbortController();
@@ -10,8 +14,9 @@ async function main() {
             abortController.abort();
         });
     }
+    const nodeType = argv.proposer ? NodeType.Proposer : NodeType.Syncer;
 
-    const node = await HubbleNode.init();
+    const node = await HubbleNode.init(nodeType);
     abortController.signal.addEventListener("abort", () => node.close(), {
         once: true
     });
