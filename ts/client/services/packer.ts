@@ -29,6 +29,7 @@ export class Packer {
 
     async start() {
         // TODO: what about sync status and client status
+        console.log("proposer start");
         const packingCommand = new TransferPackingCommand(
             this.parameters,
             this.storageManager,
@@ -42,8 +43,10 @@ export class Packer {
                 continue;
             }
             const tx = await packingCommand.packAndSubmit();
-            await tx.wait(1);
+            const receipt = await tx.wait(1);
             this.syncpoint.batchID += 1;
+            this.syncpoint.blockNumber = receipt.blockNumber;
+            console.log("Proposed a batch", this.syncpoint);
         }
     }
 

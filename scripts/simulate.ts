@@ -17,6 +17,7 @@ async function main() {
     const nodeType = argv.proposer ? NodeType.Proposer : NodeType.Syncer;
 
     const node = await HubbleNode.init(nodeType);
+    await node.start();
     abortController.signal.addEventListener("abort", () => node.close(), {
         once: true
     });

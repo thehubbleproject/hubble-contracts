@@ -91,8 +91,10 @@ export class HubbleNode {
     }
     async start() {
         if (this.nodeType === NodeType.Syncer) {
+            console.info("start as syncer");
             this.syncer.start();
         } else if (this.nodeType === NodeType.Proposer) {
+            console.info("start as proposer");
             const burnAuction = this.burnAuction?.burnAuction as BurnAuction;
             const myAddress = (await burnAuction?.signer.getAddress()) as string;
             const slotLength = Number(await burnAuction?.BLOCKS_PER_SLOT());
@@ -100,8 +102,8 @@ export class HubbleNode {
                 await burnAuction?.genesisBlock()
             );
             this.burnAuction?.start();
-            this.packer?.start();
             const onSlotBoundary = async () => {
+                console.log("On boundary");
                 const currentSlot = Number(await burnAuction?.currentSlot());
                 const currentWinner = (await burnAuction?.auction(currentSlot))
                     .coordinator;
@@ -109,6 +111,12 @@ export class HubbleNode {
                     .coordinator;
                 const isProposingThisSlot = currentWinner === myAddress;
                 const willProposeNextSlot = nextWinner === myAddress;
+                console.log(
+                    "Is proposing this slot?",
+                    isProposingThisSlot,
+                    "Will propose next slot?",
+                    willProposeNextSlot
+                );
                 if (isProposingThisSlot && !willProposeNextSlot) {
                     this.packer?.stop();
                     this.syncer.start();
@@ -121,7 +129,7 @@ export class HubbleNode {
                     this.packer?.start();
                 }
             };
-            this.provider.on("block", (blockNumber: number) => {
+            this.provider.on("block", async (blockNumber: number) => {
                 if (blockNumber < burnAuctionGenesis) return;
                 if (this.syncer.getMode() === SyncMode.INITIAL_SYNCING) {
                     console.info("We are still in initial sync, skip");
@@ -129,12 +137,16 @@ export class HubbleNode {
                 }
                 const blockModSlot =
                     (blockNumber - burnAuctionGenesis) % slotLength;
+                console.log(
+                    `block ${blockNumber}\tSlot progress\t${blockModSlot}/${slotLength}`
+                );
                 if (blockModSlot === slotLength - 1) {
                     onSlotBoundary();
                 } else if (blockModSlot === 0) {
                     onNewSlot();
                 }
             });
+            this.syncer.start();
         } else {
             throw new Error("No nodeType");
         }
