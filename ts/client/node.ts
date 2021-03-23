@@ -17,6 +17,10 @@ interface ClientConfigs {
     genesisPath: string;
 }
 
+export class SyncedPoint {
+    constructor(public blockNumber: number, public batchID: number) {}
+}
+
 export class HubbleNode {
     constructor(private packer?: Packer, public bidder?: Bidder) {}
     public static async init() {
@@ -39,6 +43,7 @@ export class HubbleNode {
         const storageManager = await storageManagerFactory(group, {
             stateTreeDepth: parameters.MAX_DEPTH
         });
+        const syncedPoint = new SyncedPoint(auxiliary.genesisEth1Block, 0);
 
         const depositPool = new DepositPool(
             parameters.MAX_DEPOSIT_SUBTREE_DEPTH
@@ -57,7 +62,8 @@ export class HubbleNode {
             storageManager,
             parameters,
             contracts,
-            simPool
+            simPool,
+            syncedPoint
         );
         const bidder = await Bidder.new(
             config.willingnessToBid,
@@ -65,9 +71,10 @@ export class HubbleNode {
         );
         const syncer = new SyncerService(
             contracts.rollup,
-            auxiliary.genesisEth1Block,
+            syncedPoint,
             strategies
         );
+
         syncer.start();
         bidder.start();
         packer.start();

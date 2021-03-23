@@ -3,6 +3,7 @@ import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { Usage } from "../../interfaces";
 import { BatchHandlingContext } from "../contexts";
 import { BatchHandlingStrategy } from "../features/interface";
+import { SyncedPoint } from "../node";
 
 enum SyncMode {
     INITIAL_SYNCING,
@@ -16,7 +17,7 @@ export class SyncerService {
 
     constructor(
         private readonly rollup: Rollup,
-        private genesisBlock: number,
+        private syncedPoint: SyncedPoint,
         private strategies: { [key: string]: BatchHandlingStrategy }
     ) {
         this.mode = SyncMode.INITIAL_SYNCING;
@@ -36,7 +37,7 @@ export class SyncerService {
 
     async initialSync() {
         const initChunksize = 100;
-        let syncedBlock = this.genesisBlock;
+        let syncedBlock = this.syncedPoint.blockNumber;
         let latestBlock = await this.rollup.provider.getBlockNumber();
         let nextChunksize = initChunksize;
         while (syncedBlock <= latestBlock) {
@@ -59,7 +60,12 @@ export class SyncerService {
 
     async handleNewBatch(event: Event) {
         const usage = event.args?.batchType as Usage;
-        console.info(`#${event.args?.batchID}\t[${Usage[usage]}]`);
+        const batchID = event.args?.batchID;
+        console.info(`#${batchID}\t[${Usage[usage]}]`);
+        if (this.syncedPoint.batchID >= batchID) {
+            console.info("synced before");
+            return;
+        }
         const strategy = this.strategies[usage];
         if (!strategy)
             throw new Error(
@@ -68,6 +74,8 @@ export class SyncerService {
         this.batchHandlingContext.setStrategy(strategy);
         const batch = await this.batchHandlingContext.parseBatch(event);
         await this.batchHandlingContext.processBatch(batch);
+        this.syncedPoint.batchID = batchID;
+        this.syncedPoint.blockNumber = event.blockNumber;
     }
 
     newBatchListener = async (
