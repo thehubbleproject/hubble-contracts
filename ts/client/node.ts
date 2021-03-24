@@ -11,7 +11,7 @@ import { buildStrategies } from "./contexts";
 import { Packer } from "./services/packer";
 import { SimulatorPool } from "./features/transfer";
 import { Provider } from "@ethersproject/providers";
-import { BurnAuction } from "../../types/ethers-contracts/BurnAuction";
+import { BurnAuctionWrapper } from "../burnAuction";
 
 interface ClientConfigs {
     willingnessToBid: BigNumber;
@@ -95,22 +95,16 @@ export class HubbleNode {
             this.syncer.start();
         } else if (this.nodeType === NodeType.Proposer) {
             console.info("start as proposer");
-            const burnAuction = this.burnAuction?.burnAuction as BurnAuction;
-            const myAddress = (await burnAuction?.signer.getAddress()) as string;
-            const slotLength = Number(await burnAuction?.BLOCKS_PER_SLOT());
-            const burnAuctionGenesis = Number(
-                await burnAuction?.genesisBlock()
-            );
-            this.burnAuction?.start();
-            const onSlotBoundary = async () => {
+            const burnAuction = this.bidder?.burnAuction as BurnAuctionWrapper;
+            this.bidder?.start();
+            const onSlotBoundary = async (blockNumber: number) => {
                 console.log("On boundary");
-                const currentSlot = Number(await burnAuction?.currentSlot());
-                const currentWinner = (await burnAuction?.auction(currentSlot))
-                    .coordinator;
-                const nextWinner = (await burnAuction?.auction(currentSlot + 1))
-                    .coordinator;
-                const isProposingThisSlot = currentWinner === myAddress;
-                const willProposeNextSlot = nextWinner === myAddress;
+                const isProposingThisSlot = await burnAuction.checkAmIProposerNow(
+                    blockNumber
+                );
+                const willProposeNextSlot = await burnAuction.checkAmIProposerNext(
+                    blockNumber
+                );
                 console.log(
                     "Is proposing this slot?",
                     isProposingThisSlot,
@@ -122,28 +116,30 @@ export class HubbleNode {
                     this.syncer.start();
                 }
             };
-            const onNewSlot = async () => {
-                const isProposer = await this.packer?.checkProposer();
+            const onNewSlot = async (blockNumber: number) => {
+                const isProposer = await burnAuction.checkAmIProposerNow(
+                    blockNumber
+                );
                 if (isProposer) {
                     this.syncer.stop();
                     this.packer?.start();
                 }
             };
             this.provider.on("block", async (blockNumber: number) => {
-                if (blockNumber < burnAuctionGenesis) return;
+                if (blockNumber < burnAuction.genesisBlock) return;
                 if (this.syncer.getMode() === SyncMode.INITIAL_SYNCING) {
                     console.info("We are still in initial sync, skip");
                     return;
                 }
-                const blockModSlot =
-                    (blockNumber - burnAuctionGenesis) % slotLength;
+                const slotLength = burnAuction.blocksPerSlot;
+                const blockModSlot = burnAuction.slotProgress(blockNumber);
                 console.log(
                     `block ${blockNumber}\tSlot progress\t${blockModSlot}/${slotLength}`
                 );
                 if (blockModSlot === slotLength - 1) {
-                    onSlotBoundary();
+                    onSlotBoundary(blockNumber);
                 } else if (blockModSlot === 0) {
-                    onNewSlot();
+                    onNewSlot(blockNumber);
                 }
             });
             this.syncer.start();
