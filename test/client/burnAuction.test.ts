@@ -2,18 +2,18 @@ import { Signer } from "@ethersproject/abstract-signer";
 import { BigNumber } from "@ethersproject/bignumber";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { BurnAuctionService } from "../../ts/client/services/burnAuction";
+import { Bidder } from "../../ts/client/services/bidder";
 import { PRODUCTION_PARAMS } from "../../ts/constants";
 import { mineBlocks } from "../../ts/utils";
 import { BurnAuctionFactory } from "../../types/ethers-contracts";
 import { BurnAuction } from "../../types/ethers-contracts/BurnAuction";
 
-describe("Burn Auction service", function() {
+describe("Bidder", function() {
     let deployer: Signer;
     let serviceSigner: Signer;
     let competitor: Signer;
     let burnAuction: BurnAuction;
-    let service: BurnAuctionService;
+    let bidder: Bidder;
     const willingnessToBid = BigNumber.from("1");
 
     beforeEach(async function() {
@@ -24,7 +24,7 @@ describe("Burn Auction service", function() {
         );
         const initialBlocks = await burnAuction.DELTA_BLOCKS_INITIAL_SLOT();
         const blocksPerSlot = await burnAuction.BLOCKS_PER_SLOT();
-        service = await BurnAuctionService.new(
+        bidder = await Bidder.new(
             willingnessToBid,
             burnAuction.connect(serviceSigner)
         );
@@ -34,7 +34,7 @@ describe("Burn Auction service", function() {
     it("bids", async function() {
         const currentSlot = await burnAuction.currentSlot();
         const currentBlock = await ethers.provider.getBlockNumber();
-        await service.maybeBid(currentBlock);
+        await bidder.maybeBid(currentBlock);
         assert.equal(
             (await burnAuction.auction(currentSlot + 2)).coordinator,
             await serviceSigner.getAddress()
@@ -45,14 +45,14 @@ describe("Burn Auction service", function() {
         await burnAuction.connect(serviceSigner).bid("1", { value: "1" });
         const currentBlock = await ethers.provider.getBlockNumber();
         // bid would result an error and thus fail the test
-        await service.maybeBid(currentBlock);
+        await bidder.maybeBid(currentBlock);
     });
 
     it("doesn't bid if amount is too much", async function() {
         const amount = willingnessToBid.add("1");
         await burnAuction.connect(competitor).bid(amount, { value: amount });
         const currentBlock = await ethers.provider.getBlockNumber();
-        await service.maybeBid(currentBlock);
+        await bidder.maybeBid(currentBlock);
         const currentSlot = await burnAuction.currentSlot();
         assert.equal(
             (await burnAuction.auction(currentSlot + 2)).coordinator,

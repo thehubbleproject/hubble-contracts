@@ -3,7 +3,7 @@ import { Group, storageManagerFactory } from "../factory";
 import { Simulator } from "./services/simulator";
 import * as mcl from "../../ts/mcl";
 import { BigNumber } from "@ethersproject/bignumber";
-import { BurnAuctionService } from "./services/burnAuction";
+import { Bidder } from "./services/bidder";
 import { ethers } from "ethers";
 import { SyncerService } from "./services/syncer";
 import { Genesis } from "../genesis";
@@ -17,10 +17,7 @@ interface ClientConfigs {
 }
 
 export class HubbleNode {
-    constructor(
-        private simulator: Simulator,
-        public burnAuction?: BurnAuctionService
-    ) {}
+    constructor(private simulator: Simulator, public bidder?: Bidder) {}
     public static async init() {
         await mcl.init();
         const config: ClientConfigs = {
@@ -53,7 +50,7 @@ export class HubbleNode {
         );
 
         const simulator = new Simulator(storageManager, group);
-        const burnAuctionService = await BurnAuctionService.new(
+        const bidder = await Bidder.new(
             config.willingnessToBid,
             contracts.burnAuction
         );
@@ -63,12 +60,12 @@ export class HubbleNode {
             strategies
         );
         simulator.start();
-        burnAuctionService.start();
-        return new this(simulator, burnAuctionService);
+        bidder.start();
+        return new this(simulator, bidder);
     }
     async close() {
         console.log("Node start closing");
         this.simulator.stop();
-        this.burnAuction?.stop();
+        this.bidder?.stop();
     }
 }
