@@ -7,6 +7,7 @@ import {
     SimulatorPool,
     TransferPackingCommand
 } from "../../ts/client/features/transfer";
+import { SyncedPoint } from "../../ts/client/node";
 import { SyncerService } from "../../ts/client/services/syncer";
 import { PRODUCTION_PARAMS } from "../../ts/constants";
 import { deployAll } from "../../ts/deploy";
@@ -54,9 +55,10 @@ describe("Client Integration", function() {
             parameters,
             depositPool
         );
+        const syncpoint = new SyncedPoint(genesisEth1Block, 0);
         const syncService = new SyncerService(
             contracts.rollup,
-            genesisEth1Block,
+            syncpoint,
             strategies
         );
         await syncService.initialSync();
