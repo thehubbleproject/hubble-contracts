@@ -1,6 +1,8 @@
 import { BigNumber } from "@ethersproject/bignumber";
-import { ethers } from "ethers";
+import { providers } from "ethers";
+import { formatEther } from "ethers/lib/utils";
 import { BurnAuction } from "../../../types/ethers-contracts/BurnAuction";
+import { BurnAuctionWrapper } from "../../burnAuction";
 
 /**
  * Given the amount we are willing bid, the service secure a proposer slot for the client
@@ -8,57 +10,48 @@ import { BurnAuction } from "../../../types/ethers-contracts/BurnAuction";
 export class Bidder {
     private constructor(
         public willingnessToBid: BigNumber,
-        public burnAuction: BurnAuction,
-        public address: string,
+        public burnAuction: BurnAuctionWrapper,
+        public provider: providers.Provider,
         public currentSlot: number
     ) {}
 
     static async new(willingnessToBid: BigNumber, burnAuction: BurnAuction) {
-        const address = await burnAuction.signer.getAddress();
+        const wrapper = await BurnAuctionWrapper.fromContract(burnAuction);
+        const provider = burnAuction.provider;
         const currentSlot = await burnAuction.currentSlot();
-        return new this(willingnessToBid, burnAuction, address, currentSlot);
+        return new this(willingnessToBid, wrapper, provider, currentSlot);
     }
 
     maybeBid = async (blockNumber: number) => {
-        console.log("block number", blockNumber);
-        const slot = await this.burnAuction.block2slot(blockNumber);
-        if (slot > this.currentSlot) {
-            this.currentSlot = slot;
-            console.info("New slot", slot);
-            const currentCoordinator = (await this.burnAuction.auction(slot))
-                .coordinator;
-            console.info("currentCoordinator", currentCoordinator);
-            const biddingSlot = slot + 2;
-            const auction = await this.burnAuction.auction(biddingSlot);
-            console.info(
-                "Auctioning slot",
-                "coordinator",
-                auction.coordinator,
-                "amount",
-                ethers.utils.formatEther(auction.amount),
-                "ETH"
-            );
-            console.log(auction.coordinator, this.address);
-            if (auction.coordinator == this.address) {
-                console.log("We are already the auction winner, no bid");
-                return;
-            }
-            if (auction.amount >= this.willingnessToBid) {
-                console.log("Amount > our willingness to bid, no bid!");
-                return;
-            }
-            console.log("Prepare to bid!");
-            await this.burnAuction.bid(this.willingnessToBid, {
-                value: this.willingnessToBid
-            });
+        const slot = this.burnAuction.currentSlot(blockNumber);
+        if (slot <= this.currentSlot) return;
+        this.currentSlot = slot;
+        console.info("New slot", slot);
+        const bid = await this.burnAuction.getAuctioningSlotBid(blockNumber);
+        console.info(
+            "Auctioning slot",
+            "coordinator",
+            bid.coordinator,
+            formatEther(bid.amount),
+            "ETH"
+        );
+        if (bid.coordinator == this.burnAuction.myAddress) {
+            console.log("We are already the auction winner, no bid");
+            return;
         }
+        if (bid.amount >= this.willingnessToBid) {
+            console.log("Amount > our willingness to bid, no bid!");
+            return;
+        }
+        console.log("Bid", formatEther(this.willingnessToBid), "ETH");
+        await this.burnAuction.bid(this.willingnessToBid);
     };
 
     async start() {
-        this.burnAuction.provider.on("block", this.maybeBid);
+        this.provider.on("block", this.maybeBid);
     }
 
     stop() {
-        this.burnAuction.provider.removeListener("block", this.maybeBid);
+        this.provider.removeListener("block", this.maybeBid);
     }
 }
