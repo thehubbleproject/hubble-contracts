@@ -38,12 +38,11 @@ export class SyncerService {
 
     async initialSync() {
         const chunksize = 100;
-        let syncedBlock = this.syncedPoint.blockNumber;
+        let start = this.syncedPoint.blockNumber;
         let latestBlock = await this.rollup.provider.getBlockNumber();
         let latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
-        while (syncedBlock <= latestBlock) {
-            const start = syncedBlock;
-            const end = syncedBlock + chunksize;
+        while (start <= latestBlock) {
+            const end = start + chunksize;
             const events = await this.rollup.queryFilter(
                 this.newBatchFilter,
                 start,
@@ -55,7 +54,7 @@ export class SyncerService {
             for (const event of events) {
                 await this.handleNewBatch(event);
             }
-            syncedBlock = this.syncedPoint.blockNumber;
+            start = end;
             latestBlock = await this.rollup.provider.getBlockNumber();
             latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
             console.info(
