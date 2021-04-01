@@ -3,7 +3,7 @@ import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { Usage } from "../../interfaces";
 import { BatchHandlingContext } from "../contexts";
 import { BatchHandlingStrategy } from "../features/interface";
-import { SyncedPoint } from "../node";
+import { nodeEmitter, SyncCompleteEvent, SyncedPoint } from "../node";
 
 export enum SyncMode {
     INITIAL_SYNCING,
@@ -31,6 +31,7 @@ export class SyncerService {
 
     async start() {
         await this.initialSync();
+        nodeEmitter.emit(SyncCompleteEvent);
         this.mode = SyncMode.REGULAR_SYNCING;
         this.rollup.on(this.newBatchFilter, this.newBatchListener);
     }
