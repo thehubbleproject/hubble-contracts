@@ -88,6 +88,7 @@ export class SyncerService {
         await this.batchHandlingContext.processBatch(batch);
         this.syncedPoint.batchID = batchID;
         this.syncedPoint.blockNumber = event.blockNumber;
+        console.log(batch.toString());
     }
 
     newBatchListener = async (

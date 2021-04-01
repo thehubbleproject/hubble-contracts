@@ -50,6 +50,7 @@ export interface Commitment {
 
 export interface Batch {
     commitments: Commitment[];
+    toString(): string;
 }
 
 export interface BatchHandlingStrategy {

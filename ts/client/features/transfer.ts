@@ -394,6 +394,7 @@ export class TransferPackingCommand implements BatchPackingCommand {
             this.storageManager,
             this.params
         );
+        console.info("submitting batch", batch.toString());
         return await submitTransfer(
             batch,
             this.rollup,
