@@ -36,26 +36,30 @@ export class SyncerService {
     }
 
     async initialSync() {
-        const initChunksize = 100;
+        const chunksize = 100;
         let syncedBlock = this.syncedPoint.blockNumber;
         let latestBlock = await this.rollup.provider.getBlockNumber();
-        let nextChunksize = initChunksize;
+        let latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
         while (syncedBlock <= latestBlock) {
             const start = syncedBlock;
-            const end = syncedBlock + nextChunksize;
+            const end = syncedBlock + chunksize;
             const events = await this.rollup.queryFilter(
                 this.newBatchFilter,
                 start,
                 end
             );
             console.info(
-                `Syncing from block ${start} -- ${end}\t${events.length} new batches`
+                `Block ${start} -- ${end}\t${events.length} new batches`
             );
             for (const event of events) {
                 await this.handleNewBatch(event);
             }
-            syncedBlock += nextChunksize;
+            syncedBlock = this.syncedPoint.blockNumber;
             latestBlock = await this.rollup.provider.getBlockNumber();
+            latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
+            console.info(
+                `block #${this.syncedPoint.blockNumber}/#${latestBlock}  batch ${this.syncedPoint.batchID}/${latestBatchID}`
+            );
         }
     }
 
@@ -83,7 +87,6 @@ export class SyncerService {
         await this.batchHandlingContext.processBatch(batch);
         this.syncedPoint.batchID = batchID;
         this.syncedPoint.blockNumber = event.blockNumber;
-        console.log(this.syncedPoint);
     }
 
     newBatchListener = async (
