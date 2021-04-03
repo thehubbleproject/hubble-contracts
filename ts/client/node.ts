@@ -130,11 +130,13 @@ export class HubbleNode {
             const isProposer = await burnAuction.checkAmIProposerNow(
                 blockNumber
             );
-            if (isProposer) {
-                this.syncer.stop();
-                this.packer?.start();
-            } else {
+            if (!isProposer) {
                 this.syncer.start();
+                return;
+            }
+            this.syncer.stop();
+            if (this.packer?.isStopped) {
+                this.packer?.start();
             }
         };
         this.provider.on("block", async (blockNumber: number) => {
