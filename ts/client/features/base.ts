@@ -32,7 +32,13 @@ export abstract class BaseCommitment implements Commitment {
 export class ConcreteBatch<T extends Commitment> implements Batch {
     private tree: Tree;
     constructor(public readonly commitments: T[]) {
+        if (commitments.length === 0) throw new Error("no commitment");
         this.tree = Tree.merklize(commitments.map(c => c.hash()));
+    }
+
+    get postStateRoot(): string {
+        const lastCommitment = this.commitments[this.commitments.length - 1];
+        return lastCommitment.stateRoot.toString();
     }
 
     get commitmentRoot(): string {
@@ -56,5 +62,9 @@ export class ConcreteBatch<T extends Commitment> implements Batch {
             path: leafInfex,
             witness: this.witness(leafInfex)
         };
+    }
+
+    toString() {
+        return `<Batch  size ${this.commitments.length}  commitmentRoot ${this.commitmentRoot}  postRoot ${this.postStateRoot}>`;
     }
 }

@@ -40,6 +40,10 @@ export class BurnAuctionWrapper {
             (blockNumber - this.genesisBlock) / this.blocksPerSlot
         );
     }
+    slotProgress(blockNumber: number) {
+        if (blockNumber < this.genesisBlock) return 0;
+        return (blockNumber - this.genesisBlock) % this.blocksPerSlot;
+    }
 
     async getCurrentSlot(blockNumber?: number) {
         const _blockNumber =

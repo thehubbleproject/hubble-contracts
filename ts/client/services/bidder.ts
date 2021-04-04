@@ -48,6 +48,13 @@ export class Bidder {
     };
 
     async start() {
+        const genesis = this.burnAuction.genesisBlock;
+        const blockNumber = await this.provider.getBlockNumber();
+        if (genesis > blockNumber) {
+            console.log(
+                `Burn auction genesis is at block #${genesis} we have to wait`
+            );
+        }
         this.provider.on("block", this.maybeBid);
     }
 

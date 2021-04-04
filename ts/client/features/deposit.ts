@@ -160,7 +160,7 @@ export class DepositHandlingStrategy implements BatchHandlingStrategy {
 }
 
 export class DepositPackingCommand implements BatchPackingCommand {
-    async packAndSubmit() {
+    async packAndSubmit(): Promise<ContractTransaction> {
         throw new Error("Not implemented");
     }
 }

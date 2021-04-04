@@ -3,8 +3,9 @@ import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { Usage } from "../../interfaces";
 import { BatchHandlingContext } from "../contexts";
 import { BatchHandlingStrategy } from "../features/interface";
+import { nodeEmitter, SyncCompleteEvent, SyncedPoint } from "../node";
 
-enum SyncMode {
+export enum SyncMode {
     INITIAL_SYNCING,
     REGULAR_SYNCING
 }
@@ -16,7 +17,7 @@ export class SyncerService {
 
     constructor(
         private readonly rollup: Rollup,
-        private genesisBlock: number,
+        private syncedPoint: SyncedPoint,
         private strategies: { [key: string]: BatchHandlingStrategy }
     ) {
         this.mode = SyncMode.INITIAL_SYNCING;
@@ -30,36 +31,52 @@ export class SyncerService {
 
     async start() {
         await this.initialSync();
+        nodeEmitter.emit(SyncCompleteEvent);
         this.mode = SyncMode.REGULAR_SYNCING;
         this.rollup.on(this.newBatchFilter, this.newBatchListener);
     }
 
     async initialSync() {
-        const initChunksize = 100;
-        let syncedBlock = this.genesisBlock;
+        const chunksize = 100;
+        let start = this.syncedPoint.blockNumber;
         let latestBlock = await this.rollup.provider.getBlockNumber();
-        let nextChunksize = initChunksize;
-        while (syncedBlock <= latestBlock) {
-            const start = syncedBlock;
-            const end = syncedBlock + nextChunksize;
-            console.info(`Syncing from block ${start} -- ${end}`);
+        let latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
+        while (start <= latestBlock) {
+            const end = start + chunksize - 1;
             const events = await this.rollup.queryFilter(
                 this.newBatchFilter,
                 start,
                 end
             );
+            console.info(
+                `Block ${start} -- ${end}\t${events.length} new batches`
+            );
             for (const event of events) {
                 await this.handleNewBatch(event);
             }
-            syncedBlock += nextChunksize;
-            nextChunksize = Math.min(initChunksize, latestBlock - syncedBlock);
+            start = end + 1;
             latestBlock = await this.rollup.provider.getBlockNumber();
+            latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
+            console.info(
+                `block #${this.syncedPoint.blockNumber}/#${latestBlock}  batch ${this.syncedPoint.batchID}/${latestBatchID}`
+            );
         }
     }
 
     async handleNewBatch(event: Event) {
         const usage = event.args?.batchType as Usage;
-        console.info(`#${event.args?.batchID}\t[${Usage[usage]}]`);
+        const batchID = Number(event.args?.batchID);
+        console.info(`#${batchID}\t[${Usage[usage]}]`);
+        if (this.syncedPoint.batchID >= batchID) {
+            console.info(
+                "synced before",
+                "synced batchID",
+                this.syncedPoint.batchID,
+                "this batchID",
+                batchID
+            );
+            return;
+        }
         const strategy = this.strategies[usage];
         if (!strategy)
             throw new Error(
@@ -68,6 +85,9 @@ export class SyncerService {
         this.batchHandlingContext.setStrategy(strategy);
         const batch = await this.batchHandlingContext.parseBatch(event);
         await this.batchHandlingContext.processBatch(batch);
+        this.syncedPoint.batchID = batchID;
+        this.syncedPoint.blockNumber = event.blockNumber;
+        console.log(batch.toString());
     }
 
     newBatchListener = async (

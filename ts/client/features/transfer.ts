@@ -1,4 +1,10 @@
-import { BigNumber, BigNumberish, BytesLike, Event } from "ethers";
+import {
+    BigNumber,
+    BigNumberish,
+    BytesLike,
+    ContractTransaction,
+    Event
+} from "ethers";
 import {
     arrayify,
     concat,
@@ -382,12 +388,17 @@ export class TransferPackingCommand implements BatchPackingCommand {
         private rollup: Rollup
     ) {}
 
-    async packAndSubmit() {
+    async packAndSubmit(): Promise<ContractTransaction> {
         const batch = await packBatch(
             this.pool,
             this.storageManager,
             this.params
         );
-        await submitTransfer(batch, this.rollup, this.params.STAKE_AMOUNT);
+        console.info("submitting batch", batch.toString());
+        return await submitTransfer(
+            batch,
+            this.rollup,
+            this.params.STAKE_AMOUNT
+        );
     }
 }
