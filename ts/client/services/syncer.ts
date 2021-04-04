@@ -42,7 +42,7 @@ export class SyncerService {
         let latestBlock = await this.rollup.provider.getBlockNumber();
         let latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
         while (start <= latestBlock) {
-            const end = start + chunksize;
+            const end = start + chunksize - 1;
             const events = await this.rollup.queryFilter(
                 this.newBatchFilter,
                 start,
@@ -54,7 +54,7 @@ export class SyncerService {
             for (const event of events) {
                 await this.handleNewBatch(event);
             }
-            start = end;
+            start = end + 1;
             latestBlock = await this.rollup.provider.getBlockNumber();
             latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
             console.info(
