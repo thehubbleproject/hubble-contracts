@@ -4,7 +4,8 @@ enum ServiceState {
     STOPPED,
     STARTING,
     RUNNING,
-    STOPPING
+    STOPPING,
+    FINISHED
 }
 
 export abstract class BaseService {
@@ -38,22 +39,25 @@ export abstract class BaseService {
         while (this.state !== ServiceState.STOPPING) {
             await this.onRun();
         }
-        this.log("stopped");
-        this.change(ServiceState.STOPPED);
+        this.log("finished");
+        this.change(ServiceState.FINISHED);
     }
 
     async stop() {
         this.log("stopping");
         this.change(ServiceState.STOPPING);
-        while (this.state != ServiceState.STOPPED) {
+        await sleep(500);
+        while (this.state != ServiceState.FINISHED) {
             await sleep(500);
-            this.log("still waiting to be stopped");
+            this.log("still waiting service to finish");
         }
-        await this.onStopped();
+        await this.onFinished();
+        this.log("stopped");
+        this.change(ServiceState.STOPPED);
     }
     protected async onStart(): Promise<any> {}
     protected async onRun(): Promise<any> {}
-    protected async onStopped(): Promise<any> {}
+    protected async onFinished(): Promise<any> {}
     protected log(messgae: string) {
         console.log(`[${this.name}] ${messgae}`);
     }
