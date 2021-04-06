@@ -20,7 +20,12 @@ import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
 import { solG1 } from "../../mcl";
 import { sum, sumNumber } from "../../utils";
-import { processReceiver, processSender } from "../stateTransitions";
+import {
+    processReceiver,
+    processSender,
+    validateReceiver,
+    validateSender
+} from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
@@ -192,6 +197,19 @@ export class TransferCommitment extends BaseCommitment {
     }
 }
 
+async function validateTransferStateTransition(
+    tx: TransferOffchainTx,
+    tokenID: number,
+    engine: StateStorageEngine
+) {
+    const sender = await engine.get(tx.fromIndex);
+    const receiver = await engine.get(tx.toIndex);
+    // TODO: get sender's public key
+    // TODO: also validate signature and nonce here
+    validateSender(sender, tokenID, tx.amount, tx.fee);
+    validateReceiver(receiver, tokenID);
+}
+
 async function processTransfer(
     tx: TransferCompressedTx,
     tokenID: number,
@@ -237,15 +255,18 @@ async function pack(
 ): Promise<TransferCommitment> {
     const engine = storageManager.state;
     const acceptedTxs = [];
+    const tokenID = pipe.tokenID;
 
     for await (const tx of pipe.source) {
         if (acceptedTxs.length >= params.MAX_TXS_PER_COMMIT) break;
         try {
-            await processTransfer(tx, pipe.tokenID, engine);
-            acceptedTxs.push(tx);
+            await validateTransferStateTransition(tx, tokenID, engine);
         } catch (e) {
             console.error(`bad tx ${tx}  ${e}`);
+            continue;
         }
+        await processTransfer(tx, pipe.tokenID, engine);
+        acceptedTxs.push(tx);
     }
     const fees = sum(acceptedTxs.map(tx => tx.fee));
     await processReceiver(pipe.feeReceiverID, fees, pipe.tokenID, engine);

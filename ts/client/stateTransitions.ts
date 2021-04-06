@@ -17,14 +17,12 @@ function applyReceiver(receiver: State, increment: BigNumber): State {
     return state;
 }
 
-export async function processSender(
-    senderID: number,
+export function validateSender(
+    state: State,
     tokenID: number,
     amount: BigNumber,
-    fee: BigNumber,
-    engine: StateStorageEngine
-): Promise<void> {
-    const state = await engine.get(senderID);
+    fee: BigNumber
+) {
     if (amount.isZero()) throw new ZeroAmount();
     const decrement = amount.add(fee);
     if (state.balance.lt(decrement))
@@ -35,7 +33,25 @@ export async function processSender(
         throw new WrongTokenID(
             `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
         );
+}
 
+export function validateReceiver(state: State, tokenID: number) {
+    if (state.tokenID != tokenID)
+        throw new WrongTokenID(
+            `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
+        );
+}
+
+export async function processSender(
+    senderID: number,
+    tokenID: number,
+    amount: BigNumber,
+    fee: BigNumber,
+    engine: StateStorageEngine
+): Promise<void> {
+    const state = await engine.get(senderID);
+    validateSender(state, tokenID, amount, fee);
+    const decrement = amount.add(fee);
     const postState = applySender(state, decrement);
     await engine.update(senderID, postState);
 }
@@ -47,10 +63,7 @@ export async function processReceiver(
     engine: StateStorageEngine
 ): Promise<void> {
     const state = await engine.get(receiverID);
-    if (state.tokenID != tokenID)
-        throw new WrongTokenID(
-            `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
-        );
+    validateReceiver(state, tokenID);
     const postState = applyReceiver(state, increment);
     await engine.update(receiverID, postState);
 }
