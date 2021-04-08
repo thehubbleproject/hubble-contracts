@@ -13,6 +13,7 @@ import { SimulatorPool } from "./features/transfer";
 import { Provider } from "@ethersproject/providers";
 import { BurnAuctionWrapper } from "../burnAuction";
 import { EventEmitter } from "events";
+import { RPC } from "./services/rpc";
 
 class NodeEmitter extends EventEmitter {}
 
@@ -24,6 +25,7 @@ interface ClientConfigs {
     willingnessToBid: BigNumber;
     providerUrl: string;
     genesisPath: string;
+    rpcPort: number;
 }
 
 export enum NodeType {
@@ -41,14 +43,16 @@ export class HubbleNode {
         private provider: Provider,
         private syncer: SyncerService,
         private packer?: Packer,
-        public bidder?: Bidder
+        public bidder?: Bidder,
+        public rpc?: RPC
     ) {}
     public static async init(nodeType: NodeType) {
         await mcl.init();
         const config: ClientConfigs = {
             willingnessToBid: BigNumber.from(1),
             providerUrl: "http://localhost:8545",
-            genesisPath: "./genesis.json"
+            genesisPath: "./genesis.json",
+            rpcPort: 3000
         };
 
         const genesis = Genesis.fromConfig(config.genesisPath);
@@ -94,7 +98,8 @@ export class HubbleNode {
             syncedPoint,
             strategies
         );
-        return new this(nodeType, provider, syncer, packer, bidder);
+        const rpc = await RPC.init(config.rpcPort, storageManager);
+        return new this(nodeType, provider, syncer, packer, bidder, rpc);
     }
     async start() {
         this.syncer.start();
