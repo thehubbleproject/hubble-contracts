@@ -142,3 +142,8 @@ export function computeRoot(
     }
     return leaf;
 }
+
+export function prettyHex(hex: string) {
+    const hexNo0x = hex.slice(0, 2) == "0x" ? hex.slice(2) : hex;
+    return `${hexNo0x.slice(0, 6)}…${hexNo0x.slice(-6)}`;
+}
