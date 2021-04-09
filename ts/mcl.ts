@@ -152,3 +152,47 @@ export function randG2(): solG2 {
     p.normalize();
     return g2ToHex(p);
 }
+
+export function parseG1(solG1: solG1): mclG1 {
+    const g1 = new mcl.G1();
+    const [x, y] = solG1;
+    g1.setStr(`1 ${x} ${y}`, 16);
+    return g1;
+}
+
+export function parseG2(solG2: solG2): mclG2 {
+    const g2 = new mcl.G2();
+    const [x0, x1, y0, y1] = solG2;
+    g2.setStr(`1 ${x0} ${x1} ${y0} ${y1}`);
+    return g2;
+}
+
+export function dumpG1(solG1: solG1): string {
+    const [x, y] = solG1;
+    return `0x${x.slice(2)}${y.slice(2)}`;
+}
+
+export function dumpG2(solG2: solG2): string {
+    const [x0, x1, y0, y1] = solG2;
+    return `0x${x0.slice(2)}${x1.slice(2)}${y0.slice(2)}${y1.slice(2)}`;
+}
+
+export function loadG1(hex: string): solG1 {
+    const bytesarray = arrayify(hex);
+    if (bytesarray.length != 64)
+        throw new Error(`Expect length 64 but got ${bytesarray.length}`);
+    const x = hexlify(bytesarray.slice(0, 32));
+    const y = hexlify(bytesarray.slice(32));
+    return [x, y];
+}
+
+export function loadG2(hex: string): solG2 {
+    const bytesarray = arrayify(hex);
+    if (bytesarray.length != 128)
+        throw new Error(`Expect length 128 but got ${bytesarray.length}`);
+    const x0 = hexlify(bytesarray.slice(0, 32));
+    const x1 = hexlify(bytesarray.slice(32, 64));
+    const y0 = hexlify(bytesarray.slice(64, 96));
+    const y1 = hexlify(bytesarray.slice(96, 128));
+    return [x0, x1, y0, y1];
+}

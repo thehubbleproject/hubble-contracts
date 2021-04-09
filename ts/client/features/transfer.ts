@@ -18,7 +18,7 @@ import { aggregate, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
 import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
-import { solG1 } from "../../mcl";
+import { dumpG1, loadG1, parseG1, solG1 } from "../../mcl";
 import { sum, sumNumber } from "../../utils";
 import {
     processReceiver,
@@ -116,6 +116,67 @@ export class TransferOffchainTx extends TransferCompressedTx
 
     public message(): string {
         return this.toCompressed().message(this.nonce);
+    }
+
+    serialize(): string {
+        if (!this.signature) throw new Error("Signature must be assigned");
+        const concated = concat([
+            hexZeroPad(hexlify(this.fromIndex), StateIDLen),
+            hexZeroPad(hexlify(this.toIndex), StateIDLen),
+            float16.compress(this.amount),
+            float16.compress(this.fee),
+            hexZeroPad(hexlify(this.nonce), StateIDLen),
+            dumpG1(this.signature?.sol)
+        ]);
+        return hexlify(concated);
+    }
+
+    static deserialize(bytes: Uint8Array) {
+        const fields = [
+            {
+                name: "fromIndex",
+                length: StateIDLen,
+                constructor: BigNumber.from
+            },
+            {
+                name: "toIndex",
+                length: StateIDLen,
+                constructor: BigNumber.from
+            },
+            {
+                name: "amount",
+                length: FloatLength,
+                constructor: float16.decompress
+            },
+            {
+                name: "fee",
+                length: FloatLength,
+                constructor: float16.decompress
+            },
+            { name: "nonce", length: StateIDLen, constructor: BigNumber.from },
+            { name: "signature", length: 64, constructor: hexlify }
+        ];
+        const sum = sumNumber(fields.map(x => x.length));
+        if (bytes.length != sum) throw new Error("invalid bytes");
+        const obj: any = {};
+        let position = 0;
+        for (const field of fields) {
+            const byteSlice = bytes.slice(position, position + field.length);
+            position += field.length;
+            obj[field.name] = field.constructor(byteSlice);
+        }
+        const solG1 = loadG1(obj.signature);
+        const mclG1 = parseG1(solG1);
+        const signature = { sol: solG1, mcl: mclG1 };
+
+        return new this(
+            obj.fromIndex.toNumber(),
+            obj.toIndex.toNumber(),
+            obj.amount,
+            obj.fee,
+            obj.nonce.toNumber(),
+            signature
+        );
     }
 
     public toString(): string {

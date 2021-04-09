@@ -1,9 +1,22 @@
+import { arrayify } from "@ethersproject/bytes";
 import fastify, { FastifyInstance } from "fastify";
+import { TransferOffchainTx } from "../features/transfer";
 import { StorageManager } from "../storageEngine";
 
 async function helloHandler(request: any, reply: any) {
     return { hello: "world" };
 }
+
+const tx = {
+    schema: {
+        body: {
+            type: "object",
+            properties: {
+                bytes: { type: "string" }
+            }
+        }
+    }
+};
 
 export class RPC {
     server: FastifyInstance;
@@ -28,6 +41,11 @@ export class RPC {
                 const stateID = request.params.stateID;
                 const state = await storageManager.state.get(stateID);
                 return state.toJSON();
+            });
+            fastify.post("/tx", tx, async function(request: any, reply: any) {
+                const bytes = arrayify(request.body.bytes);
+                const transfer = TransferOffchainTx.deserialize(bytes);
+                console.log(transfer.toString());
             });
         });
         try {
