@@ -66,7 +66,6 @@ export class SyncerService {
     async handleNewBatch(event: Event) {
         const usage = event.args?.batchType as Usage;
         const batchID = Number(event.args?.batchID);
-        console.info(`#${batchID}\t[${Usage[usage]}]`);
         if (this.syncedPoint.batchID >= batchID) {
             console.info(
                 "synced before",
@@ -87,7 +86,7 @@ export class SyncerService {
         await this.batchHandlingContext.processBatch(batch);
         this.syncedPoint.batchID = batchID;
         this.syncedPoint.blockNumber = event.blockNumber;
-        console.log(batch.toString());
+        console.info(`#${batchID}  [${Usage[usage]}]`, batch.toString());
     }
 
     newBatchListener = async (
