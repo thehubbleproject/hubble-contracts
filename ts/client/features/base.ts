@@ -1,6 +1,7 @@
 import { BytesLike } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
 import { Tree } from "../../tree";
+import { prettyHex } from "../../utils";
 import {
     Batch,
     Commitment,
@@ -65,6 +66,9 @@ export class ConcreteBatch<T extends Commitment> implements Batch {
     }
 
     toString() {
-        return `<Batch  size ${this.commitments.length}  commitmentRoot ${this.commitmentRoot}  postRoot ${this.postStateRoot}>`;
+        const size = this.commitments.length;
+        const commitmentRoot = prettyHex(this.commitmentRoot);
+        const postRoot = prettyHex(this.postStateRoot);
+        return `<Batch  size ${size}  commitmentRoot ${commitmentRoot}  postRoot ${postRoot}>`;
     }
 }
