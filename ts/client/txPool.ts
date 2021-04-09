@@ -1,7 +1,8 @@
-import { Tx, TxTransfer } from "../tx";
+import { sum } from "../utils";
+import { OffchainTx } from "./features/interface";
 
 // Don't care about token and their exchange rate, just compare the numeric value of fee
-function naiveCompareFee(a: Tx, b: Tx) {
+function naiveCompareFee(a: OffchainTx, b: OffchainTx) {
     if (a.fee.lt(b.fee)) {
         return -1;
     }
@@ -11,7 +12,7 @@ function naiveCompareFee(a: Tx, b: Tx) {
     return 0;
 }
 
-export class TxPool<Item extends Tx> {
+export class SameTokenPool<Item extends OffchainTx> {
     private queue: Item[];
     constructor(public maxSize: Number) {
         this.queue = [];
@@ -19,21 +20,20 @@ export class TxPool<Item extends Tx> {
     get size() {
         return this.queue.length;
     }
-    add(tx: Item) {
+    push(tx: Item) {
         this.queue.push(tx);
         this.queue.sort(naiveCompareFee);
         if (this.queue.length > this.maxSize) {
             this.queue.shift();
         }
     }
-    pick(n: number) {
-        const len = Math.min(n, this.queue.length);
-        const result = [];
-        for (let i = 0; i < len; i++) {
-            result.push(this.queue.pop());
-        }
-        return result;
+    pop() {
+        const tx = this.queue.pop();
+        if (!tx) throw new Error("Pool empty");
+        return tx;
+    }
+    getValue(topN?: number) {
+        const size = topN ?? this.queue.length;
+        return sum(this.queue.slice(-size).map(tx => tx.fee));
     }
 }
-
-export class TransferPool extends TxPool<TxTransfer> {}

@@ -19,7 +19,7 @@ import { float16 } from "../../decimal";
 import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
 import { dumpG1, loadG1, parseG1, solG1 } from "../../mcl";
-import { sum, sumNumber } from "../../utils";
+import { sleep, sum, sumNumber } from "../../utils";
 import {
     processReceiver,
     processSender,
@@ -27,6 +27,7 @@ import {
     validateSender
 } from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
+import { SameTokenPool } from "../txPool";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
     SolStruct,
@@ -405,12 +406,47 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
     }
 }
 
-export interface TransferPool {
+export interface ITransferPool {
+    isEmpty(): boolean;
     getNextPipe(): TransferPipe;
 }
 
+export class TransferPool implements ITransferPool {
+    private pool: SameTokenPool<TransferOffchainTx>;
+    constructor(
+        public readonly tokenID: number,
+        public readonly feeReceiverID: number
+    ) {
+        this.pool = new SameTokenPool(1024);
+    }
+    push(tx: TransferOffchainTx) {
+        this.pool.push(tx);
+    }
+
+    async *genTx(): AsyncGenerator<TransferOffchainTx> {
+        while (this.pool.size > 0) {
+            yield this.pool.pop();
+        }
+    }
+    isEmpty() {
+        return this.pool.size == 0;
+    }
+
+    getNextPipe() {
+        const source = this.genTx();
+        return {
+            source,
+            tokenID: this.tokenID,
+            feeReceiverID: this.feeReceiverID
+        };
+    }
+    toString() {
+        return `<TransferPool  size ${this.pool.size}>`;
+    }
+}
+
 export class SimulatorPool extends OffchainTransferFactory
-    implements TransferPool {
+    implements ITransferPool {
     private tokenID?: number;
     private feeReceiverID?: number;
     async setTokenID() {
@@ -418,6 +454,10 @@ export class SimulatorPool extends OffchainTransferFactory
         const state = await this.engine.get(stateID);
         this.tokenID = state.tokenID;
         this.feeReceiverID = stateID;
+    }
+
+    isEmpty() {
+        return false;
     }
 
     getNextPipe() {
@@ -436,7 +476,7 @@ export class SimulatorPool extends OffchainTransferFactory
 const MAX_COMMIT_PER_BATCH = 32;
 
 async function packBatch(
-    pool: TransferPool,
+    pool: ITransferPool,
     storageManager: StorageManager,
     params: DeploymentParameters
 ) {
@@ -467,11 +507,14 @@ export class TransferPackingCommand implements BatchPackingCommand {
     constructor(
         private params: DeploymentParameters,
         private storageManager: StorageManager,
-        private pool: TransferPool,
+        private pool: ITransferPool,
         private rollup: Rollup
     ) {}
 
     async packAndSubmit(): Promise<ContractTransaction> {
+        if (this.pool.isEmpty()) {
+            await sleep(10000);
+        }
         const batch = await packBatch(
             this.pool,
             this.storageManager,
