@@ -1,8 +1,10 @@
 import repl from "repl";
 import { Hubble } from "../ts/hubble";
 import { ethers } from "ethers";
+import * as mcl from "../ts/mcl";
 
-function startRepl() {
+async function startRepl() {
+    await mcl.init();
     const hubble = Hubble.fromDefault();
     const local = repl.start("hubble > ");
     local.context.hubble = hubble;

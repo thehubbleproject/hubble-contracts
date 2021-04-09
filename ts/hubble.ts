@@ -1,20 +1,29 @@
 import { allContracts } from "./allContractsInterfaces";
 import { DeploymentParameters } from "./interfaces";
 import { ExampleTokenFactory } from "../types/ethers-contracts";
-import { ethers, Signer } from "ethers";
+import { BigNumber, ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
 import { Genesis } from "./genesis";
+import { arrayify, fetchJson } from "ethers/lib/utils";
+import { TransferOffchainTx } from "./client/features/transfer";
+import { Group } from "./factory";
 
 export class Hubble {
+    public address: string = "http://localhost:3000";
     private constructor(
         public parameters: DeploymentParameters,
         public contracts: allContracts,
-        public signer: Signer
+        public signer: Signer,
+        public group: Group
     ) {}
     static fromGenesis(genesis: Genesis, signer: Signer) {
         const contracts = genesis.getContracts(signer);
-        return new Hubble(genesis.parameters, contracts, signer);
+        const group = Group.new({
+            n: 32,
+            domain: arrayify(genesis.auxiliary.domain)
+        });
+        return new Hubble(genesis.parameters, contracts, signer, group);
     }
 
     static fromDefault(
@@ -25,6 +34,37 @@ export class Hubble {
         const signer = provider.getSigner();
         const genesis = Genesis.fromConfig(genesisPath);
         return Hubble.fromGenesis(genesis, signer);
+    }
+
+    async getState(stateID: number) {
+        const state = await fetchJson(`${this.address}/user/state/${stateID}`);
+        return state;
+    }
+
+    async transfer(
+        fromIndex: number,
+        toIndex: number,
+        amount: number,
+        fee: number
+    ) {
+        const state = await this.getState(fromIndex);
+
+        const nonce = state.nonce;
+        const tx = new TransferOffchainTx(
+            fromIndex,
+            toIndex,
+            BigNumber.from(amount),
+            BigNumber.from(fee),
+            nonce
+        );
+        tx.signature = this.group.getUser(fromIndex).signRaw(tx.message());
+        const body = { bytes: tx.serialize() };
+
+        const result = await fetchJson(
+            `${this.address}/tx`,
+            JSON.stringify(body)
+        );
+        console.log(result);
     }
 
     async registerPublicKeys(pubkeys: string[]) {

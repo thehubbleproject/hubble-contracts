@@ -132,6 +132,7 @@ export class TransferOffchainTx extends TransferCompressedTx
     }
 
     static deserialize(bytes: Uint8Array) {
+        const decompress = (input: Uint8Array) => float16.decompress(input);
         const fields = [
             {
                 name: "fromIndex",
@@ -146,12 +147,12 @@ export class TransferOffchainTx extends TransferCompressedTx
             {
                 name: "amount",
                 length: FloatLength,
-                constructor: float16.decompress
+                constructor: decompress
             },
             {
                 name: "fee",
                 length: FloatLength,
-                constructor: float16.decompress
+                constructor: decompress
             },
             { name: "nonce", length: StateIDLen, constructor: BigNumber.from },
             { name: "signature", length: 64, constructor: hexlify }
