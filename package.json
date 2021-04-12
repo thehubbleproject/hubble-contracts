@@ -50,6 +50,7 @@
     "typescript": "^4.2.3"
   },
   "dependencies": {
-    "abort-controller": "^3.0.0"
+    "abort-controller": "^3.0.0",
+    "fastify": "^3.14.2"
   }
 }

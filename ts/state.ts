@@ -52,6 +52,16 @@ export class State implements Hashable {
     public toStateLeaf(): string {
         return this.hash();
     }
+    public toJSON() {
+        const { pubkeyID, tokenID, nonce } = this;
+        const balance = this.balance.toString();
+        return {
+            pubkeyID,
+            tokenID,
+            balance,
+            nonce
+        };
+    }
 }
 
 export const ZERO_STATE = State.new(0, 0, 0, 0);
