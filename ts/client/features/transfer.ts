@@ -20,7 +20,7 @@ import { float16 } from "../../decimal";
 import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
 import { dumpG1, loadG1, parseG1, solG1 } from "../../mcl";
-import { sleep, sum, sumNumber } from "../../utils";
+import { sum, sumNumber } from "../../utils";
 import {
     processReceiver,
     processSender,
@@ -336,6 +336,7 @@ async function pack(
         await processTransfer(tx, pipe.tokenID, engine);
         acceptedTxs.push(tx);
     }
+    if (acceptedTxs.length == 0) throw new Error("No tx has been accepted");
     const fees = sum(acceptedTxs.map(tx => tx.fee));
     await processReceiver(pipe.feeReceiverID, fees, pipe.tokenID, engine);
     await engine.commit();
@@ -488,9 +489,14 @@ async function packBatch(
     const commitments = [];
     for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
         const pipe = pool.getNextPipe();
-        const commitment = await pack(pipe, storageManager, params);
-        commitments.push(commitment);
+        try {
+            const commitment = await pack(pipe, storageManager, params);
+            commitments.push(commitment);
+        } catch (err) {
+            continue;
+        }
     }
+    if (commitments.length == 0) throw new Error("The batch has no commitment");
     return new ConcreteBatch(commitments);
 }
 
@@ -517,9 +523,6 @@ export class TransferPackingCommand implements BatchPackingCommand {
     ) {}
 
     async packAndSubmit(): Promise<ContractTransaction> {
-        if (this.pool.isEmpty()) {
-            await sleep(10000);
-        }
         const batch = await packBatch(
             this.pool,
             this.storageManager,
