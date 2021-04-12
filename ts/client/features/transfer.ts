@@ -10,6 +10,7 @@ import {
     concat,
     hexlify,
     hexZeroPad,
+    keccak256,
     solidityKeccak256,
     solidityPack
 } from "ethers/lib/utils";
@@ -130,6 +131,10 @@ export class TransferOffchainTx extends TransferCompressedTx
             dumpG1(this.signature?.sol)
         ]);
         return hexlify(concated);
+    }
+
+    hash() {
+        return keccak256(this.serialize());
     }
 
     static deserialize(bytes: Uint8Array) {

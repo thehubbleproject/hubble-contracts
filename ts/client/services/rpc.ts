@@ -48,7 +48,7 @@ export class RPC {
                 const transfer = TransferOffchainTx.deserialize(bytes);
                 console.log(transfer.toString());
                 pool.push(transfer);
-                console.log("pool status", pool.toString());
+                return { txHash: transfer.hash() };
             });
         });
         try {
