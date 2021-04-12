@@ -9,7 +9,7 @@ import { Genesis } from "../genesis";
 import { DepositPool } from "./features/deposit";
 import { buildStrategies } from "./contexts";
 import { Packer } from "./services/packer";
-import { SimulatorPool } from "./features/transfer";
+import { TransferPool } from "./features/transfer";
 import { Provider } from "@ethersproject/providers";
 import { BurnAuctionWrapper } from "../burnAuction";
 import { EventEmitter } from "events";
@@ -79,14 +79,16 @@ export class HubbleNode {
             depositPool
         );
 
-        const simPool = new SimulatorPool(group, storageManager.state);
-        await simPool.setTokenID();
+        const feeReceiver = group.getUser(0).stateID;
+        const tokenID = (await storageManager.state.get(feeReceiver)).tokenID;
+
+        const pool = new TransferPool(tokenID, feeReceiver);
 
         const packer = new Packer(
             storageManager,
             parameters,
             contracts,
-            simPool,
+            pool,
             syncedPoint
         );
         const bidder = await Bidder.new(
@@ -98,7 +100,7 @@ export class HubbleNode {
             syncedPoint,
             strategies
         );
-        const rpc = await RPC.init(config.rpcPort, storageManager);
+        const rpc = await RPC.init(config.rpcPort, storageManager, pool);
         return new this(nodeType, provider, syncer, packer, bidder, rpc);
     }
     async start() {

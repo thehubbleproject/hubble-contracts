@@ -1,5 +1,6 @@
 import { allContracts } from "../../allContractsInterfaces";
 import { DeploymentParameters } from "../../interfaces";
+import { sleep } from "../../utils";
 import { TransferPackingCommand, TransferPool } from "../features/transfer";
 import { SyncedPoint } from "../node";
 import { StorageManager } from "../storageEngine";
@@ -26,10 +27,17 @@ export class Packer extends BaseService {
     }
 
     async onRun() {
-        const tx = await this.packingCommand.packAndSubmit();
-        const receipt = await tx.wait(1);
-        this.syncpoint.batchID += 1;
-        this.syncpoint.blockNumber = receipt.blockNumber;
-        console.log("Proposed a batch", this.syncpoint);
+        if (this.pool.isEmpty()) {
+            await sleep(10000);
+            return;
+        }
+        try {
+            const tx = await this.packingCommand.packAndSubmit();
+            const receipt = await tx.wait(1);
+            this.syncpoint.batchID += 1;
+            this.syncpoint.blockNumber = receipt.blockNumber;
+        } catch (err) {
+            this.log(`Packing failed ${err}`);
+        }
     }
 }

@@ -1,6 +1,6 @@
 import { arrayify } from "@ethersproject/bytes";
 import fastify, { FastifyInstance } from "fastify";
-import { TransferOffchainTx } from "../features/transfer";
+import { TransferOffchainTx, TransferPool } from "../features/transfer";
 import { StorageManager } from "../storageEngine";
 
 async function helloHandler(request: any, reply: any) {
@@ -27,7 +27,8 @@ export class RPC {
 
     static async init(
         port: number,
-        storageManager: StorageManager
+        storageManager: StorageManager,
+        pool: TransferPool
     ): Promise<RPC> {
         const server = fastify({ logger: true });
         server.setErrorHandler(console.log);
@@ -46,6 +47,8 @@ export class RPC {
                 const bytes = arrayify(request.body.bytes);
                 const transfer = TransferOffchainTx.deserialize(bytes);
                 console.log(transfer.toString());
+                pool.push(transfer);
+                return { txHash: transfer.hash() };
             });
         });
         try {

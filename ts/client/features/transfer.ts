@@ -10,6 +10,7 @@ import {
     concat,
     hexlify,
     hexZeroPad,
+    keccak256,
     solidityKeccak256,
     solidityPack
 } from "ethers/lib/utils";
@@ -27,6 +28,7 @@ import {
     validateSender
 } from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
+import { SameTokenPool } from "../txPool";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
     SolStruct,
@@ -129,6 +131,10 @@ export class TransferOffchainTx extends TransferCompressedTx
             dumpG1(this.signature?.sol)
         ]);
         return hexlify(concated);
+    }
+
+    hash() {
+        return keccak256(this.serialize());
     }
 
     static deserialize(bytes: Uint8Array) {
@@ -330,6 +336,7 @@ async function pack(
         await processTransfer(tx, pipe.tokenID, engine);
         acceptedTxs.push(tx);
     }
+    if (acceptedTxs.length == 0) throw new Error("No tx has been accepted");
     const fees = sum(acceptedTxs.map(tx => tx.fee));
     await processReceiver(pipe.feeReceiverID, fees, pipe.tokenID, engine);
     await engine.commit();
@@ -405,12 +412,47 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
     }
 }
 
-export interface TransferPool {
+export interface ITransferPool {
+    isEmpty(): boolean;
     getNextPipe(): TransferPipe;
 }
 
+export class TransferPool implements ITransferPool {
+    private pool: SameTokenPool<TransferOffchainTx>;
+    constructor(
+        public readonly tokenID: number,
+        public readonly feeReceiverID: number
+    ) {
+        this.pool = new SameTokenPool(1024);
+    }
+    push(tx: TransferOffchainTx) {
+        this.pool.push(tx);
+    }
+
+    async *genTx(): AsyncGenerator<TransferOffchainTx> {
+        while (this.pool.size > 0) {
+            yield this.pool.pop();
+        }
+    }
+    isEmpty() {
+        return this.pool.size == 0;
+    }
+
+    getNextPipe() {
+        const source = this.genTx();
+        return {
+            source,
+            tokenID: this.tokenID,
+            feeReceiverID: this.feeReceiverID
+        };
+    }
+    toString() {
+        return `<TransferPool  size ${this.pool.size}>`;
+    }
+}
+
 export class SimulatorPool extends OffchainTransferFactory
-    implements TransferPool {
+    implements ITransferPool {
     private tokenID?: number;
     private feeReceiverID?: number;
     async setTokenID() {
@@ -418,6 +460,10 @@ export class SimulatorPool extends OffchainTransferFactory
         const state = await this.engine.get(stateID);
         this.tokenID = state.tokenID;
         this.feeReceiverID = stateID;
+    }
+
+    isEmpty() {
+        return false;
     }
 
     getNextPipe() {
@@ -436,16 +482,21 @@ export class SimulatorPool extends OffchainTransferFactory
 const MAX_COMMIT_PER_BATCH = 32;
 
 async function packBatch(
-    pool: TransferPool,
+    pool: ITransferPool,
     storageManager: StorageManager,
     params: DeploymentParameters
 ) {
     const commitments = [];
     for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
         const pipe = pool.getNextPipe();
-        const commitment = await pack(pipe, storageManager, params);
-        commitments.push(commitment);
+        try {
+            const commitment = await pack(pipe, storageManager, params);
+            commitments.push(commitment);
+        } catch (err) {
+            continue;
+        }
     }
+    if (commitments.length == 0) throw new Error("The batch has no commitment");
     return new ConcreteBatch(commitments);
 }
 
@@ -467,7 +518,7 @@ export class TransferPackingCommand implements BatchPackingCommand {
     constructor(
         private params: DeploymentParameters,
         private storageManager: StorageManager,
-        private pool: TransferPool,
+        private pool: ITransferPool,
         private rollup: Rollup
     ) {}
 
