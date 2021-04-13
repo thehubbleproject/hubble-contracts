@@ -49,7 +49,8 @@ describe("Client Integration", function() {
             apiPacker.parameters,
             apiPacker.l2Storage,
             simPool,
-            apiPacker.rollup
+            apiPacker.rollup,
+            apiPacker.verifier
         );
         for (let i = 0; i < 10; i++) {
             await packingCommand.packAndSubmit();

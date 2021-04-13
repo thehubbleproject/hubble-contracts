@@ -11,12 +11,26 @@ import {
     SecretKey,
     randFr,
     PublicKey,
-    parseFr
+    parseFr,
+    parseG1,
+    parseG2,
+    hashToPoint,
+    verifyRaw
 } from "./mcl";
 
 export interface SignatureInterface {
     mcl: mclG1;
     sol: solG1;
+}
+
+export class BlsVerifier {
+    constructor(public readonly domain: Domain) {}
+    public verify(signature: solG1, pubkey: solG2, message: string) {
+        const signatureG1 = parseG1(signature);
+        const pubkeyG2 = parseG2(pubkey);
+        const messagePoint = hashToPoint(message, this.domain);
+        return verifyRaw(signatureG1, pubkeyG2, messagePoint);
+    }
 }
 
 export class BlsSigner {

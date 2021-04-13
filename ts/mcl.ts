@@ -75,6 +75,14 @@ export function g2(): mclG2 {
     return g2;
 }
 
+export function negativeG2(): mclG2 {
+    const g2 = new mcl.G2();
+    g2.setStr(
+        "1 0x1800deef121f1e76426a00665e5c4479674322d4f75edadd46debd5cd992f6ed 0x198e9393920d483a7260bfb731fb5d25f1aa493335a9e71297e485b7aef312c2 0x1d9befcd05a5323e6da4d435f3b617cdb3af83285c2df711ef39c01571827f9d 0x275dc4a288d1afb3cbb1ac09187524c7db36395df7be3b99e673b13a075a65ec"
+    );
+    return g2;
+}
+
 export function g1ToHex(p: mclG1): solG1 {
     p.normalize();
     const x = hexlify(toBigEndian(p.getX()));
@@ -195,4 +203,20 @@ export function loadG2(hex: string): solG2 {
     const y0 = hexlify(bytesarray.slice(64, 96));
     const y1 = hexlify(bytesarray.slice(96, 128));
     return [x0, x1, y0, y1];
+}
+
+export function verifyRaw(
+    signature: Signature,
+    pubkey: PublicKey,
+    message: MessagePoint
+): boolean {
+    const negG2 = new mcl.PrecomputedG2(negativeG2());
+
+    const pairings = mcl.precomputedMillerLoop2mixed(
+        message,
+        pubkey,
+        signature,
+        negG2
+    );
+    return mcl.finalExp(pairings).isOne();
 }
