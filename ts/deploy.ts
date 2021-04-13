@@ -23,7 +23,6 @@ import { BurnAuctionFactory } from "../types/ethers-contracts/BurnAuctionFactory
 import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
 import { GenesisNotSpecified } from "./exceptions";
 import { deployKeyless } from "./deployment/deploy";
-import { execSync } from "child_process";
 import { Genesis } from "./genesis";
 
 async function waitAndRegister(
@@ -179,24 +178,14 @@ export async function deployAndWriteGenesis(
     parameters: DeploymentParameters,
     genesisPath: string = "genesis.json"
 ) {
-    let addresses: { [key: string]: string } = {};
     const genesisEth1Block = (await signer.provider?.getBlockNumber()) as number;
     await deployKeyless(signer, true);
     const contracts = await deployAll(signer, parameters, true);
-
-    Object.keys(contracts).map((contract: string) => {
-        addresses[contract] = contracts[contract as keyof allContracts].address;
-    });
-    const appID = await contracts.rollup.appID();
-    const version = execSync("git rev-parse HEAD")
-        .toString()
-        .trim();
-    const auxiliary = {
-        domain: appID,
-        genesisEth1Block,
-        version
-    };
-    const genesis = new Genesis(parameters, addresses, auxiliary);
+    const genesis = await Genesis.fromContracts(
+        contracts,
+        parameters,
+        genesisEth1Block
+    );
     console.log("Writing genesis file to", genesisPath);
     genesis.dump(genesisPath);
     console.log("Successsfully deployed", genesis);
