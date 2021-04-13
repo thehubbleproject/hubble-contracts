@@ -2,8 +2,8 @@ import { Event, EventFilter } from "@ethersproject/contracts";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { Usage } from "../../interfaces";
 import { BatchHandlingContext } from "../contexts";
-import { BatchHandlingStrategy } from "../features/interface";
-import { nodeEmitter, SyncCompleteEvent, SyncedPoint } from "../node";
+import { CoreAPI } from "../coreAPI";
+import { nodeEmitter, SyncCompleteEvent } from "../node";
 
 export enum SyncMode {
     INITIAL_SYNCING,
@@ -14,15 +14,13 @@ export class SyncerService {
     private mode: SyncMode;
     private newBatchFilter: EventFilter;
     private batchHandlingContext: BatchHandlingContext;
+    private rollup: Rollup;
 
-    constructor(
-        private readonly rollup: Rollup,
-        private syncedPoint: SyncedPoint,
-        private strategies: { [key: string]: BatchHandlingStrategy }
-    ) {
+    constructor(private readonly api: CoreAPI) {
         this.mode = SyncMode.INITIAL_SYNCING;
+        this.rollup = this.api.rollup;
         this.newBatchFilter = this.rollup.filters.NewBatch(null, null, null);
-        this.batchHandlingContext = new BatchHandlingContext();
+        this.batchHandlingContext = new BatchHandlingContext(api);
     }
 
     getMode() {
@@ -38,9 +36,9 @@ export class SyncerService {
 
     async initialSync() {
         const chunksize = 100;
-        let start = this.syncedPoint.blockNumber;
-        let latestBlock = await this.rollup.provider.getBlockNumber();
-        let latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
+        let start = this.api.syncpoint.blockNumber;
+        let latestBlock = await this.api.getBlockNumber();
+        let latestBatchID = await this.api.getlatestBatchID();
         while (start <= latestBlock) {
             const end = start + chunksize - 1;
             const events = await this.rollup.queryFilter(
@@ -55,10 +53,10 @@ export class SyncerService {
                 await this.handleNewBatch(event);
             }
             start = end + 1;
-            latestBlock = await this.rollup.provider.getBlockNumber();
-            latestBatchID = Number(await this.rollup.nextBatchID()) - 1;
+            latestBlock = await this.api.getBlockNumber();
+            latestBatchID = await this.api.getlatestBatchID();
             console.info(
-                `block #${this.syncedPoint.blockNumber}/#${latestBlock}  batch ${this.syncedPoint.batchID}/${latestBatchID}`
+                `block #${this.api.syncpoint.blockNumber}/#${latestBlock}  batch ${this.api.syncpoint.batchID}/${latestBatchID}`
             );
         }
     }
@@ -66,26 +64,20 @@ export class SyncerService {
     async handleNewBatch(event: Event) {
         const usage = event.args?.batchType as Usage;
         const batchID = Number(event.args?.batchID);
-        if (this.syncedPoint.batchID >= batchID) {
+        if (this.api.syncpoint.batchID >= batchID) {
             console.info(
                 "synced before",
                 "synced batchID",
-                this.syncedPoint.batchID,
+                this.api.syncpoint.batchID,
                 "this batchID",
                 batchID
             );
             return;
         }
-        const strategy = this.strategies[usage];
-        if (!strategy)
-            throw new Error(
-                `Fatal: No strategy for usage: ${usage} (${Usage[usage]})`
-            );
-        this.batchHandlingContext.setStrategy(strategy);
+        this.batchHandlingContext.setStrategy(usage);
         const batch = await this.batchHandlingContext.parseBatch(event);
         await this.batchHandlingContext.processBatch(batch);
-        this.syncedPoint.batchID = batchID;
-        this.syncedPoint.blockNumber = event.blockNumber;
+        this.api.syncpoint.update(event.blockNumber, batchID);
         console.info(`#${batchID}  [${Usage[usage]}]`, batch.toString());
     }
 
