@@ -1,31 +1,23 @@
 import { Event } from "@ethersproject/contracts";
-import { allContracts } from "../allContractsInterfaces";
-import { DeploymentParameters, Usage } from "../interfaces";
-import { DepositHandlingStrategy, DepositPool } from "./features/deposit";
+import { Usage } from "../interfaces";
+import { CoreAPI } from "./coreAPI";
+import { DepositHandlingStrategy } from "./features/deposit";
 import { GenesisHandlingStrategy } from "./features/genesis";
 import { Batch, BatchHandlingStrategy } from "./features/interface";
 import { TransferHandlingStrategy } from "./features/transfer";
-import { StorageManager } from "./storageEngine";
 
-export function buildStrategies(
-    contracts: allContracts,
-    storageManager: StorageManager,
-    parameters: DeploymentParameters,
-    depositPool: DepositPool
-) {
-    const genesisStrategy = new GenesisHandlingStrategy(
-        storageManager.state.root
-    );
+export function buildStrategies(api: CoreAPI) {
+    const genesisStrategy = new GenesisHandlingStrategy(api.getGenesisRoot());
     const transferStrategy = new TransferHandlingStrategy(
-        contracts.rollup,
-        storageManager,
-        parameters
+        api.contracts.rollup,
+        api.l2Storage,
+        api.parameters
     );
     const depositStrategy = new DepositHandlingStrategy(
-        contracts.rollup,
-        storageManager,
-        parameters,
-        depositPool
+        api.contracts.rollup,
+        api.l2Storage,
+        api.parameters,
+        api.depositPool
     );
     const strategies: { [key: string]: BatchHandlingStrategy } = {};
     strategies[Usage.Genesis] = genesisStrategy;

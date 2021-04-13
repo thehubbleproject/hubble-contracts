@@ -6,7 +6,6 @@ import { Bidder } from "./services/bidder";
 import { ethers } from "ethers";
 import { SyncerService } from "./services/syncer";
 import { Genesis } from "../genesis";
-import { DepositPool } from "./features/deposit";
 import { buildStrategies } from "./contexts";
 import { Packer } from "./services/packer";
 import { TransferPool } from "./features/transfer";
@@ -14,6 +13,7 @@ import { Provider } from "@ethersproject/providers";
 import { BurnAuctionWrapper } from "../burnAuction";
 import { EventEmitter } from "events";
 import { RPC } from "./services/rpc";
+import { CoreAPI } from "./coreAPI";
 
 class NodeEmitter extends EventEmitter {}
 
@@ -67,17 +67,10 @@ export class HubbleNode {
         const storageManager = await storageManagerFactory(group, {
             stateTreeDepth: parameters.MAX_DEPTH
         });
+        const api = CoreAPI.new(storageManager, genesis, signer);
         const syncedPoint = new SyncedPoint(auxiliary.genesisEth1Block, 0);
 
-        const depositPool = new DepositPool(
-            parameters.MAX_DEPOSIT_SUBTREE_DEPTH
-        );
-        const strategies = buildStrategies(
-            contracts,
-            storageManager,
-            parameters,
-            depositPool
-        );
+        const strategies = buildStrategies(api);
 
         const feeReceiver = group.getUser(0).stateID;
         const tokenID = (await storageManager.state.get(feeReceiver)).tokenID;
