@@ -6,14 +6,13 @@ import { Bidder } from "./services/bidder";
 import { ethers } from "ethers";
 import { SyncerService } from "./services/syncer";
 import { Genesis } from "../genesis";
-import { DepositPool } from "./features/deposit";
-import { buildStrategies } from "./contexts";
 import { Packer } from "./services/packer";
 import { TransferPool } from "./features/transfer";
 import { Provider } from "@ethersproject/providers";
 import { BurnAuctionWrapper } from "../burnAuction";
 import { EventEmitter } from "events";
 import { RPC } from "./services/rpc";
+import { CoreAPI } from "./coreAPI";
 
 class NodeEmitter extends EventEmitter {}
 
@@ -31,10 +30,6 @@ interface ClientConfigs {
 export enum NodeType {
     Syncer,
     Proposer
-}
-
-export class SyncedPoint {
-    constructor(public blockNumber: number, public batchID: number) {}
 }
 
 export class HubbleNode {
@@ -60,46 +55,25 @@ export class HubbleNode {
             config.providerUrl
         );
         const signer = provider.getSigner();
-        const contracts = genesis.getContracts(signer);
         const { parameters, auxiliary } = genesis;
 
         const group = Group.new({ n: 32, domain: arrayify(auxiliary.domain) });
         const storageManager = await storageManagerFactory(group, {
             stateTreeDepth: parameters.MAX_DEPTH
         });
-        const syncedPoint = new SyncedPoint(auxiliary.genesisEth1Block, 0);
-
-        const depositPool = new DepositPool(
-            parameters.MAX_DEPOSIT_SUBTREE_DEPTH
-        );
-        const strategies = buildStrategies(
-            contracts,
-            storageManager,
-            parameters,
-            depositPool
-        );
+        const api = CoreAPI.new(storageManager, genesis, provider, signer);
 
         const feeReceiver = group.getUser(0).stateID;
         const tokenID = (await storageManager.state.get(feeReceiver)).tokenID;
 
         const pool = new TransferPool(tokenID, feeReceiver);
 
-        const packer = new Packer(
-            storageManager,
-            parameters,
-            contracts,
-            pool,
-            syncedPoint
-        );
+        const packer = new Packer(api, pool);
         const bidder = await Bidder.new(
             config.willingnessToBid,
-            contracts.burnAuction
+            api.contracts.burnAuction
         );
-        const syncer = new SyncerService(
-            contracts.rollup,
-            syncedPoint,
-            strategies
-        );
+        const syncer = new SyncerService(api);
         const rpc = await RPC.init(config.rpcPort, storageManager, pool);
         return new this(nodeType, provider, syncer, packer, bidder, rpc);
     }

@@ -1,9 +1,6 @@
-import { allContracts } from "../../allContractsInterfaces";
-import { DeploymentParameters } from "../../interfaces";
 import { sleep } from "../../utils";
+import { CoreAPI } from "../coreAPI";
 import { TransferPackingCommand, TransferPool } from "../features/transfer";
-import { SyncedPoint } from "../node";
-import { StorageManager } from "../storageEngine";
 import { BaseService } from "./base";
 
 export class Packer extends BaseService {
@@ -11,18 +8,15 @@ export class Packer extends BaseService {
     name = "Packer";
 
     constructor(
-        private readonly storageManager: StorageManager,
-        private readonly parameters: DeploymentParameters,
-        private readonly contracts: allContracts,
-        private readonly pool: TransferPool,
-        private syncpoint: SyncedPoint
+        private readonly api: CoreAPI,
+        private readonly pool: TransferPool
     ) {
         super();
         this.packingCommand = new TransferPackingCommand(
-            this.parameters,
-            this.storageManager,
+            api.parameters,
+            api.l2Storage,
             this.pool,
-            this.contracts.rollup
+            api.contracts.rollup
         );
     }
 
@@ -34,8 +28,7 @@ export class Packer extends BaseService {
         try {
             const tx = await this.packingCommand.packAndSubmit();
             const receipt = await tx.wait(1);
-            this.syncpoint.batchID += 1;
-            this.syncpoint.blockNumber = receipt.blockNumber;
+            this.api.syncpoint.bump(receipt.blockNumber);
         } catch (err) {
             this.log(`Packing failed ${err}`);
         }

@@ -20,6 +20,7 @@ import {
     WithdrawManagerFactory,
     BurnAuctionFactory
 } from "../types/ethers-contracts";
+import { execSync } from "child_process";
 
 export interface Auxiliary {
     domain: string;
@@ -37,6 +38,29 @@ export class Genesis {
     static fromConfig(path: string) {
         const genesis = fs.readFileSync(path).toString();
         const { parameters, addresses, auxiliary } = JSON.parse(genesis);
+        return new this(parameters, addresses, auxiliary);
+    }
+
+    static async fromContracts(
+        contracts: allContracts,
+        parameters: DeploymentParameters,
+        genesisEth1Block: number
+    ) {
+        let addresses: { [key: string]: string } = {};
+        Object.keys(contracts).map((contract: string) => {
+            addresses[contract] =
+                contracts[contract as keyof allContracts].address;
+        });
+
+        const appID = await contracts.rollup.appID();
+        const version = execSync("git rev-parse HEAD")
+            .toString()
+            .trim();
+        const auxiliary = {
+            domain: appID,
+            genesisEth1Block,
+            version
+        };
         return new this(parameters, addresses, auxiliary);
     }
 

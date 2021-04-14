@@ -1,44 +1,40 @@
 import { Event } from "@ethersproject/contracts";
-import { allContracts } from "../allContractsInterfaces";
-import { DeploymentParameters, Usage } from "../interfaces";
-import { DepositHandlingStrategy, DepositPool } from "./features/deposit";
+import { Usage } from "../interfaces";
+import { CoreAPI } from "./coreAPI";
+import { DepositHandlingStrategy } from "./features/deposit";
 import { GenesisHandlingStrategy } from "./features/genesis";
 import { Batch, BatchHandlingStrategy } from "./features/interface";
 import { TransferHandlingStrategy } from "./features/transfer";
-import { StorageManager } from "./storageEngine";
-
-export function buildStrategies(
-    contracts: allContracts,
-    storageManager: StorageManager,
-    parameters: DeploymentParameters,
-    depositPool: DepositPool
-) {
-    const genesisStrategy = new GenesisHandlingStrategy(
-        storageManager.state.root
-    );
-    const transferStrategy = new TransferHandlingStrategy(
-        contracts.rollup,
-        storageManager,
-        parameters
-    );
-    const depositStrategy = new DepositHandlingStrategy(
-        contracts.rollup,
-        storageManager,
-        parameters,
-        depositPool
-    );
-    const strategies: { [key: string]: BatchHandlingStrategy } = {};
-    strategies[Usage.Genesis] = genesisStrategy;
-    strategies[Usage.Transfer] = transferStrategy;
-    strategies[Usage.Deposit] = depositStrategy;
-    return strategies;
-}
 
 export class BatchHandlingContext {
     private _strategy?: BatchHandlingStrategy;
 
-    setStrategy(strategy: BatchHandlingStrategy) {
-        this._strategy = strategy;
+    private strategies: { [key: string]: BatchHandlingStrategy };
+    constructor(api: CoreAPI) {
+        const genesisStrategy = new GenesisHandlingStrategy(
+            api.getGenesisRoot()
+        );
+        const transferStrategy = new TransferHandlingStrategy(
+            api.contracts.rollup,
+            api.l2Storage,
+            api.parameters
+        );
+        const depositStrategy = new DepositHandlingStrategy(
+            api.contracts.rollup,
+            api.l2Storage,
+            api.parameters,
+            api.depositPool
+        );
+        this.strategies = {};
+        this.strategies[Usage.Genesis] = genesisStrategy;
+        this.strategies[Usage.Transfer] = transferStrategy;
+        this.strategies[Usage.Deposit] = depositStrategy;
+    }
+
+    setStrategy(usage: Usage) {
+        this._strategy = this.strategies[usage];
+        if (!this.strategies)
+            throw new Error(`No strategy for usage ${Usage[usage]}`);
     }
     private get strategy() {
         if (!this._strategy) throw new Error("No strategy set yet");
