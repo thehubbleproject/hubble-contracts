@@ -15,7 +15,7 @@ import {
     solidityPack
 } from "ethers/lib/utils";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
-import { aggregate, SignatureInterface } from "../../blsSigner";
+import { aggregate, BlsVerifier, SignatureInterface } from "../../blsSigner";
 import { float16 } from "../../decimal";
 import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
@@ -268,14 +268,20 @@ export class TransferCommitment extends BaseCommitment {
 async function validateTransferStateTransition(
     tx: TransferOffchainTx,
     tokenID: number,
-    engine: StateStorageEngine
+    storage: StorageManager,
+    verifier: BlsVerifier
 ) {
-    const sender = await engine.get(tx.fromIndex);
-    const receiver = await engine.get(tx.toIndex);
-    // TODO: get sender's public key
-    // TODO: also validate signature and nonce here
+    const sender = await storage.state.get(tx.fromIndex);
+    const receiver = await storage.state.get(tx.toIndex);
+
     validateSender(sender, tokenID, tx.amount, tx.fee);
     validateReceiver(receiver, tokenID);
+    const senderKey = await storage.pubkey.get(sender.pubkeyID);
+    if (tx.nonce != sender.nonce)
+        throw new Error(`Bad nonce  tx ${tx.nonce}  state ${sender.nonce}`);
+    if (!tx.signature) throw new Error("Expect tx to have signature here");
+    if (!verifier.verify(tx.signature.sol, senderKey.pubkey, tx.message()))
+        throw new Error("Invalid signature");
 }
 
 async function processTransfer(
@@ -319,7 +325,8 @@ export interface TransferPipe {
 async function pack(
     pipe: TransferPipe,
     storageManager: StorageManager,
-    params: DeploymentParameters
+    params: DeploymentParameters,
+    verifier: BlsVerifier
 ): Promise<TransferCommitment> {
     const engine = storageManager.state;
     const acceptedTxs = [];
@@ -328,7 +335,12 @@ async function pack(
     for await (const tx of pipe.source) {
         if (acceptedTxs.length >= params.MAX_TXS_PER_COMMIT) break;
         try {
-            await validateTransferStateTransition(tx, tokenID, engine);
+            await validateTransferStateTransition(
+                tx,
+                tokenID,
+                storageManager,
+                verifier
+            );
         } catch (e) {
             console.error(`bad tx ${tx}  ${e}`);
             continue;
@@ -484,13 +496,19 @@ const MAX_COMMIT_PER_BATCH = 32;
 async function packBatch(
     pool: ITransferPool,
     storageManager: StorageManager,
-    params: DeploymentParameters
+    params: DeploymentParameters,
+    verifier: BlsVerifier
 ) {
     const commitments = [];
     for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
         const pipe = pool.getNextPipe();
         try {
-            const commitment = await pack(pipe, storageManager, params);
+            const commitment = await pack(
+                pipe,
+                storageManager,
+                params,
+                verifier
+            );
             commitments.push(commitment);
         } catch (err) {
             continue;
@@ -519,14 +537,16 @@ export class TransferPackingCommand implements BatchPackingCommand {
         private params: DeploymentParameters,
         private storageManager: StorageManager,
         private pool: ITransferPool,
-        private rollup: Rollup
+        private rollup: Rollup,
+        private verifier: BlsVerifier
     ) {}
 
     async packAndSubmit(): Promise<ContractTransaction> {
         const batch = await packBatch(
             this.pool,
             this.storageManager,
-            this.params
+            this.params,
+            this.verifier
         );
         console.info("submitting batch", batch.toString());
         return await submitTransfer(

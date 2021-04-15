@@ -5,6 +5,8 @@ import { DepositPool } from "./features/deposit";
 import { StorageManager } from "./storageEngine";
 import { providers, Signer } from "ethers";
 import { allContracts } from "../allContractsInterfaces";
+import { BlsVerifier } from "../blsSigner";
+import { arrayify } from "@ethersproject/bytes";
 
 export class SyncedPoint {
     constructor(public blockNumber: number, public batchID: number) {}
@@ -52,7 +54,8 @@ export class CoreAPI implements ICoreAPI {
         public readonly depositPool: DepositPool,
         private readonly provider: providers.Provider,
         public readonly contracts: allContracts,
-        public readonly syncpoint: SyncedPoint
+        public readonly syncpoint: SyncedPoint,
+        public readonly verifier: BlsVerifier
     ) {}
 
     static new(
@@ -69,13 +72,15 @@ export class CoreAPI implements ICoreAPI {
             genesis.auxiliary.genesisEth1Block,
             0
         );
+        const verifier = new BlsVerifier(arrayify(genesis.auxiliary.domain));
         return new this(
             l2Storage,
             genesis,
             depositPool,
             provider,
             contracts,
-            syncedPoint
+            syncedPoint,
+            verifier
         );
     }
 

@@ -16,7 +16,8 @@ export class Packer extends BaseService {
             api.parameters,
             api.l2Storage,
             this.pool,
-            api.contracts.rollup
+            api.contracts.rollup,
+            api.verifier
         );
     }
 
