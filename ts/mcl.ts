@@ -218,5 +218,7 @@ export function verifyRaw(
         signature,
         negG2
     );
+    // call this function to avoid memory leak
+    negG2.destroy();
     return mcl.finalExp(pairings).isOne();
 }
