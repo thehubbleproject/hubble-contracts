@@ -39,7 +39,7 @@
     "bn.js": "^5.2.0",
     "chai": "^4.3.3",
     "ethers": "^5.0.32",
-    "hardhat": "^2.1.1",
+    "hardhat": "^2.2.0",
     "mcl-wasm": "^0.4.5",
     "minimist": "^1.2.5",
     "prettier": "^1.19.1",
