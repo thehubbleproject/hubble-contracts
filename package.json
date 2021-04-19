@@ -5,6 +5,7 @@
   "scripts": {
     "repl": "ts-node ./scripts/repl.ts",
     "test": "hardhat test",
+    "coverage": "hardhat coverage",
     "solhint": "solhint \"contracts/**/*.sol\" -f unix",
     "lint": "prettier --check \"**/*.{sol,ts,js}\"",
     "prettier": "prettier --write \"**/*.{sol,ts,js}\"",
@@ -47,6 +48,7 @@
     "prettier": "^1.19.1",
     "prettier-plugin-solidity": "1.0.0-beta.10",
     "solhint": "^3.3.3",
+    "solidity-coverage": "v0.8.0-beta.0",
     "ts-node": "^8.8.1",
     "typechain": "^2.0.1",
     "typescript": "^4.2.3"

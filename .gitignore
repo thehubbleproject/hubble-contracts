@@ -5,3 +5,7 @@ types/
 cache/
 artifacts/
 build/
+
+# Test coverage
+coverage
+coverage.json

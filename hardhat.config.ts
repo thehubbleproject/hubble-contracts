@@ -1,4 +1,5 @@
 import "@nomiclabs/hardhat-ethers";
+import "solidity-coverage";
 
 module.exports = {
     defaultNetwork: "hardhat",
