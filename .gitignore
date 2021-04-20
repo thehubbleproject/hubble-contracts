@@ -4,3 +4,4 @@ genesis.json
 types/
 cache/
 artifacts/
+build/

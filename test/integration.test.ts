@@ -13,7 +13,6 @@ import {
 } from "../ts/factory";
 import { DeploymentParameters } from "../ts/interfaces";
 import { MigrationTree, StateTree } from "../ts/stateTree";
-import { BurnAuction } from "../types/ethers-contracts/BurnAuction";
 import * as mcl from "../ts/mcl";
 import {
     BodylessCommitment,

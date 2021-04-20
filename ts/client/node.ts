@@ -1,5 +1,4 @@
-import { arrayify } from "@ethersproject/bytes";
-import { Group, storageManagerFactory } from "../factory";
+import { storageManagerFactory } from "../factory";
 import * as mcl from "../../ts/mcl";
 import { BigNumber } from "@ethersproject/bignumber";
 import { Bidder } from "./services/bidder";
@@ -55,17 +54,18 @@ export class HubbleNode {
             config.providerUrl
         );
         const signer = provider.getSigner();
-        const { parameters, auxiliary } = genesis;
 
-        const group = Group.new({ n: 32, domain: arrayify(auxiliary.domain) });
-        const storageManager = await storageManagerFactory(group, {
-            stateTreeDepth: parameters.MAX_DEPTH
+        const { MAX_DEPTH } = genesis.parameters;
+        const storageManager = await storageManagerFactory({
+            stateTreeDepth: MAX_DEPTH,
+            pubkeyTreeDepth: MAX_DEPTH
         });
         const api = CoreAPI.new(storageManager, genesis, provider, signer);
 
-        const feeReceiver = group.getUser(0).stateID;
-        const tokenID = (await storageManager.state.get(feeReceiver)).tokenID;
-
+        // Hardcoded for now, will be configurable in
+        // https://github.com/thehubbleproject/hubble-contracts/issues/557
+        const feeReceiver = 0;
+        const tokenID = 1;
         const pool = new TransferPool(tokenID, feeReceiver);
 
         const packer = new Packer(api, pool);
@@ -74,6 +74,9 @@ export class HubbleNode {
             api.contracts.burnAuction
         );
         const syncer = new SyncerService(api);
+        // In the future, we will want to delay starting up the rpc client
+        // until after the initial sync is completed (HTTP 503).
+        // https://github.com/thehubbleproject/hubble-contracts/issues/558
         const rpc = await RPC.init(config.rpcPort, storageManager, pool);
         return new this(nodeType, provider, syncer, packer, bidder, rpc);
     }

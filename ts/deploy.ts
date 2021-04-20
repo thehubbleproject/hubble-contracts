@@ -189,4 +189,6 @@ export async function deployAndWriteGenesis(
     console.log("Writing genesis file to", genesisPath);
     genesis.dump(genesisPath);
     console.log("Successsfully deployed", genesis);
+
+    return contracts;
 }
