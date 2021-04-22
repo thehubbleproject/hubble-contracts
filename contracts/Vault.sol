@@ -61,9 +61,8 @@ contract Vault {
             ),
             "Vault: Commitment is not present in batch"
         );
-        (address addr, uint256 l2Unit) = tokenRegistry.safeGetRecord(
-            commitmentMP.commitment.body.tokenID
-        );
+        (address addr, uint256 l2Unit) =
+            tokenRegistry.safeGetRecord(commitmentMP.commitment.body.tokenID);
         Bitmap.setClaimed(batchID, bitmap);
         uint256 l1Amount = commitmentMP.commitment.body.amount * l2Unit;
         require(

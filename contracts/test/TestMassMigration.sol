@@ -16,13 +16,14 @@ contract TestMassMigration is MassMigration {
         bytes memory txs
     ) public view returns (uint256 gasCost, Types.Result result) {
         gasCost = gasleft();
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: signature,
-            stateRoot: stateRoot,
-            accountRoot: accountRoot,
-            domain: domain,
-            txs: txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: signature,
+                stateRoot: stateRoot,
+                accountRoot: accountRoot,
+                domain: domain,
+                txs: txs
+            });
         result = checkSignature(common, proof, spokeID);
         gasCost = gasCost - gasleft();
     }
@@ -42,12 +43,13 @@ contract TestMassMigration is MassMigration {
         )
     {
         gasCost = gasleft();
-        (bytes32 postRoot, Types.Result result) = processMassMigrationCommit(
-            stateRoot,
-            maxTxSize,
-            commitmentBody,
-            proofs
-        );
+        (bytes32 postRoot, Types.Result result) =
+            processMassMigrationCommit(
+                stateRoot,
+                maxTxSize,
+                commitmentBody,
+                proofs
+            );
         return (gasCost - gasleft(), postRoot, result);
     }
 }

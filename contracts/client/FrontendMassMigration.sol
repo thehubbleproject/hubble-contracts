@@ -34,13 +34,11 @@ contract FrontendMassMigration {
         pure
         returns (bytes memory)
     {
-        Tx.MassMigration[] memory txTxs = new Tx.MassMigration[](
-            encodedTxs.length
-        );
+        Tx.MassMigration[] memory txTxs =
+            new Tx.MassMigration[](encodedTxs.length);
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
-                encodedTxs[i]
-            );
+            Offchain.MassMigration memory _tx =
+                Offchain.decodeMassMigration(encodedTxs[i]);
             txTxs[i] = Tx.MassMigration(_tx.fromIndex, _tx.amount, _tx.fee);
         }
         return Tx.serialize(txTxs);
@@ -64,14 +62,10 @@ contract FrontendMassMigration {
         pure
         returns (bytes memory)
     {
-        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
-            encodedTx
-        );
-        Tx.MassMigration memory txTx = Tx.MassMigration(
-            _tx.fromIndex,
-            _tx.amount,
-            _tx.fee
-        );
+        Offchain.MassMigration memory _tx =
+            Offchain.decodeMassMigration(encodedTx);
+        Tx.MassMigration memory txTx =
+            Tx.MassMigration(_tx.fromIndex, _tx.amount, _tx.fee);
         return Tx.massMigrationMessageOf(txTx, _tx.nonce, _tx.spokeID);
     }
 
@@ -81,21 +75,14 @@ contract FrontendMassMigration {
         uint256[4] calldata pubkey,
         bytes32 domain
     ) external view returns (bool) {
-        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
-            encodedTx
-        );
+        Offchain.MassMigration memory _tx =
+            Offchain.decodeMassMigration(encodedTx);
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
-        Tx.MassMigration memory txTx = Tx.MassMigration(
-            _tx.fromIndex,
-            _tx.amount,
-            _tx.fee
-        );
-        bytes memory txMsg = Tx.massMigrationMessageOf(
-            txTx,
-            _tx.nonce,
-            _tx.spokeID
-        );
+        Tx.MassMigration memory txTx =
+            Tx.MassMigration(_tx.fromIndex, _tx.amount, _tx.fee);
+        bytes memory txMsg =
+            Tx.massMigrationMessageOf(txTx, _tx.nonce, _tx.spokeID);
 
         bool callSuccess;
         bool checkSuccess;
@@ -122,9 +109,8 @@ contract FrontendMassMigration {
             Types.Result result
         )
     {
-        Offchain.MassMigration memory _tx = Offchain.decodeMassMigration(
-            encodedTx
-        );
+        Offchain.MassMigration memory _tx =
+            Offchain.decodeMassMigration(encodedTx);
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         uint256 tokenID = sender.tokenID;
         (sender, result) = Transition.validateAndApplySender(
@@ -156,14 +142,14 @@ contract FrontendMassMigration {
             Types.Result result
         )
     {
-        Offchain.MassMigration memory offchainTx = Offchain.decodeMassMigration(
-            encodedTx
-        );
-        Tx.MassMigration memory _tx = Tx.MassMigration(
-            offchainTx.fromIndex,
-            offchainTx.amount,
-            offchainTx.fee
-        );
+        Offchain.MassMigration memory offchainTx =
+            Offchain.decodeMassMigration(encodedTx);
+        Tx.MassMigration memory _tx =
+            Tx.MassMigration(
+                offchainTx.fromIndex,
+                offchainTx.amount,
+                offchainTx.fee
+            );
         return Transition.processMassMigration(stateRoot, _tx, tokenID, from);
     }
 
@@ -176,13 +162,14 @@ contract FrontendMassMigration {
         uint256 spokeID,
         bytes memory txs
     ) public view returns (Types.Result) {
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: signature,
-            stateRoot: stateRoot,
-            accountRoot: accountRoot,
-            domain: domain,
-            txs: txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: signature,
+                stateRoot: stateRoot,
+                accountRoot: accountRoot,
+                domain: domain,
+                txs: txs
+            });
         return Authenticity.verifyMassMigration(common, proof, spokeID);
     }
 }

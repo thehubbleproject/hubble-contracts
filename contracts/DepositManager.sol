@@ -146,12 +146,8 @@ contract DepositManager is DepositCore, IDepositManager {
         IERC20(addr).safeTransferFrom(msg.sender, vault, l1Amount);
         uint256 l2Amount = l1Amount / l2Unit;
         // create a new state
-        Types.UserState memory newState = Types.UserState(
-            pubkeyID,
-            tokenID,
-            l2Amount,
-            0
-        );
+        Types.UserState memory newState =
+            Types.UserState(pubkeyID, tokenID, l2Amount, 0);
         // get new state hash
         bytes memory encodedState = newState.encode();
         emit DepositQueued(pubkeyID, encodedState);
