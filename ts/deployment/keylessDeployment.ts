@@ -6,7 +6,7 @@ import {
     parse
 } from "@ethersproject/transactions";
 import { SignatureLike } from "@ethersproject/bytes";
-import { Provider } from "@ethersproject/providers";
+import { Provider, TransactionRequest } from "@ethersproject/providers";
 import { logDeployment, logTx } from "../../scripts/logger";
 import { KEYLESS_DEPLOYMENT } from "./static";
 
@@ -57,7 +57,9 @@ export class KeylessDeployer {
     async estimateGas() {
         if (!this.provider)
             throw new Error("Please connect to a provider first");
-        return await this.provider.estimateGas(this.deploymentTx);
+        return await this.provider.estimateGas(
+            this.deploymentTx as TransactionRequest
+        );
     }
     async alreadyDeployed(): Promise<boolean> {
         if (!this.provider)
