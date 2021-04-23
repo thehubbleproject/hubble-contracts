@@ -32,10 +32,8 @@ contract TestTypes {
             uint256 finaliseOn
         )
     {
-        Types.Batch memory batch = Types.Batch({
-            commitmentRoot: bytes32(0),
-            meta: meta
-        });
+        Types.Batch memory batch =
+            Types.Batch({ commitmentRoot: bytes32(0), meta: meta });
         batchType = batch.batchType();
         size = batch.size();
         committer = batch.committer();

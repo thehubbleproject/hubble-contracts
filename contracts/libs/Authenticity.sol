@@ -193,11 +193,12 @@ library Authenticity {
                 if (senders[k] == safeIndex) nonce--;
             }
             senders[j] = safeIndex;
-            bytes memory txMsg = Tx.create2TransferMessageOf(
-                _tx,
-                nonce,
-                proof.pubkeysReceiver[i]
-            );
+            bytes memory txMsg =
+                Tx.create2TransferMessageOf(
+                    _tx,
+                    nonce,
+                    proof.pubkeysReceiver[i]
+                );
 
             messages[i] = BLS.hashToPoint(common.domain, txMsg);
         }

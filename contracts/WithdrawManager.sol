@@ -40,9 +40,8 @@ contract WithdrawManager {
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
         vault.requestApproval(batchID, commitmentMP);
-        (address addr, uint256 l2Unit) = tokenRegistry.safeGetRecord(
-            commitmentMP.commitment.body.tokenID
-        );
+        (address addr, uint256 l2Unit) =
+            tokenRegistry.safeGetRecord(commitmentMP.commitment.body.tokenID);
         processed[commitmentMP.commitment.body.withdrawRoot] = commitmentMP
             .commitment
             .body
@@ -96,9 +95,8 @@ contract WithdrawManager {
         );
         require(callSuccess, "WithdrawManager: Precompile call failed");
         require(checkSuccess, "WithdrawManager: Bad signature");
-        (address addr, uint256 l2Unit) = tokenRegistry.safeGetRecord(
-            withdrawal.state.tokenID
-        );
+        (address addr, uint256 l2Unit) =
+            tokenRegistry.safeGetRecord(withdrawal.state.tokenID);
         Bitmap.setClaimed(withdrawal.state.pubkeyID, bitmap[withdrawRoot]);
         uint256 l1Amount = withdrawal.state.balance * l2Unit;
         // transfer tokens from vault

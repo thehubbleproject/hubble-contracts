@@ -25,8 +25,8 @@ contract Rollup is BatchManager {
     MassMigration public immutable massMigration;
     Create2Transfer public immutable create2Transfer;
 
-    bytes32
-        public constant ZERO_BYTES32 = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+    bytes32 public constant ZERO_BYTES32 =
+        0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     uint256 public immutable paramMaxTxsPerCommit;
     bytes32 public immutable zeroHashAtSubtreeDepth;
@@ -70,14 +70,12 @@ contract Rollup is BatchManager {
             _depositManager.paramMaxSubtreeDepth()
         );
 
-        bytes32 genesisCommitment = keccak256(
-            abi.encode(genesisStateRoot, ZERO_BYTES32)
-        );
+        bytes32 genesisCommitment =
+            keccak256(abi.encode(genesisStateRoot, ZERO_BYTES32));
 
         // Same effect as `MerkleTree.merklize`
-        bytes32 commitmentRoot = keccak256(
-            abi.encode(genesisCommitment, ZERO_BYTES32)
-        );
+        bytes32 commitmentRoot =
+            keccak256(abi.encode(genesisCommitment, ZERO_BYTES32));
         batches[nextBatchID] = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
@@ -245,16 +243,17 @@ contract Rollup is BatchManager {
         bytes32[] memory leaves = new bytes32[](stateRoots.length);
         bytes32 accountRoot = accountRegistry.root();
         for (uint256 i = 0; i < stateRoots.length; i++) {
-            Types.MassMigrationBody memory body = Types.MassMigrationBody(
-                accountRoot,
-                signatures[i],
-                meta[i][0],
-                withdrawRoots[i],
-                meta[i][1],
-                meta[i][2],
-                meta[i][3],
-                txss[i]
-            );
+            Types.MassMigrationBody memory body =
+                Types.MassMigrationBody(
+                    accountRoot,
+                    signatures[i],
+                    meta[i][0],
+                    withdrawRoots[i],
+                    meta[i][1],
+                    meta[i][2],
+                    meta[i][3],
+                    txss[i]
+                );
             leaves[i] = keccak256(
                 abi.encodePacked(stateRoots[i], Types.toHash(body))
             );
@@ -289,8 +288,8 @@ contract Rollup is BatchManager {
             ),
             "Rollup: State subtree is not vacant"
         );
-        (uint256 subtreeID, bytes32 depositSubTreeRoot) = depositManager
-            .dequeueToSubmit();
+        (uint256 subtreeID, bytes32 depositSubTreeRoot) =
+            depositManager.dequeueToSubmit();
         uint256 postBatchID = preBatchID + 1;
         // This deposit subtree is included in the batch whose ID is postBatchID
         deposits[postBatchID] = depositSubTreeRoot;
@@ -300,14 +299,14 @@ contract Rollup is BatchManager {
             vacant.pathAtDepth
         );
 
-        bytes32 newRoot = MerkleTree.computeRoot(
-            depositSubTreeRoot,
-            vacant.pathAtDepth,
-            vacant.witness
-        );
-        bytes32 depositCommitment = keccak256(
-            abi.encode(newRoot, ZERO_BYTES32)
-        );
+        bytes32 newRoot =
+            MerkleTree.computeRoot(
+                depositSubTreeRoot,
+                vacant.pathAtDepth,
+                vacant.witness
+            );
+        bytes32 depositCommitment =
+            keccak256(abi.encode(newRoot, ZERO_BYTES32));
         // Same effect as `MerkleTree.merklize`
         bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
         // AccountRoot doesn't matter for deposit, add dummy value
@@ -329,14 +328,14 @@ contract Rollup is BatchManager {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, Types.Result result) = transfer
-            .processTransferCommit(
-            previous.commitment.stateRoot,
-            paramMaxTxsPerCommit,
-            target.commitment.body.feeReceiver,
-            target.commitment.body.txs,
-            proofs
-        );
+        (bytes32 processedStateRoot, Types.Result result) =
+            transfer.processTransferCommit(
+                previous.commitment.stateRoot,
+                paramMaxTxsPerCommit,
+                target.commitment.body.feeReceiver,
+                target.commitment.body.txs,
+                proofs
+            );
 
         if (
             result != Types.Result.Ok ||
@@ -359,13 +358,13 @@ contract Rollup is BatchManager {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, Types.Result result) = massMigration
-            .processMassMigrationCommit(
-            previous.commitment.stateRoot,
-            paramMaxTxsPerCommit,
-            target.commitment.body,
-            proofs
-        );
+        (bytes32 processedStateRoot, Types.Result result) =
+            massMigration.processMassMigrationCommit(
+                previous.commitment.stateRoot,
+                paramMaxTxsPerCommit,
+                target.commitment.body,
+                proofs
+            );
 
         if (
             result != Types.Result.Ok ||
@@ -388,14 +387,14 @@ contract Rollup is BatchManager {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, Types.Result result) = create2Transfer
-            .processCreate2TransferCommit(
-            previous.commitment.stateRoot,
-            paramMaxTxsPerCommit,
-            target.commitment.body.feeReceiver,
-            target.commitment.body.txs,
-            proofs
-        );
+        (bytes32 processedStateRoot, Types.Result result) =
+            create2Transfer.processCreate2TransferCommit(
+                previous.commitment.stateRoot,
+                paramMaxTxsPerCommit,
+                target.commitment.body.feeReceiver,
+                target.commitment.body.txs,
+                proofs
+            );
 
         if (
             result != Types.Result.Ok ||
@@ -412,13 +411,14 @@ contract Rollup is BatchManager {
             checkInclusion(batches[batchID].commitmentRoot, target),
             "Rollup: Commitment not present in batch"
         );
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: target.commitment.body.signature,
-            stateRoot: target.commitment.stateRoot,
-            accountRoot: target.commitment.body.accountRoot,
-            domain: appID,
-            txs: target.commitment.body.txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: target.commitment.body.signature,
+                stateRoot: target.commitment.stateRoot,
+                accountRoot: target.commitment.body.accountRoot,
+                domain: appID,
+                txs: target.commitment.body.txs
+            });
         Types.Result result = transfer.checkSignature(common, signatureProof);
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
@@ -433,19 +433,21 @@ contract Rollup is BatchManager {
             checkInclusion(batches[batchID].commitmentRoot, target),
             "Commitment not present in batch"
         );
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: target.commitment.body.signature,
-            stateRoot: target.commitment.stateRoot,
-            accountRoot: target.commitment.body.accountRoot,
-            domain: appID,
-            txs: target.commitment.body.txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: target.commitment.body.signature,
+                stateRoot: target.commitment.stateRoot,
+                accountRoot: target.commitment.body.accountRoot,
+                domain: appID,
+                txs: target.commitment.body.txs
+            });
 
-        Types.Result result = massMigration.checkSignature(
-            common,
-            signatureProof,
-            target.commitment.body.spokeID
-        );
+        Types.Result result =
+            massMigration.checkSignature(
+                common,
+                signatureProof,
+                target.commitment.body.spokeID
+            );
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
     }
@@ -459,18 +461,17 @@ contract Rollup is BatchManager {
             checkInclusion(batches[batchID].commitmentRoot, target),
             "Rollup: Commitment not present in batch"
         );
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: target.commitment.body.signature,
-            stateRoot: target.commitment.stateRoot,
-            accountRoot: target.commitment.body.accountRoot,
-            domain: appID,
-            txs: target.commitment.body.txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: target.commitment.body.signature,
+                stateRoot: target.commitment.stateRoot,
+                accountRoot: target.commitment.body.accountRoot,
+                domain: appID,
+                txs: target.commitment.body.txs
+            });
 
-        Types.Result result = create2Transfer.checkSignature(
-            common,
-            signatureProof
-        );
+        Types.Result result =
+            create2Transfer.checkSignature(common, signatureProof);
 
         if (result != Types.Result.Ok) startRollingBack(batchID);
     }

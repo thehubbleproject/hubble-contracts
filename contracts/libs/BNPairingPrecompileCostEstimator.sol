@@ -67,20 +67,21 @@ contract BNPairingPrecompileCostEstimator {
     }
 
     function _gasCost2Pair() internal view returns (uint256) {
-        uint256[12] memory input = [
-            G1_X,
-            G1_Y,
-            G2_X1,
-            G2_X0,
-            G2_Y1,
-            G2_Y0,
-            G1_X,
-            G1_Y,
-            G2_X1,
-            G2_X0,
-            N_G2_Y1,
-            N_G2_Y0
-        ];
+        uint256[12] memory input =
+            [
+                G1_X,
+                G1_Y,
+                G2_X1,
+                G2_X0,
+                G2_Y1,
+                G2_Y0,
+                G1_X,
+                G1_Y,
+                G2_X1,
+                G2_X0,
+                N_G2_Y1,
+                N_G2_Y0
+            ];
         uint256[1] memory out;
         bool callSuccess;
         uint256 suppliedGas = gasleft() - 2000;

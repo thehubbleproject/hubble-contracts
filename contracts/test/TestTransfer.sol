@@ -17,13 +17,14 @@ contract TestTransfer is Transfer {
         bytes memory txs
     ) public returns (uint256, Types.Result) {
         uint256 operationCost = gasleft();
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: signature,
-            stateRoot: stateRoot,
-            accountRoot: accountRoot,
-            domain: domain,
-            txs: txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: signature,
+                stateRoot: stateRoot,
+                accountRoot: accountRoot,
+                domain: domain,
+                txs: txs
+            });
         Types.Result result = checkSignature(common, proof);
         return (operationCost - gasleft(), result);
     }

@@ -50,12 +50,11 @@ contract FrontendCreate2Transfer {
         pure
         returns (bytes memory)
     {
-        Tx.Create2Transfer[] memory txTxs = new Tx.Create2Transfer[](
-            encodedTxs.length
-        );
+        Tx.Create2Transfer[] memory txTxs =
+            new Tx.Create2Transfer[](encodedTxs.length);
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.Create2Transfer memory _tx = Offchain
-                .decodeCreate2Transfer(encodedTxs[i]);
+            Offchain.Create2Transfer memory _tx =
+                Offchain.decodeCreate2Transfer(encodedTxs[i]);
             txTxs[i] = Tx.Create2Transfer(
                 _tx.fromIndex,
                 _tx.toIndex,
@@ -85,8 +84,8 @@ contract FrontendCreate2Transfer {
         pure
         returns (bytes memory)
     {
-        Offchain.Create2TransferWithPub memory _tx = Offchain
-            .decodeCreate2TransferWithPub(encodedTxWithPub);
+        Offchain.Create2TransferWithPub memory _tx =
+            Offchain.decodeCreate2TransferWithPub(encodedTxWithPub);
         Tx.Create2Transfer memory txTx;
         txTx.fromIndex = _tx.fromIndex;
         txTx.amount = _tx.amount;
@@ -101,23 +100,20 @@ contract FrontendCreate2Transfer {
         uint256[4] calldata pubkeyReceiver,
         bytes32 domain
     ) external view returns (bool) {
-        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
-            encodedTx
-        );
+        Offchain.Create2Transfer memory _tx =
+            Offchain.decodeCreate2Transfer(encodedTx);
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
-        Tx.Create2Transfer memory txTx = Tx.Create2Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.toPubkeyID,
-            _tx.amount,
-            _tx.fee
-        );
-        bytes memory txMsg = Tx.create2TransferMessageOf(
-            txTx,
-            _tx.nonce,
-            pubkeyReceiver
-        );
+        Tx.Create2Transfer memory txTx =
+            Tx.Create2Transfer(
+                _tx.fromIndex,
+                _tx.toIndex,
+                _tx.toPubkeyID,
+                _tx.amount,
+                _tx.fee
+            );
+        bytes memory txMsg =
+            Tx.create2TransferMessageOf(txTx, _tx.nonce, pubkeyReceiver);
 
         bool callSuccess;
         bool checkSuccess;
@@ -144,9 +140,8 @@ contract FrontendCreate2Transfer {
             Types.Result result
         )
     {
-        Offchain.Create2Transfer memory _tx = Offchain.decodeCreate2Transfer(
-            encodedTx
-        );
+        Offchain.Create2Transfer memory _tx =
+            Offchain.decodeCreate2Transfer(encodedTx);
         Types.UserState memory sender = Types.decodeState(senderEncoded);
         uint256 tokenID = sender.tokenID;
         (sender, result) = Transition.validateAndApplySender(
@@ -172,15 +167,16 @@ contract FrontendCreate2Transfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32 newRoot, Types.Result result) {
-        Offchain.Create2Transfer memory offchainTx = Offchain
-            .decodeCreate2Transfer(encodedTx);
-        Tx.Create2Transfer memory _tx = Tx.Create2Transfer(
-            offchainTx.fromIndex,
-            offchainTx.toIndex,
-            offchainTx.toPubkeyID,
-            offchainTx.amount,
-            offchainTx.fee
-        );
+        Offchain.Create2Transfer memory offchainTx =
+            Offchain.decodeCreate2Transfer(encodedTx);
+        Tx.Create2Transfer memory _tx =
+            Tx.Create2Transfer(
+                offchainTx.fromIndex,
+                offchainTx.toIndex,
+                offchainTx.toPubkeyID,
+                offchainTx.amount,
+                offchainTx.fee
+            );
         return
             Transition.processCreate2Transfer(
                 stateRoot,
@@ -199,13 +195,14 @@ contract FrontendCreate2Transfer {
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: signature,
-            stateRoot: stateRoot,
-            accountRoot: accountRoot,
-            domain: domain,
-            txs: txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: signature,
+                stateRoot: stateRoot,
+                accountRoot: accountRoot,
+                domain: domain,
+                txs: txs
+            });
 
         return Authenticity.verifyCreate2Transfer(common, proof);
     }

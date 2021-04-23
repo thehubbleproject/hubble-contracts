@@ -36,9 +36,8 @@ contract FrontendTransfer {
     {
         Tx.Transfer[] memory txTxs = new Tx.Transfer[](encodedTxs.length);
         for (uint256 i = 0; i < txTxs.length; i++) {
-            Offchain.Transfer memory _tx = Offchain.decodeTransfer(
-                encodedTxs[i]
-            );
+            Offchain.Transfer memory _tx =
+                Offchain.decodeTransfer(encodedTxs[i]);
             txTxs[i] = Tx.Transfer(
                 _tx.fromIndex,
                 _tx.toIndex,
@@ -68,12 +67,8 @@ contract FrontendTransfer {
         returns (bytes memory)
     {
         Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
-        Tx.Transfer memory txTx = Tx.Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.amount,
-            _tx.fee
-        );
+        Tx.Transfer memory txTx =
+            Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.fee);
         return Tx.transferMessageOf(txTx, _tx.nonce);
     }
 
@@ -86,12 +81,8 @@ contract FrontendTransfer {
         Offchain.Transfer memory _tx = Offchain.decodeTransfer(encodedTx);
         Tx.encodeDecimal(_tx.amount);
         Tx.encodeDecimal(_tx.fee);
-        Tx.Transfer memory txTx = Tx.Transfer(
-            _tx.fromIndex,
-            _tx.toIndex,
-            _tx.amount,
-            _tx.fee
-        );
+        Tx.Transfer memory txTx =
+            Tx.Transfer(_tx.fromIndex, _tx.toIndex, _tx.amount, _tx.fee);
         bytes memory txMsg = Tx.transferMessageOf(txTx, _tx.nonce);
 
         bool callSuccess;
@@ -146,15 +137,15 @@ contract FrontendTransfer {
         Types.StateMerkleProof memory from,
         Types.StateMerkleProof memory to
     ) public pure returns (bytes32 newRoot, Types.Result result) {
-        Offchain.Transfer memory offchainTx = Offchain.decodeTransfer(
-            encodedTx
-        );
-        Tx.Transfer memory _tx = Tx.Transfer(
-            offchainTx.fromIndex,
-            offchainTx.toIndex,
-            offchainTx.amount,
-            offchainTx.fee
-        );
+        Offchain.Transfer memory offchainTx =
+            Offchain.decodeTransfer(encodedTx);
+        Tx.Transfer memory _tx =
+            Tx.Transfer(
+                offchainTx.fromIndex,
+                offchainTx.toIndex,
+                offchainTx.amount,
+                offchainTx.fee
+            );
         return Transition.processTransfer(stateRoot, _tx, tokenID, from, to);
     }
 
@@ -166,13 +157,14 @@ contract FrontendTransfer {
         bytes32 domain,
         bytes memory txs
     ) public view returns (Types.Result) {
-        Types.AuthCommon memory common = Types.AuthCommon({
-            signature: signature,
-            stateRoot: stateRoot,
-            accountRoot: accountRoot,
-            domain: domain,
-            txs: txs
-        });
+        Types.AuthCommon memory common =
+            Types.AuthCommon({
+                signature: signature,
+                stateRoot: stateRoot,
+                accountRoot: accountRoot,
+                domain: domain,
+                txs: txs
+            });
         return Authenticity.verifyTransfer(common, proof);
     }
 }

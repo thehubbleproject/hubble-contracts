@@ -39,33 +39,34 @@ library BLS {
     uint256 private constant MASK24 = 0xffffffffffffffffffffffffffffffffffffffffffffffff;
 
     // estimator address
-    address
-        private constant COST_ESTIMATOR_ADDRESS = 0x079d8077C465BD0BF0FC502aD2B846757e415661;
+    address private constant COST_ESTIMATOR_ADDRESS =
+        0x079d8077C465BD0BF0FC502aD2B846757e415661;
 
     function verifySingle(
         uint256[2] memory signature,
         uint256[4] memory pubkey,
         uint256[2] memory message
     ) internal view returns (bool, bool) {
-        uint256[12] memory input = [
-            signature[0],
-            signature[1],
-            N_G2_X1,
-            N_G2_X0,
-            N_G2_Y1,
-            N_G2_Y0,
-            message[0],
-            message[1],
-            pubkey[1],
-            pubkey[0],
-            pubkey[3],
-            pubkey[2]
-        ];
+        uint256[12] memory input =
+            [
+                signature[0],
+                signature[1],
+                N_G2_X1,
+                N_G2_X0,
+                N_G2_Y1,
+                N_G2_Y0,
+                message[0],
+                message[1],
+                pubkey[1],
+                pubkey[0],
+                pubkey[3],
+                pubkey[2]
+            ];
         uint256[1] memory out;
-        uint256 precompileGasCost = BNPairingPrecompileCostEstimator(
-            COST_ESTIMATOR_ADDRESS
-        )
-            .getGasCost(2);
+        uint256 precompileGasCost =
+            BNPairingPrecompileCostEstimator(COST_ESTIMATOR_ADDRESS).getGasCost(
+                2
+            );
         bool callSuccess;
         // solium-disable-next-line security/no-inline-assembly
         assembly {

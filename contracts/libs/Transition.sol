@@ -105,11 +105,8 @@ library Transition {
             ),
             "Create2Transfer: receiver proof invalid"
         );
-        bytes memory encodedState = createState(
-            _tx.toPubkeyID,
-            tokenID,
-            _tx.amount
-        );
+        bytes memory encodedState =
+            createState(_tx.toPubkeyID, tokenID, _tx.amount);
 
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
@@ -136,10 +133,8 @@ library Transition {
             ),
             "Transition: Sender does not exist"
         );
-        (
-            Types.UserState memory newSender,
-            Types.Result result
-        ) = validateAndApplySender(tokenID, amount, fee, proof.state);
+        (Types.UserState memory newSender, Types.Result result) =
+            validateAndApplySender(tokenID, amount, fee, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);
         newRoot = MerkleTree.computeRoot(
             keccak256(newSender.encode()),
@@ -165,10 +160,8 @@ library Transition {
             ),
             "Transition: receiver does not exist"
         );
-        (
-            Types.UserState memory newReceiver,
-            Types.Result result
-        ) = validateAndApplyReceiver(tokenID, amount, proof.state);
+        (Types.UserState memory newReceiver, Types.Result result) =
+            validateAndApplyReceiver(tokenID, amount, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);
         newRoot = MerkleTree.computeRoot(
             keccak256(newReceiver.encode()),
@@ -190,12 +183,13 @@ library Transition {
             return (sender, Types.Result.NotEnoughTokenBalance);
         if (sender.tokenID != tokenID)
             return (sender, Types.Result.BadFromTokenID);
-        Types.UserState memory newSender = Types.UserState({
-            pubkeyID: sender.pubkeyID,
-            tokenID: sender.tokenID,
-            balance: sender.balance.sub(decrement),
-            nonce: sender.nonce.add(1)
-        });
+        Types.UserState memory newSender =
+            Types.UserState({
+                pubkeyID: sender.pubkeyID,
+                tokenID: sender.tokenID,
+                balance: sender.balance.sub(decrement),
+                nonce: sender.nonce.add(1)
+            });
         return (newSender, Types.Result.Ok);
     }
 
@@ -220,12 +214,13 @@ library Transition {
         uint256 tokenID,
         uint256 amount
     ) internal pure returns (bytes memory stateEncoded) {
-        Types.UserState memory state = Types.UserState({
-            pubkeyID: pubkeyID,
-            tokenID: tokenID,
-            balance: amount,
-            nonce: 0
-        });
+        Types.UserState memory state =
+            Types.UserState({
+                pubkeyID: pubkeyID,
+                tokenID: tokenID,
+                balance: amount,
+                nonce: 0
+            });
         return state.encode();
     }
 }
