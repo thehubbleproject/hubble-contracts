@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { constants } from "ethers";
+import { constants, Event } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { TESTING_PARAMS } from "../../ts/constants";
@@ -87,6 +87,19 @@ describe("DepositManager", async function() {
         );
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
+        const getStateFromEvent = (evt: Event) => {
+            if (!evt.args) {
+                throw new Error("DepositQueued event missing args");
+            }
+            const { pubkeyID, tokenID, l2Amount } = evt.args;
+            return State.new(
+                pubkeyID.toNumber(),
+                tokenID.toNumber(),
+                l2Amount,
+                0
+            );
+        };
+
         const { depositManager } = contracts;
         const pool = new DepositPool(
             Number(await depositManager.paramMaxSubtreeSize())
@@ -110,13 +123,13 @@ describe("DepositManager", async function() {
         );
 
         const [event0] = await depositManager.queryFilter(
-            depositManager.filters.DepositQueued(null, null),
+            depositManager.filters.DepositQueued(null, null, null),
             txDeposit0.blockHash
         );
 
-        assert.equal(event0.args?.pubkeyID.toNumber(), 0);
-        assert.equal(event0.args?.data, deposit0.encode());
-        pool.pushDeposit(event0.args?.data);
+        const event0State = getStateFromEvent(event0);
+        assert.equal(event0State.hash(), deposit0.hash());
+        pool.pushDeposit(event0State.encode());
 
         const txDeposit1 = await depositManager.depositFor(
             1,
@@ -128,13 +141,13 @@ describe("DepositManager", async function() {
             (await txDeposit1.wait()).gasUsed.toNumber()
         );
         const [event1] = await depositManager.queryFilter(
-            depositManager.filters.DepositQueued(null, null),
+            depositManager.filters.DepositQueued(null, null, null),
             txDeposit1.blockHash
         );
 
-        assert.equal(event1.args?.pubkeyID.toNumber(), 1);
-        assert.equal(event1.args?.data, deposit1.encode());
-        pool.pushDeposit(event1.args?.data);
+        const event1State = getStateFromEvent(event1);
+        assert.equal(event1State.hash(), deposit1.hash());
+        pool.pushDeposit(event1State.encode());
 
         const [eventReady] = await depositManager.queryFilter(
             depositManager.filters.DepositSubTreeReady(null, null),

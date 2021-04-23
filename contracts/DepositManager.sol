@@ -8,7 +8,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 
 interface IDepositManager {
-    event DepositQueued(uint256 pubkeyID, bytes data);
+    event DepositQueued(uint256 pubkeyID, uint256 tokenID, uint256 l2Amount);
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
     function paramMaxSubtreeDepth() external returns (uint256);
@@ -150,7 +150,7 @@ contract DepositManager is DepositCore, IDepositManager {
             Types.UserState(pubkeyID, tokenID, l2Amount, 0);
         // get new state hash
         bytes memory encodedState = newState.encode();
-        emit DepositQueued(pubkeyID, encodedState);
+        emit DepositQueued(pubkeyID, tokenID, l2Amount);
         insertAndMerge(keccak256(encodedState));
     }
 
