@@ -40,7 +40,7 @@ export class SyncedPoint {
 }
 
 export interface ICoreAPI {
-    getlatestBatchID(): Promise<number>;
+    getLatestBatchID(): Promise<number>;
     getState(stateID: number): Promise<State>;
     updateState(stateID: number, state: State): Promise<void>;
     getPubkey(pubkeyID: number): Promise<Pubkey>;
@@ -98,7 +98,7 @@ export class CoreAPI implements ICoreAPI {
     async getBlockNumber() {
         return await this.provider.getBlockNumber();
     }
-    async getlatestBatchID() {
+    async getLatestBatchID() {
         return Number(await this.rollup.nextBatchID()) - 1;
     }
 

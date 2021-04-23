@@ -1,3 +1,4 @@
 types/
 .github/
 cache/
+build/

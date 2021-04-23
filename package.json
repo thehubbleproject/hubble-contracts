@@ -10,6 +10,7 @@
     "prettier": "prettier --write \"**/*.{sol,ts,js}\"",
     "generate": "hardhat compile && typechain --target ethers-v5 './artifacts/contracts/**/!(*.dbg).json'",
     "compile": "hardhat compile",
+    "tsc": "tsc",
     "node": "hardhat node",
     "deploy": "ts-node ./scripts/deploy.ts",
     "keyless:check": "ts-node ./scripts/keyless.ts --check",
@@ -34,6 +35,7 @@
     "@openzeppelin/contracts": "^3.4.1",
     "@typechain/ethers-v5": "^1.0.0",
     "@types/chai": "^4.2.15",
+    "@types/lodash": "^4.14.168",
     "@types/mocha": "^8.2.1",
     "@types/node": "^14.14.33",
     "bn.js": "^5.2.0",
@@ -51,6 +53,7 @@
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
-    "fastify": "^3.14.2"
+    "fastify": "^3.14.2",
+    "lodash": "^4.17.21"
   }
 }
