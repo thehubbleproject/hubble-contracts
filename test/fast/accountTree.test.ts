@@ -8,7 +8,7 @@ import { ZERO_BYTES32 } from "../../ts/constants";
 
 let DEPTH: number;
 let BATCH_DEPTH: number;
-describe.only("Account Tree", async () => {
+describe("Account Tree", async () => {
     let accountTree: TestAccountTree;
     let treeLeft: Tree;
     let treeRight: Tree;

@@ -36,7 +36,7 @@ import { deployKeyless } from "../ts/deployment/deploy";
 // We are deploying a new token with tokenID 1
 const tokenID = 1;
 
-describe.skip("Integration Test", function() {
+describe("Integration Test", function() {
     let contracts: allContracts;
     let stateTree: StateTree;
     let parameters: DeploymentParameters;

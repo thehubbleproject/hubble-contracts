@@ -13,6 +13,7 @@ import { Signer } from "ethers";
 import { assert } from "chai";
 
 describe("Frontend", function() {
+    let snapshotId: number;
     let user: User;
     let badSig: mcl.solG1;
     let signer: Signer;
@@ -22,10 +23,13 @@ describe("Frontend", function() {
         [signer] = await ethers.getSigners();
         user = User.new(0, 0, hexToUint8Array(domain));
         badSig = user.signRaw("0xf00d").sol;
+
+        snapshotId = await ethers.provider.send("evm_snapshot", []);
     });
     beforeEach(async function() {
         // Reset to the state before pairing gas estimator is deployed
-        await ethers.provider.send("hardhat_reset", []);
+        console.warn(snapshotId);
+        await ethers.provider.send("evm_revert", [snapshotId]);
     });
     it("frontendTransfer", async function() {
         const txTransfer = TxTransfer.rand();

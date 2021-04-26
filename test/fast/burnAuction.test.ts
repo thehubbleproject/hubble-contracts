@@ -23,7 +23,7 @@ const badBidInsufficienttMessage =
 const badForgeMessage = "Invalid proposer";
 const uninitializedAuctionMessage = "Auction has not been initialized";
 
-describe.skip("BurnAuction", function() {
+describe("BurnAuction", function() {
     let burnAuction: TestBurnAuction;
     let rollup: MockRollup;
     let signer1: Signer;
