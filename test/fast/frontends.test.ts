@@ -28,7 +28,6 @@ describe("Frontend", function() {
     });
     beforeEach(async function() {
         // Reset to the state before pairing gas estimator is deployed
-        console.warn(snapshotId);
         await ethers.provider.send("evm_revert", [snapshotId]);
     });
     it("frontendTransfer", async function() {
