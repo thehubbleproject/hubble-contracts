@@ -5,7 +5,7 @@ import { EventSyncer } from "./interfaces";
  * initialSync will process the syncers in sequential order.
  * https://en.wikipedia.org/wiki/Composite_pattern
  */
-export default class SequentialCompositeEventSyncer implements EventSyncer {
+export class SequentialCompositeEventSyncer implements EventSyncer {
     constructor(private readonly syncers: EventSyncer[]) {}
 
     public async initialSync(
