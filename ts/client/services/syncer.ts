@@ -1,13 +1,13 @@
 import { Event, EventFilter } from "@ethersproject/contracts";
 import { chunk } from "lodash";
-import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { BlsAccountRegistry } from "../../../types/ethers-contracts/BlsAccountRegistry";
-import { Usage } from "../../interfaces";
-import { BatchHandlingContext } from "../contexts";
 import { CoreAPI } from "../coreAPI";
 import { nodeEmitter, SyncCompleteEvent } from "../node";
 import { PubkeyStorageEngine } from "../storageEngine";
 import { Pubkey } from "../../pubkey";
+import { EventSyncer } from "./events/interfaces";
+import { NewBatchEventSyncer } from "./events/newBatch";
+import SequentialCompositeEventSyncer from "./events/sequentialCompositeEventSyncer";
 
 export enum SyncMode {
     INITIAL_SYNCING,
@@ -16,19 +16,15 @@ export enum SyncMode {
 
 export class SyncerService {
     private mode: SyncMode;
-    private newBatchFilter: EventFilter;
     private singlePubkeyRegisteredFilter: EventFilter;
     private batchPubkeyRegisteredFilter: EventFilter;
-    private batchHandlingContext: BatchHandlingContext;
-    private rollup: Rollup;
     private accountRegistry: BlsAccountRegistry;
     private pubkeyStorage: PubkeyStorageEngine;
+    private readonly events: EventSyncer;
 
     constructor(private readonly api: CoreAPI) {
         this.mode = SyncMode.INITIAL_SYNCING;
-        this.rollup = this.api.rollup;
         this.accountRegistry = this.api.contracts.blsAccountRegistry;
-        this.newBatchFilter = this.rollup.filters.NewBatch(null, null, null);
         this.singlePubkeyRegisteredFilter = this.accountRegistry.filters.SinglePubkeyRegistered(
             null
         );
@@ -36,8 +32,13 @@ export class SyncerService {
             null,
             null
         );
-        this.batchHandlingContext = new BatchHandlingContext(api);
         this.pubkeyStorage = this.api.l2Storage.pubkey;
+
+        this.events = new SequentialCompositeEventSyncer([
+            // Note: Ordering here is important for initial syncs.
+            // Pubkey syncs need to happen before batch syncs, etc.
+            new NewBatchEventSyncer(api)
+        ]);
     }
 
     getMode() {
@@ -48,7 +49,9 @@ export class SyncerService {
         await this.initialSync();
         nodeEmitter.emit(SyncCompleteEvent);
         this.mode = SyncMode.REGULAR_SYNCING;
-        this.rollup.on(this.newBatchFilter, this.newBatchListener);
+
+        this.events.listen();
+
         this.accountRegistry.on(
             this.singlePubkeyRegisteredFilter,
             this.singlePubkeyRegisteredListener
@@ -87,18 +90,6 @@ export class SyncerService {
         console.error("initialBatchPubkeyRegisteredSync not implemented");
     }
 
-    async initialNewBatchSync(start: number, end: number) {
-        const events = await this.rollup.queryFilter(
-            this.newBatchFilter,
-            start,
-            end
-        );
-        console.info(`Block ${start} -- ${end}\t${events.length} new batches`);
-        for (const event of events) {
-            await this.handleNewBatch(event);
-        }
-    }
-
     async initialSync() {
         const chunksize = 100;
         let start = this.api.syncpoint.blockNumber;
@@ -108,7 +99,7 @@ export class SyncerService {
             const end = start + chunksize - 1;
 
             await this.initialPubkeyRegisteredSync(start, end);
-            await this.initialNewBatchSync(start, end);
+            await this.events.initialSync(start, end);
 
             start = end + 1;
             latestBlock = await this.api.getBlockNumber();
@@ -117,26 +108,6 @@ export class SyncerService {
                 `block #${this.api.syncpoint.blockNumber}/#${latestBlock}  batch ${this.api.syncpoint.batchID}/${latestBatchID}`
             );
         }
-    }
-
-    async handleNewBatch(event: Event) {
-        const usage = event.args?.batchType as Usage;
-        const batchID = Number(event.args?.batchID);
-        if (this.api.syncpoint.batchID >= batchID) {
-            console.info(
-                "synced before",
-                "synced batchID",
-                this.api.syncpoint.batchID,
-                "this batchID",
-                batchID
-            );
-            return;
-        }
-        this.batchHandlingContext.setStrategy(usage);
-        const batch = await this.batchHandlingContext.parseBatch(event);
-        await this.batchHandlingContext.processBatch(batch);
-        this.api.syncpoint.update(event.blockNumber, batchID);
-        console.info(`#${batchID}  [${Usage[usage]}]`, batch.toString());
     }
 
     getPubkeyFromTxn(txn: { data: string }): Pubkey {
@@ -161,15 +132,6 @@ export class SyncerService {
         console.error("handleBatchPubkeyRegistered not implemented");
     }
 
-    newBatchListener = async (
-        batchID: null,
-        accountRoot: null,
-        batchType: null,
-        event: Event
-    ) => {
-        await this.handleNewBatch(event);
-    };
-
     singlePubkeyRegisteredListener = async (pubkeyID: null, event: Event) => {
         await this.handleSinglePubkeyRegistered(event);
     };
@@ -184,10 +146,7 @@ export class SyncerService {
 
     stop() {
         if (this.mode == SyncMode.REGULAR_SYNCING) {
-            this.rollup.removeListener(
-                this.newBatchFilter,
-                this.newBatchListener
-            );
+            this.events.stopListening();
             this.accountRegistry.removeListener(
                 this.singlePubkeyRegisteredFilter,
                 this.singlePubkeyRegisteredListener
