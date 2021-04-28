@@ -18,13 +18,13 @@ export class SequentialCompositeEventSyncer implements EventSyncer {
         }, Promise.resolve());
     }
 
-    listen(): void {
+    public listen(): void {
         for (let es of this.syncers) {
             es.listen();
         }
     }
 
-    stopListening(): void {
+    public stopListening(): void {
         for (let es of this.syncers) {
             es.stopListening();
         }

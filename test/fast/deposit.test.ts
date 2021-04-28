@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { constants, Event } from "ethers";
+import { constants } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { TESTING_PARAMS } from "../../ts/constants";
@@ -13,7 +13,6 @@ import { TestDepositCoreFactory } from "../../types/ethers-contracts/TestDeposit
 import { TransferCommitment } from "../../ts/commitments";
 import { StateTree } from "../../ts/stateTree";
 import { ERC20ValueFactory } from "../../ts/decimal";
-import { DepositPool } from "../../ts/client/features/deposit";
 
 describe("Deposit Core", async function() {
     let contract: TestDepositCore;
@@ -87,23 +86,7 @@ describe("DepositManager", async function() {
         );
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
-        const getStateFromEvent = (evt: Event) => {
-            if (!evt.args) {
-                throw new Error("DepositQueued event missing args");
-            }
-            const { pubkeyID, tokenID, l2Amount } = evt.args;
-            return State.new(
-                pubkeyID.toNumber(),
-                tokenID.toNumber(),
-                l2Amount,
-                0
-            );
-        };
-
         const { depositManager } = contracts;
-        const pool = new DepositPool(
-            Number(await depositManager.paramMaxSubtreeSize())
-        );
         const amount = erc20.fromHumanValue("10");
         const deposit0 = State.new(0, tokenID, amount.l2Value, 0);
         const deposit1 = State.new(1, tokenID, amount.l2Value, 0);
@@ -127,9 +110,8 @@ describe("DepositManager", async function() {
             txDeposit0.blockHash
         );
 
-        const event0State = getStateFromEvent(event0);
+        const event0State = State.fromDepositQueuedEvent(event0);
         assert.equal(event0State.hash(), deposit0.hash());
-        pool.pushDeposit(event0State.encode());
 
         const txDeposit1 = await depositManager.depositFor(
             1,
@@ -145,9 +127,8 @@ describe("DepositManager", async function() {
             txDeposit1.blockHash
         );
 
-        const event1State = getStateFromEvent(event1);
+        const event1State = State.fromDepositQueuedEvent(event1);
         assert.equal(event1State.hash(), deposit1.hash());
-        pool.pushDeposit(event1State.encode());
 
         const [eventReady] = await depositManager.queryFilter(
             depositManager.filters.DepositSubTreeReady(null, null),
@@ -155,8 +136,6 @@ describe("DepositManager", async function() {
         );
         const subtreeRoot = eventReady.args?.subtreeRoot;
         assert.equal(subtreeRoot, pendingDeposit);
-        const { root } = pool.popDepositSubtree();
-        assert.equal(root, subtreeRoot);
     });
 
     it("submit a deposit Batch to rollup", async function() {

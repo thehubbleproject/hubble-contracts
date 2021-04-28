@@ -245,22 +245,22 @@ export class Batch {
         return this.tree.root;
     }
 
-    witness(leafInfex: number): string[] {
-        return this.tree.witness(leafInfex).nodes;
+    witness(leafIndex: number): string[] {
+        return this.tree.witness(leafIndex).nodes;
     }
 
-    proof(leafInfex: number): XCommitmentInclusionProof {
+    proof(leafIndex: number): XCommitmentInclusionProof {
         return {
-            commitment: this.commitments[leafInfex].toSolStruct(),
-            path: leafInfex,
-            witness: this.witness(leafInfex)
+            commitment: this.commitments[leafIndex].toSolStruct(),
+            path: leafIndex,
+            witness: this.witness(leafIndex)
         };
     }
-    proofCompressed(leafInfex: number): CommitmentInclusionProof {
+    proofCompressed(leafIndex: number): CommitmentInclusionProof {
         return {
-            commitment: this.commitments[leafInfex].toCompressedStruct(),
-            path: leafInfex,
-            witness: this.witness(leafInfex)
+            commitment: this.commitments[leafIndex].toCompressedStruct(),
+            path: leafIndex,
+            witness: this.witness(leafIndex)
         };
     }
 }

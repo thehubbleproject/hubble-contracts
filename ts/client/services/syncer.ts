@@ -5,6 +5,7 @@ import { NewBatchEventSyncer } from "./events/newBatch";
 import { SequentialCompositeEventSyncer } from "./events/sequentialCompositeEventSyncer";
 import { BatchPubkeyRegisteredEventSyncer } from "./events/batchPubkeyRegistered";
 import { SinglePubkeyRegisteredEventSyncer } from "./events/singlePubkeyRegistered";
+import { DepositQueuedEventSyncer } from "./events/depositQueued";
 
 export enum SyncMode {
     INITIAL_SYNCING,
@@ -23,6 +24,7 @@ export class SyncerService {
             // Pubkey syncs need to happen before batch syncs, etc.
             new SinglePubkeyRegisteredEventSyncer(api),
             new BatchPubkeyRegisteredEventSyncer(api),
+            new DepositQueuedEventSyncer(api),
             new NewBatchEventSyncer(api)
         ]);
     }
