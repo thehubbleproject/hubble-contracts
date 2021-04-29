@@ -6,7 +6,7 @@ import { ZERO_BYTES32 } from "../../constants";
 import { DeploymentParameters } from "../../interfaces";
 import { State } from "../../state";
 import { Tree } from "../../tree";
-import { computeRoot } from "../../utils";
+import { computeRoot, prettyHex } from "../../utils";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import { BatchHandlingStrategy, BatchPackingCommand } from "./interface";
@@ -16,10 +16,20 @@ interface Subtree {
     states: State[];
 }
 
+const subtreeToString = ({ root, states }: Subtree): string => {
+    const statesStr = states.join("\n    ");
+    return `<Subtree  root ${prettyHex(root)}
+    ${statesStr}
+>`;
+};
+
 export class DepositPool {
+    public readonly maxSubtreeSize: number;
     private depositLeaves: State[];
     private subtreeQueue: Subtree[];
-    constructor(public readonly paramMaxSubtreeSize: number) {
+
+    constructor(maxSubtreeDepth: number) {
+        this.maxSubtreeSize = 2 ** maxSubtreeDepth;
         this.depositLeaves = [];
         this.subtreeQueue = [];
     }
@@ -27,9 +37,19 @@ export class DepositPool {
     public pushDeposit(encodedState: BytesLike) {
         const state = State.fromEncoded(encodedState);
         this.depositLeaves.push(state);
-        if (this.depositLeaves.length >= this.paramMaxSubtreeSize) {
+        if (this.depositLeaves.length >= this.maxSubtreeSize) {
             this.pushSubtree();
         }
+    }
+
+    public popDepositSubtree(): Subtree {
+        const subtree = this.subtreeQueue.shift();
+        if (!subtree) throw new Error("no subtree available");
+        return subtree;
+    }
+
+    public toString(): string {
+        return `<DepositPool leaves ${this.depositLeaves.length} queue ${this.subtreeQueue.length}>`;
     }
 
     private pushSubtree() {
@@ -37,12 +57,6 @@ export class DepositPool {
         const root = Tree.merklize(states.map(s => s.hash())).root;
         this.depositLeaves = [];
         this.subtreeQueue.push({ states, root });
-    }
-
-    public popDepositSubtree(): Subtree {
-        const subtree = this.subtreeQueue.shift();
-        if (!subtree) throw new Error("no subtree available");
-        return subtree;
     }
 }
 
@@ -84,16 +98,17 @@ export async function handleNewBatch(
     const depositSubtreeRoot = depositsFinalisedLog.args?.depositSubTreeRoot;
     const subtreeID = depositsFinalisedLog.args?.subtreeID;
     const { vacant } = txDescription.args;
+    const pathAtDepthNum = vacant.pathAtDepth.toNumber();
 
     const stateRoot = computeRoot(
         depositSubtreeRoot,
-        vacant.pathAtDepth,
+        pathAtDepthNum,
         vacant.witness
     );
     const context: FinalizationContext = {
         subtreeID,
         depositSubtreeRoot,
-        pathToSubTree: vacant.pathAtDepth
+        pathToSubTree: pathAtDepthNum
     };
     const commitment = new DepositCommitment(stateRoot, context);
     return new ConcreteBatch([commitment]);
@@ -107,7 +122,7 @@ export async function applyBatch(
 ) {
     const { context } = batch.commitments[0];
     const subtree = pool.popDepositSubtree();
-    if (subtree.root != context.depositSubtreeRoot) {
+    if (subtree.root !== context.depositSubtreeRoot) {
         throw new Error(
             `Fatal: mismatched deposit root. onchain: ${context.depositSubtreeRoot}  pool: ${subtree.root}`
         );
@@ -117,6 +132,7 @@ export async function applyBatch(
         params.MAX_DEPOSIT_SUBTREE_DEPTH,
         subtree.states
     );
+    await stateEngine.commit();
 }
 
 export async function submitBatch(

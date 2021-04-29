@@ -22,7 +22,12 @@ export class State implements Hashable {
             ["uint256", "uint256", "uint256", "uint256"],
             data
         );
-        return new this(pubkeyID, tokenID, balance, nonce);
+        return new this(
+            pubkeyID.toNumber(),
+            tokenID.toNumber(),
+            balance,
+            nonce.toNumber()
+        );
     }
 
     static fromDepositQueuedEvent(event: Event): State {

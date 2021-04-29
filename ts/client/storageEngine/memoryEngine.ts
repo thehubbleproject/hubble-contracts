@@ -74,17 +74,48 @@ export class MemoryEngine<Item extends Hashable>
         this.cache = {};
     }
 
-    // These will be implemented in https://github.com/thehubbleproject/hubble-contracts/issues/570
     public async findVacantSubtree(
         subtreeDepth: number
     ): Promise<{ path: number; witness: string[] }> {
-        throw new Error("Not implemented");
+        const level = this.tree.depth - subtreeDepth;
+        const zero = this.tree.zeros[level];
+        for (let i = 0; i < 2 ** level; i++) {
+            // Check tree for entry at that level
+            if (this.tree.getNode(level, i) !== zero) {
+                continue;
+            }
+
+            // Check cache for items.
+            let itemCachedForSubtree = false;
+            for (let k = 0; k < 2 ** subtreeDepth; k++) {
+                const itemID = i * 2 ** subtreeDepth + k;
+                if (this.cache[itemID]) {
+                    itemCachedForSubtree = true;
+                    break;
+                }
+            }
+            if (itemCachedForSubtree) {
+                continue;
+            }
+
+            const witness = this.tree.witness(i, level).nodes;
+            return {
+                path: i,
+                witness
+            };
+        }
+        throw new Error(
+            `Tree at level ${level} is full, no room for subtree insert`
+        );
     }
     public async updateBatch(
         path: number,
         depth: number,
         items: Item[]
     ): Promise<void> {
-        throw new Error("Not implemented");
+        for (const [i, item] of items.entries()) {
+            const itemID = path * 2 ** depth + i;
+            await this.update(itemID, item);
+        }
     }
 }
