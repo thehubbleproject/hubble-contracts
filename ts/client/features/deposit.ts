@@ -24,13 +24,14 @@ export class DepositPool {
         this.subtreeQueue = [];
     }
 
-    pushDeposit(encodedState: BytesLike) {
+    public pushDeposit(encodedState: BytesLike) {
         const state = State.fromEncoded(encodedState);
         this.depositLeaves.push(state);
         if (this.depositLeaves.length >= this.paramMaxSubtreeSize) {
             this.pushSubtree();
         }
     }
+
     private pushSubtree() {
         const states = this.depositLeaves.slice();
         const root = Tree.merklize(states.map(s => s.hash())).root;
@@ -38,9 +39,9 @@ export class DepositPool {
         this.subtreeQueue.push({ states, root });
     }
 
-    popDepositSubtree(): Subtree {
+    public popDepositSubtree(): Subtree {
         const subtree = this.subtreeQueue.shift();
-        if (!subtree) throw new Error("no subtre available");
+        if (!subtree) throw new Error("no subtree available");
         return subtree;
     }
 }

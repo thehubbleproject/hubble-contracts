@@ -74,6 +74,7 @@ export class MemoryEngine<Item extends Hashable>
         this.cache = {};
     }
 
+    // These will be implemented in https://github.com/thehubbleproject/hubble-contracts/issues/570
     public async findVacantSubtree(
         subtreeDepth: number
     ): Promise<{ path: number; witness: string[] }> {

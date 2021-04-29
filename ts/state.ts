@@ -1,4 +1,4 @@
-import { BigNumber, BigNumberish, ethers } from "ethers";
+import { BigNumber, BigNumberish, ethers, Event } from "ethers";
 import { BytesLike, solidityPack } from "ethers/lib/utils";
 import { Hashable } from "./interfaces";
 
@@ -12,7 +12,7 @@ export class State implements Hashable {
         return new State(pubkeyID, tokenID, BigNumber.from(balance), nonce);
     }
 
-    static fromEncoded(data: BytesLike) {
+    static fromEncoded(data: BytesLike): State {
         const [
             pubkeyID,
             tokenID,
@@ -23,6 +23,14 @@ export class State implements Hashable {
             data
         );
         return new this(pubkeyID, tokenID, balance, nonce);
+    }
+
+    static fromDepositQueuedEvent(event: Event): State {
+        if (!event.args) {
+            throw new Error("DepositQueued event missing args");
+        }
+        const { pubkeyID, tokenID, l2Amount } = event.args;
+        return State.new(pubkeyID.toNumber(), tokenID.toNumber(), l2Amount, 0);
     }
 
     public clone() {
@@ -61,6 +69,12 @@ export class State implements Hashable {
             balance,
             nonce
         };
+    }
+    public toString(): string {
+        const propsStr = Object.entries(this.toJSON())
+            .map(([k, v]) => `${k} ${v}`)
+            .join(" ");
+        return `<State  ${propsStr}>`;
     }
 }
 
