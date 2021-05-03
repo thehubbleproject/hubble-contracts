@@ -157,7 +157,7 @@ describe("DepositManager", async function() {
         const amount = erc20.fromHumanValue("10");
 
         const stateLeaves = [];
-        const nDeposits = 1 << TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
+        const nDeposits = 2 ** TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
 
         for (let i = 0; i < nDeposits; i++) {
             await depositManager.depositFor(i, amount.l1Value, tokenID);

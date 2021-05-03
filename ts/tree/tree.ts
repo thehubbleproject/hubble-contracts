@@ -66,7 +66,7 @@ export class Tree {
         mergeOffsetLower: number,
         subtreeDepth: number
     ): Witness {
-        const mergeSize = 1 << subtreeDepth;
+        const mergeSize = 2 ** subtreeDepth;
         const mergeOffsetUpper = mergeOffsetLower + mergeSize;
         const pathFollower = mergeOffsetLower >> subtreeDepth;
         const subtreeRootIndexUpper = (mergeOffsetUpper - 1) >> subtreeDepth;
