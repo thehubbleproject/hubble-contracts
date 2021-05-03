@@ -36,7 +36,7 @@ export function validateSender(
 }
 
 export function validateReceiver(state: State, tokenID: number) {
-    if (state.tokenID != tokenID)
+    if (state.tokenID !== tokenID)
         throw new WrongTokenID(
             `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
         );
