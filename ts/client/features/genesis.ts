@@ -1,7 +1,7 @@
 import { BytesLike, Event } from "ethers";
 import { ZERO_BYTES32 } from "../../constants";
 import { BaseCommitment, ConcreteBatch } from "./base";
-import { BatchHandlingStrategy, Batch } from "./interface";
+import { BatchHandlingStrategy, Batch, OffchainTx } from "./interface";
 
 export class GenesisCommitment extends BaseCommitment {
     constructor(public readonly stateRoot: BytesLike) {
@@ -23,7 +23,8 @@ export class GenesisHandlingStrategy implements BatchHandlingStrategy {
         const commitment = new GenesisCommitment(this.genesisStateRoot);
         return new ConcreteBatch([commitment]);
     }
-    async processBatch(batch: Batch): Promise<void> {
+    async processBatch(batch: Batch): Promise<OffchainTx[]> {
         // No op
+        return [];
     }
 }

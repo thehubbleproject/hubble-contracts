@@ -3,7 +3,7 @@ import { Usage } from "../interfaces";
 import { CoreAPI } from "./coreAPI";
 import { DepositHandlingStrategy } from "./features/deposit";
 import { GenesisHandlingStrategy } from "./features/genesis";
-import { Batch, BatchHandlingStrategy } from "./features/interface";
+import { Batch, BatchHandlingStrategy, OffchainTx } from "./features/interface";
 import { TransferHandlingStrategy } from "./features/transfer";
 
 export class BatchHandlingContext {
@@ -45,7 +45,7 @@ export class BatchHandlingContext {
         return await this.strategy.parseBatch(event);
     }
 
-    async processBatch(batch: Batch) {
-        await this.strategy.processBatch(batch);
+    async processBatch(batch: Batch): Promise<OffchainTx[]> {
+        return this.strategy.processBatch(batch);
     }
 }

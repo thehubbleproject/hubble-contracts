@@ -1,4 +1,5 @@
 import { ZERO_BYTES32 } from "../../constants";
+import { TreeAtLevelIsFull } from "../../exceptions";
 import { Hashable } from "../../interfaces";
 import { Hasher, Tree } from "../../tree";
 import { StorageEngine, WithWitness } from "./interfaces";
@@ -104,7 +105,7 @@ export class MemoryEngine<Item extends Hashable>
                 witness
             };
         }
-        throw new Error(
+        throw new TreeAtLevelIsFull(
             `Tree at level ${level} is full, no room for subtree insert`
         );
     }

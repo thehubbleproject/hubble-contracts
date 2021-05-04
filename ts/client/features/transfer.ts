@@ -20,7 +20,7 @@ import { float16 } from "../../decimal";
 import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
 import { dumpG1, loadG1, parseG1, solG1 } from "../../mcl";
-import { sum, sumNumber } from "../../utils";
+import { prettyHex, sum, sumNumber } from "../../utils";
 import {
     processReceiver,
     processSender,
@@ -37,7 +37,9 @@ import {
     StateIDLen,
     FloatLength,
     BatchHandlingStrategy,
-    BatchPackingCommand
+    BatchPackingCommand,
+    FailedOffchainTxWrapper,
+    Batch
 } from "./interface";
 
 export class TransferCompressedTx implements CompressedTx {
@@ -80,7 +82,7 @@ export class TransferCompressedTx implements CompressedTx {
         return new this(fromIndex, toIndex, amount, fee);
     }
 
-    message(nonce: number): string {
+    public message(nonce: number): string {
         return solidityPack(
             ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
             [
@@ -93,9 +95,26 @@ export class TransferCompressedTx implements CompressedTx {
             ]
         );
     }
+
+    public toString(): string {
+        return `<TransferCompressed  ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}>`;
+    }
 }
 export class TransferOffchainTx extends TransferCompressedTx
     implements OffchainTx {
+    public static fromCompressed(
+        compTx: TransferCompressedTx,
+        nonce: number
+    ): TransferOffchainTx {
+        return new TransferOffchainTx(
+            compTx.fromIndex,
+            compTx.toIndex,
+            compTx.amount,
+            compTx.fee,
+            nonce
+        );
+    }
+
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
@@ -107,7 +126,7 @@ export class TransferOffchainTx extends TransferCompressedTx
         super(fromIndex, toIndex, amount, fee);
     }
 
-    toCompressed() {
+    public toCompressed(): TransferCompressedTx {
         return new TransferCompressedTx(
             this.fromIndex,
             this.toIndex,
@@ -190,6 +209,11 @@ export class TransferOffchainTx extends TransferCompressedTx
         return `<Transfer ${this.fromIndex}->${this.toIndex} $${this.amount}  fee ${this.fee}  nonce ${this.nonce}>`;
     }
 }
+
+type TransactionBundle = {
+    acceptedTxs: TransferOffchainTx[];
+    failedTxs: FailedOffchainTxWrapper[];
+};
 
 export function getAggregateSig(txs: OffchainTx[]): solG1 {
     const signatures = [];
@@ -297,14 +321,19 @@ async function process(
     commitment: TransferCommitment,
     storageManager: StorageManager,
     params: DeploymentParameters
-): Promise<void> {
+): Promise<OffchainTx[]> {
+    const { state: engine, transactions } = storageManager;
     const txs = commitment.decompressTxs();
 
     const feeReceiverID = Number(commitment.feeReceiver);
-    const engine = storageManager.state;
     const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
     if (txs.length > params.MAX_TXS_PER_COMMIT) throw new Error("Too many tx");
+
+    const offchainTxs = [];
     for (const tx of txs) {
+        const { nonce } = await engine.get(tx.fromIndex);
+        const offchainTx = TransferOffchainTx.fromCompressed(tx, nonce);
+        offchainTxs.push(offchainTx);
         await processTransfer(tx, tokenID, engine);
     }
     const fees = sum(txs.map(tx => tx.fee));
@@ -314,6 +343,7 @@ async function process(
         throw new Error(
             `Validation failed  expect ${engine.root} got ${commitment.stateRoot}`
         );
+    return offchainTxs;
 }
 
 export interface TransferPipe {
@@ -327,9 +357,11 @@ async function pack(
     storageManager: StorageManager,
     params: DeploymentParameters,
     verifier: BlsVerifier
-): Promise<TransferCommitment> {
+): Promise<{ commit: TransferCommitment } & TransactionBundle> {
+    const acceptedTxs: TransferOffchainTx[] = [];
+    const failedTxs: FailedOffchainTxWrapper[] = [];
+
     const engine = storageManager.state;
-    const acceptedTxs = [];
     const tokenID = pipe.tokenID;
 
     for await (const tx of pipe.source) {
@@ -341,8 +373,9 @@ async function pack(
                 storageManager,
                 verifier
             );
-        } catch (e) {
-            console.error(`bad tx ${tx}  ${e}`);
+        } catch (err) {
+            console.error(`bad tx ${tx}  ${err}`);
+            failedTxs.push({ tx, err });
             continue;
         }
         await processTransfer(tx, pipe.tokenID, engine);
@@ -352,24 +385,28 @@ async function pack(
     const fees = sum(acceptedTxs.map(tx => tx.fee));
     await processReceiver(pipe.feeReceiverID, fees, pipe.tokenID, engine);
     await engine.commit();
-    return TransferCommitment.fromTxs(
+
+    const commit = TransferCommitment.fromTxs(
         acceptedTxs,
         engine.root,
         storageManager.pubkey.root,
         pipe.feeReceiverID
     );
+    return { commit, acceptedTxs, failedTxs };
 }
 
 export class OffchainTransferFactory {
     constructor(
         public readonly group: Group,
-        public readonly engine: StateStorageEngine
+        public readonly storage: StorageManager
     ) {}
+
     async *genTx(): AsyncGenerator<TransferOffchainTx> {
+        const { state, transactions } = this.storage;
         while (true) {
             for (const sender of this.group.userIterator()) {
                 const { user: receiver } = this.group.pickRandom();
-                const senderState = await this.engine.get(sender.stateID);
+                const senderState = await state.get(sender.stateID);
                 const amount = float16.round(senderState.balance.div(10));
                 const fee = float16.round(amount.div(10));
                 const tx = new TransferOffchainTx(
@@ -380,6 +417,7 @@ export class OffchainTransferFactory {
                     senderState.nonce
                 );
                 tx.signature = sender.signRaw(tx.message());
+                await transactions.pending(tx);
                 yield tx;
             }
         }
@@ -392,7 +430,7 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
         private storageManager: StorageManager,
         private params: DeploymentParameters
     ) {}
-    async parseBatch(event: Event) {
+    async parseBatch(event: Event): Promise<Batch> {
         const ethTx = await event.getTransaction();
         const data = ethTx?.data as string;
         const accountRoot = event.args?.accountRoot;
@@ -417,16 +455,28 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
         return new ConcreteBatch(commitments);
     }
 
-    async processBatch(batch: ConcreteBatch<TransferCommitment>) {
-        for (const commitment of batch.commitments) {
-            await process(commitment, this.storageManager, this.params);
-        }
+    async processBatch(
+        batch: ConcreteBatch<TransferCommitment>
+    ): Promise<OffchainTx[]> {
+        return batch.commitments.reduce<Promise<OffchainTx[]>>(
+            async (txnsPromise, commitment) => {
+                const txns = await txnsPromise;
+                const commitTxns = await process(
+                    commitment,
+                    this.storageManager,
+                    this.params
+                );
+                return [...txns, ...commitTxns];
+            },
+            Promise.resolve([])
+        );
     }
 }
 
 export interface ITransferPool {
     isEmpty(): boolean;
     getNextPipe(): TransferPipe;
+    push(tx: TransferOffchainTx): Promise<void>;
 }
 
 export class TransferPool implements ITransferPool {
@@ -437,7 +487,8 @@ export class TransferPool implements ITransferPool {
     ) {
         this.pool = new SameTokenPool(1024);
     }
-    push(tx: TransferOffchainTx) {
+
+    public async push(tx: TransferOffchainTx) {
         this.pool.push(tx);
     }
 
@@ -469,9 +520,13 @@ export class SimulatorPool extends OffchainTransferFactory
     private feeReceiverID?: number;
     async setTokenID() {
         const stateID = this.group.getUser(0).stateID;
-        const state = await this.engine.get(stateID);
+        const state = await this.storage.state.get(stateID);
         this.tokenID = state.tokenID;
         this.feeReceiverID = stateID;
+    }
+
+    public async push(_tx: TransferOffchainTx) {
+        throw new Error("SimulatorPool: push not implemented.");
     }
 
     isEmpty() {
@@ -498,24 +553,32 @@ async function packBatch(
     storageManager: StorageManager,
     params: DeploymentParameters,
     verifier: BlsVerifier
-) {
+): Promise<{ batch: ConcreteBatch<TransferCommitment> } & TransactionBundle> {
     const commitments = [];
+    const txBundle: TransactionBundle = {
+        acceptedTxs: [],
+        failedTxs: []
+    };
     for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
         const pipe = pool.getNextPipe();
         try {
-            const commitment = await pack(
+            const { commit, acceptedTxs, failedTxs } = await pack(
                 pipe,
                 storageManager,
                 params,
                 verifier
             );
-            commitments.push(commitment);
+            commitments.push(commit);
+            txBundle.acceptedTxs.push(...acceptedTxs);
+            txBundle.failedTxs.push(...failedTxs);
         } catch (err) {
+            console.error(err);
             continue;
         }
     }
     if (commitments.length == 0) throw new Error("The batch has no commitment");
-    return new ConcreteBatch(commitments);
+    const batch = new ConcreteBatch(commitments);
+    return { ...txBundle, batch };
 }
 
 async function submitTransfer(
@@ -542,17 +605,42 @@ export class TransferPackingCommand implements BatchPackingCommand {
     ) {}
 
     async packAndSubmit(): Promise<ContractTransaction> {
-        const batch = await packBatch(
+        const { batch, acceptedTxs, failedTxs } = await packBatch(
             this.pool,
             this.storageManager,
             this.params,
             this.verifier
         );
         console.info("submitting batch", batch.toString());
-        return await submitTransfer(
+        const tx = await submitTransfer(
             batch,
             this.rollup,
             this.params.STAKE_AMOUNT
         );
+        console.info(
+            `batch submited L1 txn hash ${prettyHex(tx.hash)}`,
+            batch.toString()
+        );
+
+        // Sync with storage
+        const { batches, transactions } = this.storageManager;
+        const batchID = await batches.add(batch, tx);
+        for (const acceptedTx of acceptedTxs) {
+            await transactions.submitted(acceptedTx.message(), {
+                batchID,
+                l1TxnHash: tx.hash,
+                // TODO Figure out how to get finalization state in this scope.
+                // https://github.com/thehubbleproject/hubble-contracts/issues/592
+                l1BlockIncluded: -1
+            });
+        }
+        for (const failedTx of failedTxs) {
+            await transactions.failed(
+                failedTx.tx.message(),
+                failedTx.err.message
+            );
+        }
+
+        return tx;
     }
 }

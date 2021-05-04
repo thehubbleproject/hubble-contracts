@@ -9,7 +9,11 @@ import { Tree } from "../../tree";
 import { computeRoot, prettyHex } from "../../utils";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
-import { BatchHandlingStrategy, BatchPackingCommand } from "./interface";
+import {
+    BatchHandlingStrategy,
+    BatchPackingCommand,
+    OffchainTx
+} from "./interface";
 
 interface Subtree {
     root: string;
@@ -166,13 +170,16 @@ export class DepositHandlingStrategy implements BatchHandlingStrategy {
         return await handleNewBatch(event, this.rollup);
     }
 
-    async processBatch(batch: ConcreteBatch<DepositCommitment>): Promise<void> {
-        return applyBatch(
+    async processBatch(
+        batch: ConcreteBatch<DepositCommitment>
+    ): Promise<OffchainTx[]> {
+        await applyBatch(
             batch,
             this.pool,
             this.params,
             this.storageManager.state
         );
+        return [];
     }
 }
 
