@@ -81,7 +81,7 @@ export class HubbleNode {
         return new this(nodeType, provider, syncer, packer, bidder, rpc);
     }
     async start() {
-        this.syncer.start();
+        await this.syncer.start();
         nodeEmitter.once(SyncCompleteEvent, this.onSyncComplete);
     }
     onSyncComplete = async () => {

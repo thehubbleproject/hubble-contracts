@@ -34,7 +34,7 @@ export abstract class ContractEventSyncer implements EventSyncer {
             throw new Error("EventSyncerBase: eventListener not set.");
         }
 
-        this.contract.addListener(this.filter, this.eventListener);
+        this.contract.on(this.filter, this.eventListener);
     }
 
     public stopListening() {
