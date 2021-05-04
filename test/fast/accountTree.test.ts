@@ -53,7 +53,7 @@ describe("Account Tree", async () => {
         }
     });
     it("batch update", async function() {
-        const batchSize = 1 << BATCH_DEPTH;
+        const batchSize = 2 ** BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
             const leafs = randomLeaves(batchSize);
             const leafIndexRight = Number(await accountTree.leafIndexRight());
@@ -84,7 +84,7 @@ describe("Account Tree", async () => {
         }
     });
     it("witness for right side", async function() {
-        const batchSize = 1 << BATCH_DEPTH;
+        const batchSize = 2 ** BATCH_DEPTH;
         const leafs = randomLeaves(batchSize);
         treeRight.updateBatch(0, leafs);
         await accountTree.updateBatch(leafs);
@@ -108,7 +108,7 @@ describe("Account Tree", async () => {
         console.log(gasCost.toNumber());
     });
     it("gas cost: update tree batch", async function() {
-        const leafs = randomLeaves(1 << BATCH_DEPTH);
+        const leafs = randomLeaves(2 ** BATCH_DEPTH);
         const gasCost = await accountTree.callStatic.updateBatch(leafs);
         console.log(gasCost.toNumber());
     });

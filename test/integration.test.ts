@@ -131,7 +131,7 @@ describe("Integration Test", function() {
     });
     it("Deposit some users", async function() {
         const { depositManager, rollup } = contracts;
-        const subtreeSize = 1 << parameters.MAX_DEPOSIT_SUBTREE_DEPTH;
+        const subtreeSize = 2 ** parameters.MAX_DEPOSIT_SUBTREE_DEPTH;
         const nSubtrees = 10;
         const nDeposits = nSubtrees * subtreeSize;
         nextStateID = nDeposits;

@@ -55,7 +55,7 @@ describe("Registry", async () => {
         assert.equal(root, await registry.root());
     });
     it("batch update", async function() {
-        const batchSize = 1 << BATCH_DEPTH;
+        const batchSize = 2 ** BATCH_DEPTH;
         for (let k = 0; k < 4; k++) {
             let leafs = [];
             let pubkeys = [];
