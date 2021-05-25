@@ -5,6 +5,8 @@ import {
     PubkeyMemoryEngine,
     StorageManager
 } from "./client/storageEngine";
+import { BatchMemoryStorage } from "./client/storageEngine/batches/memory";
+import { TransactionMemoryStorage } from "./client/storageEngine/transactions/memory";
 import { DEFAULT_MNEMONIC } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
@@ -286,14 +288,13 @@ interface StorageManagerFactoryOptions {
 
 export async function storageManagerFactory(
     options?: StorageManagerFactoryOptions
-) {
+): Promise<StorageManager> {
     const stateTreeDepth = options?.stateTreeDepth ?? 32;
     const pubkeyTreeDepth = options?.pubkeyTreeDepth ?? 32;
-    const stateStorage = new StateMemoryEngine(stateTreeDepth);
-    const pubkeyStorage = new PubkeyMemoryEngine(pubkeyTreeDepth);
-    const storageManager: StorageManager = {
-        pubkey: pubkeyStorage,
-        state: stateStorage
+    return {
+        pubkey: new PubkeyMemoryEngine(pubkeyTreeDepth),
+        state: new StateMemoryEngine(stateTreeDepth),
+        batches: new BatchMemoryStorage(),
+        transactions: new TransactionMemoryStorage()
     };
-    return storageManager;
 }

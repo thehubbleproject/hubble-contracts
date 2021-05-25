@@ -1,9 +1,13 @@
-import { assert } from "chai";
+import chai, { assert } from "chai";
+import chaiAsPromised from "chai-as-promised";
 import { StateMemoryEngine } from "../../ts/client/storageEngine";
 import { PRODUCTION_PARAMS, ZERO_BYTES32 } from "../../ts/constants";
+import { TreeAtLevelIsFull } from "../../ts/exceptions";
 import { State } from "../../ts/state";
 import { Hasher } from "../../ts/tree";
 import { computeRoot } from "../../ts/utils";
+
+chai.use(chaiAsPromised);
 
 const {
     MAX_DEPTH: maxDepth,
@@ -100,16 +104,9 @@ describe("StateMemoryEngine", () => {
             }
             await smallTreeEngine.commit();
 
-            let errMsg = "";
-            try {
-                await smallTreeEngine.findVacantSubtree(maxSubtreeDepth);
-            } catch (err) {
-                errMsg = err.message;
-            }
-            assert.equal(
-                errMsg,
-                `Tree at level ${depth -
-                    maxSubtreeDepth} is full, no room for subtree insert`
+            await assert.isRejected(
+                smallTreeEngine.findVacantSubtree(maxSubtreeDepth),
+                TreeAtLevelIsFull
             );
         });
     });

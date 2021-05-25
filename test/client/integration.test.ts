@@ -78,6 +78,7 @@ describe("Client Integration", function() {
         const genesisProof = genesisBatch.proofCompressed(0);
 
         // Split users in subtree sized chunks
+        let numDepositBatches = 0;
         const subtreeSize = 2 ** parameters.MAX_DEPOSIT_SUBTREE_DEPTH;
         await Array.from(group.groupInterator(subtreeSize)).reduce(
             async (prevProofPromise, curSubGroup, i) => {
@@ -124,6 +125,7 @@ describe("Client Integration", function() {
                 await contracts.rollup.submitDeposits(prevProof, vacant, {
                     value: parameters.STAKE_AMOUNT
                 });
+                numDepositBatches++;
 
                 // Update local state tree
                 curSubGroup.createStates({
@@ -160,7 +162,7 @@ describe("Client Integration", function() {
         group.setupSigners(arrayify(appID));
 
         // Setup a pool which simulates random token transfers
-        const simPool = new SimulatorPool(group, storagePacker.state);
+        const simPool = new SimulatorPool(group, storagePacker);
         await simPool.setTokenID();
 
         const genesis = await Genesis.fromContracts(
@@ -168,8 +170,20 @@ describe("Client Integration", function() {
             parameters,
             genesisEth1Block
         );
-        const apiPacker = CoreAPI.new(storagePacker, genesis, provider, signer);
-        const apiSyncer = CoreAPI.new(storageSyncer, genesis, provider, signer);
+        const apiPacker = CoreAPI.new(
+            storagePacker,
+            genesis,
+            provider,
+            signer,
+            simPool
+        );
+        const apiSyncer = CoreAPI.new(
+            storageSyncer,
+            genesis,
+            provider,
+            signer,
+            simPool
+        );
 
         const packingCommand = new TransferPackingCommand(
             apiPacker.parameters,
@@ -178,7 +192,8 @@ describe("Client Integration", function() {
             apiPacker.rollup,
             apiPacker.verifier
         );
-        for (let i = 0; i < 10; i++) {
+        const numTransferBatches = 10;
+        for (let i = 0; i < numTransferBatches; i++) {
             await packingCommand.packAndSubmit();
         }
 
@@ -189,5 +204,21 @@ describe("Client Integration", function() {
         // Confirm final states match
         assert.equal(storageSyncer.state.root, storagePacker.state.root);
         assert.equal(storageSyncer.pubkey.root, storagePacker.pubkey.root);
+
+        // Confirm storage has correct counts
+        const numBatches = numDepositBatches + numTransferBatches;
+        assert.equal(storageSyncer.batches.count(), numBatches);
+        // Because of randomization, this will fall in a range between 10240 and 10560 (delta 320);
+        const minNumTxns =
+            numTransferBatches * parameters.MAX_TXS_PER_COMMIT ** 2;
+        const maxNumTxns =
+            minNumTxns + numTransferBatches * parameters.MAX_TXS_PER_COMMIT;
+        assert.isAtLeast(storageSyncer.transactions.count(), minNumTxns);
+        assert.isAtMost(storageSyncer.transactions.count(), maxNumTxns);
+
+        // Note: This will not include deposit batches until the packing command becomes a packing node.
+        assert.equal(storagePacker.batches.count(), numTransferBatches);
+        assert.isAtLeast(storagePacker.transactions.count(), minNumTxns);
+        assert.isAtMost(storagePacker.transactions.count(), maxNumTxns);
     }).timeout(300000);
 });

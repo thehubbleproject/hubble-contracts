@@ -7,6 +7,7 @@ import { providers, Signer } from "ethers";
 import { allContracts } from "../allContractsInterfaces";
 import { BlsVerifier } from "../blsSigner";
 import { arrayify } from "@ethersproject/bytes";
+import { ITransferPool } from "./features/transfer";
 
 export class SyncedPoint {
     constructor(public blockNumber: number, public batchID: number) {}
@@ -52,6 +53,7 @@ export class CoreAPI implements ICoreAPI {
         public readonly l2Storage: StorageManager,
         private readonly genesis: Genesis,
         public readonly depositPool: DepositPool,
+        public readonly transferPool: ITransferPool,
         private readonly provider: providers.Provider,
         public readonly contracts: allContracts,
         public readonly syncpoint: SyncedPoint,
@@ -62,7 +64,8 @@ export class CoreAPI implements ICoreAPI {
         l2Storage: StorageManager,
         genesis: Genesis,
         provider: providers.Provider,
-        signer: Signer
+        signer: Signer,
+        transferPool: ITransferPool
     ) {
         const depositPool = new DepositPool(
             genesis.parameters.MAX_DEPOSIT_SUBTREE_DEPTH
@@ -77,6 +80,7 @@ export class CoreAPI implements ICoreAPI {
             l2Storage,
             genesis,
             depositPool,
+            transferPool,
             provider,
             contracts,
             syncedPoint,

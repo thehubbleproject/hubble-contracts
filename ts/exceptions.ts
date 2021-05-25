@@ -1,3 +1,5 @@
+import { Status } from "./client/storageEngine/transactions/constants";
+
 export class HubbleError extends Error {
     constructor(message?: string) {
         super(message);
@@ -155,5 +157,37 @@ export class ZeroAmount extends StateTreeExceptions {
     constructor(message?: string) {
         super(message);
         this.name = "ZeroAmount";
+    }
+}
+
+// StorageEngineExceptions
+
+export class TreeAtLevelIsFull extends Error {
+    constructor(message?: string) {
+        super(message);
+        this.name = "TreeAtLevelIsFull";
+    }
+}
+
+// TransactionExceptions
+
+export class TransactionDoesNotExist extends Error {
+    constructor(hash: string) {
+        super(`transaction ${hash} does not exists`);
+        this.name = "TransactionDoesNotExist";
+    }
+}
+
+export class TransactionAlreadyExists extends Error {
+    constructor(message: string) {
+        super(`transaction ${message} already exists`);
+        this.name = "TransactionAlreadyExists";
+    }
+}
+
+export class StatusTransitionInvalid extends Error {
+    constructor(cur: Status, next: Status) {
+        super(`cannot transition from status ${cur} to ${next}`);
+        this.name = "StatusTransitionInvalid";
     }
 }
