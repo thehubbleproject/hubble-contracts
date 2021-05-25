@@ -4,7 +4,7 @@ import {
     BNPairingPrecompileCostEstimator__factory
 } from "../../types/ethers-contracts";
 import { assert } from "chai";
-import { expectRevert } from "../../ts/utils";
+import { expectRevert } from "../../test/utils";
 
 const BigNumber = ethers.BigNumber;
 

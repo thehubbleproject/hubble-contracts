@@ -9,7 +9,6 @@ import {
     getAddress
 } from "ethers/lib/utils";
 import { Vacant, Wei } from "./interfaces";
-import { assert, expect } from "chai";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 
 export const FIELD_ORDER = BigNumber.from(
@@ -88,38 +87,6 @@ export async function mineBlocks(
     for (let i = 0; i < numOfBlocks; i++) {
         await provider.send("evm_mine", []);
     }
-}
-
-export async function expectRevert(
-    tx: Promise<ContractTransaction>,
-    revertReason: string
-) {
-    await tx.then(
-        () => {
-            assert.fail(`Expect tx to fail with reason: ${revertReason}`);
-        },
-        error => {
-            expect(error.message).to.have.string(revertReason);
-        }
-    );
-}
-
-export async function expectCallRevert(
-    tx: Promise<any>,
-    revertReason: string | null
-) {
-    await tx.then(
-        () => {
-            assert.fail(`Expect tx to fail with reason: ${revertReason}`);
-        },
-        error => {
-            if (revertReason === null) {
-                assert.isNull(error.reason);
-            } else {
-                expect(error.reason).to.have.string(revertReason);
-            }
-        }
-    );
 }
 
 export async function getBatchID(rollup: Rollup): Promise<number> {

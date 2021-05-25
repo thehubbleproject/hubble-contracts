@@ -1,6 +1,7 @@
+import minimist from "minimist";
 import { Hubble } from "../ts/hubble";
 
-const argv = require("minimist")(process.argv.slice(2), {
+const argv = minimist(process.argv.slice(2), {
     string: ["url", "tokenID", "pubkeys", "amount"]
 });
 

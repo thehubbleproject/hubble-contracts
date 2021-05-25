@@ -2,7 +2,8 @@
 import { assert, expect } from "chai";
 import { BigNumber, ContractReceipt, Signer } from "ethers";
 import { ethers } from "hardhat";
-import { expectRevert, toWei } from "../../ts/utils";
+import { toWei } from "../../ts/utils";
+import { expectRevert } from "../../test/utils";
 import {
     MockRollup,
     MockRollup__factory,

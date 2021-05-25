@@ -1,10 +1,11 @@
 import { AbortController } from "abort-controller";
 import { BigNumber } from "ethers";
+import minimist from "minimist";
 import { NodeType } from "../ts/client/constants";
 import { HubbleNode } from "../ts/client/node";
 import { sleep } from "../ts/utils";
 
-const argv = require("minimist")(process.argv.slice(2), {
+const argv = minimist(process.argv.slice(2), {
     boolean: ["proposer"]
 });
 
