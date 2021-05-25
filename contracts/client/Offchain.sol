@@ -140,7 +140,7 @@ library Offchain {
     struct Create2TransferWithPub {
         uint256 txType;
         uint256 fromIndex;
-        uint256[4] toPubkey;
+        bytes32 toPubkey;
         uint256 amount;
         uint256 fee;
         uint256 nonce;
@@ -160,7 +160,7 @@ library Offchain {
             _tx.nonce
         ) = abi.decode(
             encodedTx,
-            (uint256, uint256, uint256[4], uint256, uint256, uint256)
+            (uint256, uint256, bytes32, uint256, uint256, uint256)
         );
     }
 

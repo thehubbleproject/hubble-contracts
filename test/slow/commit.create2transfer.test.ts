@@ -12,6 +12,7 @@ import { Result } from "../../ts/interfaces";
 import { Group, txCreate2TransferFactory } from "../../ts/factory";
 import { STATE_TREE_DEPTH } from "../../ts/constants";
 import { deployKeyless } from "../../ts/deployment/deploy";
+import { hashPubkey } from "../../ts/pubkey";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
@@ -72,7 +73,9 @@ describe("Rollup Create2Transfer Commitment", () => {
         );
 
         const pubkeysSender = usersWithState.getPubkeys();
-        const pubkeysReceiver = usersWithoutState.getPubkeys();
+        const pubkeyHashesReceiver = usersWithoutState
+            .getPubkeys()
+            .map(hashPubkey);
         const pubkeyWitnessesSender = usersWithState
             .getPubkeyIDs()
             .map(pubkeyID => registry.witness(pubkeyID));
@@ -94,8 +97,8 @@ describe("Rollup Create2Transfer Commitment", () => {
             stateWitnesses: postProofs.map(proof => proof.witness),
             pubkeysSender,
             pubkeyWitnessesSender,
-            pubkeysReceiver: pubkeysReceiver,
-            pubkeyWitnessesReceiver: pubkeyWitnessesReceiver
+            pubkeyHashesReceiver,
+            pubkeyWitnessesReceiver
         };
 
         const {
@@ -140,7 +143,9 @@ describe("Rollup Create2Transfer Commitment", () => {
             usersWithoutState
         );
         const pubkeysSender = senders.map(sender => sender.pubkey);
-        const pubkeysReceiver = usersWithoutState.getPubkeys();
+        const pubkeyHashesReceiver = usersWithoutState
+            .getPubkeys()
+            .map(hashPubkey);
         const pubkeyWitnessesSender = senders.map(sender =>
             registry.witness(sender.pubkeyID)
         );
@@ -155,8 +160,8 @@ describe("Rollup Create2Transfer Commitment", () => {
             stateWitnesses: postProofs.map(proof => proof.witness),
             pubkeysSender,
             pubkeyWitnessesSender,
-            pubkeysReceiver: pubkeysReceiver,
-            pubkeyWitnessesReceiver: pubkeyWitnessesReceiver
+            pubkeyHashesReceiver,
+            pubkeyWitnessesReceiver
         };
         const {
             0: gasCost,

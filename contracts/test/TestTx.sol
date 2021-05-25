@@ -80,7 +80,7 @@ contract TestTx {
         bytes memory txs,
         uint256 index,
         uint256 nonce,
-        uint256[4] memory to
+        bytes32 to
     ) public pure returns (bytes memory) {
         return
             Tx.create2TransferMessageOf(
