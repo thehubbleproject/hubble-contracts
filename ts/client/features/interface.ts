@@ -29,6 +29,7 @@ export interface CompressedTx {
     txType: string;
     serialize(): string;
     message(nonce: number): string;
+    toString(): string;
 }
 
 export interface OffchainTx extends CompressedTx {
@@ -38,6 +39,12 @@ export interface OffchainTx extends CompressedTx {
     fee: BigNumber;
     nonce: number;
     signature?: SignatureInterface;
+    hash(): string;
+}
+
+export interface FailedOffchainTxWrapper {
+    tx: OffchainTx;
+    err: Error;
 }
 
 export interface Commitment {
@@ -50,12 +57,13 @@ export interface Commitment {
 
 export interface Batch {
     commitments: Commitment[];
+    commitmentRoot: string;
     toString(): string;
 }
 
 export interface BatchHandlingStrategy {
     parseBatch(event: Event): Promise<Batch>;
-    processBatch(batch: Batch): Promise<void>;
+    processBatch(batch: Batch): Promise<OffchainTx[]>;
 }
 
 export interface BatchPackingCommand {

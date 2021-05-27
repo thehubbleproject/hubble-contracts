@@ -60,7 +60,6 @@ export class HubbleNode {
             stateTreeDepth: MAX_DEPTH,
             pubkeyTreeDepth: MAX_DEPTH
         });
-        const api = CoreAPI.new(storageManager, genesis, provider, signer);
 
         // Hardcoded for now, will be configurable in
         // https://github.com/thehubbleproject/hubble-contracts/issues/557
@@ -68,7 +67,15 @@ export class HubbleNode {
         const tokenID = 1;
         const pool = new TransferPool(tokenID, feeReceiver);
 
-        const packer = new Packer(api, pool);
+        const api = CoreAPI.new(
+            storageManager,
+            genesis,
+            provider,
+            signer,
+            pool
+        );
+
+        const packer = new Packer(api);
         const bidder = await Bidder.new(
             config.willingnessToBid,
             api.contracts.burnAuction
@@ -77,7 +84,7 @@ export class HubbleNode {
         // In the future, we will want to delay starting up the rpc client
         // until after the initial sync is completed (HTTP 503).
         // https://github.com/thehubbleproject/hubble-contracts/issues/558
-        const rpc = await RPC.init(config.rpcPort, storageManager, pool);
+        const rpc = await RPC.init(api, config.rpcPort);
         return new this(nodeType, provider, syncer, packer, bidder, rpc);
     }
     async start() {
