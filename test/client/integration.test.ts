@@ -158,8 +158,8 @@ describe("Client Integration", function() {
         await storagePacker.state.commit();
         // End initial L2 & L1 data setup
 
-        const appID = await contracts.rollup.appID();
-        group.setupSigners(arrayify(appID));
+        const domainSeparator = await contracts.rollup.domainSeparator();
+        group.setupSigners(arrayify(domainSeparator));
 
         // Setup a pool which simulates random token transfers
         const simPool = new SimulatorPool(group, storagePacker);
