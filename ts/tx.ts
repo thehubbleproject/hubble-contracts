@@ -1,10 +1,17 @@
 import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
 import { float16 } from "./decimal";
-import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
+import {
+    hexZeroPad,
+    concat,
+    hexlify,
+    solidityPack,
+    solidityKeccak256
+} from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 import { aggregate, SignatureInterface } from "./blsSigner";
-import { solG1 } from "./mcl";
+import { solG1, solG2 } from "./mcl";
+import { hashPubkey } from "./pubkey";
 
 const stateIDLen = 4;
 const nonceLen = 4;
@@ -226,7 +233,7 @@ export class TxCreate2Transfer implements SignableTx {
     public static rand(): TxCreate2Transfer {
         const sender = randomNum(stateIDLen);
         const receiver = randomNum(stateIDLen);
-        const receiverPub: string[] = ["0x00", "0x00", "0x00", "0x00"];
+        const receiverPub: solG2 = ["0x00", "0x00", "0x00", "0x00"];
         const toPubkeyID = randomNum(stateIDLen);
         const amount = float16.randInt();
         const fee = float16.randInt();
@@ -252,7 +259,7 @@ export class TxCreate2Transfer implements SignableTx {
     constructor(
         public readonly fromIndex: number,
         public readonly toIndex: number,
-        public toPubkey: string[],
+        public toPubkey: solG2,
         public readonly toPubkeyID: number,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
@@ -262,18 +269,11 @@ export class TxCreate2Transfer implements SignableTx {
 
     public message(): string {
         return solidityPack(
-            [
-                "uint256",
-                "uint256",
-                "uint256[4]",
-                "uint256",
-                "uint256",
-                "uint256"
-            ],
+            ["uint256", "uint256", "bytes32", "uint256", "uint256", "uint256"],
             [
                 this.TX_TYPE,
                 this.fromIndex,
-                this.toPubkey,
+                hashPubkey(this.toPubkey),
                 this.nonce,
                 this.amount,
                 this.fee

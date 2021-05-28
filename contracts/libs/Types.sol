@@ -18,7 +18,7 @@ library Types {
         bytes32[][] stateWitnesses;
         uint256[4][] pubkeysSender;
         bytes32[][] pubkeyWitnessesSender;
-        uint256[4][] pubkeysReceiver;
+        bytes32[] pubkeyHashesReceiver;
         bytes32[][] pubkeyWitnessesReceiver;
     }
 

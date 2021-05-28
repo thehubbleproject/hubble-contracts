@@ -11,7 +11,7 @@ import { ethers } from "hardhat";
 import { COMMIT_SIZE } from "../../ts/constants";
 import { float16 } from "../../ts/decimal";
 import { BigNumber } from "ethers";
-import { hexZeroPad } from "ethers/lib/utils";
+import { hashPubkey } from "../../ts/pubkey";
 
 describe("Tx Serialization", async () => {
     let c: TestTx;
@@ -92,7 +92,7 @@ describe("Tx Serialization", async () => {
                 serialized,
                 i,
                 txs[i].nonce,
-                txs[i].toPubkey
+                hashPubkey(txs[i].toPubkey)
             );
             assert.equal(message, txs[i].message());
         }

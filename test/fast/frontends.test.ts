@@ -11,6 +11,7 @@ import {
 } from "../../types/ethers-contracts";
 import { Signer } from "ethers";
 import { assert } from "chai";
+import { hashPubkey } from "../../ts/pubkey";
 
 describe("Frontend", function() {
     let user: User;
@@ -89,12 +90,13 @@ describe("Frontend", function() {
         const contract = await new FrontendCreate2TransferFactory(
             signer
         ).deploy();
+        const pubkeyHash = hashPubkey(txCreate2Transfer.toPubkey);
         const goodArgsCall = async () => {
             return await contract.validate(
                 txCreate2Transfer.encodeOffchain(),
                 user.sign(txCreate2Transfer).sol,
                 user.pubkey,
-                txCreate2Transfer.toPubkey,
+                pubkeyHash,
                 domain
             );
         };
@@ -106,7 +108,7 @@ describe("Frontend", function() {
                 txCreate2Transfer.encodeOffchain(),
                 badSig,
                 user.pubkey,
-                txCreate2Transfer.toPubkey,
+                pubkeyHash,
                 domain
             ),
             "Bad signature"
