@@ -97,7 +97,7 @@ contract FrontendCreate2Transfer {
         bytes calldata encodedTx,
         uint256[2] calldata signature,
         uint256[4] calldata pubkeySender,
-        uint256[4] calldata pubkeyReceiver,
+        bytes32 pubkeyHashReceiver,
         bytes32 domain
     ) external view returns (bool) {
         Offchain.Create2Transfer memory _tx =
@@ -113,7 +113,7 @@ contract FrontendCreate2Transfer {
                 _tx.fee
             );
         bytes memory txMsg =
-            Tx.create2TransferMessageOf(txTx, _tx.nonce, pubkeyReceiver);
+            Tx.create2TransferMessageOf(txTx, _tx.nonce, pubkeyHashReceiver);
 
         bool callSuccess;
         bool checkSuccess;

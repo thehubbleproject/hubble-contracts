@@ -292,7 +292,7 @@ library Tx {
     function create2TransferMessageOf(
         Create2Transfer memory _tx,
         uint256 nonce,
-        uint256[4] memory to
+        bytes32 to
     ) internal pure returns (bytes memory) {
         return
             abi.encodePacked(

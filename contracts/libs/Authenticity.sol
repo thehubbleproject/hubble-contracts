@@ -177,7 +177,7 @@ library Authenticity {
             require(
                 MerkleTree.verify(
                     common.accountRoot,
-                    keccak256(abi.encodePacked(proof.pubkeysReceiver[i])),
+                    proof.pubkeyHashesReceiver[i],
                     _tx.toPubkeyID,
                     proof.pubkeyWitnessesReceiver[i]
                 ),
@@ -197,7 +197,7 @@ library Authenticity {
                 Tx.create2TransferMessageOf(
                     _tx,
                     nonce,
-                    proof.pubkeysReceiver[i]
+                    proof.pubkeyHashesReceiver[i]
                 );
 
             messages[i] = BLS.hashToPoint(common.domain, txMsg);

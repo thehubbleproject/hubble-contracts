@@ -3,15 +3,22 @@ import { Hashable } from "./interfaces";
 import { solG2 } from "./mcl";
 import { prettyHex } from "./utils";
 
+const solidityPubkeyType = ["uint256", "uint256", "uint256", "uint256"];
+
+export const hashPubkey = (pubkey: solG2): string =>
+    solidityKeccak256(solidityPubkeyType, pubkey);
+
+/**
+ * Public key with utility functions
+ */
 export class Pubkey implements Hashable {
     constructor(public readonly pubkey: solG2) {}
-    hash() {
-        return solidityKeccak256(
-            ["uint256", "uint256", "uint256", "uint256"],
-            this.pubkey
-        );
+
+    public hash(): string {
+        return hashPubkey(this.pubkey);
     }
-    toString(): string {
+
+    public toString(): string {
         const shortHexes = this.pubkey
             .map(s => prettyHex(s.toString()))
             .join(", ");
