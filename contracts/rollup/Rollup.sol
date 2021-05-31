@@ -2,22 +2,34 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+// This moves in 4.x to openzeppelin/contracts/utils/cryptography/draft-EIP712.sol
+import { EIP712 } from "@openzeppelin/contracts/drafts/EIP712.sol";
+import { IEIP712 } from "../libs/EIP712.sol";
 import { Types } from "../libs/Types.sol";
 import { Tx } from "../libs/Tx.sol";
-import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
-import { Chooser } from "../proposers/Chooser.sol";
 import { MerkleTree } from "../libs/MerkleTree.sol";
+import { Chooser } from "../proposers/Chooser.sol";
+import { BLSAccountRegistry } from "../BLSAccountRegistry.sol";
 import { Transfer } from "../Transfer.sol";
 import { MassMigration } from "../MassMigrations.sol";
 import { Create2Transfer } from "../Create2Transfer.sol";
 import { BatchManager } from "./BatchManager.sol";
 import { IDepositManager } from "../DepositManager.sol";
 
-contract Rollup is BatchManager {
+/**
+ * @notice Primary contract for submitting and disputing batches of transactions
+ */
+contract Rollup is BatchManager, EIP712, IEIP712 {
     using Tx for bytes;
     using Types for Types.Commitment;
     using Types for Types.TransferCommitment;
     using Types for Types.MassMigrationCommitment;
+
+    string public constant DOMAIN_NAME = "Hubble";
+    string public constant DOMAIN_VERSION = "1";
+
+    bytes32 public constant ZERO_BYTES32 =
+        0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
     // External contracts
     BLSAccountRegistry public immutable accountRegistry;
@@ -25,12 +37,8 @@ contract Rollup is BatchManager {
     MassMigration public immutable massMigration;
     Create2Transfer public immutable create2Transfer;
 
-    bytes32 public constant ZERO_BYTES32 =
-        0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
-
     uint256 public immutable paramMaxTxsPerCommit;
     bytes32 public immutable zeroHashAtSubtreeDepth;
-    bytes32 public immutable appID;
 
     event DepositsFinalised(
         uint256 subtreeID,
@@ -59,6 +67,7 @@ contract Rollup is BatchManager {
             _chooser,
             _depositManager
         )
+        EIP712(DOMAIN_NAME, DOMAIN_VERSION)
     {
         accountRegistry = _accountRegistry;
         transfer = _transfer;
@@ -88,7 +97,6 @@ contract Rollup is BatchManager {
         // AccountRoot doesn't matter for genesis, add dummy value
         emit NewBatch(nextBatchID, bytes32(0), Types.Usage.Genesis);
         nextBatchID++;
-        appID = keccak256(abi.encodePacked(address(this)));
     }
 
     modifier onlyCoordinator() {
@@ -163,6 +171,10 @@ contract Rollup is BatchManager {
                 proof.path,
                 proof.witness
             );
+    }
+
+    function domainSeparator() public view override returns (bytes32) {
+        return _domainSeparatorV4();
     }
 
     /**
@@ -416,7 +428,7 @@ contract Rollup is BatchManager {
                 signature: target.commitment.body.signature,
                 stateRoot: target.commitment.stateRoot,
                 accountRoot: target.commitment.body.accountRoot,
-                domain: appID,
+                domain: domainSeparator(),
                 txs: target.commitment.body.txs
             });
         Types.Result result = transfer.checkSignature(common, signatureProof);
@@ -438,7 +450,7 @@ contract Rollup is BatchManager {
                 signature: target.commitment.body.signature,
                 stateRoot: target.commitment.stateRoot,
                 accountRoot: target.commitment.body.accountRoot,
-                domain: appID,
+                domain: domainSeparator(),
                 txs: target.commitment.body.txs
             });
 
@@ -466,7 +478,7 @@ contract Rollup is BatchManager {
                 signature: target.commitment.body.signature,
                 stateRoot: target.commitment.stateRoot,
                 accountRoot: target.commitment.body.accountRoot,
-                domain: appID,
+                domain: domainSeparator(),
                 txs: target.commitment.body.txs
             });
 

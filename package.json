@@ -53,7 +53,7 @@
   "dependencies": {
     "abort-controller": "^3.0.0",
     "bn.js": "^5.2.0",
-    "ethers": "^5.1.4",
+    "ethers": "5.1.4",
     "fastify": "^3.15.1",
     "lodash": "^4.17.21",
     "mcl-wasm": "0.4.5"

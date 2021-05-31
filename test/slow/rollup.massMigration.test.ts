@@ -8,7 +8,7 @@ import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import { assert } from "chai";
 import { getGenesisProof, MassMigrationCommitment } from "../../ts/commitments";
-import { float16, CommonToken } from "../../ts/decimal";
+import { CommonToken } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
 import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
@@ -46,7 +46,7 @@ describe("Mass Migrations", async function() {
             GENESIS_STATE_ROOT: genesisRoot
         });
         const { rollup, blsAccountRegistry } = contracts;
-        DOMAIN = hexToUint8Array(await rollup.appID());
+        DOMAIN = hexToUint8Array(await rollup.domainSeparator());
         users.setupSigners(DOMAIN);
 
         registry = await AccountRegistry.new(blsAccountRegistry);
