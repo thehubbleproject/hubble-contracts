@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
-import { Bitmap } from "./libs/Bitmap.sol";
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Rollup } from "./rollup/Rollup.sol";
-import { ITokenRegistry } from "./TokenRegistry.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/Initializable.sol";
+import { Bitmap } from "./libs/Bitmap.sol";
 import { Types } from "./libs/Types.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
+import { ImmutableOwnable } from "./libs/ImmutableOwnable.sol";
+import { Rollup } from "./rollup/Rollup.sol";
+import { ITokenRegistry } from "./TokenRegistry.sol";
 import { SpokeRegistry } from "./SpokeRegistry.sol";
 
-contract Vault {
+contract Vault is Initializable, ImmutableOwnable {
     using Types for Types.MassMigrationCommitment;
     using Types for Types.Batch;
 
@@ -26,9 +29,11 @@ contract Vault {
     }
 
     /**
-    @dev We assume Vault is deployed before Rollup
+     * @notice Sets Rollup contract address. Can only be called once by owner
+     * @dev We assume Vault is deployed before Rollup
+     * @param _rollup Rollup contract address
      */
-    function setRollupAddress(Rollup _rollup) external {
+    function setRollupAddress(Rollup _rollup) external initializer onlyOwner {
         rollup = _rollup;
     }
 

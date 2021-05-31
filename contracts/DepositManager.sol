@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
-import { Types } from "./libs/Types.sol";
-import { ITokenRegistry } from "./TokenRegistry.sol";
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { Initializable } from "@openzeppelin/contracts/proxy/Initializable.sol";
+import { Types } from "./libs/Types.sol";
+import { ImmutableOwnable } from "./libs/ImmutableOwnable.sol";
 import { Rollup } from "./rollup/Rollup.sol";
+import { ITokenRegistry } from "./TokenRegistry.sol";
 
 interface IDepositManager {
     event DepositQueued(uint256 pubkeyID, uint256 tokenID, uint256 l2Amount);
@@ -90,7 +93,12 @@ contract DepositCore is SubtreeQueue {
     }
 }
 
-contract DepositManager is DepositCore, IDepositManager {
+contract DepositManager is
+    DepositCore,
+    IDepositManager,
+    Initializable,
+    ImmutableOwnable
+{
     using Types for Types.UserState;
     using SafeERC20 for IERC20;
 
@@ -119,7 +127,12 @@ contract DepositManager is DepositCore, IDepositManager {
         vault = _vault;
     }
 
-    function setRollupAddress(address _rollup) public {
+    /**
+     * @notice Sets Rollup contract address. Can only be called once by owner
+     * @dev We assume DepositManager is deployed before Rollup
+     * @param _rollup Rollup contract address
+     */
+    function setRollupAddress(address _rollup) external initializer onlyOwner {
         rollup = _rollup;
     }
 

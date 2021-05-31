@@ -1,15 +1,14 @@
-import { ethers } from "ethers";
-import { BigNumber } from "ethers";
+import { ethers, BigNumber, ContractTransaction } from "ethers";
 import {
     randomBytes,
     hexlify,
     hexZeroPad,
     parseEther,
     BytesLike,
-    solidityKeccak256
+    solidityKeccak256,
+    getAddress
 } from "ethers/lib/utils";
 import { Wei } from "./interfaces";
-import { ContractTransaction } from "ethers";
 import { assert, expect } from "chai";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 
@@ -63,6 +62,16 @@ export function randomLeaves(num: number): string[] {
         leaves.push(randHex(32));
     }
     return leaves;
+}
+
+/**
+ * Generates a random address. Usefully for testing when
+ * you don't need a valid address or contract.
+ *
+ * @returns Randomly generated address.
+ */
+export function randomAddress(): string {
+    return getAddress(randHex(20));
 }
 
 // Simulate the tree depth of calling contracts/libs/MerkleTree.sol::MerkleTree.merklize

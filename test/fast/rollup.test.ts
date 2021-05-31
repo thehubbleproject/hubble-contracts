@@ -1,19 +1,14 @@
 import { assert } from "chai";
-import crypto from "crypto";
 import { ethers } from "hardhat";
 import { TESTING_PARAMS as parameters } from "../../ts/constants";
 import { generateDomainSeparatorFromRollup } from "../../ts/domain";
 import { StateTree } from "../../ts/stateTree";
+import { randomAddress } from "../../ts/utils";
 import {
     DepositManagerFactory,
     RollupFactory
 } from "../../types/ethers-contracts";
 import { Rollup } from "../../types/ethers-contracts/Rollup";
-
-const randomAddress = () => {
-    const hex = crypto.randomBytes(20).toString("hex");
-    return `0x${hex}`;
-};
 
 describe("Rollup", () => {
     let rollup: Rollup;
