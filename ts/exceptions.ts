@@ -191,3 +191,21 @@ export class StatusTransitionInvalid extends Error {
         this.name = "StatusTransitionInvalid";
     }
 }
+
+// GenesisBatchSyncExceptions
+
+export class NotFirstBatch extends Error {
+    constructor() {
+        super("genesis batch must be first batch");
+        this.name = "NotFirstBatch";
+    }
+}
+
+export class GenesisBatchCommitmentRootMismatch extends Error {
+    constructor(l1CommitmentRoot: string, l2CommitmentRoot: string) {
+        super(
+            `genesis batch commitmentRoot for l1 and l2 do not match. actual (l1): ${l1CommitmentRoot}, expected (l2): ${l2CommitmentRoot}`
+        );
+        this.name = "GenesisBatchCommitmentRootMismatch";
+    }
+}
