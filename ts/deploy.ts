@@ -138,7 +138,7 @@ export async function deployAll(
     );
     await waitAndRegister(rollup, "rollup", verbose);
 
-    await vault.setRollupAddress(rollup.address);
+    await waitUntilMined(vault.setRollupAddress(rollup.address));
     await waitUntilMined(depositManager.setRollupAddress(rollup.address));
 
     const withdrawManager = await new WithdrawManagerFactory(signer).deploy(

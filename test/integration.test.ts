@@ -69,7 +69,7 @@ describe("Integration Test", function() {
             GENESIS_STATE_ROOT: genesisRoot
         });
         const { rollup, blsAccountRegistry } = contracts;
-        domain = hexToUint8Array(await rollup.appID());
+        domain = hexToUint8Array(await rollup.domainSeparator());
 
         accountRegistry = await AccountRegistry.new(
             blsAccountRegistry.connect(coordinator)

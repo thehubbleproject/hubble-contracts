@@ -1,15 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
-import { Types } from "./libs/Types.sol";
-import { ITokenRegistry } from "./TokenRegistry.sol";
+
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { Types } from "./libs/Types.sol";
 import { Tx } from "./libs/Tx.sol";
-import { Vault } from "./Vault.sol";
 import { MerkleTree } from "./libs/MerkleTree.sol";
 import { BLS } from "./libs/BLS.sol";
 import { Bitmap } from "./libs/Bitmap.sol";
+import { IEIP712 } from "./libs/EIP712.sol";
+import { ITokenRegistry } from "./TokenRegistry.sol";
+import { Vault } from "./Vault.sol";
 
 contract WithdrawManager {
     using Tx for bytes;
@@ -23,16 +25,16 @@ contract WithdrawManager {
 
     ITokenRegistry public immutable tokenRegistry;
     Vault public immutable vault;
-    bytes32 public immutable appID;
+    IEIP712 public immutable domain;
 
     constructor(
         ITokenRegistry _tokenRegistry,
         Vault _vault,
-        address _rollup
+        IEIP712 _domain
     ) public {
         tokenRegistry = _tokenRegistry;
         vault = _vault;
-        appID = keccak256(abi.encodePacked(_rollup));
+        domain = _domain;
     }
 
     function processWithdrawCommitment(
@@ -91,7 +93,10 @@ contract WithdrawManager {
         (checkSuccess, callSuccess) = BLS.verifySingle(
             signature,
             pubkey,
-            BLS.hashToPoint(appID, abi.encodePacked(msg.sender))
+            BLS.hashToPoint(
+                domain.domainSeparator(),
+                abi.encodePacked(msg.sender)
+            )
         );
         require(callSuccess, "WithdrawManager: Precompile call failed");
         require(checkSuccess, "WithdrawManager: Bad signature");

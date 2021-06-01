@@ -52,12 +52,12 @@ export class Genesis {
                 contracts[contract as keyof allContracts].address;
         });
 
-        const appID = await contracts.rollup.appID();
+        const domainSeparator = await contracts.rollup.domainSeparator();
         const version = execSync("git rev-parse HEAD")
             .toString()
             .trim();
         const auxiliary = {
-            domain: appID,
+            domain: domainSeparator,
             genesisEth1Block,
             version
         };
