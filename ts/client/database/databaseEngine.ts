@@ -3,7 +3,6 @@ import { TreeAtLevelIsFull } from "../../exceptions";
 import { Hashable } from "../../interfaces";
 import { Hasher, Tree } from "../../tree";
 import { StorageEngine, WithWitness } from "../storageEngine/interfaces";
-import { db } from "./connection";
 
 export interface Entry<Item> {
     itemID: number;
@@ -19,6 +18,7 @@ export class DatabaseEngine<Item extends Hashable>
     private items: { [key: number]: Item } = {};
     private cache: { [key: number]: Item } = {};
     private journal: Entry<Item>[] = [];
+
     constructor(depth: number) {
         this.tree = Tree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
     }
@@ -67,9 +67,11 @@ export class DatabaseEngine<Item extends Hashable>
     public getCheckpoint(): number {
         return this.journal.length;
     }
+
     public revert(checkpoint: number = 0) {
         this.journal = this.journal.slice(0, checkpoint);
     }
+
     public async commit() {
         for (const entry of this.journal) {
             await this.trueUpdate(entry.itemID, entry.item);
