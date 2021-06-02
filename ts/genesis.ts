@@ -31,7 +31,7 @@ export interface Auxiliary {
 export class Genesis {
     constructor(
         public readonly parameters: DeploymentParameters,
-        public readonly addresses: { [key: string]: string },
+        public readonly addresses: Record<string, string>,
         public readonly auxiliary: Auxiliary
     ) {}
 
@@ -46,11 +46,13 @@ export class Genesis {
         parameters: DeploymentParameters,
         genesisEth1Block: number
     ) {
-        let addresses: { [key: string]: string } = {};
-        Object.keys(contracts).map((contract: string) => {
-            addresses[contract] =
-                contracts[contract as keyof allContracts].address;
-        });
+        const addresses = Object.entries(contracts).reduce(
+            (prev, [contractName, contract]) => ({
+                ...prev,
+                [contractName]: contract.address
+            }),
+            {}
+        );
 
         const domainSeparator = await contracts.rollup.domainSeparator();
         const version = execSync("git rev-parse HEAD")
