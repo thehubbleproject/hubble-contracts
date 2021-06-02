@@ -12,7 +12,8 @@ export class BatchHandlingContext {
     private strategies: { [key: string]: BatchHandlingStrategy };
     constructor(api: CoreAPI) {
         const genesisStrategy = new GenesisHandlingStrategy(
-            api.getGenesisRoot()
+            api.getGenesisRoot(),
+            api.contracts.rollup
         );
         const transferStrategy = new TransferHandlingStrategy(
             api.contracts.rollup,

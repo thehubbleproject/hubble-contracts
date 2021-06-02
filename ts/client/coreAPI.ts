@@ -73,7 +73,7 @@ export class CoreAPI implements ICoreAPI {
         const contracts = genesis.getContracts(signer);
         const syncedPoint = new SyncedPoint(
             genesis.auxiliary.genesisEth1Block,
-            0
+            -1
         );
         const verifier = new BlsVerifier(arrayify(genesis.auxiliary.domain));
         return new this(
