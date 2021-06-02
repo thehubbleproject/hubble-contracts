@@ -1,5 +1,7 @@
-import { HubbleNode, NodeType } from "../ts/client/node";
 import { AbortController } from "abort-controller";
+import { BigNumber } from "ethers";
+import { NodeType } from "../ts/client/constants";
+import { HubbleNode } from "../ts/client/node";
 import { sleep } from "../ts/utils";
 
 const argv = require("minimist")(process.argv.slice(2), {
@@ -15,8 +17,17 @@ async function main() {
         });
     }
     const nodeType = argv.proposer ? NodeType.Proposer : NodeType.Syncer;
+    const config = {
+        nodeType,
+        providerUrl: "http://localhost:8545",
+        genesisPath: "./genesis.json",
+        rpcPort: 3000,
+        proposer: {
+            willingnessToBid: BigNumber.from(1)
+        }
+    };
 
-    const node = await HubbleNode.init(nodeType);
+    const node = await HubbleNode.init(config);
     await node.start();
     abortController.signal.addEventListener("abort", () => node.close(), {
         once: true

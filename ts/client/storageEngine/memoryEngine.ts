@@ -1,6 +1,6 @@
 import { ZERO_BYTES32 } from "../../constants";
 import { TreeAtLevelIsFull } from "../../exceptions";
-import { Hashable } from "../../interfaces";
+import { Hashable, Vacant } from "../../interfaces";
 import { Hasher, Tree } from "../../tree";
 import { StorageEngine, WithWitness } from "./interfaces";
 
@@ -75,9 +75,7 @@ export class MemoryEngine<Item extends Hashable>
         this.cache = {};
     }
 
-    public async findVacantSubtree(
-        subtreeDepth: number
-    ): Promise<{ path: number; witness: string[] }> {
+    public async findVacantSubtree(subtreeDepth: number): Promise<Vacant> {
         const level = this.tree.depth - subtreeDepth;
         const zero = this.tree.zeros[level];
         for (let i = 0; i < 2 ** level; i++) {
@@ -101,7 +99,7 @@ export class MemoryEngine<Item extends Hashable>
 
             const witness = this.tree.witness(i, level).nodes;
             return {
-                path: i,
+                pathAtDepth: i,
                 witness
             };
         }
