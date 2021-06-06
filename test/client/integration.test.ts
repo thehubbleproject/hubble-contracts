@@ -206,7 +206,9 @@ describe("Client Integration", function() {
         assert.equal(storageSyncer.pubkey.root, storagePacker.pubkey.root);
 
         // Confirm storage has correct counts
-        const numBatches = numDepositBatches + numTransferBatches;
+        const numGenesisBatches = 1;
+        const numBatches =
+            numGenesisBatches + numDepositBatches + numTransferBatches;
         assert.equal(storageSyncer.batches.count(), numBatches);
         // Because of randomization, this will fall in a range between 10240 and 10560 (delta 320);
         const minNumTxns =

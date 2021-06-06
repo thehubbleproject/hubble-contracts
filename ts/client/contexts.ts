@@ -11,24 +11,32 @@ export class BatchHandlingContext {
 
     private strategies: { [key: string]: BatchHandlingStrategy };
     constructor(api: CoreAPI) {
+        const {
+            contracts: { rollup },
+            l2Storage,
+            parameters,
+            depositPool
+        } = api;
         const genesisStrategy = new GenesisHandlingStrategy(
+            rollup,
             api.getGenesisRoot()
         );
         const transferStrategy = new TransferHandlingStrategy(
-            api.contracts.rollup,
-            api.l2Storage,
-            api.parameters
+            rollup,
+            l2Storage,
+            parameters
         );
         const depositStrategy = new DepositHandlingStrategy(
-            api.contracts.rollup,
-            api.l2Storage,
-            api.parameters,
-            api.depositPool
+            rollup,
+            l2Storage,
+            parameters,
+            depositPool
         );
-        this.strategies = {};
-        this.strategies[Usage.Genesis] = genesisStrategy;
-        this.strategies[Usage.Transfer] = transferStrategy;
-        this.strategies[Usage.Deposit] = depositStrategy;
+        this.strategies = {
+            [Usage.Genesis]: genesisStrategy,
+            [Usage.Transfer]: transferStrategy,
+            [Usage.Deposit]: depositStrategy
+        };
     }
 
     setStrategy(usage: Usage) {
@@ -36,6 +44,7 @@ export class BatchHandlingContext {
         if (!this.strategies)
             throw new Error(`No strategy for usage ${Usage[usage]}`);
     }
+
     private get strategy() {
         if (!this._strategy) throw new Error("No strategy set yet");
         return this._strategy;

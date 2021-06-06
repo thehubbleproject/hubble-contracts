@@ -39,7 +39,6 @@ export class NewBatchEventSyncer extends ContractEventSyncer {
     }
 
     private async handleNewBatch(event: Event) {
-        const usage = event.args?.batchType as Usage;
         const batchID = Number(event.args?.batchID);
         if (this.syncpoint.batchID >= batchID) {
             console.info(
@@ -51,6 +50,8 @@ export class NewBatchEventSyncer extends ContractEventSyncer {
             );
             return;
         }
+
+        const usage = event.args?.batchType as Usage;
         this.batchHandlingContext.setStrategy(usage);
 
         const batch = await this.batchHandlingContext.parseBatch(event);
