@@ -1,6 +1,18 @@
 import { Pubkey } from "../../pubkey";
 import { pubkeyDB } from "../../client/database/connection";
-import { Leaf } from "./Leaf";
+import { Leaf, LeafFactory } from "./Leaf";
+import { LevelUp } from "levelup";
+
+export class PubkeyLeafFactory implements LeafFactory<PubkeyLeaf> {
+    constructor(private readonly database: LevelUp) {}
+
+    async create(itemId: number, itemHash: string): Promise<PubkeyLeaf> {
+        const key = `pubkeyLeaf${itemId}${itemHash}`;
+        const bytes = await this.database.get(key);
+        const item = Pubkey.fromEncoded(bytes);
+        return new PubkeyLeaf(item, itemId);
+    }
+}
 
 export class PubkeyLeaf extends Leaf<Pubkey> {
     name = "pubkeyLeaf";

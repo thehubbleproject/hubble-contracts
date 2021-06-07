@@ -1,6 +1,10 @@
 import { Hashable } from "../../interfaces";
 import { LevelUp } from "levelup";
 
+export interface LeafFactory<T extends Leaf<Hashable>> {
+    create(itemId: number, itemHash: string): Promise<T>;
+}
+
 export abstract class Leaf<Item extends Hashable> {
     abstract readonly name: string;
     abstract db: LevelUp;

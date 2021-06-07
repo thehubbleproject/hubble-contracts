@@ -5,6 +5,7 @@ import {
     PubkeyDatabaseEngine,
     StorageManager
 } from "./client/database";
+import { pubkeyDB, stateDB } from "./client/database/connection";
 import { BatchMemoryStorage } from "./client/storageEngine/batches/memory";
 import { TransactionMemoryStorage } from "./client/storageEngine/transactions/memory";
 import { DEFAULT_MNEMONIC } from "./constants";
@@ -13,6 +14,8 @@ import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
 import { State } from "./state";
 import { nullProvider, StateProvider } from "./stateTree";
+import { PubkeyLeafFactory } from "./tree/leaves/PubkeyLeaf";
+import { StateLeafFactory } from "./tree/leaves/StateLeaf";
 import {
     TxTransfer,
     TxCreate2Transfer,
@@ -292,8 +295,14 @@ export async function storageManagerFactory(
     const stateTreeDepth = options?.stateTreeDepth ?? 32;
     const pubkeyTreeDepth = options?.pubkeyTreeDepth ?? 32;
     return {
-        pubkey: new PubkeyDatabaseEngine(pubkeyTreeDepth),
-        state: new StateDatabaseEngine(stateTreeDepth),
+        pubkey: new PubkeyDatabaseEngine(
+            pubkeyTreeDepth,
+            new PubkeyLeafFactory(pubkeyDB)
+        ),
+        state: new StateDatabaseEngine(
+            stateTreeDepth,
+            new StateLeafFactory(stateDB)
+        ),
         batches: new BatchMemoryStorage(),
         transactions: new TransactionMemoryStorage()
     };

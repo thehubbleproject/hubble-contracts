@@ -11,6 +11,9 @@ import {
 import { Hasher, Node } from "./hasher";
 import { ethers } from "hardhat";
 import { childrenDB } from "../client/database/connection";
+import { Leaf, LeafFactory } from "./leaves/Leaf";
+import { Hashable } from "../interfaces";
+import { PubkeyLeaf } from "./leaves/PubkeyLeaf";
 
 type Level = { [node: number]: Node };
 export type Data = string;
@@ -52,27 +55,32 @@ class Children {
     }
 }
 
-export class Tree<Leaf> {
+export class Tree<T extends Leaf<Hashable>, Factory extends LeafFactory<T>> {
     public readonly zeros: Array<Node>;
     public readonly depth: number;
     public readonly setSize: number;
     public readonly hasher: Hasher;
     private readonly tree: Array<Level> = [];
+    private readonly factory: Factory;
 
-    public static new(depth: number, hasher?: Hasher) {
-        return new Tree(depth, hasher || Hasher.new());
+    public static new<T extends Leaf<Hashable>, Factory extends LeafFactory<T>>(
+        depth: number,
+        factory: Factory,
+        hasher?: Hasher
+    ) {
+        return new Tree<T, Factory>(depth, hasher || Hasher.new(), factory);
     }
 
     public static merklize(leaves: Node[]) {
         const depth = minTreeDepth(leaves.length);
         // This ZERO_BYTES32 must match the one we use in the mekle tree utils contract
         const hasher = Hasher.new("bytes", ZERO_BYTES32);
-        const tree = Tree.new(depth, hasher);
+        const tree = Tree.new(depth, {} as any, hasher);
         tree.updateBatch(0, leaves);
         return tree;
     }
 
-    constructor(depth: number, hasher: Hasher) {
+    constructor(depth: number, hasher: Hasher, factory: Factory) {
         this.depth = depth;
         this.setSize = 2 ** this.depth;
         this.tree = [];
@@ -81,6 +89,7 @@ export class Tree<Leaf> {
         }
         this.hasher = hasher;
         this.zeros = this.hasher.zeros(depth);
+        this.factory = factory;
     }
 
     async get(index: number) {
@@ -96,26 +105,26 @@ export class Tree<Leaf> {
             mask >>= 1;
             witness.push(sibling);
         }
-        const leaf = Leaf.fromDB(index, parent);
+        const leaf = await this.factory.create(index, parent);
         witness.reverse();
         return { witness, leaf };
     }
 
-    async update(index: number, leaf: Leaf, witness?: string[]) {
+    async update(index: number, leaf: T, witness?: string[]) {
         // If we already have witness, we can save 1 get
         const _witness = witness ?? (await this.get(index)).witness;
         let parent = leaf.item.hash();
         // parent = self + sibling or sibling + self
         // ascend to root
         for (let i = 0; i < this.depth; i++) {
-            const sibling = witness[i];
+            const sibling = _witness[i];
             const children =
-                (index >> i) & (1 == 0)
+                ((index >> i) & 1) === 0
                     ? new Children(parent, sibling)
                     : new Children(sibling, parent);
             parent = children.parent;
         }
-        this.root = parent;
+        this.tree[0] = [parent];
         await leaf.toDB();
     }
 

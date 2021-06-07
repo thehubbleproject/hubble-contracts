@@ -2,6 +2,7 @@ import { ZERO_BYTES32 } from "../../constants";
 import { TreeAtLevelIsFull } from "../../exceptions";
 import { Hashable } from "../../interfaces";
 import { Hasher, Tree } from "../../tree";
+import { Leaf, LeafFactory } from "../../tree/leaves/Leaf";
 import { StorageEngine, WithWitness } from "../storageEngine/interfaces";
 
 export interface Entry<Item> {
@@ -9,18 +10,26 @@ export interface Entry<Item> {
     item: Item;
 }
 
-export class DatabaseEngine<Item extends Hashable, Leaf>
-    implements StorageEngine<Item, Leaf> {
-    public static new(depth: number) {
-        return new this(depth);
+export class DatabaseEngine<
+    Item extends Hashable,
+    LeafType extends Leaf<Item>,
+    Factory extends LeafFactory<LeafType>
+> implements StorageEngine<Item, LeafType, Factory> {
+    public static new<
+        Item extends Hashable,
+        LeafType extends Leaf<Item>,
+        Factory extends LeafFactory<LeafType>
+    >(depth: number, factory: Factory) {
+        return new this(depth, factory);
     }
-    private tree: Tree<Leaf>;
+
+    private tree: Tree<LeafType, Factory>;
     private items: { [key: number]: Item } = {};
     private cache: { [key: number]: Item } = {};
     private journal: Entry<Item>[] = [];
 
-    constructor(depth: number) {
-        this.tree = Tree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
+    constructor(depth: number, factory: Factory) {
+        this.tree = Tree.new(depth, factory, Hasher.new("bytes", ZERO_BYTES32));
     }
 
     private checkSize(itemID: number) {
