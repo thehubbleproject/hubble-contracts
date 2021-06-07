@@ -27,12 +27,7 @@ export abstract class Leaf<Item extends Hashable> {
 
     abstract deserialize(bytes: string): Item;
 
-    async fromDB(itemID: number, itemHash: string) {
-        const key = this.getKey(itemID, itemHash);
-        const bytes = await this.db.get(key);
-        const item = this.deserialize(bytes);
-        return item;
-    }
+    abstract fromDB(itemID: number, itemHash: string): Promise<Leaf<Item>>;
 
     async toDB(): Promise<void> {
         const bytes = this.serialize();

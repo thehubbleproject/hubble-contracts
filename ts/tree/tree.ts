@@ -9,6 +9,8 @@ import {
     NegativeIndex
 } from "../exceptions";
 import { Hasher, Node } from "./hasher";
+import { ethers } from "hardhat";
+import { childrenDB } from "../client/database/connection";
 
 type Level = { [node: number]: Node };
 export type Data = string;
@@ -22,18 +24,46 @@ export type Witness = {
     depth?: number;
 };
 
-export class Tree {
+class Children {
+    constructor(public readonly left: string, public readonly right: string) {}
+
+    public static db = childrenDB;
+
+    get parent() {
+        return ethers.utils.solidityKeccak256(
+            ["uint256", "uint256"],
+            [this.left, this.right]
+        );
+    }
+
+    static async fromDB(parent: string) {
+        const children = await this.db.get(parent);
+        const left = children.slice(0, 32);
+        const right = children.slice(32, 64);
+        return new this(left, right);
+    }
+
+    async toDB() {
+        await Children.db.put(this.parent, this.left + this.right);
+    }
+
+    async delete(): Promise<void> {
+        await Children.db.del(this.parent);
+    }
+}
+
+export class Tree<Leaf> {
     public readonly zeros: Array<Node>;
     public readonly depth: number;
     public readonly setSize: number;
     public readonly hasher: Hasher;
     private readonly tree: Array<Level> = [];
 
-    public static new(depth: number, hasher?: Hasher): Tree {
+    public static new(depth: number, hasher?: Hasher) {
         return new Tree(depth, hasher || Hasher.new());
     }
 
-    public static merklize(leaves: Node[]): Tree {
+    public static merklize(leaves: Node[]) {
         const depth = minTreeDepth(leaves.length);
         // This ZERO_BYTES32 must match the one we use in the mekle tree utils contract
         const hasher = Hasher.new("bytes", ZERO_BYTES32);
@@ -51,6 +81,42 @@ export class Tree {
         }
         this.hasher = hasher;
         this.zeros = this.hasher.zeros(depth);
+    }
+
+    async get(index: number) {
+        const witness = [];
+        let parent = this.root;
+        let mask = 1 << this.depth;
+
+        for (let i = 0; i < this.depth; i++) {
+            const children = await Children.fromDB(parent);
+            const nextParentIsLeft = (index & mask) === 0;
+            parent = nextParentIsLeft ? children.left : children.right;
+            const sibling = nextParentIsLeft ? children.right : children.left;
+            mask >>= 1;
+            witness.push(sibling);
+        }
+        const leaf = Leaf.fromDB(index, parent);
+        witness.reverse();
+        return { witness, leaf };
+    }
+
+    async update(index: number, leaf: Leaf, witness?: string[]) {
+        // If we already have witness, we can save 1 get
+        const _witness = witness ?? (await this.get(index)).witness;
+        let parent = leaf.item.hash();
+        // parent = self + sibling or sibling + self
+        // ascend to root
+        for (let i = 0; i < this.depth; i++) {
+            const sibling = witness[i];
+            const children =
+                (index >> i) & (1 == 0)
+                    ? new Children(parent, sibling)
+                    : new Children(sibling, parent);
+            parent = children.parent;
+        }
+        this.root = parent;
+        await leaf.toDB();
     }
 
     get root(): Node {
@@ -128,6 +194,7 @@ export class Tree {
         }
         return leaf == this.root;
     }
+
     private checkSetSize(index: number) {
         if (index >= this.setSize)
             throw new ExceedTreeSize(

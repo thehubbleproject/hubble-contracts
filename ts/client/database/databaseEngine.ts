@@ -9,12 +9,12 @@ export interface Entry<Item> {
     item: Item;
 }
 
-export class DatabaseEngine<Item extends Hashable>
-    implements StorageEngine<Item> {
+export class DatabaseEngine<Item extends Hashable, Leaf>
+    implements StorageEngine<Item, Leaf> {
     public static new(depth: number) {
         return new this(depth);
     }
-    private tree: Tree;
+    private tree: Tree<Leaf>;
     private items: { [key: number]: Item } = {};
     private cache: { [key: number]: Item } = {};
     private journal: Entry<Item>[] = [];
