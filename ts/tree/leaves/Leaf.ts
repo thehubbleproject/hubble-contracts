@@ -1,4 +1,4 @@
-import { Hashable } from "../../../interfaces";
+import { Hashable } from "../../interfaces";
 import { LevelUp } from "levelup";
 
 export abstract class Leaf<Item extends Hashable> {
@@ -21,7 +21,9 @@ export abstract class Leaf<Item extends Hashable> {
         return this.getKey(this.itemID, this.item.hash());
     }
 
-    abstract serialize(): string;
+    serialize(): string {
+        return this.item.encode();
+    }
 
     abstract deserialize(bytes: string): Item;
 

@@ -5,8 +5,8 @@ import {
     PubkeyDatabaseEngine,
     StorageManager
 } from "./client/database";
-import { BatchDatabaseStorage } from "./client/database/batches/db";
-import { TransactionDatabaseStorage } from "./client/database/transactions/db";
+import { BatchMemoryStorage } from "./client/storageEngine/batches/memory";
+import { TransactionMemoryStorage } from "./client/storageEngine/transactions/memory";
 import { DEFAULT_MNEMONIC } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
@@ -294,7 +294,7 @@ export async function storageManagerFactory(
     return {
         pubkey: new PubkeyDatabaseEngine(pubkeyTreeDepth),
         state: new StateDatabaseEngine(stateTreeDepth),
-        batches: new BatchDatabaseStorage(),
-        transactions: new TransactionDatabaseStorage()
+        batches: new BatchMemoryStorage(),
+        transactions: new TransactionMemoryStorage()
     };
 }

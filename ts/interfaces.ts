@@ -24,6 +24,7 @@ export enum Usage {
 
 export interface Hashable {
     hash(): string;
+    encode(): string;
 }
 
 export enum Result {

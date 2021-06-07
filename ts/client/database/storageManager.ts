@@ -1,3 +1,5 @@
+import { BatchStorage } from "../storageEngine/batches/interfaces";
+import { TransactionStorage } from "../storageEngine/transactions/interfaces";
 import { PubkeyStorageEngine } from "./pubkeyEngine";
 import { StateStorageEngine } from "./stateEngine";
 
@@ -7,4 +9,6 @@ import { StateStorageEngine } from "./stateEngine";
 export interface StorageManager {
     pubkey: PubkeyStorageEngine;
     state: StateStorageEngine;
+    batches: BatchStorage;
+    transactions: TransactionStorage;
 }
