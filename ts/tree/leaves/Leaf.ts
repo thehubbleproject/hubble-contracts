@@ -1,15 +1,22 @@
 import { Hashable } from "../../interfaces";
 import { LevelUp } from "levelup";
 
-export interface LeafFactory<T extends Leaf<Hashable>> {
-    create(itemId: number, itemHash: string): Promise<T>;
-}
+export type LeafFactoryFunc<T extends Leaf<Hashable>> = (
+    itemId: number,
+    itemHash: string
+) => Promise<T>;
+
+export const getLeafKey = (
+    name: string,
+    itemID: number,
+    itemHash: string
+): string => `${name}${itemID}${itemHash}`;
 
 export abstract class Leaf<Item extends Hashable> {
     abstract readonly name: string;
-    abstract db: LevelUp;
+    abstract readonly db: LevelUp;
 
-    public item: Item;
+    public readonly item: Item;
     public readonly itemID: number;
 
     constructor(item: Item, itemID: number) {
@@ -17,12 +24,12 @@ export abstract class Leaf<Item extends Hashable> {
         this.itemID = itemID;
     }
 
-    getKey(itemID: number, itemHash: string) {
-        return `${this.name}${itemID}${itemHash}`;
+    getKey() {
+        return getLeafKey(this.name, this.itemID, this.item.hash());
     }
 
     get key() {
-        return this.getKey(this.itemID, this.item.hash());
+        return this.getKey();
     }
 
     serialize(): string {
@@ -30,8 +37,6 @@ export abstract class Leaf<Item extends Hashable> {
     }
 
     abstract deserialize(bytes: string): Item;
-
-    abstract fromDB(itemID: number, itemHash: string): Promise<Leaf<Item>>;
 
     async toDB(): Promise<void> {
         const bytes = this.serialize();

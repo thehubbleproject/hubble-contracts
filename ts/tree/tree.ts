@@ -11,9 +11,8 @@ import {
 import { Hasher, Node } from "./hasher";
 import { ethers } from "hardhat";
 import { childrenDB } from "../client/database/connection";
-import { Leaf, LeafFactory } from "./leaves/Leaf";
+import { Leaf, LeafFactoryFunc } from "./leaves/Leaf";
 import { Hashable } from "../interfaces";
-import { PubkeyLeaf } from "./leaves/PubkeyLeaf";
 
 type Level = { [node: number]: Node };
 export type Data = string;
@@ -55,20 +54,20 @@ class Children {
     }
 }
 
-export class Tree<T extends Leaf<Hashable>, Factory extends LeafFactory<T>> {
+export class Tree<T extends Leaf<Hashable>> {
     public readonly zeros: Array<Node>;
     public readonly depth: number;
     public readonly setSize: number;
     public readonly hasher: Hasher;
     private readonly tree: Array<Level> = [];
-    private readonly factory: Factory;
+    private readonly factory: LeafFactoryFunc<T>;
 
-    public static new<T extends Leaf<Hashable>, Factory extends LeafFactory<T>>(
+    public static new<T extends Leaf<Hashable>>(
         depth: number,
-        factory: Factory,
+        factory: LeafFactoryFunc<T>,
         hasher?: Hasher
     ) {
-        return new Tree<T, Factory>(depth, hasher || Hasher.new(), factory);
+        return new Tree<T>(depth, hasher || Hasher.new(), factory);
     }
 
     public static merklize(leaves: Node[]) {
@@ -80,7 +79,7 @@ export class Tree<T extends Leaf<Hashable>, Factory extends LeafFactory<T>> {
         return tree;
     }
 
-    constructor(depth: number, hasher: Hasher, factory: Factory) {
+    constructor(depth: number, hasher: Hasher, factory: LeafFactoryFunc<T>) {
         this.depth = depth;
         this.setSize = 2 ** this.depth;
         this.tree = [];
@@ -105,7 +104,7 @@ export class Tree<T extends Leaf<Hashable>, Factory extends LeafFactory<T>> {
             mask >>= 1;
             witness.push(sibling);
         }
-        const leaf = await this.factory.create(index, parent);
+        const leaf = await this.factory(index, parent);
         witness.reverse();
         return { witness, leaf };
     }

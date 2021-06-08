@@ -3,7 +3,7 @@ export interface WithWitness<Item> {
     witness: string[];
 }
 
-export interface StorageEngine<Item, Leaf, Factory> {
+export interface StorageEngine<Item> {
     get(itemID: number): Promise<Item>;
     update(itemID: number, item: Item): Promise<void>;
     create(itemID: number, item: Item): Promise<void>;

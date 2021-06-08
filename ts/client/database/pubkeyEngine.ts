@@ -1,11 +1,11 @@
 import { Pubkey } from "../../pubkey";
-import { PubkeyLeaf, PubkeyLeafFactory } from "../../tree/leaves/PubkeyLeaf";
-import { StorageEngine } from "../storageEngine/interfaces";
+import { PubkeyLeaf } from "../../tree/leaves/PubkeyLeaf";
+import { PubkeyStorageEngine } from "../storageEngine";
 import { DatabaseEngine } from "./databaseEngine";
 
-export interface PubkeyStorageEngine
-    extends StorageEngine<Pubkey, PubkeyLeaf, PubkeyLeafFactory> {}
-
-export class PubkeyDatabaseEngine
-    extends DatabaseEngine<Pubkey, PubkeyLeaf, PubkeyLeafFactory>
-    implements PubkeyStorageEngine {}
+export class PubkeyDatabaseEngine extends DatabaseEngine<Pubkey, PubkeyLeaf>
+    implements PubkeyStorageEngine {
+    constructor(depth: number) {
+        super(depth, PubkeyLeaf.fromDB);
+    }
+}
