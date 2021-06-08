@@ -13,6 +13,7 @@ import {
     WrongTokenID,
     ZeroAmount
 } from "./exceptions";
+import { Vacant } from "./interfaces";
 
 export interface StateProvider {
     getState(stateID: number): SolStateMerkleProof;
@@ -120,7 +121,10 @@ export class StateTree implements StateProvider {
         this.stateTree.updateSingle(stateID, state.toStateLeaf());
     }
 
-    public getVacancyProof(mergeOffsetLower: number, subtreeDepth: number) {
+    public getVacancyProof(
+        mergeOffsetLower: number,
+        subtreeDepth: number
+    ): Vacant {
         const witness = this.stateTree.witnessForBatch(
             mergeOffsetLower,
             subtreeDepth

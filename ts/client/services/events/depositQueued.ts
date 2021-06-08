@@ -1,14 +1,14 @@
 import { Event } from "ethers";
 import { State } from "../../../state";
 import { CoreAPI } from "../../coreAPI";
-import { DepositPool } from "../../features/deposit";
+import { IDepositPool } from "../../features/deposit";
 import { ContractEventSyncer } from "./contractEventSyncer";
 
 /**
  * Syncs DepositQueued events from the despositManager contract
  */
 export class DepositQueuedEventSyncer extends ContractEventSyncer {
-    private readonly depositPool: DepositPool;
+    private readonly depositPool: IDepositPool;
 
     constructor(api: CoreAPI) {
         super(

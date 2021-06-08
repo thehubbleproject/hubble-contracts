@@ -1,53 +1,32 @@
+import { Provider } from "@ethersproject/providers";
+import { ethers } from "ethers";
+import { EventEmitter } from "events";
 import { storageManagerFactory } from "../factory";
 import * as mcl from "../../ts/mcl";
-import { BigNumber } from "@ethersproject/bignumber";
 import { Bidder } from "./services/bidder";
-import { ethers } from "ethers";
 import { SyncerService } from "./services/syncer";
 import { Genesis } from "../genesis";
 import { Packer } from "./services/packer";
 import { TransferPool } from "./features/transfer";
-import { Provider } from "@ethersproject/providers";
 import { BurnAuctionWrapper } from "../burnAuction";
-import { EventEmitter } from "events";
 import { RPC } from "./services/rpc";
 import { CoreAPI } from "./coreAPI";
-
-class NodeEmitter extends EventEmitter {}
-
-export const nodeEmitter = new NodeEmitter();
-
-export const SyncCompleteEvent = "InitialSyncComplete";
-
-interface ClientConfigs {
-    willingnessToBid: BigNumber;
-    providerUrl: string;
-    genesisPath: string;
-    rpcPort: number;
-}
-
-export enum NodeType {
-    Syncer,
-    Proposer
-}
+import { NodeType, SyncCompleteEvent } from "./constants";
+import { ClientConfig } from "./config";
 
 export class HubbleNode {
     constructor(
-        private nodeType: NodeType,
-        private provider: Provider,
-        private syncer: SyncerService,
-        private packer?: Packer,
-        public bidder?: Bidder,
-        public rpc?: RPC
+        private readonly nodeType: NodeType,
+        private readonly provider: Provider,
+        private readonly eventEmitter: EventEmitter,
+        private readonly syncer: SyncerService,
+        private readonly packer?: Packer,
+        private readonly bidder?: Bidder,
+        private readonly rpc?: RPC
     ) {}
-    public static async init(nodeType: NodeType) {
+
+    public static async init(config: ClientConfig) {
         await mcl.init();
-        const config: ClientConfigs = {
-            willingnessToBid: BigNumber.from(1),
-            providerUrl: "http://localhost:8545",
-            genesisPath: "./genesis.json",
-            rpcPort: 3000
-        };
 
         const genesis = Genesis.fromConfig(config.genesisPath);
         const provider = new ethers.providers.JsonRpcProvider(
@@ -75,21 +54,41 @@ export class HubbleNode {
             pool
         );
 
-        const packer = new Packer(api);
-        const bidder = await Bidder.new(
-            config.willingnessToBid,
-            api.contracts.burnAuction
-        );
         const syncer = new SyncerService(api);
+
+        let packer;
+        let bidder;
+        if (config.nodeType === NodeType.Proposer) {
+            packer = new Packer(api);
+
+            // TODO Move to config validation
+            // https://github.com/thehubbleproject/hubble-contracts/issues/557
+            if (!config.proposer?.willingnessToBid) {
+                throw new Error("config missing proposer.willingnessToBid");
+            }
+            bidder = await Bidder.new(
+                config.proposer.willingnessToBid,
+                api.contracts.burnAuction
+            );
+        }
+
         // In the future, we will want to delay starting up the rpc client
         // until after the initial sync is completed (HTTP 503).
         // https://github.com/thehubbleproject/hubble-contracts/issues/558
         const rpc = await RPC.init(api, config.rpcPort);
-        return new this(nodeType, provider, syncer, packer, bidder, rpc);
+        return new this(
+            config.nodeType,
+            provider,
+            api.eventEmitter,
+            syncer,
+            packer,
+            bidder,
+            rpc
+        );
     }
     async start() {
         await this.syncer.start();
-        nodeEmitter.once(SyncCompleteEvent, this.onSyncComplete);
+        this.eventEmitter.once(SyncCompleteEvent, this.onSyncComplete);
     }
     onSyncComplete = async () => {
         console.info("Initial Sync complete");

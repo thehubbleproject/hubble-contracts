@@ -1,6 +1,10 @@
 import chai, { assert } from "chai";
 import chaiAsPromised from "chai-as-promised";
-import { Batch, Commitment } from "../../ts/client/features/interface";
+import {
+    Batch,
+    Commitment,
+    CommitmentInclusionProof
+} from "../../ts/client/features/interface";
 import {
     BatchL1Transaction,
     BatchStorage
@@ -16,7 +20,11 @@ class TestBatch implements Batch {
         this.commitments = [];
     }
 
-    toString(): string {
+    public proofCompressed(_leafIndex: number): CommitmentInclusionProof {
+        throw new Error("TestBatch: proofCompressed not implemented");
+    }
+
+    public toString(): string {
         throw new Error("TestBatch: toString not implemented");
     }
 }

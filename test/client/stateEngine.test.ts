@@ -53,13 +53,13 @@ describe("StateMemoryEngine", () => {
         const zeroes = hasher.zeros(maxDepth);
 
         it("finds first vacant subtree when empty", async function() {
-            const { path, witness } = await engine.findVacantSubtree(
+            const { pathAtDepth, witness } = await engine.findVacantSubtree(
                 maxSubtreeDepth
             );
-            assert.equal(path, 0);
+            assert.equal(pathAtDepth, 0);
             assert.lengthOf(witness, 30);
             assert.equal(
-                computeRoot(zeroes[witness.length], path, witness),
+                computeRoot(zeroes[witness.length], pathAtDepth, witness),
                 engine.root
             );
         });
@@ -70,13 +70,13 @@ describe("StateMemoryEngine", () => {
             }
             await engine.commit();
 
-            const { path, witness } = await engine.findVacantSubtree(
+            const { pathAtDepth, witness } = await engine.findVacantSubtree(
                 maxSubtreeDepth
             );
-            assert.equal(path, 1);
+            assert.equal(pathAtDepth, 1);
             assert.lengthOf(witness, 30);
             assert.equal(
-                computeRoot(zeroes[witness.length], path, witness),
+                computeRoot(zeroes[witness.length], pathAtDepth, witness),
                 engine.root
             );
         });
@@ -85,13 +85,13 @@ describe("StateMemoryEngine", () => {
             await engine.update(2, states[2]);
             await engine.update(5, states[5]);
 
-            const { path, witness } = await engine.findVacantSubtree(
+            const { pathAtDepth, witness } = await engine.findVacantSubtree(
                 maxSubtreeDepth
             );
-            assert.equal(path, 2);
+            assert.equal(pathAtDepth, 2);
             assert.lengthOf(witness, 30);
             assert.equal(
-                computeRoot(zeroes[witness.length], path, witness),
+                computeRoot(zeroes[witness.length], pathAtDepth, witness),
                 engine.root
             );
         });
@@ -113,10 +113,10 @@ describe("StateMemoryEngine", () => {
 
     describe("updateBatch", () => {
         it("updates items at correct itemID", async function() {
-            const subtreeID = 2;
+            const path = 2;
             const items = states.slice(8, 12);
 
-            await engine.updateBatch(subtreeID, maxSubtreeDepth, items);
+            await engine.updateBatch(path, maxSubtreeDepth, items);
             await engine.commit();
 
             for (let i = 8; i < 12; i++) {
