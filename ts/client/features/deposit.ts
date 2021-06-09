@@ -1,5 +1,5 @@
 import { BytesLike } from "@ethersproject/bytes";
-import { BigNumber, ContractTransaction, Event } from "ethers";
+import { BigNumber, BigNumberish, ContractTransaction, Event } from "ethers";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "../../constants";
 import { DeploymentParameters, Vacant } from "../../interfaces";
@@ -199,6 +199,7 @@ export class DepositPackingCommand implements BatchPackingCommand {
     ) {}
 
     private async submitDeposits(
+        batchID: BigNumberish,
         prevBatch: Batch,
         vacancy: Vacant
     ): Promise<ContractTransaction> {
@@ -206,25 +207,33 @@ export class DepositPackingCommand implements BatchPackingCommand {
             prevBatch.commitments.length - 1
         );
 
-        return await this.rollup.submitDeposits(prevCommitProof, vacancy, {
-            value: this.params.STAKE_AMOUNT
-        });
+        return await this.rollup.submitDeposits(
+            batchID,
+            prevCommitProof,
+            vacancy,
+            {
+                value: this.params.STAKE_AMOUNT
+            }
+        );
     }
 
     public async packAndSubmit(): Promise<ContractTransaction> {
         const { state, batches } = this.storageManager;
 
-        const curBatch = await this.storageManager.batches.current();
+        const [nextBatchID, curBatch] = await Promise.all([
+            batches.nextBatchID(),
+            batches.current()
+        ]);
         if (!curBatch) {
             throw new Error("no batches synced");
         }
 
-        const vacancy = await this.storageManager.state.findVacantSubtree(
+        const vacancy = await state.findVacantSubtree(
             this.params.MAX_DEPOSIT_SUBTREE_DEPTH
         );
 
         console.log("Submitting deposits", prettyVacant(vacancy));
-        const l1Txn = await this.submitDeposits(curBatch, vacancy);
+        const l1Txn = await this.submitDeposits(nextBatchID, curBatch, vacancy);
 
         // Update L2 state
         const subtree = this.pool.popDepositSubtree();

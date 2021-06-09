@@ -168,9 +168,10 @@ describe("Integration Test", function() {
                 mergeOffsetLower,
                 parameters.MAX_DEPOSIT_SUBTREE_DEPTH
             );
+            const depositBatchID = i + 1;
             await rollup
                 .connect(coordinator)
-                .submitDeposits(previousProof, vacant, {
+                .submitDeposits(depositBatchID, previousProof, vacant, {
                     value: parameters.STAKE_AMOUNT
                 });
             const batchID = await getBatchID(rollup);
@@ -210,8 +211,10 @@ describe("Integration Test", function() {
             );
             commits.push(commit);
         }
+        const transferBatchID = await rollup.nextBatchID();
         await new TransferBatch(commits).submit(
             rollup.connect(coordinator),
+            transferBatchID,
             parameters.STAKE_AMOUNT
         );
         const batchID = await getBatchID(rollup);
@@ -262,8 +265,10 @@ describe("Integration Test", function() {
             );
             commits.push(commit);
         }
+        const c2TBatchID = await rollup.nextBatchID();
         await new Create2TransferBatch(commits).submit(
             rollup.connect(coordinator),
+            c2TBatchID,
             parameters.STAKE_AMOUNT
         );
         const batchID = await getBatchID(rollup);
@@ -299,8 +304,10 @@ describe("Integration Test", function() {
             migrationTrees.push(migrationTree);
         }
         const batch = new MassMigrationBatch(commits);
+        const mMBatchID = await rollup.nextBatchID();
         await batch.submit(
             rollup.connect(coordinator),
+            mMBatchID,
             parameters.STAKE_AMOUNT
         );
         const batchID = await getBatchID(rollup);

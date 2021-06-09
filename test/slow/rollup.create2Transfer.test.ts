@@ -6,7 +6,8 @@ import { AccountRegistry } from "../../ts/accountTree";
 import { serialize } from "../../ts/tx";
 import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
-import { assert } from "chai";
+import chai, { assert } from "chai";
+import chaiAsPromised from "chai-as-promised";
 import {
     Create2TransferCommitment,
     getGenesisProof
@@ -16,6 +17,8 @@ import { hexToUint8Array } from "../../ts/utils";
 import { Group, txCreate2TransferFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { handleNewBatch } from "../../ts/client/batchHandler";
+
+chai.use(chaiAsPromised);
 
 const DOMAIN = hexToUint8Array(
     "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
@@ -77,6 +80,34 @@ describe("Rollup Create2Transfer", async function() {
         }
     });
 
+    it("fails if batchID is incorrect", async function() {
+        const feeReceiver = usersWithStates.getUser(0).stateID;
+        const { txs, signature } = txCreate2TransferFactory(
+            usersWithStates,
+            usersWithoutState
+        );
+
+        const root = registry.root();
+        const commit = Create2TransferCommitment.new(
+            stateTree.root,
+            root,
+            signature,
+            feeReceiver,
+            serialize(txs)
+        );
+        const batch = commit.toBatch();
+
+        const invalidBatchID = 420;
+        await assert.isRejected(
+            batch.submit(
+                contracts.rollup,
+                invalidBatchID,
+                TESTING_PARAMS.STAKE_AMOUNT
+            ),
+            /.*revert batchID does not match nextBatchID/
+        );
+    });
+
     it("submit a batch and dispute", async function() {
         const feeReceiver = usersWithStates.getUser(0).stateID;
         const { rollup } = contracts;
@@ -106,8 +137,10 @@ describe("Rollup Create2Transfer", async function() {
         );
 
         const targetBatch = commitment.toBatch();
+        const c2TBatchID = 1;
         const _txSubmit = await targetBatch.submit(
             rollup,
+            c2TBatchID,
             TESTING_PARAMS.STAKE_AMOUNT
         );
         console.log(

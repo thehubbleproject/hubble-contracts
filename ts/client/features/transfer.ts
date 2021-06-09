@@ -613,10 +613,12 @@ export class TransferPackingCommand implements BatchPackingCommand {
     ) {}
 
     private async submitTransfer(
+        batchID: BigNumberish,
         batch: ConcreteBatch<TransferCommitment>,
         stakingAmount: BigNumberish
     ) {
         return await this.rollup.submitTransfer(
+            batchID,
             batch.commitments.map(c => c.stateRoot),
             batch.commitments.map(c => c.signature),
             batch.commitments.map(c => c.feeReceiver),
@@ -626,14 +628,17 @@ export class TransferPackingCommand implements BatchPackingCommand {
     }
 
     public async packAndSubmit(): Promise<ContractTransaction> {
+        const { batches, transactions } = this.storageManager;
         const { batch, acceptedTxs, failedTxs } = await packBatch(
             this.pool,
             this.storageManager,
             this.params,
             this.verifier
         );
+        const batchID = await batches.nextBatchID();
         console.info("Submitting batch", batch.toString());
         const l1Txn = await this.submitTransfer(
+            batchID,
             batch,
             this.params.STAKE_AMOUNT
         );
@@ -643,8 +648,7 @@ export class TransferPackingCommand implements BatchPackingCommand {
         );
 
         // Sync with storage
-        const { batches, transactions } = this.storageManager;
-        const batchID = await batches.add(batch, l1Txn);
+        await batches.add(batch, l1Txn);
         for (const acceptedTx of acceptedTxs) {
             await transactions.submitted(acceptedTx.message(), {
                 batchID,
