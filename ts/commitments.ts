@@ -310,8 +310,9 @@ export class TransferBatch extends Batch {
         return new this(commitments);
     }
 
-    async submit(rollup: Rollup, stakingAmount: Wei) {
+    async submit(rollup: Rollup, batchID: BigNumberish, stakingAmount: Wei) {
         return await rollup.submitTransfer(
+            batchID,
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => c.feeReceiver),
@@ -356,8 +357,9 @@ export class MassMigrationBatch extends Batch {
         return new this(commitments);
     }
 
-    async submit(rollup: Rollup, stakingAmount: Wei) {
+    async submit(rollup: Rollup, batchID: BigNumberish, stakingAmount: Wei) {
         return await rollup.submitMassMigration(
+            batchID,
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => [
@@ -402,8 +404,9 @@ export class Create2TransferBatch extends Batch {
         return new this(commitments);
     }
 
-    async submit(rollup: Rollup, stakingAmount: Wei) {
+    async submit(rollup: Rollup, batchID: BigNumberish, stakingAmount: Wei) {
         return await rollup.submitCreate2Transfer(
+            batchID,
             this.commitments.map(c => c.stateRoot),
             this.commitments.map(c => c.signature),
             this.commitments.map(c => c.feeReceiver),
