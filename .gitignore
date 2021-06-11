@@ -1,7 +1,7 @@
 node_modules/
 parameters.json
 genesis.json
-types/
+types/ethers-contracts/
 cache/
 artifacts/
 build/

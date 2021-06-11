@@ -1,5 +1,4 @@
-import { TestTxFactory } from "../../types/ethers-contracts/TestTxFactory";
-import { TestTx } from "../../types/ethers-contracts/TestTx";
+import { TestTx, TestTx__factory } from "../../types/ethers-contracts";
 import {
     TxTransfer,
     serialize,
@@ -17,7 +16,7 @@ describe("Tx Serialization", async () => {
     let c: TestTx;
     before(async function() {
         const [signer, ...rest] = await ethers.getSigners();
-        c = await new TestTxFactory(signer).deploy();
+        c = await new TestTx__factory(signer).deploy();
     });
     it("parse transfer transaction", async function() {
         const txs = TxTransfer.buildList(COMMIT_SIZE);

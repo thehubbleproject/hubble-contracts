@@ -27,8 +27,7 @@ import {
 } from "../ts/commitments";
 import { getBatchID, hexToUint8Array, mineBlocks } from "../ts/utils";
 import { serialize } from "../ts/tx";
-import { ExampleToken } from "../types/ethers-contracts/ExampleToken";
-import { ExampleTokenFactory } from "../types/ethers-contracts";
+import { ExampleToken, ExampleToken__factory } from "../types/ethers-contracts";
 import { CommonToken } from "../ts/decimal";
 import { deployKeyless } from "../ts/deployment/deploy";
 
@@ -90,7 +89,7 @@ describe("Integration Test", function() {
     });
     it("Register another token", async function() {
         const { tokenRegistry } = contracts;
-        newToken = await new ExampleTokenFactory(coordinator).deploy();
+        newToken = await new ExampleToken__factory(coordinator).deploy();
         await tokenRegistry.requestRegistration(newToken.address);
         const tx = await tokenRegistry.finaliseRegistration(newToken.address);
         const [event] = await tokenRegistry.queryFilter(
@@ -98,7 +97,7 @@ describe("Integration Test", function() {
             tx.blockHash
         );
 
-        assert.equal(event.args?.tokenID, tokenID);
+        assert.equal(event.args?.tokenID.toNumber(), tokenID);
     });
     it("Coordinator bid the first auction", async function() {
         const { burnAuction } = contracts;

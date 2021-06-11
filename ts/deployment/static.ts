@@ -1,6 +1,8 @@
 import { BigNumber, utils } from "ethers";
-import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
-import { DeployerFactory } from "../../types/ethers-contracts/DeployerFactory";
+import {
+    Proxy__factory,
+    Deployer__factory
+} from "../../types/ethers-contracts";
 import { KeylessDeployer } from "./keylessDeployment";
 
 export const PROXY_BYTECODE = proxyBytecode();
@@ -49,11 +51,11 @@ function calculateAddress(deployerAddress: string, salt: string): string {
 }
 
 export function proxyBytecode(): string {
-    const proxyFactory = new ProxyFactory();
+    const proxyFactory = new Proxy__factory();
     return proxyFactory.bytecode;
 }
 
 export function deployerBytecode(): string {
-    const deployerFactory = new DeployerFactory();
+    const deployerFactory = new Deployer__factory();
     return deployerFactory.bytecode;
 }

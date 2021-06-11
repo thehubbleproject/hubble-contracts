@@ -3,6 +3,7 @@ import { BigNumberish, BytesLike, ethers } from "ethers";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "./constants";
 import { Usage, Wei } from "./interfaces";
+import { solG1 } from "./mcl";
 import { State } from "./state";
 import { MigrationTree, StateProvider } from "./stateTree";
 import { Tree } from "./tree";
@@ -72,7 +73,7 @@ export class TransferCommitment extends Commitment {
     public static new(
         stateRoot: BytesLike = ethers.constants.HashZero,
         accountRoot: BytesLike = ethers.constants.HashZero,
-        signature: BigNumberish[] = [0, 0],
+        signature: solG1 = [0, 0],
         feeReceiver: BigNumberish = 0,
         txs: BytesLike = "0x"
     ) {
@@ -87,7 +88,7 @@ export class TransferCommitment extends Commitment {
     constructor(
         public stateRoot: BytesLike,
         public accountRoot: BytesLike,
-        public signature: BigNumberish[],
+        public signature: solG1,
         public feeReceiver: BigNumberish,
         public txs: BytesLike
     ) {
@@ -119,7 +120,7 @@ export class MassMigrationCommitment extends Commitment {
     public static new(
         stateRoot: BytesLike = ethers.constants.HashZero,
         accountRoot: BytesLike = ethers.constants.HashZero,
-        signature: BigNumberish[] = [0, 0],
+        signature: solG1 = [0, 0],
         spokeID: BigNumberish = 0,
         withdrawRoot: BytesLike = ethers.constants.HashZero,
         tokenID: BigNumberish = 0,
@@ -142,7 +143,7 @@ export class MassMigrationCommitment extends Commitment {
     public static fromStateProvider(
         accountRoot: BytesLike,
         txs: TxMassMigration[],
-        signature: BigNumberish[],
+        signature: solG1,
         feeReceiver: number,
         stateProvider: StateProvider
     ) {
@@ -174,7 +175,7 @@ export class MassMigrationCommitment extends Commitment {
     constructor(
         public stateRoot: BytesLike,
         public accountRoot: BytesLike,
-        public signature: BigNumberish[],
+        public signature: solG1,
         public spokeID: BigNumberish,
         public withdrawRoot: BytesLike,
         public tokenID: BigNumberish,
