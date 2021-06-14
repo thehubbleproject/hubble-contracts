@@ -1,4 +1,9 @@
-import { solidityKeccak256 } from "ethers/lib/utils";
+import {
+    BytesLike,
+    solidityKeccak256,
+    solidityPack,
+    defaultAbiCoder
+} from "ethers/lib/utils";
 import { Hashable } from "./interfaces";
 import { solG2 } from "./mcl";
 import { prettyHex } from "./utils";
@@ -16,6 +21,23 @@ export class Pubkey implements Hashable {
 
     public hash(): string {
         return hashPubkey(this.pubkey);
+    }
+
+    public encode(): string {
+        return solidityPack(solidityPubkeyType, this.pubkey);
+    }
+
+    static fromEncoded(data: BytesLike): Pubkey {
+        const pubkeyDecoded = defaultAbiCoder.decode(solidityPubkeyType, data);
+
+        const pubkeySolG2: solG2 = [
+            pubkeyDecoded[0].toHexString(),
+            pubkeyDecoded[1].toHexString(),
+            pubkeyDecoded[2].toHexString(),
+            pubkeyDecoded[3].toHexString()
+        ];
+
+        return new this(pubkeySolG2);
     }
 
     public toString(): string {

@@ -42,4 +42,5 @@ export interface DeploymentParameters {
 
 export interface Hashable {
     hash(): string;
+    encode(): string;
 }
