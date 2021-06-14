@@ -3,12 +3,13 @@ import {
     BLSAccountRegistry__factory
 } from "../../types/ethers-contracts";
 
-import { Tree, Hasher } from "../../ts/tree";
+import { Hasher } from "../../ts/tree";
 
 import * as mcl from "../../ts/mcl";
 import { ethers } from "hardhat";
 import { assert } from "chai";
 import { ZERO_BYTES32 } from "../../ts/constants";
+import { MemoryTree } from "../../ts/tree/memoryTree";
 
 type RegisterBatchPubkeys = Parameters<BLSAccountRegistry["registerBatch"]>[0];
 type ExistsWitness = Parameters<BLSAccountRegistry["exists"]>[2];
@@ -28,8 +29,8 @@ function pubkeyToLeaf(uncompressedMcl: mcl.mclG2) {
 
 describe("Registry", async () => {
     let registry: BLSAccountRegistry;
-    let treeLeft: Tree;
-    let treeRight: Tree;
+    let treeLeft: MemoryTree;
+    let treeRight: MemoryTree;
     beforeEach(async function() {
         await mcl.init();
         const accounts = await ethers.getSigners();
@@ -37,8 +38,8 @@ describe("Registry", async () => {
         DEPTH = (await registry.DEPTH()).toNumber();
         BATCH_DEPTH = (await registry.BATCH_DEPTH()).toNumber();
         hasher = Hasher.new("bytes", ZERO_BYTES32);
-        treeLeft = Tree.new(DEPTH, hasher);
-        treeRight = Tree.new(DEPTH, hasher);
+        treeLeft = MemoryTree.new(DEPTH, hasher);
+        treeRight = MemoryTree.new(DEPTH, hasher);
         hasher = treeLeft.hasher;
     });
 

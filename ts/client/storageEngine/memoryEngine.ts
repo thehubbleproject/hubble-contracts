@@ -1,25 +1,22 @@
 import { ZERO_BYTES32 } from "../../constants";
 import { TreeAtLevelIsFull } from "../../exceptions";
 import { Hashable, Vacant } from "../../interfaces";
-import { Hasher, Tree } from "../../tree";
+import { Hasher } from "../../tree";
+import { MemoryTree } from "../../tree/memoryTree";
+import { Entry } from "./batches/interfaces";
 import { StorageEngine, WithWitness } from "./interfaces";
-
-export interface Entry<Item> {
-    itemID: number;
-    item: Item;
-}
 
 export class MemoryEngine<Item extends Hashable>
     implements StorageEngine<Item> {
     public static new(depth: number) {
         return new this(depth);
     }
-    private tree: Tree;
+    private tree: MemoryTree;
     private items: { [key: number]: Item } = {};
     private cache: { [key: number]: Item } = {};
     private journal: Entry<Item>[] = [];
     constructor(depth: number) {
-        this.tree = Tree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
+        this.tree = MemoryTree.new(depth, Hasher.new("bytes", ZERO_BYTES32));
     }
     private checkSize(itemID: number) {
         if (itemID >= this.tree.setSize)

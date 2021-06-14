@@ -7,6 +7,7 @@ import { ethers } from "hardhat";
 import { assert } from "chai";
 import { randHex, randomLeaves } from "../../ts/utils";
 import { ZERO_BYTES32 } from "../../ts/constants";
+import { MemoryTree } from "../../ts/tree/memoryTree";
 
 type UpdateBatchLeafs = Parameters<TestAccountTree["updateBatch"]>[0];
 type CheckInclusionTreeWitness = Parameters<
@@ -26,8 +27,8 @@ describe("Account Tree", async () => {
         DEPTH = (await accountTree.DEPTH()).toNumber();
         BATCH_DEPTH = (await accountTree.BATCH_DEPTH()).toNumber();
         hasher = Hasher.new("bytes", ZERO_BYTES32);
-        treeLeft = Tree.new(DEPTH, hasher);
-        treeRight = Tree.new(DEPTH, hasher);
+        treeLeft = MemoryTree.new(DEPTH, hasher);
+        treeRight = MemoryTree.new(DEPTH, hasher);
     });
     it("empty tree construction", async function() {
         for (let i = 0; i < DEPTH; i++) {

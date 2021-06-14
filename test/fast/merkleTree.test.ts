@@ -1,11 +1,11 @@
 import { randomLeaves } from "../../ts/utils";
 import { assert } from "chai";
 import { ethers } from "hardhat";
-import { Tree } from "../../ts/tree";
 import {
     TestMerkleTree,
     TestMerkleTree__factory
 } from "../../types/ethers-contracts";
+import { MemoryTree } from "../../ts/tree/memoryTree";
 
 describe("MerkleTree", async function() {
     const MAX_DEPTH = 32;
@@ -18,7 +18,7 @@ describe("MerkleTree", async function() {
         const size = 50;
         let totalCost = 0;
         const leaves = randomLeaves(size);
-        const tree = Tree.new(MAX_DEPTH);
+        const tree = MemoryTree.new(MAX_DEPTH);
         tree.updateBatch(0, leaves);
         for (const [path, leaf] of leaves.entries()) {
             const {
@@ -44,7 +44,7 @@ describe("MerkleTree", async function() {
                 0: root,
                 1: gasCost
             } = await contract.callStatic.testMerklize(leaves);
-            assert.equal(root, Tree.merklize(leaves).root);
+            assert.equal(root, MemoryTree.merklize(leaves).root);
             console.log(
                 `Merklizing ${size} leaves onchain`,
                 gasCost.toNumber()

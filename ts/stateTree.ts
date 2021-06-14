@@ -1,4 +1,4 @@
-import { Hasher, Tree } from "./tree";
+import { Hasher } from "./tree";
 import { State, ZERO_STATE } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
 import { BigNumber, constants } from "ethers";
@@ -14,6 +14,7 @@ import {
     ZeroAmount
 } from "./exceptions";
 import { Vacant } from "./interfaces";
+import { MemoryTree } from "./tree/memoryTree";
 
 export interface StateProvider {
     getState(stateID: number): SolStateMerkleProof;
@@ -92,10 +93,10 @@ export class StateTree implements StateProvider {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
     }
-    private stateTree: Tree;
+    private stateTree: MemoryTree;
     private states: { [key: number]: State } = {};
     constructor(stateDepth: number) {
-        this.stateTree = Tree.new(
+        this.stateTree = MemoryTree.new(
             stateDepth,
             Hasher.new("bytes", ZERO_BYTES32)
         );
