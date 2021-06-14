@@ -1,5 +1,4 @@
-import { TestBlsFactory } from "../../types/ethers-contracts/TestBlsFactory";
-import { TestBls } from "../../types/ethers-contracts/TestBls";
+import { TestBLS, TestBLS__factory } from "../../types/ethers-contracts";
 import { assert } from "chai";
 import { randHex, randFs, to32Hex } from "../../ts/utils";
 
@@ -12,7 +11,7 @@ import { deployKeyless } from "../../ts/deployment/deploy";
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = arrayify(DOMAIN_HEX);
 
-const g2PointOnIncorrectSubgroup = [
+const g2PointOnIncorrectSubgroup: mcl.solG2 = [
     "0x1ef4bf0d452e71f1fb23948695fa0a87a10f3d9dce9d32fadb94711f22566fb5",
     "0x237536b6a72ac2e447e7b34a684a81d8e63929a4d670ce1541730a7e03c3f0f2",
     "0x0a63f14620a64dd39394b6e89c48679d3f2ce0c46a1ef052ee3df0bd66c198cb",
@@ -20,13 +19,13 @@ const g2PointOnIncorrectSubgroup = [
 ];
 
 describe("BLS", async () => {
-    let bls: TestBls;
+    let bls: TestBLS;
     before(async function() {
         const signer = ethers.provider.getSigner();
         await deployKeyless(signer, false, { PairingGasEstimators: true });
         await mcl.init();
         const accounts = await ethers.getSigners();
-        bls = await new TestBlsFactory(accounts[0]).deploy();
+        bls = await new TestBLS__factory(accounts[0]).deploy();
         await bls.deployed();
     });
     it("map to point", async function() {
@@ -127,7 +126,7 @@ describe("BLS", async () => {
             messages.push(mcl.g1ToHex(messagePoint));
             pubkeys.push(mcl.g2ToHex(pubkey));
         }
-        const aggSignature = [100, 100];
+        const aggSignature: mcl.solG1 = [100, 100];
         let res = await bls.verifyMultiple(aggSignature, pubkeys, messages);
         assert.isFalse(res[0]);
         assert.isFalse(res[1]);
@@ -135,7 +134,7 @@ describe("BLS", async () => {
     it("verify aggregated signature: fail pubkey is not on curve", async function() {
         const n = 10;
         const messages = [];
-        const pubkeys = [];
+        const pubkeys: mcl.solG2[] = [];
         const signatures = [];
         for (let i = 0; i < n; i++) {
             const message = randHex(12);
@@ -215,7 +214,7 @@ describe("BLS", async () => {
         const message = randHex(12);
         const { secret } = mcl.newKeyPair();
         const { signature, messagePoint } = mcl.sign(message, secret, DOMAIN);
-        const pubkey = [3, 3, 3, 3];
+        const pubkey: mcl.solG2 = [3, 3, 3, 3];
         let res = await bls.verifySingle(
             mcl.g1ToHex(signature),
             pubkey,
@@ -228,7 +227,7 @@ describe("BLS", async () => {
         const message = randHex(12);
         const { pubkey, secret } = mcl.newKeyPair();
         const { messagePoint } = mcl.sign(message, secret, DOMAIN);
-        const signature = [3, 3];
+        const signature: mcl.solG1 = [3, 3];
         let res = await bls.verifySingle(
             signature,
             mcl.g2ToHex(pubkey),
@@ -258,7 +257,7 @@ describe("BLS", async () => {
             assert.isTrue(isOnCurve);
         }
         for (let i = 0; i < 20; i++) {
-            const point = [randomBytes(31), randomBytes(31)];
+            const point: mcl.solG1 = [randomBytes(31), randomBytes(31)];
             const isOnCurve = await bls.isOnCurveG1(point);
             assert.isFalse(isOnCurve);
         }
@@ -270,7 +269,7 @@ describe("BLS", async () => {
             assert.isTrue(isOnCurve);
         }
         for (let i = 0; i < 20; i++) {
-            const point = [
+            const point: mcl.solG2 = [
                 randomBytes(31),
                 randomBytes(31),
                 randomBytes(31),

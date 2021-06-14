@@ -7,9 +7,11 @@ import {
     isDeployed as isProxyDeployed,
     DeploymentResult as ProxyDeploymentResult
 } from "./deployer";
-import { BnPairingPrecompileCostEstimatorFactory } from "../../types/ethers-contracts";
+import {
+    BNPairingPrecompileCostEstimator__factory,
+    Proxy__factory
+} from "../../types/ethers-contracts";
 import { SALT } from "./static";
-import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
 import { logAddress, logDeployment, logTx } from "../../scripts/logger";
 
 export interface DeploymentResult extends ProxyDeploymentResult {
@@ -50,7 +52,7 @@ export async function deploy(
 
     if (await isProxyDeployed(provider, salt)) {
         const address = calculateAddress(salt);
-        const proxyFactory = new ProxyFactory();
+        const proxyFactory = new Proxy__factory();
         const proxy = proxyFactory.attach(address).connect(provider);
         const implementation = await proxy.__implementation__();
         logAddress(verbose, `${name} is ALREADY deployed`, address);
@@ -95,7 +97,7 @@ export async function deployPairingGasEstimator(
     verbose: boolean
 ) {
     assert(signer.provider);
-    const factory = new BnPairingPrecompileCostEstimatorFactory(signer);
+    const factory = new BNPairingPrecompileCostEstimator__factory(signer);
     const result = await deploy(
         factory,
         SALT.PAIRING_GAS_ESTIMATOR,

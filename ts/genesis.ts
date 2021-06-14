@@ -3,22 +3,22 @@ import { DeploymentParameters } from "./interfaces";
 import fs from "fs";
 import { Signer } from "ethers";
 import {
-    FrontendGenericFactory,
-    FrontendTransferFactory,
-    FrontendMassMigrationFactory,
-    FrontendCreate2TransferFactory,
-    BlsAccountRegistryFactory,
-    TokenRegistryFactory,
-    TransferFactory,
-    MassMigrationFactory,
-    Create2TransferFactory,
-    ExampleTokenFactory,
-    SpokeRegistryFactory,
-    VaultFactory,
-    DepositManagerFactory,
-    RollupFactory,
-    WithdrawManagerFactory,
-    BurnAuctionFactory
+    FrontendGeneric__factory,
+    FrontendTransfer__factory,
+    FrontendMassMigration__factory,
+    FrontendCreate2Transfer__factory,
+    BLSAccountRegistry__factory,
+    TokenRegistry__factory,
+    Transfer__factory,
+    MassMigration__factory,
+    Create2Transfer__factory,
+    ExampleToken__factory,
+    SpokeRegistry__factory,
+    Vault__factory,
+    DepositManager__factory,
+    Rollup__factory,
+    WithdrawManager__factory,
+    BurnAuction__factory
 } from "../types/ethers-contracts";
 import { execSync } from "child_process";
 
@@ -72,22 +72,22 @@ export class Genesis {
 
     getContracts(signer: Signer): allContracts {
         const factories = {
-            frontendGeneric: FrontendGenericFactory,
-            frontendTransfer: FrontendTransferFactory,
-            frontendMassMigration: FrontendMassMigrationFactory,
-            frontendCreate2Transfer: FrontendCreate2TransferFactory,
-            blsAccountRegistry: BlsAccountRegistryFactory,
-            tokenRegistry: TokenRegistryFactory,
-            transfer: TransferFactory,
-            massMigration: MassMigrationFactory,
-            create2Transfer: Create2TransferFactory,
-            exampleToken: ExampleTokenFactory,
-            spokeRegistry: SpokeRegistryFactory,
-            vault: VaultFactory,
-            depositManager: DepositManagerFactory,
-            rollup: RollupFactory,
-            withdrawManager: WithdrawManagerFactory,
-            burnAuction: BurnAuctionFactory
+            frontendGeneric: FrontendGeneric__factory,
+            frontendTransfer: FrontendTransfer__factory,
+            frontendMassMigration: FrontendMassMigration__factory,
+            frontendCreate2Transfer: FrontendCreate2Transfer__factory,
+            blsAccountRegistry: BLSAccountRegistry__factory,
+            tokenRegistry: TokenRegistry__factory,
+            transfer: Transfer__factory,
+            massMigration: MassMigration__factory,
+            create2Transfer: Create2Transfer__factory,
+            exampleToken: ExampleToken__factory,
+            spokeRegistry: SpokeRegistry__factory,
+            vault: Vault__factory,
+            depositManager: DepositManager__factory,
+            rollup: Rollup__factory,
+            withdrawManager: WithdrawManager__factory,
+            burnAuction: BurnAuction__factory
         };
         const contracts: any = {};
         for (const [key, factory] of Object.entries(factories)) {

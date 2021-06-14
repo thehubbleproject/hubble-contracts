@@ -1,10 +1,12 @@
 import { ethers } from "hardhat";
 import { KeylessDeployer } from "../../ts/deployment/keylessDeployment";
-import { SimpleStorageFactory } from "../../types/ethers-contracts/SimpleStorageFactory";
+import {
+    SimpleStorage__factory,
+    Proxy__factory
+} from "../../types/ethers-contracts";
 import { BigNumber, Wallet, utils, Signer } from "ethers";
 import { assert } from "chai";
 import { randHex } from "../../ts/utils";
-import { ProxyFactory } from "../../types/ethers-contracts/ProxyFactory";
 import { deployDeployer } from "../../ts/deployment/deployDeployer";
 import { deploy } from "../../ts/deployment/deploy";
 import { isDeployerDeployed } from "../../ts/deployment/deployer";
@@ -20,7 +22,7 @@ describe("Deployer", async () => {
         const signers = await ethers.getSigners();
         signer = signers[0];
         feeder = Wallet.createRandom().connect(provider);
-        proxyCodeHash = utils.keccak256(new ProxyFactory().bytecode);
+        proxyCodeHash = utils.keccak256(new Proxy__factory().bytecode);
         await signer.sendTransaction({
             value: utils.parseEther("1"),
             to: feeder.address
@@ -28,7 +30,7 @@ describe("Deployer", async () => {
     });
 
     it("keyless", async function() {
-        const factory = new SimpleStorageFactory(signer);
+        const factory = new SimpleStorage__factory(signer);
         const bytecode = factory.bytecode;
         const gasPrice = BigNumber.from(10e10);
         const gasLimit = await provider.estimateGas(
@@ -48,7 +50,7 @@ describe("Deployer", async () => {
     });
 
     it("implementation and proxy", async function() {
-        const simpleStorageFactory = new SimpleStorageFactory(signer);
+        const simpleStorageFactory = new SimpleStorage__factory(signer);
         const salt = randHex(32);
 
         // prettier-ignore

@@ -1,6 +1,8 @@
-import { TestCreate2TransferFactory } from "../../types/ethers-contracts/TestCreate2TransferFactory";
-import { TestCreate2Transfer } from "../../types/ethers-contracts/TestCreate2Transfer";
-import { BlsAccountRegistryFactory } from "../../types/ethers-contracts/BlsAccountRegistryFactory";
+import {
+    BLSAccountRegistry__factory,
+    TestCreate2Transfer,
+    TestCreate2Transfer__factory
+} from "../../types/ethers-contracts";
 import { serialize } from "../../ts/tx";
 import * as mcl from "../../ts/mcl";
 import { StateTree } from "../../ts/stateTree";
@@ -31,7 +33,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         await mcl.init();
         const [signer] = await ethers.getSigners();
         await deployKeyless(signer, false);
-        const registryContract = await new BlsAccountRegistryFactory(
+        const registryContract = await new BLSAccountRegistry__factory(
             signer
         ).deploy();
         registry = await AccountRegistry.new(registryContract);
@@ -60,7 +62,7 @@ describe("Rollup Create2Transfer Commitment", () => {
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        rollup = await new TestCreate2TransferFactory(signer).deploy();
+        rollup = await new TestCreate2Transfer__factory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         usersWithState.connect(stateTree);
         usersWithState.createStates({ tokenID });

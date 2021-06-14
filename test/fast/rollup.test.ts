@@ -5,10 +5,10 @@ import { generateDomainSeparatorFromRollup } from "../../ts/domain";
 import { StateTree } from "../../ts/stateTree";
 import { randomAddress } from "../../ts/utils";
 import {
-    DepositManagerFactory,
-    RollupFactory
+    DepositManager__factory,
+    Rollup,
+    Rollup__factory
 } from "../../types/ethers-contracts";
-import { Rollup } from "../../types/ethers-contracts/Rollup";
 
 describe("Rollup", () => {
     let rollup: Rollup;
@@ -17,14 +17,14 @@ describe("Rollup", () => {
         const [signer] = await ethers.getSigners();
 
         const fakeAddress = randomAddress();
-        const depositManager = await new DepositManagerFactory(signer).deploy(
+        const depositManager = await new DepositManager__factory(signer).deploy(
             fakeAddress,
             fakeAddress,
             parameters.MAX_DEPOSIT_SUBTREE_DEPTH
         );
 
         const stateTree = new StateTree(parameters.MAX_DEPTH);
-        rollup = await new RollupFactory(signer).deploy(
+        rollup = await new Rollup__factory(signer).deploy(
             fakeAddress,
             depositManager.address,
             fakeAddress,

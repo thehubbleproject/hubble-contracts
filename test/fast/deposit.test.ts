@@ -9,8 +9,10 @@ import { deployAll } from "../../ts/deploy";
 import { State } from "../../ts/state";
 import { Tree } from "../../ts/tree";
 import { randomLeaves } from "../../ts/utils";
-import { TestDepositCore } from "../../types/ethers-contracts/TestDepositCore";
-import { TestDepositCoreFactory } from "../../types/ethers-contracts/TestDepositCoreFactory";
+import {
+    TestDepositCore,
+    TestDepositCore__factory
+} from "../../types/ethers-contracts";
 import { TransferCommitment } from "../../ts/commitments";
 import { StateTree } from "../../ts/stateTree";
 import { ERC20ValueFactory } from "../../ts/decimal";
@@ -22,7 +24,7 @@ describe("Deposit Core", async function() {
     const maxSubtreeDepth = 4;
     before(async function() {
         const [signer] = await ethers.getSigners();
-        contract = await new TestDepositCoreFactory(signer).deploy(
+        contract = await new TestDepositCore__factory(signer).deploy(
             maxSubtreeDepth
         );
     });
@@ -51,7 +53,7 @@ describe("Deposit Core", async function() {
                         "No ready subtree should be emitted"
                     );
                 } else {
-                    assert.equal(events[0].args?.subtreeID, j + 1);
+                    assert.equal(events[0].args?.subtreeID.toNumber(), j + 1);
                     assert.equal(
                         events[0].args?.subtreeRoot,
                         tree.root,

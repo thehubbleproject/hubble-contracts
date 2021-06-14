@@ -4,8 +4,10 @@ import chaiAsPromised from "chai-as-promised";
 import { ethers } from "hardhat";
 import { TESTING_PARAMS as params } from "../../ts/constants";
 import { randomAddress } from "../../ts/utils";
-import { DepositManagerFactory } from "../../types/ethers-contracts";
-import { DepositManager } from "../../types/ethers-contracts/DepositManager";
+import {
+    DepositManager,
+    DepositManager__factory
+} from "../../types/ethers-contracts";
 
 chai.use(chaiAsPromised);
 
@@ -20,7 +22,7 @@ describe("DepositManager", () => {
         otherSigner = signers[1];
 
         const fakeAddress = randomAddress();
-        depositManager = await new DepositManagerFactory(owner).deploy(
+        depositManager = await new DepositManager__factory(owner).deploy(
             fakeAddress,
             fakeAddress,
             params.MAX_DEPOSIT_SUBTREE_DEPTH

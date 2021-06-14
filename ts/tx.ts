@@ -1,13 +1,7 @@
 import { BigNumber } from "ethers";
 import { randomNum } from "./utils";
 import { float16 } from "./decimal";
-import {
-    hexZeroPad,
-    concat,
-    hexlify,
-    solidityPack,
-    solidityKeccak256
-} from "ethers/lib/utils";
+import { hexZeroPad, concat, hexlify, solidityPack } from "ethers/lib/utils";
 import { COMMIT_SIZE } from "./constants";
 import { aggregate, SignatureInterface } from "./blsSigner";
 import { solG1, solG2 } from "./mcl";

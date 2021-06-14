@@ -1,5 +1,5 @@
-const mcl = require("mcl-wasm");
-import { BigNumber, ethers } from "ethers";
+import mcl from "mcl-wasm";
+import { BigNumber, BigNumberish, ethers } from "ethers";
 import { FIELD_ORDER, randHex } from "./utils";
 import { hashToField } from "./hashToField";
 import { arrayify, hexlify } from "ethers/lib/utils";
@@ -14,8 +14,8 @@ export type MessagePoint = mclG1;
 export type Signature = mclG1;
 export type PublicKey = mclG2;
 
-export type solG1 = [string, string];
-export type solG2 = [string, string, string, string];
+export type solG1 = [BigNumberish, BigNumberish];
+export type solG2 = [BigNumberish, BigNumberish, BigNumberish, BigNumberish];
 
 export interface keyPair {
     pubkey: PublicKey;
@@ -175,14 +175,16 @@ export function parseG2(solG2: solG2): mclG2 {
     return g2;
 }
 
+function dump(sol: solG1 | solG2): string {
+    return `0x${sol.map(n => n.toString().slice(2)).join()}`;
+}
+
 export function dumpG1(solG1: solG1): string {
-    const [x, y] = solG1;
-    return `0x${x.slice(2)}${y.slice(2)}`;
+    return dump(solG1);
 }
 
 export function dumpG2(solG2: solG2): string {
-    const [x0, x1, y0, y1] = solG2;
-    return `0x${x0.slice(2)}${x1.slice(2)}${y0.slice(2)}${y1.slice(2)}`;
+    return dump(solG2);
 }
 
 export function loadG1(hex: string): solG1 {

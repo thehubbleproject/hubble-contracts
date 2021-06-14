@@ -1,13 +1,12 @@
 import { ethers } from "hardhat";
 import { assert } from "chai";
-import { TestBitmapFactory } from "../../types/ethers-contracts";
-import { TestBitmap } from "../../types/ethers-contracts/TestBitmap";
+import { TestBitmap, TestBitmap__factory } from "../../types/ethers-contracts";
 
 describe("Bitmap", async () => {
     let contract: TestBitmap;
     before(async function() {
         const [singer] = await ethers.getSigners();
-        contract = await new TestBitmapFactory(singer).deploy();
+        contract = await new TestBitmap__factory(singer).deploy();
     });
 
     it("claims", async function() {
