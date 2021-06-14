@@ -1,4 +1,5 @@
 import { ethers, providers } from "ethers";
+import minimist from "minimist";
 import {
     calculateAddresses,
     deployerBytecode,
@@ -8,7 +9,7 @@ import {
 import { deployKeyless } from "../ts/deployment/deploy";
 import { KeylessDeployer } from "../ts/deployment/keylessDeployment";
 
-const argv = require("minimist")(process.argv.slice(2), {
+const argv = minimist(process.argv.slice(2), {
     string: ["url", "root"],
     boolean: ["check", "deploy", "offline"]
 });
@@ -82,4 +83,9 @@ async function checkKeylessDeploymentSetup(
     // TODO: report deployment status.
 }
 
-main();
+main()
+    .then(() => process.exit(0))
+    .catch(error => {
+        console.error(error);
+        process.exit(1);
+    });

@@ -1,7 +1,8 @@
 import { ethers } from "hardhat";
 import { User } from "../../ts/factory";
 import { TxCreate2Transfer, TxMassMigration, TxTransfer } from "../../ts/tx";
-import { expectCallRevert, hexToUint8Array, randHex } from "../../ts/utils";
+import { hexToUint8Array, randHex } from "../../ts/utils";
+import { expectCallRevert } from "../../test/utils";
 import * as mcl from "../../ts/mcl";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import {

@@ -1,7 +1,8 @@
-import { mineBlocks } from "../ts/utils";
 import { ethers } from "ethers";
+import minimist from "minimist";
+import { mineBlocks } from "../ts/utils";
 
-const argv = require("minimist")(process.argv.slice(2));
+const argv = minimist(process.argv.slice(2));
 
 // Assuming a node is already running `npm run node`
 // npx ts-node ./scripts/mineBlocks.ts -n 5

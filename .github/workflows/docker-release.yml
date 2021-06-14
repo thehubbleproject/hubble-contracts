@@ -1,0 +1,39 @@
+name: Docker CI Release
+
+on:
+  release:
+    types: [published]
+
+env:
+  DOCKER_IMAGE: thehubbleproject/node
+  DOCKER_IMAGE_SHA: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
+  DOCKER_IMAGE_TAG: ${{ env.DOCKER_IMAGE }}:${{ github.event.release.tag_name }}
+  DOCKER_IMAGE_LATEST: ${{ env.DOCKER_IMAGE }}:latest
+
+jobs:
+  pull-tag-push:
+    runs-on: ubuntu-latest
+    needs: images
+
+    steps:
+      - uses: actions/checkout@v2
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Pull image for git sha
+        run: docker pull ${{ env.DOCKER_IMAGE_SHA }}
+      -
+        name: Tag image with release
+        run: docker tag ${{ env.DOCKER_IMAGE_SHA }} ${{ env.DOCKER_IMAGE_TAG }}
+      -
+        name: Tag image with latest
+        if: ${{ github.event.release.prerelease == 'false' }}
+        run: docker tag ${{ env.DOCKER_IMAGE_SHA }} ${{ env.DOCKER_IMAGE_LATEST }}
+      - 
+        name: Push tagged image(s)
+        # Pushing the image name without a tag will push all new tags.
+        run: docker push ${{ env.DOCKER_IMAGE }}

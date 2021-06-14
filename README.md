@@ -1,49 +1,55 @@
-# Hubble Optimistic Rollup Contracts
+# Hubble Optimistic Rollup Contracts & NodeJS TypeScript Client (Node)
 
 ![Node.js CI](https://github.com/thehubbleproject/RedditHubble/workflows/Node.js%20CI/badge.svg)
 
 ## About Hubble
 
-Hubble is a token transfer solution to improve Ethereum throughput from 20 transactions per second to 2600.
+Hubble is an [ERC-20](https://ethereum.org/en/developers/docs/standards/tokens/erc-20/) token transfer solution that improves Ethereum throughput from 20 transactions per second to ~2700.
 
-### How it work
+### How it works
 
-People sumit transfers to a coordinator, who then submits transactions and the state root of the balances update to a Ethereum contract.
+Accounts submit transfers to a coordinator node who then submits transactions and the state root of the balance updates to an Ethereum smart contract ([Rollup.sol](./contracts/rollup/Rollup.sol)).
 
-### Why can that improve the throughput
+### How does this improve throughput?
 
-The contract does not validate either the correctness of the balances update or the authenticity of the sender.
+The contract does not validate either the correctness of the balance updates or the authenticity of the sender.
 
-### What if the coordinator submit incorrect balances update?
+### What if the coordinator submits incorrect balance updates?
 
-Anyone can trigger the dispute methods of the contract and penalize the coordinator by burning the assets they staked beforehand. The contract rolls back to the last state when the balance was correct.
+Anyone can trigger the dispute methods of the contract and penalize the coordinator by burning the assets they staked beforehand. The contract rolls back to the last state when the balances were correct.
 
-### How is it different from these projects
+### How is it different from other Layer 2 (L2) Ethereum projects?
 
-- Optimism: Hubble does not support virtual machine, ... yet.
-- ZK rollups: Both improve throughput but Hubble is ZK free. No zero-knowledge moon math, only boring EVM at work.
+- [Optimism](https://optimism.io/): Hubble does not support the EVM virtual machine, ... yet.
+- [ZK (zero knowledge proof) rollups](https://docs.ethhub.io/ethereum-roadmap/layer-2-scaling/zk-rollups/): Both improve throughput but Hubble is ZK free. No zero-knowledge moon math, only boring EVM at work.
 - ZK optimistic rollups: Hubble does not address privacy.
 
-Hubble has the highest throughput compared with all above applications, since
+Hubble has the highest throughput compared with the above, since:
 
-- We use BLS signature aggregation to reduce the size to store data on chain
-- We optimize for simple transfer
+- Hubble use BLS signature aggregation to reduce the size to store data on chain.
+- We optimize for simple token transfers.
 
 ### What else can Hubble do
 
-- Mass Migration: Users can migrate their tokens to other layer 2 solutions without withdraw to and deposit from layer 1 again.
-- Create2Transfer: Users can onboard Hubble without going through layer 1. The coordinator can register pubkeys for them and they can acquire tokens from holders who are already in Hubble.
+#### Mass Migration
 
+Users can migrate their tokens to other L2 solutions without withdrawing to and depositing from Layer 1 (L1) again.
 
-## Getting Started
+#### Create2Transfer
+
+Users can onboard accounts to Hubble without going through L1. The coordinator can register their public keys and then they can acquire tokens from holders who are already in the Hubble L2.
+
+## Local Development
+
+See [Setup](./SETUP.md) instructions
+
+## Docker
+
+https://hub.docker.com/r/thehubbleproject/node
 
 ```sh
-npm install
-npm run generate
+docker pull thehubbleproject/node:latest
+# or for a specific release, ...:v0.x.y
 ```
 
-## Testing
-
-```sh
-npm run test
-```
+See [Docker](./docker/README.md) instructions.

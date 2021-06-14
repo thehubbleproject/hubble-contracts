@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+    geth:
+        container_name: geth
+        image: ethereum/client-go:stable
+        ports:
+            - "8545:8545"
+        volumes:
+            - "./testData/dev-chain:/dev-chain"
+        command: --datadir dev-chain/ --http --dev --dev.period=14 --rpc.allow-unprotected-txs
+
+    hubble:
+        container_name: hubble
+        depends_on:
+            - geth
+        build:
+            context: ..
+            dockerfile: ./docker/Dockerfile
+        ports:
+            - "3000:3000"
+        volumes:
+            - "./testData/genesis.json:/app/genesis.json"
