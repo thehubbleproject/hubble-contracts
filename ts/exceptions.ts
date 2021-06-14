@@ -209,3 +209,19 @@ export class GenesisBatchCommitmentRootMismatch extends Error {
         this.name = "GenesisBatchCommitmentRootMismatch";
     }
 }
+
+// ConfigurationExcpetions
+
+export class MissingConfigPropError extends Error {
+    constructor(prop: string) {
+        super(`missing ${prop}`);
+        this.name = "MissingConfigPropError";
+    }
+}
+
+export class EmptyConfigPropError extends Error {
+    constructor(prop: string) {
+        super(`${prop} is empty`);
+        this.name = "EmptyConfigPropError";
+    }
+}

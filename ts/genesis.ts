@@ -1,7 +1,10 @@
+import { execSync } from "child_process";
+import { Signer } from "ethers";
+import { readFile, writeFile } from "fs";
+import { resolve } from "path";
+import { promisify } from "util";
 import { allContracts } from "./allContractsInterfaces";
 import { DeploymentParameters } from "./interfaces";
-import fs from "fs";
-import { Signer } from "ethers";
 import {
     FrontendGeneric__factory,
     FrontendTransfer__factory,
@@ -20,12 +23,15 @@ import {
     WithdrawManager__factory,
     BurnAuction__factory
 } from "../types/ethers-contracts";
-import { execSync } from "child_process";
+
+const readFileAsync = promisify(readFile);
+const writeFileAsync = promisify(writeFile);
 
 export interface Auxiliary {
     domain: string;
     genesisEth1Block: number;
     version: string;
+    chainid: number;
 }
 
 export class Genesis {
@@ -35,17 +41,24 @@ export class Genesis {
         public readonly auxiliary: Auxiliary
     ) {}
 
-    static fromConfig(path: string) {
-        const genesis = fs.readFileSync(path).toString();
-        const { parameters, addresses, auxiliary } = JSON.parse(genesis);
+    public static async fromConfig(
+        path: string = "./genesis.json"
+    ): Promise<Genesis> {
+        const genesisPath = resolve(path);
+        console.info(`loading genesis from ${genesisPath}`);
+        const genesisJSONStr = await readFileAsync(genesisPath, {
+            encoding: "utf8"
+        });
+        const { parameters, addresses, auxiliary } = JSON.parse(genesisJSONStr);
         return new this(parameters, addresses, auxiliary);
     }
 
-    static async fromContracts(
+    public static async fromContracts(
         contracts: allContracts,
         parameters: DeploymentParameters,
-        genesisEth1Block: number
-    ) {
+        genesisEth1Block: number,
+        chainid: number
+    ): Promise<Genesis> {
         const addresses = Object.entries(contracts).reduce(
             (prev, [contractName, contract]) => ({
                 ...prev,
@@ -61,16 +74,19 @@ export class Genesis {
         const auxiliary = {
             domain: domainSeparator,
             genesisEth1Block,
-            version
+            version,
+            chainid
         };
         return new this(parameters, addresses, auxiliary);
     }
 
-    dump(path: string) {
-        fs.writeFileSync(path, JSON.stringify(this, null, 4));
+    public async dump(path: string): Promise<void> {
+        const genesisPath = resolve(path);
+        console.info(`writing genesis to ${genesisPath}`);
+        await writeFileAsync(genesisPath, this.toString());
     }
 
-    getContracts(signer: Signer): allContracts {
+    public getContracts(signer: Signer): allContracts {
         const factories = {
             frontendGeneric: FrontendGeneric__factory,
             frontendTransfer: FrontendTransfer__factory,
@@ -97,5 +113,9 @@ export class Genesis {
             contracts[key] = factory.connect(address, signer);
         }
         return contracts;
+    }
+
+    public toString(): string {
+        return JSON.stringify(this, null, 4);
     }
 }

@@ -14,7 +14,7 @@ npm run deposit -- \
 async function main() {
     const providerUrl = argv.url || "http://localhost:8545";
 
-    const hubble = Hubble.fromDefault(providerUrl);
+    const hubble = await Hubble.fromDefault(providerUrl);
 
     let accIDs: number[] = [];
 

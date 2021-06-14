@@ -49,4 +49,4 @@ WORKDIR /app
 COPY --from=prod-deps /deps/node_modules ./node_modules
 COPY --from=builder /app/build ./build
 
-CMD ["node", "/app/build/scripts/simulate.js"]
+ENTRYPOINT ["node", "/app/build/ts/client"]

@@ -11,7 +11,7 @@ import { SinglePubkeyRegisteredEventSyncer } from "./events/singlePubkeyRegister
 
 export class Packer extends BaseService {
     name = "Packer";
-    private readonly transferPool: ITransferPool;
+
     private readonly transferPackingCommand: TransferPackingCommand;
 
     private readonly depositPool: IDepositPool;
@@ -19,10 +19,12 @@ export class Packer extends BaseService {
 
     private readonly events: EventSyncer;
 
-    constructor(private readonly api: CoreAPI) {
+    constructor(
+        private readonly api: CoreAPI,
+        private readonly transferPool: ITransferPool
+    ) {
         super();
 
-        this.transferPool = api.transferPool;
         this.transferPackingCommand = new TransferPackingCommand(
             api.parameters,
             api.l2Storage,
