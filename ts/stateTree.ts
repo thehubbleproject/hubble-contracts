@@ -14,6 +14,7 @@ import {
     ZeroAmount
 } from "./exceptions";
 import { StateLeaf } from "./tree/leaves/StateLeaf";
+import { Vacant } from "./interfaces";
 
 export interface StateProvider {
     getState(stateID: number): SolStateMerkleProof;
@@ -122,7 +123,10 @@ export class StateTree implements StateProvider {
         this.stateTree.update(stateID, StateLeaf.fromState(state, stateID));
     }
 
-    public getVacancyProof(mergeOffsetLower: number, subtreeDepth: number) {
+    public getVacancyProof(
+        mergeOffsetLower: number,
+        subtreeDepth: number
+    ): Vacant {
         const witness = this.stateTree.witnessForBatch(
             mergeOffsetLower,
             subtreeDepth

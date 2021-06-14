@@ -10,6 +10,7 @@ const txPerCommitment = 32;
 const commitmentsPerBatch = 32;
 const blockTime = 13;
 const blockGasLimit = 12500000;
+const batchID = 1;
 
 async function main() {
     const [signer, ...rest] = await ethers.getSigners();
@@ -33,6 +34,7 @@ async function main() {
 
     const tx = await batch.submit(
         constracts.rollup,
+        batchID,
         TESTING_PARAMS.STAKE_AMOUNT
     );
     const receipt = await tx.wait();

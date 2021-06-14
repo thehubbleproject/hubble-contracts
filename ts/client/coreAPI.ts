@@ -1,12 +1,13 @@
+import { arrayify } from "@ethersproject/bytes";
+import { providers, Signer } from "ethers";
+import { EventEmitter } from "events";
 import { Genesis } from "../genesis";
 import { Pubkey } from "../pubkey";
 import { State } from "../state";
-import { DepositPool } from "./features/deposit";
+import { DepositPool, IDepositPool } from "./features/deposit";
 import { StorageManager } from "./storageEngine";
-import { providers, Signer } from "ethers";
 import { allContracts } from "../allContractsInterfaces";
 import { BlsVerifier } from "../blsSigner";
-import { arrayify } from "@ethersproject/bytes";
 import { ITransferPool } from "./features/transfer";
 
 export class SyncedPoint {
@@ -52,12 +53,13 @@ export class CoreAPI implements ICoreAPI {
     private constructor(
         public readonly l2Storage: StorageManager,
         private readonly genesis: Genesis,
-        public readonly depositPool: DepositPool,
+        public readonly depositPool: IDepositPool,
         public readonly transferPool: ITransferPool,
         private readonly provider: providers.Provider,
         public readonly contracts: allContracts,
         public readonly syncpoint: SyncedPoint,
-        public readonly verifier: BlsVerifier
+        public readonly verifier: BlsVerifier,
+        public readonly eventEmitter: EventEmitter
     ) {}
 
     static new(
@@ -76,6 +78,8 @@ export class CoreAPI implements ICoreAPI {
             -1
         );
         const verifier = new BlsVerifier(arrayify(genesis.auxiliary.domain));
+        const eventEmitter = new EventEmitter();
+
         return new this(
             l2Storage,
             genesis,
@@ -84,7 +88,8 @@ export class CoreAPI implements ICoreAPI {
             provider,
             contracts,
             syncedPoint,
-            verifier
+            verifier,
+            eventEmitter
         );
     }
 

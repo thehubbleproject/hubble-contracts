@@ -4,11 +4,11 @@ import { TESTING_PARAMS } from "../../ts/constants";
 import { DeploymentParameters } from "../../ts/interfaces";
 import { randHex } from "../../ts/utils";
 import {
-    MockDepositManagerFactory,
-    TestRollupFactory
+    MockDepositManager,
+    MockDepositManager__factory,
+    TestRollup,
+    TestRollup__factory
 } from "../../types/ethers-contracts";
-import { MockDepositManager } from "../../types/ethers-contracts/MockDepositManager";
-import { TestRollup } from "../../types/ethers-contracts/TestRollup";
 
 describe("Rollback", function() {
     let rollup: TestRollup;
@@ -21,8 +21,8 @@ describe("Rollback", function() {
     }
     async function setup(param: DeploymentParameters) {
         const [signer] = await ethers.getSigners();
-        depositManager = await new MockDepositManagerFactory(signer).deploy();
-        rollup = await new TestRollupFactory(signer).deploy(
+        depositManager = await new MockDepositManager__factory(signer).deploy();
+        rollup = await new TestRollup__factory(signer).deploy(
             depositManager.address,
             param.STAKE_AMOUNT,
             param.BLOCKS_TO_FINALISE,

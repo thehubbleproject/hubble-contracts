@@ -3,8 +3,7 @@ import chai, { assert } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import { ethers } from "hardhat";
 import { randomAddress } from "../../ts/utils";
-import { Vault } from "../../types/ethers-contracts/Vault";
-import { VaultFactory } from "../../types/ethers-contracts/VaultFactory";
+import { Vault, Vault__factory } from "../../types/ethers-contracts";
 
 chai.use(chaiAsPromised);
 
@@ -19,7 +18,10 @@ describe("Vault", () => {
         otherSigner = signers[1];
 
         const fakeAddress = randomAddress();
-        vault = await new VaultFactory(owner).deploy(fakeAddress, fakeAddress);
+        vault = await new Vault__factory(owner).deploy(
+            fakeAddress,
+            fakeAddress
+        );
     });
 
     describe("setRollupAddress", () => {

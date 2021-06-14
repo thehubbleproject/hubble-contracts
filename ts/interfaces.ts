@@ -1,4 +1,30 @@
+export enum Usage {
+    Genesis,
+    Transfer,
+    MassMigration,
+    Create2Transfer,
+    Deposit
+}
+
+export enum Result {
+    Ok,
+    InvalidTokenAmount,
+    NotEnoughTokenBalance,
+    BadFromTokenID,
+    BadToTokenID,
+    BadSignature,
+    MismatchedAmount,
+    BadWithdrawRoot,
+    BadCompression,
+    TooManyTx
+}
+
 export type Wei = string;
+
+export type Vacant = {
+    pathAtDepth: number;
+    witness: string[];
+};
 
 export interface DeploymentParameters {
     MAX_DEPTH: number;
@@ -14,28 +40,7 @@ export interface DeploymentParameters {
     DONATION_NUMERATOR: number;
 }
 
-export enum Usage {
-    Genesis,
-    Transfer,
-    MassMigration,
-    Create2Transfer,
-    Deposit
-}
-
 export interface Hashable {
     hash(): string;
     encode(): string;
-}
-
-export enum Result {
-    Ok,
-    InvalidTokenAmount,
-    NotEnoughTokenBalance,
-    BadFromTokenID,
-    BadToTokenID,
-    BadSignature,
-    MismatchedAmount,
-    BadWithdrawRoot,
-    BadCompression,
-    TooManyTx
 }

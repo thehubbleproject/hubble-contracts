@@ -1,6 +1,6 @@
 import { allContracts } from "./allContractsInterfaces";
 import { DeploymentParameters } from "./interfaces";
-import { ExampleTokenFactory } from "../types/ethers-contracts";
+import { ExampleToken__factory } from "../types/ethers-contracts";
 import { BigNumber, ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
@@ -96,8 +96,8 @@ export class Hubble {
             `Depositing tokenID ${tokenID} for pubkeyID ${pubkeyIDs} each with amount ${amount}`
         );
         const { tokenRegistry, depositManager } = this.contracts;
-        const tokenAddress = await tokenRegistry.safeGetAddress(tokenID);
-        const erc20 = ExampleTokenFactory.connect(tokenAddress, this.signer);
+        const [tokenAddress] = await tokenRegistry.safeGetRecord(tokenID);
+        const erc20 = ExampleToken__factory.connect(tokenAddress, this.signer);
         // approve depositmanager for amount
         const totalAmount = pubkeyIDs.length * amount;
         console.log("Approving total amount", totalAmount);

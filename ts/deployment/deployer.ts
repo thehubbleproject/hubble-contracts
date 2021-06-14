@@ -1,8 +1,7 @@
 import { Signer, utils } from "ethers";
-import { DeployerFactory } from "../../types/ethers-contracts/DeployerFactory";
+import { Deployer, Deployer__factory } from "../../types/ethers-contracts";
 import assert from "assert";
 import { Provider } from "@ethersproject/providers";
-import { Deployer } from "../../types/ethers-contracts/Deployer";
 import { DEPLOYER_ADDRESS, PROXY_CODE_HASH } from "./static";
 import { logAddress, logDeployment, logTx } from "../../scripts/logger";
 
@@ -68,7 +67,7 @@ export async function getDeployer(
 ): Promise<Deployer | undefined> {
     assert(signer.provider);
     if (await isDeployerDeployed(signer.provider)) {
-        let factory = new DeployerFactory(signer);
+        let factory = new Deployer__factory(signer);
         return factory.attach(DEPLOYER_ADDRESS);
     }
 }

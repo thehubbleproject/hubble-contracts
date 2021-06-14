@@ -24,7 +24,7 @@ export abstract class BaseService {
         this.state = newState;
     }
 
-    async start() {
+    async start(): Promise<void> {
         if (!this.isStopped) {
             this.log(`Can't start. The service is ${ServiceState[this.state]}`);
         }
@@ -35,7 +35,7 @@ export abstract class BaseService {
         this.change(ServiceState.RUNNING);
         await this.run();
     }
-    async run() {
+    public async run(): Promise<void> {
         while (this.state !== ServiceState.STOPPING) {
             await this.onRun();
         }
@@ -43,7 +43,7 @@ export abstract class BaseService {
         this.change(ServiceState.FINISHED);
     }
 
-    async stop() {
+    public async stop(): Promise<void> {
         this.log("stopping");
         this.change(ServiceState.STOPPING);
         await sleep(500);
@@ -55,10 +55,10 @@ export abstract class BaseService {
         this.log("stopped");
         this.change(ServiceState.STOPPED);
     }
-    protected async onStart(): Promise<any> {}
-    protected async onRun(): Promise<any> {}
-    protected async onFinished(): Promise<any> {}
-    protected log(messgae: string) {
-        console.log(`[${this.name}] ${messgae}`);
+    protected async onStart(): Promise<void> {}
+    protected async onRun(): Promise<void> {}
+    protected async onFinished(): Promise<void> {}
+    protected log(message: string) {
+        console.log(`[${this.name}] ${message}`);
     }
 }

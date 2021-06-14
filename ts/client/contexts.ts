@@ -39,7 +39,7 @@ export class BatchHandlingContext {
         };
     }
 
-    setStrategy(usage: Usage) {
+    public setStrategy(usage: Usage) {
         this._strategy = this.strategies[usage];
         if (!this.strategies)
             throw new Error(`No strategy for usage ${Usage[usage]}`);
@@ -50,11 +50,11 @@ export class BatchHandlingContext {
         return this._strategy;
     }
 
-    async parseBatch(event: Event) {
+    public async parseBatch(event: Event) {
         return await this.strategy.parseBatch(event);
     }
 
-    async processBatch(batch: Batch): Promise<OffchainTx[]> {
+    public async processBatch(batch: Batch): Promise<OffchainTx[]> {
         return this.strategy.processBatch(batch);
     }
 }

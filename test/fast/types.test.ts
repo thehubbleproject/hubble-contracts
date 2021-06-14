@@ -2,14 +2,13 @@ import { ethers } from "hardhat";
 import { assert } from "chai";
 import { getAddress } from "ethers/lib/utils";
 import { randHex, randomNum } from "../../ts/utils";
-import { TestTypesFactory } from "../../types/ethers-contracts";
-import { TestTypes } from "../../types/ethers-contracts/TestTypes";
+import { TestTypes, TestTypes__factory } from "../../types/ethers-contracts";
 
 describe("Type testing", function() {
     let contract: TestTypes;
     before(async function() {
         const [signer] = await ethers.getSigners();
-        contract = await new TestTypesFactory(signer).deploy();
+        contract = await new TestTypes__factory(signer).deploy();
     });
     it("encode and decode meta fields", async function() {
         const expected = {

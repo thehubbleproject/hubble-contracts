@@ -1,42 +1,74 @@
 # This workflow will do a clean install of node dependencies, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
+# TODO On master/release, test all valid NodeJS versions
+# https://github.com/thehubbleproject/hubble-contracts/issues/567
+#
+# strategy:
+#   matrix:
+#     node-version: [10.x, 12.x, 14.x, 16.x]
+
 name: Node.js CI
 
 on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ master, develop ]
+    branches: [ master ]
+
+env:
+  NODEJS_VERSION: 10.x
 
 jobs:
-  build:
-
+  lint-bench:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [10.x]
 
     steps:
     - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+    -
+      uses: actions/setup-node@v2
       with:
-        node-version: ${{ matrix.node-version }}
-
+        node-version: ${{ env.NODEJS_VERSION }}
     - run: npm ci
-    - run: npm run lint && npm run solhint
+
+    - run: npm run lint
+    - run: npm run solhint
     - run: npm run generate
     - run: npm run keyless:check -- --offline
-    - run: npm run test -- test/fast/*
-    - run: npm run test -- test/client/*
-    - run: npm run test -- test/slow/*
-    - run: npm run test -- test/integration.test.ts
     - run: npm run bench
 
+  test-fast-client:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    -
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ env.NODEJS_VERSION }}
+    - run: npm ci
+
+    - run: npm run generate
+    - run: npm run test -- test/fast/*
+    - run: npm run test -- test/client/*
+    
+  test-slow-integration:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    -
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ env.NODEJS_VERSION }}
+    - run: npm ci
+
+    - run: npm run generate
+    - run: npm run test -- test/slow/*
+    - run: npm run test -- test/integration.test.ts
+
   cloc:
-    needs: build
+    needs: [lint-bench, test-fast-client, test-slow-integration]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2

@@ -1,13 +1,14 @@
 import { ethers } from "hardhat";
 import { User } from "../../ts/factory";
 import { TxCreate2Transfer, TxMassMigration, TxTransfer } from "../../ts/tx";
-import { expectCallRevert, hexToUint8Array, randHex } from "../../ts/utils";
+import { hexToUint8Array, randHex } from "../../ts/utils";
+import { expectCallRevert } from "../../test/utils";
 import * as mcl from "../../ts/mcl";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import {
-    FrontendCreate2TransferFactory,
-    FrontendMassMigrationFactory,
-    FrontendTransferFactory
+    FrontendCreate2Transfer__factory,
+    FrontendMassMigration__factory,
+    FrontendTransfer__factory
 } from "../../types/ethers-contracts";
 import { Signer } from "ethers";
 import { assert } from "chai";
@@ -31,7 +32,7 @@ describe("Frontend", function() {
     it("frontendTransfer", async function() {
         const txTransfer = TxTransfer.rand();
 
-        const contract = await new FrontendTransferFactory(signer).deploy();
+        const contract = await new FrontendTransfer__factory(signer).deploy();
         const goodArgsCall = async () => {
             return await contract.validate(
                 txTransfer.encodeOffchain(),
@@ -61,7 +62,7 @@ describe("Frontend", function() {
     });
     it("frontendMassMigration", async function() {
         const txMassMigration = TxMassMigration.rand();
-        const contract = await new FrontendMassMigrationFactory(
+        const contract = await new FrontendMassMigration__factory(
             signer
         ).deploy();
         const goodArgsCall = async () => {
@@ -87,7 +88,7 @@ describe("Frontend", function() {
     });
     it("frontendCreate2Transfer", async function() {
         const txCreate2Transfer = TxCreate2Transfer.rand();
-        const contract = await new FrontendCreate2TransferFactory(
+        const contract = await new FrontendCreate2Transfer__factory(
             signer
         ).deploy();
         const pubkeyHash = hashPubkey(txCreate2Transfer.toPubkey);

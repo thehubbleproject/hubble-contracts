@@ -1,26 +1,26 @@
-import { TokenRegistryFactory } from "../types/ethers-contracts/TokenRegistryFactory";
-import { TransferFactory } from "../types/ethers-contracts/TransferFactory";
-import { MassMigrationFactory } from "../types/ethers-contracts/MassMigrationFactory";
-import { ExampleTokenFactory } from "../types/ethers-contracts/ExampleTokenFactory";
-import { DepositManagerFactory } from "../types/ethers-contracts/DepositManagerFactory";
-import { RollupFactory } from "../types/ethers-contracts/RollupFactory";
-import { BlsAccountRegistryFactory } from "../types/ethers-contracts/BlsAccountRegistryFactory";
+import {
+    TokenRegistry__factory,
+    Transfer__factory,
+    MassMigration__factory,
+    ExampleToken__factory,
+    DepositManager__factory,
+    Rollup__factory,
+    BLSAccountRegistry__factory,
+    FrontendGeneric__factory,
+    FrontendTransfer__factory,
+    FrontendMassMigration__factory,
+    FrontendCreate2Transfer__factory,
+    SpokeRegistry__factory,
+    Vault__factory,
+    WithdrawManager__factory,
+    Create2Transfer__factory,
+    BurnAuction__factory,
+    ProofOfBurn__factory
+} from "../types/ethers-contracts";
 
 import { Signer, Contract, ContractTransaction } from "ethers";
 import { DeploymentParameters } from "./interfaces";
 import { allContracts } from "./allContractsInterfaces";
-import {
-    FrontendGenericFactory,
-    FrontendTransferFactory,
-    FrontendMassMigrationFactory,
-    FrontendCreate2TransferFactory,
-    SpokeRegistryFactory,
-    VaultFactory,
-    WithdrawManagerFactory,
-    Create2TransferFactory
-} from "../types/ethers-contracts";
-import { BurnAuctionFactory } from "../types/ethers-contracts/BurnAuctionFactory";
-import { ProofOfBurnFactory } from "../types/ethers-contracts/ProofOfBurnFactory";
 import { GenesisNotSpecified } from "./exceptions";
 import { deployKeyless } from "./deployment/deploy";
 import { Genesis } from "./genesis";
@@ -40,13 +40,15 @@ export async function deployAll(
     verbose: boolean = false
 ): Promise<allContracts> {
     // deploy libs
-    const frontendGeneric = await new FrontendGenericFactory(signer).deploy();
+    const frontendGeneric = await new FrontendGeneric__factory(signer).deploy();
     await waitAndRegister(frontendGeneric, "frontendGeneric", verbose);
 
-    const frontendTransfer = await new FrontendTransferFactory(signer).deploy();
+    const frontendTransfer = await new FrontendTransfer__factory(
+        signer
+    ).deploy();
     await waitAndRegister(frontendTransfer, "frontendTransfer", verbose);
 
-    const frontendMassMigration = await new FrontendMassMigrationFactory(
+    const frontendMassMigration = await new FrontendMassMigration__factory(
         signer
     ).deploy();
     await waitAndRegister(
@@ -55,7 +57,7 @@ export async function deployAll(
         verbose
     );
 
-    const frontendCreate2Transfer = await new FrontendCreate2TransferFactory(
+    const frontendCreate2Transfer = await new FrontendCreate2Transfer__factory(
         signer
     ).deploy();
     await waitAndRegister(
@@ -63,7 +65,7 @@ export async function deployAll(
         "frontendCreate2Transfer",
         verbose
     );
-    const burnAuction = await new BurnAuctionFactory(signer).deploy(
+    const burnAuction = await new BurnAuction__factory(signer).deploy(
         parameters.DONATION_ADDRESS,
         parameters.DONATION_NUMERATOR
     );
@@ -71,30 +73,30 @@ export async function deployAll(
     let chooserAddress = burnAuction.address;
 
     if (!parameters.USE_BURN_AUCTION) {
-        const proofOfBurn = await new ProofOfBurnFactory(signer).deploy();
+        const proofOfBurn = await new ProofOfBurn__factory(signer).deploy();
         chooserAddress = proofOfBurn.address;
     }
 
-    const blsAccountRegistry = await new BlsAccountRegistryFactory(
+    const blsAccountRegistry = await new BLSAccountRegistry__factory(
         signer
     ).deploy();
     await waitAndRegister(blsAccountRegistry, "blsAccountRegistry", verbose);
 
     // deploy Token registry contract
-    const tokenRegistry = await new TokenRegistryFactory(signer).deploy();
+    const tokenRegistry = await new TokenRegistry__factory(signer).deploy();
     await waitAndRegister(tokenRegistry, "tokenRegistry", verbose);
 
-    const massMigration = await new MassMigrationFactory(signer).deploy();
+    const massMigration = await new MassMigration__factory(signer).deploy();
     await waitAndRegister(massMigration, "mass_migs", verbose);
 
-    const transfer = await new TransferFactory(signer).deploy();
+    const transfer = await new Transfer__factory(signer).deploy();
     await waitAndRegister(transfer, "transfer", verbose);
 
-    const create2Transfer = await new Create2TransferFactory(signer).deploy();
+    const create2Transfer = await new Create2Transfer__factory(signer).deploy();
     await waitAndRegister(create2Transfer, "create2transfer", verbose);
 
     // deploy example token
-    const exampleToken = await new ExampleTokenFactory(signer).deploy();
+    const exampleToken = await new ExampleToken__factory(signer).deploy();
     await waitAndRegister(exampleToken, "exampleToken", verbose);
     await waitUntilMined(
         tokenRegistry.requestRegistration(exampleToken.address)
@@ -103,17 +105,17 @@ export async function deployAll(
         tokenRegistry.finaliseRegistration(exampleToken.address)
     );
 
-    const spokeRegistry = await new SpokeRegistryFactory(signer).deploy();
+    const spokeRegistry = await new SpokeRegistry__factory(signer).deploy();
     await waitAndRegister(spokeRegistry, "spokeRegistry", verbose);
 
-    const vault = await new VaultFactory(signer).deploy(
+    const vault = await new Vault__factory(signer).deploy(
         tokenRegistry.address,
         spokeRegistry.address
     );
     await waitAndRegister(vault, "vault", verbose);
 
     // deploy deposit manager
-    const depositManager = await new DepositManagerFactory(signer).deploy(
+    const depositManager = await new DepositManager__factory(signer).deploy(
         tokenRegistry.address,
         vault.address,
         parameters.MAX_DEPOSIT_SUBTREE_DEPTH
@@ -123,7 +125,7 @@ export async function deployAll(
     if (!parameters.GENESIS_STATE_ROOT) throw new GenesisNotSpecified();
 
     // deploy Rollup core
-    const rollup = await new RollupFactory(signer).deploy(
+    const rollup = await new Rollup__factory(signer).deploy(
         chooserAddress,
         depositManager.address,
         blsAccountRegistry.address,
@@ -141,7 +143,7 @@ export async function deployAll(
     await waitUntilMined(vault.setRollupAddress(rollup.address));
     await waitUntilMined(depositManager.setRollupAddress(rollup.address));
 
-    const withdrawManager = await new WithdrawManagerFactory(signer).deploy(
+    const withdrawManager = await new WithdrawManager__factory(signer).deploy(
         tokenRegistry.address,
         vault.address,
         rollup.address

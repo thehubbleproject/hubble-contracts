@@ -6,14 +6,18 @@ import { AccountRegistry } from "../../ts/accountTree";
 import { TxMassMigration } from "../../ts/tx";
 import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
-import { assert } from "chai";
+import chai, { assert } from "chai";
+import chaiAsPromised from "chai-as-promised";
 import { getGenesisProof, MassMigrationCommitment } from "../../ts/commitments";
 import { CommonToken } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
-import { expectRevert, hexToUint8Array, mineBlocks } from "../../ts/utils";
+import { hexToUint8Array, mineBlocks } from "../../ts/utils";
+import { expectRevert } from "../../test/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { handleNewBatch } from "../../ts/client/batchHandler";
+
+chai.use(chaiAsPromised);
 
 describe("Mass Migrations", async function() {
     const tokenID = 0;
@@ -56,6 +60,30 @@ describe("Mass Migrations", async function() {
         }
     });
 
+    it("fails if batchID is incorrect", async function() {
+        const feeReceiver = users.getUser(0).stateID;
+        const { txs, signature } = txMassMigrationFactory(users, spokeID);
+
+        const { commitment } = MassMigrationCommitment.fromStateProvider(
+            registry.root(),
+            txs,
+            signature,
+            feeReceiver,
+            stateTree
+        );
+        const batch = commitment.toBatch();
+
+        const invalidBatchID = 42;
+        await assert.isRejected(
+            batch.submit(
+                contracts.rollup,
+                invalidBatchID,
+                TESTING_PARAMS.STAKE_AMOUNT
+            ),
+            /.*revert batchID does not match nextBatchID/
+        );
+    });
+
     it("submit a batch and dispute", async function() {
         const { rollup, massMigration } = contracts;
         const feeReceiver = users.getUser(0).stateID;
@@ -90,9 +118,10 @@ describe("Mass Migrations", async function() {
         );
 
         const targetBatch = commitment.toBatch();
-
+        const mMBatchID = 1;
         const _txSubmit = await targetBatch.submit(
             rollup,
+            mMBatchID,
             TESTING_PARAMS.STAKE_AMOUNT
         );
 
@@ -151,7 +180,8 @@ describe("Mass Migrations", async function() {
         );
 
         const batch = commitment.toBatch();
-        await batch.submit(rollup, TESTING_PARAMS.STAKE_AMOUNT);
+        const mMBatchID = 1;
+        await batch.submit(rollup, mMBatchID, TESTING_PARAMS.STAKE_AMOUNT);
 
         const batchId = Number(await rollup.nextBatchID()) - 1;
 

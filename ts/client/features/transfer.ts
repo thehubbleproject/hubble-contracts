@@ -396,10 +396,17 @@ async function pack(
 }
 
 export class OffchainTransferFactory {
+    private numTransfers: number = 0;
+
     constructor(
         public readonly group: Group,
-        public readonly storage: StorageManager
+        public readonly storage: StorageManager,
+        private readonly maxTransfers?: number
     ) {}
+
+    protected isComplete(): boolean {
+        return !!this.maxTransfers && this.numTransfers >= this.maxTransfers;
+    }
 
     async *genTx(): AsyncGenerator<TransferOffchainTx> {
         const { state, transactions } = this.storage;
@@ -417,8 +424,10 @@ export class OffchainTransferFactory {
                     senderState.nonce
                 );
                 tx.signature = sender.signRaw(tx.message());
-                await transactions.pending(tx);
                 yield tx;
+
+                this.numTransfers++;
+                await transactions.pending(tx);
             }
         }
     }
@@ -481,6 +490,7 @@ export interface ITransferPool {
 
 export class TransferPool implements ITransferPool {
     private pool: SameTokenPool<TransferOffchainTx>;
+
     constructor(
         public readonly tokenID: number,
         public readonly feeReceiverID: number
@@ -497,11 +507,12 @@ export class TransferPool implements ITransferPool {
             yield this.pool.pop();
         }
     }
-    isEmpty() {
+
+    public isEmpty(): boolean {
         return this.pool.size == 0;
     }
 
-    getNextPipe() {
+    public getNextPipe(): TransferPipe {
         const source = this.genTx();
         return {
             source,
@@ -509,20 +520,35 @@ export class TransferPool implements ITransferPool {
             feeReceiverID: this.feeReceiverID
         };
     }
-    toString() {
+
+    public toString(): string {
         return `<TransferPool  size ${this.pool.size}>`;
     }
 }
 
+type SimulatorPoolOptions = {
+    group: Group;
+    storage: StorageManager;
+    tokenID: number;
+    feeReceiverID: number;
+    maxTransfers?: number;
+};
+
 export class SimulatorPool extends OffchainTransferFactory
     implements ITransferPool {
-    private tokenID?: number;
-    private feeReceiverID?: number;
-    async setTokenID() {
-        const stateID = this.group.getUser(0).stateID;
-        const state = await this.storage.state.get(stateID);
-        this.tokenID = state.tokenID;
-        this.feeReceiverID = stateID;
+    private readonly tokenID: number;
+    private readonly feeReceiverID: number;
+
+    constructor({
+        group,
+        storage,
+        tokenID,
+        feeReceiverID,
+        maxTransfers
+    }: SimulatorPoolOptions) {
+        super(group, storage, maxTransfers);
+        this.tokenID = tokenID;
+        this.feeReceiverID = feeReceiverID;
     }
 
     public async push(_tx: TransferOffchainTx) {
@@ -530,14 +556,11 @@ export class SimulatorPool extends OffchainTransferFactory
     }
 
     isEmpty() {
-        return false;
+        return this.isComplete();
     }
 
     getNextPipe() {
         const source = this.genTx();
-        if (this.tokenID === undefined) throw new Error("tokenID not set");
-        if (this.feeReceiverID === undefined)
-            throw new Error("feeReceiver not set");
         return {
             source,
             tokenID: this.tokenID,
@@ -561,38 +584,23 @@ async function packBatch(
     };
     for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
         const pipe = pool.getNextPipe();
-        try {
-            const { commit, acceptedTxs, failedTxs } = await pack(
-                pipe,
-                storageManager,
-                params,
-                verifier
-            );
-            commitments.push(commit);
-            txBundle.acceptedTxs.push(...acceptedTxs);
-            txBundle.failedTxs.push(...failedTxs);
-        } catch (err) {
-            console.error(err);
-            continue;
+        const { commit, acceptedTxs, failedTxs } = await pack(
+            pipe,
+            storageManager,
+            params,
+            verifier
+        );
+        commitments.push(commit);
+        txBundle.acceptedTxs.push(...acceptedTxs);
+        txBundle.failedTxs.push(...failedTxs);
+
+        if (pool.isEmpty()) {
+            break;
         }
     }
     if (commitments.length == 0) throw new Error("The batch has no commitment");
     const batch = new ConcreteBatch(commitments);
     return { ...txBundle, batch };
-}
-
-async function submitTransfer(
-    batch: ConcreteBatch<TransferCommitment>,
-    rollup: Rollup,
-    stakingAmount: BigNumberish
-) {
-    return await rollup.submitTransfer(
-        batch.commitments.map(c => c.stateRoot),
-        batch.commitments.map(c => c.signature),
-        batch.commitments.map(c => c.feeReceiver),
-        batch.commitments.map(c => c.txs),
-        { value: stakingAmount }
-    );
 }
 
 export class TransferPackingCommand implements BatchPackingCommand {
@@ -604,31 +612,47 @@ export class TransferPackingCommand implements BatchPackingCommand {
         private verifier: BlsVerifier
     ) {}
 
-    async packAndSubmit(): Promise<ContractTransaction> {
+    private async submitTransfer(
+        batchID: BigNumberish,
+        batch: ConcreteBatch<TransferCommitment>,
+        stakingAmount: BigNumberish
+    ) {
+        return await this.rollup.submitTransfer(
+            batchID,
+            batch.commitments.map(c => c.stateRoot),
+            batch.commitments.map(c => c.signature),
+            batch.commitments.map(c => c.feeReceiver),
+            batch.commitments.map(c => c.txs),
+            { value: stakingAmount }
+        );
+    }
+
+    public async packAndSubmit(): Promise<ContractTransaction> {
+        const { batches, transactions } = this.storageManager;
         const { batch, acceptedTxs, failedTxs } = await packBatch(
             this.pool,
             this.storageManager,
             this.params,
             this.verifier
         );
-        console.info("submitting batch", batch.toString());
-        const tx = await submitTransfer(
+        const batchID = await batches.nextBatchID();
+        console.info("Submitting batch", batch.toString());
+        const l1Txn = await this.submitTransfer(
+            batchID,
             batch,
-            this.rollup,
             this.params.STAKE_AMOUNT
         );
         console.info(
-            `batch submited L1 txn hash ${prettyHex(tx.hash)}`,
+            `Batch submited L1 txn hash ${prettyHex(l1Txn.hash)}`,
             batch.toString()
         );
 
         // Sync with storage
-        const { batches, transactions } = this.storageManager;
-        const batchID = await batches.add(batch, tx);
+        await batches.add(batch, l1Txn);
         for (const acceptedTx of acceptedTxs) {
             await transactions.submitted(acceptedTx.message(), {
                 batchID,
-                l1TxnHash: tx.hash,
+                l1TxnHash: l1Txn.hash,
                 // TODO Figure out how to get finalization state in this scope.
                 // https://github.com/thehubbleproject/hubble-contracts/issues/592
                 l1BlockIncluded: -1
@@ -641,6 +665,6 @@ export class TransferPackingCommand implements BatchPackingCommand {
             );
         }
 
-        return tx;
+        return l1Txn;
     }
 }

@@ -1,11 +1,12 @@
+import { EventEmitter } from "events";
 import { CoreAPI } from "../coreAPI";
-import { nodeEmitter, SyncCompleteEvent } from "../node";
 import { EventSyncer } from "./events/interfaces";
 import { NewBatchEventSyncer } from "./events/newBatch";
 import { SequentialCompositeEventSyncer } from "./events/sequentialCompositeEventSyncer";
 import { BatchPubkeyRegisteredEventSyncer } from "./events/batchPubkeyRegistered";
 import { SinglePubkeyRegisteredEventSyncer } from "./events/singlePubkeyRegistered";
 import { DepositQueuedEventSyncer } from "./events/depositQueued";
+import { SyncCompleteEvent } from "../constants";
 
 export enum SyncMode {
     INITIAL_SYNCING,
@@ -15,10 +16,11 @@ export enum SyncMode {
 export class SyncerService {
     private mode: SyncMode;
     private readonly events: EventSyncer;
+    private readonly eventEmitter: EventEmitter;
 
     constructor(private readonly api: CoreAPI) {
         this.mode = SyncMode.INITIAL_SYNCING;
-
+        this.eventEmitter = api.eventEmitter;
         this.events = new SequentialCompositeEventSyncer([
             // Note: Ordering here is important for initial syncs.
             // Pubkey syncs need to happen before batch syncs, etc.
@@ -29,19 +31,19 @@ export class SyncerService {
         ]);
     }
 
-    getMode() {
+    public getMode(): SyncMode {
         return this.mode;
     }
 
-    async start() {
+    public async start(): Promise<void> {
         await this.initialSync();
-        nodeEmitter.emit(SyncCompleteEvent);
+        this.eventEmitter.emit(SyncCompleteEvent);
         this.mode = SyncMode.REGULAR_SYNCING;
 
         this.events.listen();
     }
 
-    async initialSync() {
+    public async initialSync(): Promise<void> {
         const chunksize = 100;
         let start = this.api.syncpoint.blockNumber;
         let latestBlock = await this.api.getBlockNumber();
@@ -60,7 +62,7 @@ export class SyncerService {
         }
     }
 
-    stop() {
+    public stop() {
         if (this.mode == SyncMode.REGULAR_SYNCING) {
             this.events.stopListening();
         }

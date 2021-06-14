@@ -34,13 +34,25 @@ export interface BatchStorage {
      */
     getByCommitmentRoot(commitmentRoot: string): Promise<Batch | undefined>;
     /**
+     * Gets the previous batch.
+     */
+    previous(): Promise<Batch | undefined>;
+    /**
      * Get the current batch.
      */
     current(): Promise<Batch | undefined>;
     /**
-     * Gets the previous batch.
+     * Gets the previous batch ID.
      */
-    previous(): Promise<Batch | undefined>;
+    previousBatchID(): Promise<number>;
+    /**
+     * Gets the current batch ID.
+     */
+    currentBatchID(): Promise<number>;
+    /**
+     * Gets the next batch ID.
+     */
+    nextBatchID(): Promise<number>;
     /**
      * Rolls back to the specified batch, and returns all
      * batches removed.

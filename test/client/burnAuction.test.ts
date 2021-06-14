@@ -6,8 +6,10 @@ import { BurnAuctionWrapper } from "../../ts/burnAuction";
 import { Bidder } from "../../ts/client/services/bidder";
 import { PRODUCTION_PARAMS } from "../../ts/constants";
 import { mineBlocks } from "../../ts/utils";
-import { BurnAuctionFactory } from "../../types/ethers-contracts";
-import { BurnAuction } from "../../types/ethers-contracts/BurnAuction";
+import {
+    BurnAuction,
+    BurnAuction__factory
+} from "../../types/ethers-contracts";
 
 describe("Bidder", function() {
     let deployer: Signer;
@@ -20,7 +22,7 @@ describe("Bidder", function() {
 
     beforeEach(async function() {
         [deployer, serviceSigner, competitor] = await ethers.getSigners();
-        contract = await new BurnAuctionFactory(deployer).deploy(
+        contract = await new BurnAuction__factory(deployer).deploy(
             PRODUCTION_PARAMS.DONATION_ADDRESS,
             PRODUCTION_PARAMS.DONATION_NUMERATOR
         );

@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import minimist from "minimist";
 import { deployAndWriteGenesis } from "../ts/deploy";
 import { DeploymentParameters } from "../ts/interfaces";
 import fs from "fs";
@@ -6,25 +7,20 @@ import { PRODUCTION_PARAMS } from "../ts/constants";
 import { StateTree } from "../ts/stateTree";
 import { Group } from "../ts/factory";
 
-const {
-    url,
-    root,
-    key,
-    input,
-    output,
-    numPubkeys,
-    pubkeyMnemonic
-} = require("minimist")(process.argv.slice(2), {
-    string: [
-        "url",
-        "root",
-        "key",
-        "input",
-        "output",
-        "numPubkeys",
-        "pubkeyMnemonic"
-    ]
-});
+const { url, root, key, input, output, numPubkeys, pubkeyMnemonic } = minimist(
+    process.argv.slice(2),
+    {
+        string: [
+            "url",
+            "root",
+            "key",
+            "input",
+            "output",
+            "numPubkeys",
+            "pubkeyMnemonic"
+        ]
+    }
+);
 /*
     Note separate pubkeys with commas
     > npm run deploy -- --url http://localhost:8545 \

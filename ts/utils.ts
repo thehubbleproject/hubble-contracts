@@ -8,8 +8,7 @@ import {
     solidityKeccak256,
     getAddress
 } from "ethers/lib/utils";
-import { Wei } from "./interfaces";
-import { assert, expect } from "chai";
+import { Vacant, Wei } from "./interfaces";
 import { Rollup } from "../types/ethers-contracts/Rollup";
 
 export const FIELD_ORDER = BigNumber.from(
@@ -90,38 +89,6 @@ export async function mineBlocks(
     }
 }
 
-export async function expectRevert(
-    tx: Promise<ContractTransaction>,
-    revertReason: string
-) {
-    await tx.then(
-        () => {
-            assert.fail(`Expect tx to fail with reason: ${revertReason}`);
-        },
-        error => {
-            expect(error.message).to.have.string(revertReason);
-        }
-    );
-}
-
-export async function expectCallRevert(
-    tx: Promise<any>,
-    revertReason: string | null
-) {
-    await tx.then(
-        () => {
-            assert.fail(`Expect tx to fail with reason: ${revertReason}`);
-        },
-        error => {
-            if (revertReason === null) {
-                assert.isNull(error.reason);
-            } else {
-                expect(error.reason).to.have.string(revertReason);
-            }
-        }
-    );
-}
-
 export async function getBatchID(rollup: Rollup): Promise<number> {
     return Number(await rollup.nextBatchID()) - 1;
 }
@@ -152,7 +119,28 @@ export function computeRoot(
     return leaf;
 }
 
-export function prettyHex(hex: string) {
+export function prettyHex(hex: string): string {
     const hexNo0x = hex.slice(0, 2) == "0x" ? hex.slice(2) : hex;
     return `${hexNo0x.slice(0, 6)}…${hexNo0x.slice(-6)}`;
+}
+
+export function prettyHexArray(hexArr: string[]): string {
+    if (hexArr.length == 1) {
+        return `[${prettyHex(hexArr[0])}]`;
+    }
+    if (hexArr.length == 2) {
+        return `[${prettyHex(hexArr[0])}, ${prettyHex(hexArr[1])}]`;
+    }
+    if (hexArr.length > 2) {
+        return `[${prettyHex(hexArr[0])}, ..., ${prettyHex(
+            hexArr[hexArr.length - 1]
+        )}]`;
+    }
+    // arr.length === 0
+    return "[]";
+}
+
+export function prettyVacant({ pathAtDepth, witness }: Vacant): string {
+    const prettyWitness = prettyHexArray(witness);
+    return `<Vacant  pathAtDepth ${pathAtDepth} witness ${prettyWitness}>`;
 }

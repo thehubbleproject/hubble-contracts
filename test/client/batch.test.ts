@@ -1,6 +1,10 @@
 import chai, { assert } from "chai";
 import chaiAsPromised from "chai-as-promised";
-import { Batch, Commitment } from "../../ts/client/features/interface";
+import {
+    Batch,
+    Commitment,
+    CommitmentInclusionProof
+} from "../../ts/client/features/interface";
 import {
     BatchL1Transaction,
     BatchStorage
@@ -16,7 +20,11 @@ class TestBatch implements Batch {
         this.commitments = [];
     }
 
-    toString(): string {
+    public proofCompressed(_leafIndex: number): CommitmentInclusionProof {
+        throw new Error("TestBatch: proofCompressed not implemented");
+    }
+
+    public toString(): string {
         throw new Error("TestBatch: toString not implemented");
     }
 }
@@ -99,19 +107,6 @@ describe("BatchMemoryStorage", () => {
         });
     });
 
-    describe("current", () => {
-        it("returns undefined if batch not added", async function() {
-            assert.isUndefined(await storage.current());
-        });
-
-        it("returns last added batch", async function() {
-            await storage.add(batches[0], l1Txn);
-            await storage.add(batches[1], l1Txn);
-
-            assert.equal(await storage.current(), batches[1]);
-        });
-    });
-
     describe("previous", () => {
         it("returns undefined if batch not added", async function() {
             assert.isUndefined(await storage.previous());
@@ -128,6 +123,47 @@ describe("BatchMemoryStorage", () => {
             await storage.add(batches[1], l1Txn);
 
             assert.equal(await storage.previous(), batches[0]);
+        });
+    });
+
+    describe("current", () => {
+        it("returns undefined if batch not added", async function() {
+            assert.isUndefined(await storage.current());
+        });
+
+        it("returns last added batch", async function() {
+            await storage.add(batches[0], l1Txn);
+            await storage.add(batches[1], l1Txn);
+
+            assert.equal(await storage.current(), batches[1]);
+        });
+    });
+
+    describe("previous, current, next Batch ID", () => {
+        it("have correct initial values", async function() {
+            assert.equal(await storage.previousBatchID(), -2);
+            assert.equal(await storage.currentBatchID(), -1);
+            assert.equal(await storage.nextBatchID(), 0);
+        });
+
+        it("update when new batches are added", async function() {
+            await storage.add(batches[0], l1Txn);
+
+            assert.equal(await storage.previousBatchID(), -1);
+            assert.equal(await storage.currentBatchID(), 0);
+            assert.equal(await storage.nextBatchID(), 1);
+
+            await storage.add(batches[1], l1Txn);
+
+            assert.equal(await storage.previousBatchID(), 0);
+            assert.equal(await storage.currentBatchID(), 1);
+            assert.equal(await storage.nextBatchID(), 2);
+
+            await storage.add(batches[2], l1Txn);
+
+            assert.equal(await storage.previousBatchID(), 1);
+            assert.equal(await storage.currentBatchID(), 2);
+            assert.equal(await storage.nextBatchID(), 3);
         });
     });
 

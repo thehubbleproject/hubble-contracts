@@ -34,7 +34,7 @@ export class BatchMemoryStorage implements BatchStorage {
         }
 
         this.orderedBatches.push(batch);
-        const batchID = this.orderedBatches.length - 1;
+        const batchID = await this.currentBatchID();
 
         this.commitmentRootToBatchIndex[batch.commitmentRoot] = batchID;
         this.commitmentRootToL1Transaction[batch.commitmentRoot] = l1Txn;
@@ -53,12 +53,28 @@ export class BatchMemoryStorage implements BatchStorage {
         return this.orderedBatches[idx];
     }
 
-    public async current(): Promise<Batch | undefined> {
-        return this.orderedBatches[this.orderedBatches.length - 1];
+    public async previous(): Promise<Batch | undefined> {
+        const batchID = await this.previousBatchID();
+        return this.orderedBatches[batchID];
     }
 
-    public async previous(): Promise<Batch | undefined> {
-        return this.orderedBatches[this.orderedBatches.length - 2];
+    public async current(): Promise<Batch | undefined> {
+        const batchID = await this.currentBatchID();
+        return this.orderedBatches[batchID];
+    }
+
+    public async previousBatchID(): Promise<number> {
+        const cur = await this.currentBatchID();
+        return cur - 1;
+    }
+
+    public async currentBatchID(): Promise<number> {
+        return this.orderedBatches.length - 1;
+    }
+
+    public async nextBatchID(): Promise<number> {
+        const cur = await this.currentBatchID();
+        return cur + 1;
     }
 
     public async rollbackTo(commitmentRoot: string): Promise<Batch[]> {

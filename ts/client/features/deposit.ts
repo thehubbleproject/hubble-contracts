@@ -1,41 +1,52 @@
 import { BytesLike } from "@ethersproject/bytes";
-import { ContractTransaction, Event } from "ethers";
+import { BigNumber, BigNumberish, ContractTransaction, Event } from "ethers";
 import { Rollup } from "../../../types/ethers-contracts/Rollup";
-import { Batch } from "../../commitments";
 import { ZERO_BYTES32 } from "../../constants";
-import { DeploymentParameters } from "../../interfaces";
+import { DeploymentParameters, Vacant } from "../../interfaces";
 import { State } from "../../state";
 import { Tree } from "../../tree";
-import { computeRoot, prettyHex } from "../../utils";
+import { computeRoot, prettyHex, prettyVacant } from "../../utils";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
+    Batch,
     BatchHandlingStrategy,
     BatchPackingCommand,
     OffchainTx
 } from "./interface";
 
 interface Subtree {
+    id: BigNumber;
     root: string;
     states: State[];
 }
 
-const subtreeToString = ({ root, states }: Subtree): string => {
+const subtreeToString = ({ id, root, states }: Subtree): string => {
     const statesStr = states.join("\n    ");
-    return `<Subtree  root ${prettyHex(root)}
+    return `<Subtree  id ${id}
+    root ${prettyHex(root)}
     ${statesStr}
 >`;
 };
 
-export class DepositPool {
+export interface IDepositPool {
+    pushDeposit(encodedState: BytesLike): void;
+    isSubtreeReady(): boolean;
+    popDepositSubtree(): Subtree;
+    toString(): string;
+}
+
+export class DepositPool implements IDepositPool {
     public readonly maxSubtreeSize: number;
     private depositLeaves: State[];
     private subtreeQueue: Subtree[];
+    private currentSubtreeID: BigNumber;
 
     constructor(maxSubtreeDepth: number) {
         this.maxSubtreeSize = 2 ** maxSubtreeDepth;
         this.depositLeaves = [];
         this.subtreeQueue = [];
+        this.currentSubtreeID = BigNumber.from(0);
     }
 
     public pushDeposit(encodedState: BytesLike) {
@@ -44,6 +55,10 @@ export class DepositPool {
         if (this.depositLeaves.length >= this.maxSubtreeSize) {
             this.pushSubtree();
         }
+    }
+
+    public isSubtreeReady(): boolean {
+        return !!this.subtreeQueue.length;
     }
 
     public popDepositSubtree(): Subtree {
@@ -56,16 +71,21 @@ export class DepositPool {
         return `<DepositPool leaves ${this.depositLeaves.length} queue ${this.subtreeQueue.length}>`;
     }
 
+    private incrementSubtreeID(): BigNumber {
+        this.currentSubtreeID = this.currentSubtreeID.add(1);
+        return this.currentSubtreeID;
+    }
+
     private pushSubtree() {
-        const states = this.depositLeaves.slice();
+        const states = this.depositLeaves.splice(0, this.depositLeaves.length);
         const root = Tree.merklize(states.map(s => s.hash())).root;
-        this.depositLeaves = [];
-        this.subtreeQueue.push({ states, root });
+        const id = this.incrementSubtreeID();
+        this.subtreeQueue.push({ id, states, root });
     }
 }
 
 interface FinalizationContext {
-    subtreeID: number;
+    subtreeID: BigNumber;
     depositSubtreeRoot: string;
     pathToSubTree: number;
 }
@@ -120,7 +140,7 @@ export async function handleNewBatch(
 
 export async function applyBatch(
     batch: ConcreteBatch<DepositCommitment>,
-    pool: DepositPool,
+    pool: IDepositPool,
     params: DeploymentParameters,
     stateEngine: StateStorageEngine
 ) {
@@ -131,6 +151,12 @@ export async function applyBatch(
             `Fatal: mismatched deposit root. onchain: ${context.depositSubtreeRoot}  pool: ${subtree.root}`
         );
     }
+    if (!subtree.id.eq(context.subtreeID)) {
+        throw new Error(
+            `Fatal: mismatched deposit subtree ID. onchain: ${context.subtreeID}  pool: ${subtree.id}`
+        );
+    }
+
     await stateEngine.updateBatch(
         context.pathToSubTree,
         params.MAX_DEPOSIT_SUBTREE_DEPTH,
@@ -139,38 +165,19 @@ export async function applyBatch(
     await stateEngine.commit();
 }
 
-export async function submitBatch(
-    previousBatch: Batch,
-    stateEngine: StateStorageEngine,
-    rollup: Rollup,
-    params: DeploymentParameters
-): Promise<ContractTransaction> {
-    const previousCommitmentProof = previousBatch.proofCompressed(
-        previousBatch.commitments.length - 1
-    );
-
-    const vacancy = await stateEngine.findVacantSubtree(
-        params.MAX_DEPOSIT_SUBTREE_DEPTH
-    );
-    return await rollup.submitDeposits(
-        previousCommitmentProof,
-        { pathAtDepth: vacancy.path, witness: vacancy.witness },
-        { value: params.STAKE_AMOUNT }
-    );
-}
-
 export class DepositHandlingStrategy implements BatchHandlingStrategy {
     constructor(
         private readonly rollup: Rollup,
         private readonly storageManager: StorageManager,
         private readonly params: DeploymentParameters,
-        private pool: DepositPool
+        private pool: IDepositPool
     ) {}
-    async parseBatch(event: Event) {
+
+    public async parseBatch(event: Event) {
         return await handleNewBatch(event, this.rollup);
     }
 
-    async processBatch(
+    public async processBatch(
         batch: ConcreteBatch<DepositCommitment>
     ): Promise<OffchainTx[]> {
         await applyBatch(
@@ -184,7 +191,69 @@ export class DepositHandlingStrategy implements BatchHandlingStrategy {
 }
 
 export class DepositPackingCommand implements BatchPackingCommand {
-    async packAndSubmit(): Promise<ContractTransaction> {
-        throw new Error("Not implemented");
+    constructor(
+        private params: DeploymentParameters,
+        private storageManager: StorageManager,
+        private pool: IDepositPool,
+        private rollup: Rollup
+    ) {}
+
+    private async submitDeposits(
+        batchID: BigNumberish,
+        prevBatch: Batch,
+        vacancy: Vacant
+    ): Promise<ContractTransaction> {
+        const prevCommitProof = prevBatch.proofCompressed(
+            prevBatch.commitments.length - 1
+        );
+
+        return await this.rollup.submitDeposits(
+            batchID,
+            prevCommitProof,
+            vacancy,
+            {
+                value: this.params.STAKE_AMOUNT
+            }
+        );
+    }
+
+    public async packAndSubmit(): Promise<ContractTransaction> {
+        const { state, batches } = this.storageManager;
+
+        const [nextBatchID, curBatch] = await Promise.all([
+            batches.nextBatchID(),
+            batches.current()
+        ]);
+        if (!curBatch) {
+            throw new Error("no batches synced");
+        }
+
+        const vacancy = await state.findVacantSubtree(
+            this.params.MAX_DEPOSIT_SUBTREE_DEPTH
+        );
+
+        console.log("Submitting deposits", prettyVacant(vacancy));
+        const l1Txn = await this.submitDeposits(nextBatchID, curBatch, vacancy);
+
+        // Update L2 state
+        const subtree = this.pool.popDepositSubtree();
+        await state.updateBatch(
+            vacancy.pathAtDepth,
+            this.params.MAX_DEPOSIT_SUBTREE_DEPTH,
+            subtree.states
+        );
+        await state.commit();
+
+        const context = {
+            subtreeID: subtree.id,
+            depositSubtreeRoot: subtree.root,
+            pathToSubTree: vacancy.pathAtDepth
+        };
+
+        const commit = new DepositCommitment(state.root, context);
+        const depositBatch = new ConcreteBatch([commit]);
+        await batches.add(depositBatch, l1Txn);
+
+        return l1Txn;
     }
 }

@@ -2,11 +2,14 @@
 import { assert, expect } from "chai";
 import { BigNumber, ContractReceipt, Signer } from "ethers";
 import { ethers } from "hardhat";
-import { expectRevert, toWei } from "../../ts/utils";
-import { MockRollup } from "../../types/ethers-contracts/MockRollup";
-import { MockRollupFactory } from "../../types/ethers-contracts/MockRollupFactory";
-import { TestBurnAuction } from "../../types/ethers-contracts/TestBurnAuction";
-import { TestBurnAuctionFactory } from "../../types/ethers-contracts/TestBurnAuctionFactory";
+import { toWei } from "../../ts/utils";
+import { expectRevert } from "../../test/utils";
+import {
+    MockRollup,
+    MockRollup__factory,
+    TestBurnAuction,
+    TestBurnAuction__factory
+} from "../../types/ethers-contracts";
 import { BLOCKS_PER_SLOT, DELTA_BLOCKS_INITIAL_SLOT } from "../../ts/constants";
 
 const zeroAddress = "0x0000000000000000000000000000000000000000";
@@ -35,11 +38,11 @@ describe("BurnAuction", function() {
         let signer: Signer;
         [signer, signer1, signer2, signer3] = await ethers.getSigners();
 
-        burnAuction = await new TestBurnAuctionFactory(signer).deploy(
+        burnAuction = await new TestBurnAuction__factory(signer).deploy(
             donationAddress,
             DONATION_NUMERATOR
         );
-        rollup = await new MockRollupFactory(signer).deploy(
+        rollup = await new MockRollup__factory(signer).deploy(
             burnAuction.address
         );
         gasPrice = await ethers.provider.getGasPrice();

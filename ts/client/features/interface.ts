@@ -58,6 +58,7 @@ export interface Commitment {
 export interface Batch {
     commitments: Commitment[];
     commitmentRoot: string;
+    proofCompressed(leafIndex: number): CommitmentInclusionProof;
     toString(): string;
 }
 

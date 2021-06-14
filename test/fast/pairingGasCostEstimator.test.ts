@@ -1,8 +1,10 @@
 import { ethers } from "hardhat";
-import { BnPairingPrecompileCostEstimatorFactory } from "../../types/ethers-contracts";
-import { BnPairingPrecompileCostEstimator } from "../../types/ethers-contracts/BnPairingPrecompileCostEstimator";
+import {
+    BNPairingPrecompileCostEstimator,
+    BNPairingPrecompileCostEstimator__factory
+} from "../../types/ethers-contracts";
 import { assert } from "chai";
-import { expectRevert } from "../../ts/utils";
+import { expectRevert } from "../../test/utils";
 
 const BigNumber = ethers.BigNumber;
 
@@ -12,10 +14,10 @@ const REF_BASE_COST_WITH_OVERHEAD = REF_BASE_COST.mul(105).div(100);
 const REF_PER_PAIR_COST = BigNumber.from(34000); // Per-point price for an elliptic curve pairing check
 
 describe("BnPairingPrecompileCostEstimator", async () => {
-    let c: BnPairingPrecompileCostEstimator;
+    let c: BNPairingPrecompileCostEstimator;
     before(async function() {
         const accounts = await ethers.getSigners();
-        c = await new BnPairingPrecompileCostEstimatorFactory(
+        c = await new BNPairingPrecompileCostEstimator__factory(
             accounts[0]
         ).deploy();
         await c.deployed();
