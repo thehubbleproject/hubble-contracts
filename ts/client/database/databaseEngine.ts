@@ -13,7 +13,6 @@ export interface Entry<Item> {
 export class DatabaseEngine<Item extends Hashable, LeafType extends Leaf<Item>>
     implements StorageEngine<Item> {
     private tree: Tree<LeafType>;
-    private items: { [key: number]: Item } = {};
     private cache: { [key: number]: Item } = {};
     private journal: Entry<Item>[] = [];
 

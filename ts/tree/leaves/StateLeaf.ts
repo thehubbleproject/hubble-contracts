@@ -15,6 +15,10 @@ export class StateLeaf extends Leaf<State> {
         return new StateLeaf(item, itemId);
     }
 
+    static fromState(state: State, itemId: number) {
+        return new StateLeaf(state, itemId);
+    }
+
     // TODO Should this be static?
     deserialize(bytes: string): State {
         return State.fromEncoded(bytes);

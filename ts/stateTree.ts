@@ -13,6 +13,7 @@ import {
     WrongTokenID,
     ZeroAmount
 } from "./exceptions";
+import { StateLeaf } from "./tree/leaves/StateLeaf";
 
 export interface StateProvider {
     getState(stateID: number): SolStateMerkleProof;
@@ -91,11 +92,12 @@ export class StateTree implements StateProvider {
     public static new(stateDepth: number) {
         return new StateTree(stateDepth);
     }
-    private stateTree: Tree;
+    private stateTree: Tree<StateLeaf>;
     private states: { [key: number]: State } = {};
     constructor(stateDepth: number) {
         this.stateTree = Tree.new(
             stateDepth,
+            StateLeaf.fromDB,
             Hasher.new("bytes", ZERO_BYTES32)
         );
     }
@@ -117,7 +119,7 @@ export class StateTree implements StateProvider {
     private updateState(stateID: number, state: State) {
         this.checkSize(stateID);
         this.states[stateID] = state;
-        this.stateTree.updateSingle(stateID, state.toStateLeaf());
+        this.stateTree.update(stateID, StateLeaf.fromState(state, stateID));
     }
 
     public getVacancyProof(mergeOffsetLower: number, subtreeDepth: number) {

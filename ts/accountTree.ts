@@ -4,11 +4,12 @@ import { ethers } from "ethers";
 import { solG2 } from "./mcl";
 import { RegistrationFail, WrongBatchSize } from "./exceptions";
 import { ZERO_BYTES32 } from "./constants";
+import { PubkeyLeaf } from "./tree/leaves/PubkeyLeaf";
 
 // Tree is 32 level depth, the index is still smaller than Number.MAX_SAFE_INTEGER
 export class AccountRegistry {
-    treeLeft: Tree;
-    treeRight: Tree;
+    treeLeft: Tree<PubkeyLeaf>;
+    treeRight: Tree<PubkeyLeaf>;
     leftIndex: number = 0;
     rightIndex: number = 0;
     setSize: number;
@@ -28,8 +29,8 @@ export class AccountRegistry {
     ) {
         // Want the treeLeft and treeRight to have default hashes start with ZERO_BYTES32
         const hasher = Hasher.new("bytes", ZERO_BYTES32);
-        this.treeLeft = Tree.new(depth, hasher);
-        this.treeRight = Tree.new(depth, hasher);
+        this.treeLeft = Tree.new(depth, PubkeyLeaf.fromDB, hasher);
+        this.treeRight = Tree.new(depth, PubkeyLeaf.fromDB, hasher);
         this.setSize = 2 ** depth;
         this.batchSize = 2 ** batchDepth;
     }
@@ -37,8 +38,8 @@ export class AccountRegistry {
     public async register(pubkey: solG2): Promise<number> {
         const pubkeyID = await this.syncLeftIndex();
         await this.registry.register(pubkey);
-        const leaf = this.pubkeyToLeaf(pubkey);
-        this.treeLeft.updateSingle(pubkeyID, leaf);
+        const leaf = this.pubkeyToLeaf(pubkey, pubkeyID);
+        this.treeLeft.update(pubkeyID, leaf);
         const exist = await this.checkExistence(pubkeyID, pubkey);
         if (!exist) throw new RegistrationFail(`PubkeyID ${pubkeyID}`);
         await this.syncLeftIndex();
@@ -101,11 +102,7 @@ export class AccountRegistry {
         return hasher.hash2(this.treeLeft.root, this.treeRight.root);
     }
 
-    public pubkeyToLeaf(uncompressed: solG2) {
-        const leaf = ethers.utils.solidityKeccak256(
-            ["uint256", "uint256", "uint256", "uint256"],
-            uncompressed
-        );
-        return leaf;
+    public pubkeyToLeaf(uncompressed: solG2, id: number) {
+        return PubkeyLeaf.fromSolG2(uncompressed, id);
     }
 }

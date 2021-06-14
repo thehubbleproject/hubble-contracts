@@ -31,18 +31,18 @@ class Children {
 
     public static db = childrenDB;
 
+    static async fromDB(parent: string): Promise<Children> {
+        const children = await this.db.get(parent);
+        const left = children.slice(0, 32);
+        const right = children.slice(32, 64);
+        return new this(left, right);
+    }
+
     get parent() {
         return ethers.utils.solidityKeccak256(
             ["uint256", "uint256"],
             [this.left, this.right]
         );
-    }
-
-    static async fromDB(parent: string) {
-        const children = await this.db.get(parent);
-        const left = children.slice(0, 32);
-        const right = children.slice(32, 64);
-        return new this(left, right);
     }
 
     async toDB() {
@@ -54,23 +54,25 @@ class Children {
     }
 }
 
-export class Tree<T extends Leaf<Hashable>> {
+export class Tree<LeafType extends Leaf<Hashable>> {
     public readonly zeros: Array<Node>;
     public readonly depth: number;
     public readonly setSize: number;
     public readonly hasher: Hasher;
     private readonly tree: Array<Level> = [];
-    private readonly factory: LeafFactoryFunc<T>;
+    private readonly leafFactory: LeafFactoryFunc<LeafType>;
 
-    public static new<T extends Leaf<Hashable>>(
+    public static new<LeafType extends Leaf<Hashable>>(
         depth: number,
-        factory: LeafFactoryFunc<T>,
+        leafFactory: LeafFactoryFunc<LeafType>,
         hasher?: Hasher
     ) {
-        return new Tree<T>(depth, hasher || Hasher.new(), factory);
+        return new Tree<LeafType>(depth, leafFactory, hasher || Hasher.new());
     }
 
-    public static merklize(leaves: Node[]) {
+    public static merklize<LeafType extends Leaf<Hashable>>(
+        leaves: LeafType[]
+    ) {
         const depth = minTreeDepth(leaves.length);
         // This ZERO_BYTES32 must match the one we use in the mekle tree utils contract
         const hasher = Hasher.new("bytes", ZERO_BYTES32);
@@ -79,7 +81,11 @@ export class Tree<T extends Leaf<Hashable>> {
         return tree;
     }
 
-    constructor(depth: number, hasher: Hasher, factory: LeafFactoryFunc<T>) {
+    constructor(
+        depth: number,
+        leafFactory: LeafFactoryFunc<LeafType>,
+        hasher: Hasher
+    ) {
         this.depth = depth;
         this.setSize = 2 ** this.depth;
         this.tree = [];
@@ -88,7 +94,7 @@ export class Tree<T extends Leaf<Hashable>> {
         }
         this.hasher = hasher;
         this.zeros = this.hasher.zeros(depth);
-        this.factory = factory;
+        this.leafFactory = leafFactory;
     }
 
     async get(index: number) {
@@ -104,12 +110,12 @@ export class Tree<T extends Leaf<Hashable>> {
             mask >>= 1;
             witness.push(sibling);
         }
-        const leaf = await this.factory(index, parent);
+        const leaf = await this.leafFactory(index, parent);
         witness.reverse();
         return { witness, leaf };
     }
 
-    async update(index: number, leaf: T, witness?: string[]) {
+    async update(index: number, leaf: LeafType, witness?: string[]) {
         // If we already have witness, we can save 1 get
         const _witness = witness ?? (await this.get(index)).witness;
         let parent = leaf.item.hash();
@@ -121,9 +127,12 @@ export class Tree<T extends Leaf<Hashable>> {
                 ((index >> i) & 1) === 0
                     ? new Children(parent, sibling)
                     : new Children(sibling, parent);
+            await children.toDB();
             parent = children.parent;
         }
-        this.tree[0] = [parent];
+        this.tree[0][0]
+            ? (this.tree[0][0] = parent)
+            : (this.tree[0] = [parent]);
         await leaf.toDB();
     }
 
@@ -239,13 +248,13 @@ export class Tree<T extends Leaf<Hashable>> {
     }
 
     // updateBatch given multiple sequencial data updates tree ascending from an offset
-    public updateBatch(offset: number, leaves: Array<Node>) {
+    public updateBatch(offset: number, leaves: LeafType[]) {
         const len = leaves.length;
         if (len == 0) throw new EmptyArray();
         const lastIndex = len + offset - 1;
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
-            this.tree[this.depth][offset + i] = leaves[i];
+            this.tree[this.depth][offset + i] = leaves[i].serialize();
         }
         this.ascend(offset, len);
     }
