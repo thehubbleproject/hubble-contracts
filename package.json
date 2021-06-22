@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "scripts": {
-    "repl": "ts-node ./scripts/repl.ts",
+    "repl": "ts-node --files ./scripts/repl.ts",
     "test": "hardhat test",
     "solhint": "solhint \"contracts/**/*.sol\" -f unix",
     "lint": "prettier --check \"**/*.{sol,ts,js}\"",
@@ -12,13 +12,13 @@
     "compile": "hardhat compile",
     "tsc": "tsc",
     "node": "hardhat node",
-    "deploy": "ts-node ./scripts/deploy.ts",
-    "keyless:check": "ts-node ./scripts/keyless.ts --check",
-    "keyless:deploy": "ts-node ./scripts/keyless.ts --deploy",
-    "deposit": "ts-node ./scripts/deposit.ts",
+    "deploy": "ts-node --files ./scripts/deploy.ts",
+    "keyless:check": "ts-node --files ./scripts/keyless.ts --check",
+    "keyless:deploy": "ts-node --files ./scripts/keyless.ts --deploy",
+    "deposit": "ts-node --files ./scripts/deposit.ts",
     "bench": "hardhat run ./scripts/benchmark.ts",
     "slither": "slither .",
-    "genParam": "ts-node ./scripts/genParam.ts"
+    "genParam": "ts-node --files ./scripts/genParam.ts"
   },
   "repository": {
     "type": "git",

@@ -7,6 +7,7 @@ import { BatchPubkeyRegisteredEventSyncer } from "./events/batchPubkeyRegistered
 import { SinglePubkeyRegisteredEventSyncer } from "./events/singlePubkeyRegistered";
 import { DepositQueuedEventSyncer } from "./events/depositQueued";
 import { SyncCompleteEvent } from "../constants";
+import { BatchStorage } from "../storageEngine/batches/interfaces";
 
 export enum SyncMode {
     INITIAL_SYNCING,
@@ -17,10 +18,13 @@ export class SyncerService {
     private mode: SyncMode;
     private readonly events: EventSyncer;
     private readonly eventEmitter: EventEmitter;
+    private readonly batches: BatchStorage;
 
     constructor(private readonly api: CoreAPI) {
         this.mode = SyncMode.INITIAL_SYNCING;
         this.eventEmitter = api.eventEmitter;
+        this.batches = api.l2Storage.batches;
+
         this.events = new SequentialCompositeEventSyncer([
             // Note: Ordering here is important for initial syncs.
             // Pubkey syncs need to happen before batch syncs, etc.
@@ -45,19 +49,25 @@ export class SyncerService {
 
     public async initialSync(): Promise<void> {
         const chunksize = 100;
-        let start = this.api.syncpoint.blockNumber;
+        const { syncpoint } = this.api;
+
+        let start = syncpoint.blockNumber;
         let latestBlock = await this.api.getBlockNumber();
         let latestBatchID = await this.api.getLatestBatchID();
+
         while (start <= latestBlock) {
-            const end = start + chunksize - 1;
+            const end = Math.min(start + chunksize - 1, latestBlock);
 
             await this.events.initialSync(start, end);
+
+            const currentBatchID = await this.batches.currentBatchID();
+            syncpoint.update(end, currentBatchID);
 
             start = end + 1;
             latestBlock = await this.api.getBlockNumber();
             latestBatchID = await this.api.getLatestBatchID();
             console.info(
-                `block #${this.api.syncpoint.blockNumber}/#${latestBlock}  batch ${this.api.syncpoint.batchID}/${latestBatchID}`
+                `block #${syncpoint.blockNumber}/#${latestBlock}  batch ${syncpoint.batchID}/${latestBatchID}`
             );
         }
     }

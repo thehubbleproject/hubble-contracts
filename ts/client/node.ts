@@ -87,8 +87,8 @@ export class HubbleNode {
         );
     }
     async start() {
-        await this.syncer.start();
         this.eventEmitter.once(SyncCompleteEvent, this.onSyncComplete);
+        await this.syncer.start();
     }
     onSyncComplete = async () => {
         console.info("Initial Sync complete");
