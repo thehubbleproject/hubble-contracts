@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { DepositPool, IDepositPool } from "../../ts/client/features/deposit";
 import { TESTING_PARAMS as params } from "../../ts/constants";
 import { State } from "../../ts/state";
-import { Tree } from "../../ts/tree";
+import { MemoryTree } from "../../ts/tree/memoryTree";
 
 describe("Deposit feature", () => {
     describe("DepositPool", () => {
@@ -12,7 +12,7 @@ describe("Deposit feature", () => {
         let states: State[];
 
         const getMerklizedRoot = (states: State[]): string =>
-            Tree.merklize(states.map(s => s.hash())).root;
+            MemoryTree.merklize(states.map(s => s.hash())).root;
 
         beforeEach(function() {
             pool = new DepositPool(params.MAX_DEPOSIT_SUBTREE_DEPTH);

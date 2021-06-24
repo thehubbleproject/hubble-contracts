@@ -7,7 +7,6 @@ import { allContracts } from "../../ts/allContractsInterfaces";
 import { TESTING_PARAMS } from "../../ts/constants";
 import { deployAll } from "../../ts/deploy";
 import { State } from "../../ts/state";
-import { Tree } from "../../ts/tree";
 import { randomLeaves } from "../../ts/utils";
 import {
     TestDepositCore,
@@ -16,6 +15,7 @@ import {
 import { TransferCommitment } from "../../ts/commitments";
 import { StateTree } from "../../ts/stateTree";
 import { ERC20ValueFactory } from "../../ts/decimal";
+import { MemoryTree } from "../../ts/tree/memoryTree";
 
 chai.use(chaiAsPromised);
 
@@ -32,7 +32,7 @@ describe("Deposit Core", async function() {
         for (let j = 0; j < 5; j++) {
             const maxSubtreeSize = 2 ** maxSubtreeDepth;
             const leaves = randomLeaves(maxSubtreeSize);
-            const tree = Tree.new(maxSubtreeDepth);
+            const tree = MemoryTree.new(maxSubtreeDepth);
             for (let i = 0; i < maxSubtreeSize; i++) {
                 const gasCost = await contract.callStatic.testInsertAndMerge(
                     leaves[i]
@@ -207,7 +207,7 @@ describe("DepositManager", async function() {
         );
         const batchID = Number(await rollup.nextBatchID()) - 1;
         const depositSubTreeRoot = await rollup.deposits(batchID);
-        const root = Tree.merklize(stateLeaves).root;
+        const root = MemoryTree.merklize(stateLeaves).root;
         assert.equal(depositSubTreeRoot, root);
     });
 });

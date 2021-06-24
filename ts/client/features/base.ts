@@ -1,6 +1,6 @@
 import { BytesLike } from "ethers";
 import { solidityKeccak256 } from "ethers/lib/utils";
-import { Tree } from "../../tree";
+import { MemoryTree } from "../../tree/memoryTree";
 import { prettyHex } from "../../utils";
 import {
     Batch,
@@ -31,10 +31,10 @@ export abstract class BaseCommitment implements Commitment {
 }
 
 export class ConcreteBatch<T extends Commitment> implements Batch {
-    private tree: Tree;
+    private tree: MemoryTree;
     constructor(public readonly commitments: T[]) {
         if (commitments.length === 0) throw new Error("no commitment");
-        this.tree = Tree.merklize(commitments.map(c => c.hash()));
+        this.tree = MemoryTree.merklize(commitments.map(c => c.hash()));
     }
 
     get postStateRoot(): string {

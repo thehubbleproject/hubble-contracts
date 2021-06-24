@@ -6,7 +6,7 @@ import { Usage, Wei } from "./interfaces";
 import { solG1 } from "./mcl";
 import { State } from "./state";
 import { MigrationTree, StateProvider } from "./stateTree";
-import { Tree } from "./tree";
+import { MemoryTree } from "./tree/memoryTree";
 import { serialize, TxMassMigration } from "./tx";
 import { sum } from "./utils";
 
@@ -237,9 +237,9 @@ export class Create2TransferCommitment extends TransferCommitment {
 }
 
 export class Batch {
-    private tree: Tree;
+    private tree: MemoryTree;
     constructor(public readonly commitments: Commitment[]) {
-        this.tree = Tree.merklize(commitments.map(c => c.hash()));
+        this.tree = MemoryTree.merklize(commitments.map(c => c.hash()));
     }
 
     get commitmentRoot(): string {

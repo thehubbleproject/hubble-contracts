@@ -4,7 +4,7 @@ import { Rollup } from "../../../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "../../constants";
 import { DeploymentParameters, Vacant } from "../../interfaces";
 import { State } from "../../state";
-import { Tree } from "../../tree";
+import { MemoryTree } from "../../tree/memoryTree";
 import { computeRoot, prettyHex, prettyVacant } from "../../utils";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
 import { BaseCommitment, ConcreteBatch } from "./base";
@@ -78,7 +78,7 @@ export class DepositPool implements IDepositPool {
 
     private pushSubtree() {
         const states = this.depositLeaves.splice(0, this.depositLeaves.length);
-        const root = Tree.merklize(states.map(s => s.hash())).root;
+        const root = MemoryTree.merklize(states.map(s => s.hash())).root;
         const id = this.incrementSubtreeID();
         this.subtreeQueue.push({ id, states, root });
     }

@@ -6,3 +6,4 @@ cache/
 artifacts/
 build/
 docker/testData
+leveldb/

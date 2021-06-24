@@ -69,3 +69,8 @@ export interface BatchStorage {
         commitmentRoot: string
     ): Promise<BatchL1Transaction | undefined>;
 }
+
+export interface Entry<Item> {
+    itemID: number;
+    item: Item;
+}
