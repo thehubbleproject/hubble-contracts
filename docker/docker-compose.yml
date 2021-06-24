@@ -3,12 +3,12 @@ version: "3.8"
 services:
     geth:
         container_name: geth
-        image: ethereum/client-go:stable
+        image: ethereum/client-go:v1.10.3
         ports:
             - "8545:8545"
         volumes:
             - "./testData/dev-chain:/dev-chain"
-        command: --datadir dev-chain/ --http --dev --dev.period=14 --rpc.allow-unprotected-txs
+        command: --datadir dev-chain/ --http --http.addr 0.0.0.0 --dev --dev.period=14 --rpc.allow-unprotected-txs
 
     hubble:
         container_name: hubble
