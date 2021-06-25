@@ -16,22 +16,29 @@ export class BurnAuctionWrapper {
         public readonly myAddress: string
     ) {}
     static async fromContract(burnAuction: BurnAuction) {
-        const initialBlocks = await burnAuction.DELTA_BLOCKS_INITIAL_SLOT();
-        const blocksPerSlot = await burnAuction.BLOCKS_PER_SLOT();
-        const genesisBlock = Number(await burnAuction.genesisBlock());
-        const myAddress = await burnAuction.signer.getAddress();
+        const [
+            initialBlocks,
+            blocksPerSlot,
+            genesisBlock,
+            myAddress
+        ] = await Promise.all([
+            burnAuction.DELTA_BLOCKS_INITIAL_SLOT(),
+            burnAuction.BLOCKS_PER_SLOT(),
+            burnAuction.genesisBlock(),
+            burnAuction.signer.getAddress()
+        ]);
 
         return new this(
             burnAuction,
             initialBlocks,
             blocksPerSlot,
-            genesisBlock,
+            Number(genesisBlock),
             myAddress
         );
     }
 
     async bid(amount: BigNumber) {
-        return await this.burnAuction.bid(amount, { value: amount });
+        return this.burnAuction.bid(amount, { value: amount });
     }
 
     currentSlot(blockNumber: number) {

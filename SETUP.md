@@ -32,7 +32,7 @@ Then in geth console:
 ```sh
 eth.coinbase
 account = "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
-eth.sendTransaction({from:eth.coinbase, to:account, value: web3.toWei(10000, "ether")})
+eth.sendTransaction({ from:eth.coinbase, to:account, value: web3.toWei(10000, "ether")})
 ```
 
 ## Deploy Contracts
@@ -130,7 +130,7 @@ The client will be parameterized using this file.
 ## Run Client (Node)
 
 ```sh
-npx ts-node ./scripts/simulate.ts --proposer
+npx ts-node --files ./scripts/simulate.ts --proposer
 ```
 
 ### repl (Hubble console)

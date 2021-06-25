@@ -44,7 +44,10 @@ export class Bidder {
             return;
         }
         console.log("Bid", formatEther(this.willingnessToBid), "ETH");
-        await this.burnAuction.bid(this.willingnessToBid);
+        const l1Txn = await this.burnAuction.bid(this.willingnessToBid);
+        console.log("Bid L1 txn", l1Txn.hash);
+        await l1Txn.wait(1);
+        console.log("Bid mined", "L1 txn", l1Txn.hash);
     };
 
     async start() {
