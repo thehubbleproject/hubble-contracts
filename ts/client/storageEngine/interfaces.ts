@@ -5,6 +5,11 @@ export interface WithWitness<Item> {
     witness: string[];
 }
 
+export interface Entry<Item> {
+    itemID: number;
+    item: Item;
+}
+
 export interface StorageEngine<Item> {
     get(itemID: number): Promise<Item>;
     update(itemID: number, item: Item): Promise<void>;
