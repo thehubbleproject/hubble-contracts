@@ -3,7 +3,7 @@ version: "3.8"
 services:
     geth:
         container_name: geth
-        image: ethereum/client-go:v1.10.3
+        image: ethereum/client-go:stable
         ports:
             - "8545:8545"
         volumes:

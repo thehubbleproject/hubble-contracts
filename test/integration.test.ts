@@ -354,7 +354,12 @@ describe("Integration Test", function() {
         for (const batchID of stakedBatchIDs) {
             const preBalance = await coordinator.getBalance();
             const tx = await rollup.connect(coordinator).withdrawStake(batchID);
-            const txFee = (await tx.wait()).gasUsed.mul(tx.gasPrice);
+            if (!tx.gasPrice) {
+                throw new Error("txn missing gasPrice");
+            }
+
+            const txReceipt = await tx.wait();
+            const txFee = txReceipt.gasUsed.mul(tx.gasPrice);
             const postBalance = await coordinator.getBalance();
             assert.equal(
                 postBalance

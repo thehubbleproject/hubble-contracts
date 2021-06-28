@@ -111,7 +111,7 @@ describe("DepositManager", async function() {
                 vacancyProof,
                 { value: TESTING_PARAMS.STAKE_AMOUNT }
             ),
-            /.*revert batchID does not match nextBatchID/
+            /.*batchID does not match nextBatchID.*/
         );
     });
     it("should allow depositing 2 leaves in a subtree and merging it", async function() {
