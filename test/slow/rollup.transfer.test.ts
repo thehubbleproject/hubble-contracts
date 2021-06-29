@@ -89,7 +89,7 @@ describe("Rollup Transfer", async function() {
                 invalidBatchID,
                 TESTING_PARAMS.STAKE_AMOUNT
             ),
-            /.*revert batchID does not match nextBatchID/
+            /.*batchID does not match nextBatchID.*/
         );
     });
 
