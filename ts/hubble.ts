@@ -26,13 +26,13 @@ export class Hubble {
         return new Hubble(genesis.parameters, contracts, signer, group);
     }
 
-    static fromDefault(
+    static async fromDefault(
         providerUrl = "http://localhost:8545",
         genesisPath = "./genesis.json"
     ) {
         const provider = new ethers.providers.JsonRpcProvider(providerUrl);
         const signer = provider.getSigner();
-        const genesis = Genesis.fromConfig(genesisPath);
+        const genesis = await Genesis.fromConfig(genesisPath);
         return Hubble.fromGenesis(genesis, signer);
     }
 

@@ -1,0 +1,16 @@
+{
+    "providerUrl": "http://localhost:8545",
+    "genesisPath": "./genesis.json",
+    "rpc": {
+        "address": "127.0.0.1",
+        "port": 3000
+    },
+    "proposer": {
+        "enabled": true,
+        "willingnessToBid": 1,
+        "feeReceivers": [{
+            "tokenID": 1,
+            "stateID": 0
+        }]
+    }
+}

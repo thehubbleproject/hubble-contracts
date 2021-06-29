@@ -2,6 +2,7 @@ import { sum } from "../utils";
 import { OffchainTx } from "./features/interface";
 
 // Don't care about token and their exchange rate, just compare the numeric value of fee
+// https://github.com/thehubbleproject/hubble-contracts/issues/572
 function naiveCompareFee(a: OffchainTx, b: OffchainTx) {
     if (a.fee.lt(b.fee)) {
         return -1;

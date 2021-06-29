@@ -30,7 +30,10 @@ describe("Client Integration", function() {
         await mcl.init();
         const [signer] = await ethers.getSigners();
         const provider = signer.provider as providers.JsonRpcProvider;
-        const genesisEth1Block = await provider.getBlockNumber();
+        const [genesisEth1Block, network] = await Promise.all([
+            provider.getBlockNumber(),
+            provider.getNetwork()
+        ]);
 
         await deployKeyless(signer, false);
 
@@ -81,10 +84,8 @@ describe("Client Integration", function() {
             numDepositBatches++;
         }
 
-        const feeReceiverID = 0;
-        const transferPool = new TransferPool(tokenID, feeReceiverID);
-
         // Setup a pool which simulates random token transfers
+        const feeReceiverID = 0;
         const numTransferBatches = 10;
         const maxTransfers =
             numTransferBatches * parameters.MAX_TXS_PER_COMMIT ** 2;
@@ -99,26 +100,15 @@ describe("Client Integration", function() {
         const genesis = await Genesis.fromContracts(
             contracts,
             parameters,
-            genesisEth1Block
+            genesisEth1Block,
+            network.chainId
         );
-        const apiSyncer = CoreAPI.new(
-            storageSyncer,
-            genesis,
-            provider,
-            signer,
-            transferPool
-        );
-        const apiPacker = CoreAPI.new(
-            storagePacker,
-            genesis,
-            provider,
-            signer,
-            simPool
-        );
+        const apiSyncer = CoreAPI.new(storageSyncer, genesis, provider, signer);
+        const apiPacker = CoreAPI.new(storagePacker, genesis, provider, signer);
 
         // Simulate packing node running
         const packerSyncer = new SyncerService(apiPacker);
-        const packer = new Packer(apiPacker);
+        const packer = new Packer(apiPacker, simPool);
         await packerSyncer.initialSync();
         await packer.runOnce();
 

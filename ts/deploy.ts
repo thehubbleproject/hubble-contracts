@@ -180,17 +180,27 @@ export async function deployAndWriteGenesis(
     parameters: DeploymentParameters,
     genesisPath: string = "genesis.json"
 ) {
-    const genesisEth1Block = (await signer.provider?.getBlockNumber()) as number;
+    const { provider } = signer;
+    if (!provider) {
+        throw new Error("signer missing provider");
+    }
+
+    const [genesisEth1Block, network] = await Promise.all([
+        provider.getBlockNumber(),
+        provider.getNetwork()
+    ]);
+
     await deployKeyless(signer, true);
     const contracts = await deployAll(signer, parameters, true);
+
     const genesis = await Genesis.fromContracts(
         contracts,
         parameters,
-        genesisEth1Block
+        genesisEth1Block,
+        network.chainId
     );
-    console.log("Writing genesis file to", genesisPath);
-    genesis.dump(genesisPath);
-    console.log("Successsfully deployed", genesis);
+    await genesis.dump(genesisPath);
+    console.log("Successsfully deployed", "genesis", genesis.toString());
 
     return contracts;
 }

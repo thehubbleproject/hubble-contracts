@@ -8,7 +8,7 @@ services:
             - "8545:8545"
         volumes:
             - "./testData/dev-chain:/dev-chain"
-        command: --datadir dev-chain/ --http --http.addr 0.0.0.0 --dev --dev.period=14 --rpc.allow-unprotected-txs
+        command: --datadir dev-chain/ --http --http.addr 0.0.0.0 --http.vhosts '*' --dev --dev.period=14 --rpc.allow-unprotected-txs
 
     hubble:
         container_name: hubble
@@ -20,4 +20,6 @@ services:
         ports:
             - "3000:3000"
         volumes:
-            - "./testData/genesis.json:/app/genesis.json"
+            - "./genesis.json:/app/genesis.json"
+            - "./config.docker.json:/app/config.docker.json"
+        command: --configPath ./config.docker.json

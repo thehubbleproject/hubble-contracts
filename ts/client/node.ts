@@ -1,22 +1,29 @@
 import { Provider } from "@ethersproject/providers";
-import { ethers } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { EventEmitter } from "events";
+import { FastifyInstance } from "fastify";
 import { storageManagerFactory } from "../factory";
 import * as mcl from "../../ts/mcl";
 import { Bidder } from "./services/bidder";
 import { SyncerService } from "./services/syncer";
-import { Genesis } from "../genesis";
 import { Packer } from "./services/packer";
 import { TransferPool } from "./features/transfer";
 import { BurnAuctionWrapper } from "../burnAuction";
 import { RPC } from "./services/rpc";
 import { CoreAPI } from "./coreAPI";
-import { NodeType, SyncCompleteEvent } from "./constants";
+import { SyncCompleteEvent } from "./constants";
 import { ClientConfig } from "./config";
+import { Genesis } from "../genesis";
+import { EmptyConfigPropError, MissingConfigPropError } from "../exceptions";
+
+export type NodeModes = {
+    isProposer: boolean;
+    isWatcher: boolean;
+};
 
 export class HubbleNode {
     constructor(
-        private readonly nodeType: NodeType,
+        private readonly modes: NodeModes,
         private readonly provider: Provider,
         private readonly eventEmitter: EventEmitter,
         private readonly syncer: SyncerService,
@@ -25,12 +32,13 @@ export class HubbleNode {
         private readonly rpc?: RPC
     ) {}
 
-    public static async init(config: ClientConfig) {
+    public static async init(config: ClientConfig, fast: FastifyInstance) {
         await mcl.init();
+        const genesis = await Genesis.fromConfig(config.genesisPath);
 
-        const genesis = Genesis.fromConfig(config.genesisPath);
         const provider = new ethers.providers.JsonRpcProvider(
-            config.providerUrl
+            config.providerUrl,
+            genesis.auxiliary.chainid
         );
         const signer = provider.getSigner();
 
@@ -40,44 +48,51 @@ export class HubbleNode {
             pubkeyTreeDepth: MAX_DEPTH
         });
 
-        // Hardcoded for now, will be configurable in
-        // https://github.com/thehubbleproject/hubble-contracts/issues/557
-        const feeReceiver = 0;
-        const tokenID = 1;
-        const pool = new TransferPool(tokenID, feeReceiver);
-
-        const api = CoreAPI.new(
-            storageManager,
-            genesis,
-            provider,
-            signer,
-            pool
-        );
+        const api = CoreAPI.new(storageManager, genesis, provider, signer);
 
         const syncer = new SyncerService(api);
 
+        let transferPool;
         let packer;
         let bidder;
-        if (config.nodeType === NodeType.Proposer) {
-            packer = new Packer(api);
 
-            // TODO Move to config validation
-            // https://github.com/thehubbleproject/hubble-contracts/issues/557
-            if (!config.proposer?.willingnessToBid) {
-                throw new Error("config missing proposer.willingnessToBid");
+        const modes = this.getNodeModes(config);
+        if (modes.isProposer) {
+            const { feeReceivers, willingnessToBid } = config.proposer || {};
+            if (!feeReceivers) {
+                throw new MissingConfigPropError("proposer.feeRecievers");
             }
+            if (!feeReceivers.length) {
+                throw new EmptyConfigPropError("proposer.feeRecievers");
+            }
+            if (!willingnessToBid) {
+                throw new MissingConfigPropError("proposer.willingnessToBid");
+            }
+
+            // TODO Implement multi-token pool
+            // https://github.com/thehubbleproject/hubble-contracts/issues/476
+            if (feeReceivers.length > 1) {
+                throw new Error("multiple tokens are currently not supported");
+            }
+            const { tokenID, stateID } = feeReceivers[0];
+            transferPool = new TransferPool(tokenID, stateID);
+
+            packer = new Packer(api, transferPool);
             bidder = await Bidder.new(
-                config.proposer.willingnessToBid,
+                BigNumber.from(willingnessToBid),
                 api.contracts.burnAuction
             );
+        }
+        if (modes.isWatcher) {
+            throw new Error("watcher is currently not supported");
         }
 
         // In the future, we will want to delay starting up the rpc client
         // until after the initial sync is completed (HTTP 503).
         // https://github.com/thehubbleproject/hubble-contracts/issues/558
-        const rpc = await RPC.init(api, config.rpcPort);
+        const rpc = new RPC(api, fast, transferPool);
         return new this(
-            config.nodeType,
+            modes,
             provider,
             api.eventEmitter,
             syncer,
@@ -86,13 +101,32 @@ export class HubbleNode {
             rpc
         );
     }
-    async start() {
+
+    private static getNodeModes({
+        proposer,
+        watcher
+    }: ClientConfig): NodeModes {
+        return {
+            isProposer: proposer ? proposer.enabled : false,
+            isWatcher: watcher ? watcher.enabled : false
+        };
+    }
+
+    public async start() {
         this.eventEmitter.once(SyncCompleteEvent, this.onSyncComplete);
         await this.syncer.start();
     }
+
+    public async close() {
+        console.log("Node start closing");
+        this.syncer?.stop();
+        this.packer?.stop();
+        this.bidder?.stop();
+    }
+
     onSyncComplete = async () => {
         console.info("Initial Sync complete");
-        if (this.nodeType !== NodeType.Proposer) {
+        if (!this.modes.isProposer) {
             console.info("Not a proposer, nothing to do");
             return;
         }
@@ -143,11 +177,4 @@ export class HubbleNode {
             }
         });
     };
-
-    async close() {
-        console.log("Node start closing");
-        this.syncer?.stop();
-        this.packer?.stop();
-        this.bidder?.stop();
-    }
 }

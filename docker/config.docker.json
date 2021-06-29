@@ -1,0 +1,16 @@
+{
+    "providerUrl": "http://geth:8545",
+    "genesisPath": "./genesis.json",
+    "rpc": {
+        "address": "0.0.0.0",
+        "port": 3000
+    },
+    "proposer": {
+        "enabled": true,
+        "willingnessToBid": 1,
+        "feeReceivers": [{
+            "tokenID": 1,
+            "stateID": 0
+        }]
+    }
+}

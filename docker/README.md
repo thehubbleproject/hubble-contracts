@@ -39,9 +39,9 @@ At steps in the setup instructions where it asks you to attach to geth, you can 
 geth attach ./testData/dev-chain/geth.ipc
 ```
 
-Finally, copy over `genesis.json` to the `testData` dir.
+Finally, copy over `genesis.json`.
 ```sh
-cp ../genesis.json ./testData/genesis.json
+cp ../genesis.json ./genesis.json
 ```
 
 ### run hubble node
@@ -53,8 +53,6 @@ docker-compose up -d geth # make sure geth container is running in background
 sleep 10 # wait for geth to spin up
 docker-compose up hubble 
 ```
-
-Note that the hubble node will current crash (`exit 1`) until https://github.com/thehubbleproject/hubble-contracts/issues/557 is completed.
 
 ## Troubleshooting
 

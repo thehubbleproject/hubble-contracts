@@ -20,9 +20,16 @@ describe("hubble", function() {
             addresses[contract] =
                 contracts[contract as keyof allContracts].address;
         });
-        const dummyAux = { domain: "0xabcd", genesisEth1Block: 0, version: "" };
+        const network = await signer.provider?.getNetwork();
+        const chainid = network?.chainId || 0;
+        const dummyAux = {
+            domain: "0xabcd",
+            genesisEth1Block: 0,
+            version: "",
+            chainid
+        };
 
         const genesis = new Genesis(parameters, addresses, dummyAux);
-        const hubble = Hubble.fromGenesis(genesis, signer);
+        const _hubble = Hubble.fromGenesis(genesis, signer);
     });
 });
