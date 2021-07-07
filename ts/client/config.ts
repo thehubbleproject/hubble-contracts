@@ -1,3 +1,4 @@
+import { BigNumberish } from "ethers";
 import { readFile } from "fs";
 import { resolve } from "path";
 import { promisify } from "util";
@@ -5,8 +6,8 @@ import { promisify } from "util";
 const readFileAsync = promisify(readFile);
 
 export type FeeReceivers = Array<{
-    tokenID: number;
-    stateID: number;
+    tokenID: BigNumberish;
+    stateID: BigNumberish;
 }>;
 
 type RPCConfig = {
@@ -17,6 +18,7 @@ type RPCConfig = {
 type ProposerConfig = {
     enabled: boolean;
     willingnessToBid: number;
+    maxPendingTransactions?: number;
     feeReceivers: FeeReceivers;
 };
 

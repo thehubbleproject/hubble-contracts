@@ -21,6 +21,7 @@ import { Group } from "../../factory";
 import { DeploymentParameters } from "../../interfaces";
 import { dumpG1, loadG1, parseG1, solG1 } from "../../mcl";
 import { prettyHex, sum, sumNumber } from "../../utils";
+import { FeeReceivers } from "../config";
 import {
     processReceiver,
     processSender,
@@ -28,7 +29,7 @@ import {
     validateSender
 } from "../stateTransitions";
 import { StateStorageEngine, StorageManager } from "../storageEngine";
-import { SameTokenPool } from "../txPool";
+import { MultiTokenPool } from "../txPool";
 import { BaseCommitment, ConcreteBatch } from "./base";
 import {
     SolStruct,
@@ -51,8 +52,8 @@ export class TransferCompressedTx implements CompressedTx {
         FloatLength
     ];
     constructor(
-        public readonly fromIndex: number,
-        public readonly toIndex: number,
+        public readonly fromIndex: BigNumber,
+        public readonly toIndex: BigNumber,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber
     ) {}
@@ -75,8 +76,8 @@ export class TransferCompressedTx implements CompressedTx {
             bytesArray.push(bytes.slice(position, position + len));
             position += len;
         }
-        const fromIndex = BigNumber.from(bytesArray[0]).toNumber();
-        const toIndex = BigNumber.from(bytesArray[1]).toNumber();
+        const fromIndex = BigNumber.from(bytesArray[0]);
+        const toIndex = BigNumber.from(bytesArray[1]);
         const amount = float16.decompress(bytesArray[2]);
         const fee = float16.decompress(bytesArray[3]);
         return new this(fromIndex, toIndex, amount, fee);
@@ -116,8 +117,8 @@ export class TransferOffchainTx extends TransferCompressedTx
     }
 
     constructor(
-        public readonly fromIndex: number,
-        public readonly toIndex: number,
+        public readonly fromIndex: BigNumber,
+        public readonly toIndex: BigNumber,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
         public nonce: number,
@@ -348,8 +349,8 @@ async function process(
 
 export interface TransferPipe {
     source: AsyncGenerator<TransferOffchainTx>;
-    tokenID: number;
-    feeReceiverID: number;
+    tokenID: BigNumber;
+    feeReceiverID: BigNumber;
 }
 
 async function pack(
@@ -374,7 +375,7 @@ async function pack(
                 verifier
             );
         } catch (err) {
-            console.error(`bad tx ${tx}  ${err}`);
+            console.error(`bad tx ${tx.hash()}  ${err}`);
             failedTxs.push({ tx, err });
             continue;
         }
@@ -417,8 +418,8 @@ export class OffchainTransferFactory {
                 const amount = float16.round(senderState.balance.div(10));
                 const fee = float16.round(amount.div(10));
                 const tx = new TransferOffchainTx(
-                    sender.stateID,
-                    receiver.stateID,
+                    BigNumber.from(sender.stateID),
+                    BigNumber.from(receiver.stateID),
                     amount,
                     fee,
                     senderState.nonce
@@ -484,45 +485,43 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
 
 export interface ITransferPool {
     isEmpty(): boolean;
-    getNextPipe(): TransferPipe;
+    getNextPipe(): Promise<TransferPipe>;
     push(tx: TransferOffchainTx): Promise<void>;
 }
 
 export class TransferPool implements ITransferPool {
-    private pool: SameTokenPool<TransferOffchainTx>;
+    private pool: MultiTokenPool<TransferOffchainTx>;
 
-    constructor(
-        public readonly tokenID: number,
-        public readonly feeReceiverID: number
-    ) {
-        this.pool = new SameTokenPool(1024);
-    }
-
-    public async push(tx: TransferOffchainTx) {
-        this.pool.push(tx);
-    }
-
-    async *genTx(): AsyncGenerator<TransferOffchainTx> {
-        while (this.pool.size > 0) {
-            yield this.pool.pop();
-        }
+    constructor(stateStorage: StateStorageEngine, feeRecievers: FeeReceivers, maxPendingTransactions?: number) {
+        this.pool = new MultiTokenPool(stateStorage, feeRecievers, maxPendingTransactions);
     }
 
     public isEmpty(): boolean {
-        return this.pool.size == 0;
+        return this.pool.size() == 0;
     }
 
-    public getNextPipe(): TransferPipe {
-        const source = this.genTx();
+    public async getNextPipe(): Promise<TransferPipe> {
+        const { tokenID, feeReceiverID } = await this.pool.getHighestValueToken();
+        const source = this.genTx(tokenID);
         return {
             source,
-            tokenID: this.tokenID,
-            feeReceiverID: this.feeReceiverID
+            tokenID,
+            feeReceiverID
         };
     }
 
     public toString(): string {
-        return `<TransferPool  size ${this.pool.size}>`;
+        return `<TransferPool  size ${this.pool.size()}>`;
+    }
+
+    public async push(tx: TransferOffchainTx) {
+        await this.pool.push(tx);
+    }
+
+    private async *genTx(tokenID: BigNumber): AsyncGenerator<TransferOffchainTx> {
+        while (this.pool.size(tokenID) > 0) {
+            yield this.pool.pop(tokenID);
+        }
     }
 }
 
