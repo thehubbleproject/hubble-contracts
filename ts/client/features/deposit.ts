@@ -49,11 +49,11 @@ export class DepositPool implements IDepositPool {
         this.currentSubtreeID = BigNumber.from(0);
     }
 
-    public pushDeposit(encodedState: BytesLike) {
+    public async pushDeposit(encodedState: BytesLike) {
         const state = State.fromEncoded(encodedState);
         this.depositLeaves.push(state);
         if (this.depositLeaves.length >= this.maxSubtreeSize) {
-            this.pushSubtree();
+            await this.pushSubtree();
         }
     }
 
@@ -76,9 +76,10 @@ export class DepositPool implements IDepositPool {
         return this.currentSubtreeID;
     }
 
-    private pushSubtree() {
+    private async pushSubtree() {
         const states = this.depositLeaves.splice(0, this.depositLeaves.length);
-        const root = MemoryTree.merklize(states.map(s => s.hash())).root;
+        const root = (await MemoryTree.merklize(states.map(s => s.hash())))
+            .root;
         const id = this.incrementSubtreeID();
         this.subtreeQueue.push({ id, states, root });
     }
@@ -135,7 +136,7 @@ export async function handleNewBatch(
         pathToSubTree: pathAtDepthNum
     };
     const commitment = new DepositCommitment(stateRoot, context);
-    return new ConcreteBatch([commitment]);
+    return await ConcreteBatch.new([commitment]);
 }
 
 export async function applyBatch(
@@ -203,7 +204,7 @@ export class DepositPackingCommand implements BatchPackingCommand {
         prevBatch: Batch,
         vacancy: Vacant
     ): Promise<ContractTransaction> {
-        const prevCommitProof = prevBatch.proofCompressed(
+        const prevCommitProof = await prevBatch.proofCompressed(
             prevBatch.commitments.length - 1
         );
 
@@ -251,7 +252,7 @@ export class DepositPackingCommand implements BatchPackingCommand {
         };
 
         const commit = new DepositCommitment(state.root, context);
-        const depositBatch = new ConcreteBatch([commit]);
+        const depositBatch = await ConcreteBatch.new([commit]);
         await batches.add(depositBatch, l1Txn);
 
         return l1Txn;

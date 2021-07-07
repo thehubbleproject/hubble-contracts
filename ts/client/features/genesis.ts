@@ -44,7 +44,7 @@ export class GenesisHandlingStrategy implements BatchHandlingStrategy {
 
         // Reconstruct genesis batch from genesis state root
         const commitment = new GenesisCommitment(this.genesisStateRoot);
-        const batch = new ConcreteBatch([commitment]);
+        const batch = await ConcreteBatch.new([commitment]);
 
         // Get genesis batch from L1
         const l1Batch = await this.rollup.getBatch(batchIDBN);

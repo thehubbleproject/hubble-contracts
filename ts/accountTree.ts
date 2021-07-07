@@ -4,16 +4,15 @@ import { ethers } from "ethers";
 import { solG2 } from "./mcl";
 import { RegistrationFail, WrongBatchSize } from "./exceptions";
 import { ZERO_BYTES32 } from "./constants";
-import { DBTree } from "./tree/dbTree";
-import { PubkeyLeaf } from "./tree/leaves/PubkeyLeaf";
+import { MemoryTree } from "./tree/memoryTree";
 
 type RegisterBatchPubkeys = Parameters<BLSAccountRegistry["registerBatch"]>[0];
 type ExistsWitness = Parameters<BLSAccountRegistry["exists"]>[2];
 
 // Tree is 32 level depth, the index is still smaller than Number.MAX_SAFE_INTEGER
 export class AccountRegistry {
-    treeLeft: DBTree<PubkeyLeaf>;
-    treeRight: DBTree<PubkeyLeaf>;
+    treeLeft: MemoryTree;
+    treeRight: MemoryTree;
     leftIndex: number = 0;
     rightIndex: number = 0;
     setSize: number;
@@ -33,8 +32,8 @@ export class AccountRegistry {
     ) {
         // Want the treeLeft and treeRight to have default hashes start with ZERO_BYTES32
         const hasher = Hasher.new("bytes", ZERO_BYTES32);
-        this.treeLeft = new DBTree(depth, PubkeyLeaf.fromDB, hasher);
-        this.treeRight = new DBTree(depth, PubkeyLeaf.fromDB, hasher);
+        this.treeLeft = new MemoryTree(depth, hasher);
+        this.treeRight = new MemoryTree(depth, hasher);
         this.setSize = 2 ** depth;
         this.batchSize = 2 ** batchDepth;
     }
@@ -43,7 +42,7 @@ export class AccountRegistry {
         const pubkeyID = await this.syncLeftIndex();
         await this.registry.register(pubkey);
         const leaf = this.pubkeyToLeaf(pubkey);
-        this.treeLeft.updateSingle(pubkeyID, leaf);
+        await this.treeLeft.updateSingle(pubkeyID, leaf);
         const exist = await this.checkExistence(pubkeyID, pubkey);
         if (!exist) throw new RegistrationFail(`PubkeyID ${pubkeyID}`);
         await this.syncLeftIndex();
@@ -58,7 +57,7 @@ export class AccountRegistry {
         const rigthIndex = await this.syncRightIndex();
         await this.registry.registerBatch(pubkeys as RegisterBatchPubkeys);
         const leaves = pubkeys.map(key => this.pubkeyToLeaf(key));
-        this.treeRight.updateBatch(rigthIndex, leaves);
+        await this.treeRight.updateBatch(rigthIndex, leaves);
         const firstPubkeyID = rigthIndex + this.setSize;
         const lastPubkeyID = firstPubkeyID + length - 1;
         const exist = await this.checkExistence(
@@ -76,7 +75,7 @@ export class AccountRegistry {
     ): Promise<boolean> {
         // To do merkle check on chain, we only need 31 hashes in the witness
         // The 32 hash is the root of the left or right tree, which account tree will get it for us.
-        const witness = this.witness(pubkeyID).slice(0, 31);
+        const witness = (await this.witness(pubkeyID)).slice(0, 31);
         return await this.registry.exists(
             pubkeyID,
             pubkey,
@@ -92,14 +91,14 @@ export class AccountRegistry {
         return this.rightIndex;
     }
 
-    public witness(pubkeyID: number): string[] {
+    public async witness(pubkeyID: number): Promise<string[]> {
         if (pubkeyID < this.treeLeft.setSize) {
-            const witness = this.treeLeft.witness(pubkeyID).nodes;
+            const witness = (await this.treeLeft.witness(pubkeyID)).nodes;
             witness.push(this.treeRight.root);
             return witness;
         } else {
             const rightTreeID = pubkeyID - this.setSize;
-            const witness = this.treeRight.witness(rightTreeID).nodes;
+            const witness = (await this.treeRight.witness(rightTreeID)).nodes;
             witness.push(this.treeLeft.root);
             return witness;
         }

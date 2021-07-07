@@ -52,23 +52,25 @@ describe("Rollup Mass Migration", () => {
         rollup = await new TestMassMigration__factory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         users.connect(stateTree);
-        users.createStates({ tokenID });
+        await users.createStates({ tokenID });
     });
 
     it("checks signature", async function() {
-        const { txs, signature, senders } = txMassMigrationFactory(
+        const { txs, signature, senders } = await txMassMigrationFactory(
             users,
             spokeID
         );
         const pubkeys = senders.map(sender => sender.pubkey);
-        const pubkeyWitnesses = senders.map(sender =>
-            registry.witness(sender.pubkeyID)
+        const pubkeyWitnesses = await Promise.all(
+            senders.map(sender => registry.witness(sender.pubkeyID))
         );
-        stateTree.processMassMigrationCommit(txs, 0);
+        await stateTree.processMassMigrationCommit(txs, 0);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const postProofs = await Promise.all(
+            txs.map(tx => stateTree.getState(tx.fromIndex))
+        );
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
@@ -100,19 +102,21 @@ describe("Rollup Mass Migration", () => {
         for (let i = 0; i < 7; i++) {
             manySameSenderGroup = manySameSenderGroup.join(smallGroup);
         }
-        const { txs, signature, senders } = txMassMigrationFactory(
+        const { txs, signature, senders } = await txMassMigrationFactory(
             manySameSenderGroup,
             spokeID
         );
         const pubkeys = senders.map(sender => sender.pubkey);
-        const pubkeyWitnesses = senders.map(sender =>
-            registry.witness(sender.pubkeyID)
+        const pubkeyWitnesses = await Promise.all(
+            senders.map(sender => registry.witness(sender.pubkeyID))
         );
-        stateTree.processMassMigrationCommit(txs, 0);
+        await stateTree.processMassMigrationCommit(txs, 0);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const postProofs = await Promise.all(
+            txs.map(tx => stateTree.getState(tx.fromIndex))
+        );
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
@@ -140,16 +144,16 @@ describe("Rollup Mass Migration", () => {
     }).timeout(800000);
 
     it("checks state transitions", async function() {
-        const { txs } = txMassMigrationFactory(users, spokeID);
+        const { txs } = await txMassMigrationFactory(users, spokeID);
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs } = stateTree.processMassMigrationCommit(
+        const { proofs } = await stateTree.processMassMigrationCommit(
             txs,
             feeReceiver
         );
         const postStateRoot = stateTree.root;
-        const { commitment } = MassMigrationCommitment.fromStateProvider(
+        const { commitment } = await MassMigrationCommitment.fromStateProvider(
             constants.HashZero,
             txs,
             EMPTY_SIGNATURE,

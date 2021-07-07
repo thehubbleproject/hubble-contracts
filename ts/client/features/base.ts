@@ -31,10 +31,19 @@ export abstract class BaseCommitment implements Commitment {
 }
 
 export class ConcreteBatch<T extends Commitment> implements Batch {
-    private tree: MemoryTree;
+    private tree: MemoryTree = MemoryTree.new(0);
     constructor(public readonly commitments: T[]) {
         if (commitments.length === 0) throw new Error("no commitment");
-        this.tree = MemoryTree.merklize(commitments.map(c => c.hash()));
+    }
+
+    static async new<T extends Commitment>(
+        commitments: T[]
+    ): Promise<ConcreteBatch<T>> {
+        const concreteBatch = new ConcreteBatch(commitments);
+        concreteBatch.tree = await MemoryTree.merklize(
+            commitments.map(c => c.hash())
+        );
+        return concreteBatch;
     }
 
     get postStateRoot(): string {
@@ -46,22 +55,24 @@ export class ConcreteBatch<T extends Commitment> implements Batch {
         return this.tree.root;
     }
 
-    witness(leafIndex: number): string[] {
-        return this.tree.witness(leafIndex).nodes;
+    async witness(leafIndex: number): Promise<string[]> {
+        return (await this.tree.witness(leafIndex)).nodes;
     }
 
-    proof(leafIndex: number): XCommitmentInclusionProof {
+    async proof(leafIndex: number): Promise<XCommitmentInclusionProof> {
         return {
             commitment: this.commitments[leafIndex].toSolStruct(),
             path: leafIndex,
-            witness: this.witness(leafIndex)
+            witness: await this.witness(leafIndex)
         };
     }
-    proofCompressed(leafIndex: number): CommitmentInclusionProof {
+    async proofCompressed(
+        leafIndex: number
+    ): Promise<CommitmentInclusionProof> {
         return {
             commitment: this.commitments[leafIndex].toCompressedStruct(),
             path: leafIndex,
-            witness: this.witness(leafIndex)
+            witness: await this.witness(leafIndex)
         };
     }
 

@@ -29,23 +29,23 @@ export class DepositQueuedEventSyncer extends ContractEventSyncer {
             `Block ${startBlock} -- ${endBlock}\t${events.length} new deposits queued`
         );
         for (const event of events) {
-            this.handleDepositQueued(event);
+            await this.handleDepositQueued(event);
         }
     }
 
-    private handleDepositQueued(event: Event) {
+    private async handleDepositQueued(event: Event) {
         const depositState = State.fromDepositQueuedEvent(event);
-        this.depositPool.pushDeposit(depositState.encode());
+        await this.depositPool.pushDeposit(depositState.encode());
 
         console.info(`Deposit queued ${depositState.toString()}`);
     }
 
-    depositQueuedListener = (
+    depositQueuedListener = async (
         pubkeyID: null,
         tokenID: null,
         l2Amount: null,
         event: Event
     ) => {
-        this.handleDepositQueued(event);
+        await this.handleDepositQueued(event);
     };
 }

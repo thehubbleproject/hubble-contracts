@@ -30,7 +30,7 @@ async function main() {
         commitment.txs = serialize(transactions);
         commitments.push(commitment);
     }
-    const batch = new TransferBatch(commitments);
+    const batch = await TransferBatch.new(commitments);
 
     const tx = await batch.submit(
         constracts.rollup,

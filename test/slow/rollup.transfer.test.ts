@@ -46,7 +46,7 @@ describe("Rollup Transfer", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
 
         const initialBalance = USDT.fromHumanValue("55.6").l2Value;
-        users
+        await users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: true });
 
@@ -68,7 +68,7 @@ describe("Rollup Transfer", async function() {
 
     it("fails if batchID is incorrect", async function() {
         const feeReceiver = users.getUser(0).stateID;
-        const { txs, signature } = txTransferFactory(
+        const { txs, signature } = await txTransferFactory(
             users,
             TESTING_PARAMS.MAX_TXS_PER_COMMIT
         );
@@ -80,7 +80,7 @@ describe("Rollup Transfer", async function() {
             feeReceiver,
             serialize(txs)
         );
-        const batch = commit.toBatch();
+        const batch = await commit.toBatch();
 
         const invalidBatchID = 666;
         await assert.isRejected(
@@ -96,12 +96,15 @@ describe("Rollup Transfer", async function() {
     it("submit a batch and dispute", async function() {
         const feeReceiver = users.getUser(0).stateID;
         const { rollup } = contracts;
-        const { txs, signature } = txTransferFactory(
+        const { txs, signature } = await txTransferFactory(
             users,
             TESTING_PARAMS.MAX_TXS_PER_COMMIT
         );
 
-        const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
+        const { proofs } = await stateTree.processTransferCommit(
+            txs,
+            feeReceiver
+        );
 
         const commitment = TransferCommitment.new(
             stateTree.root,
@@ -111,7 +114,7 @@ describe("Rollup Transfer", async function() {
             serialize(txs)
         );
 
-        const targetBatch = commitment.toBatch();
+        const targetBatch = await commitment.toBatch();
         const transferBatchID = 1;
         const _txSubmit = await targetBatch.submit(
             rollup,
@@ -136,8 +139,8 @@ describe("Rollup Transfer", async function() {
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = getGenesisProof(genesisRoot);
-        const commitmentMP = targetBatch.proof(0);
+        const previousMP = await getGenesisProof(genesisRoot);
+        const commitmentMP = await targetBatch.proof(0);
 
         const _tx = await rollup.disputeTransitionTransfer(
             batchID,

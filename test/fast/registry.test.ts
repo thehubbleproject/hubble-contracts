@@ -105,7 +105,7 @@ describe("Registry", async () => {
             await registry.register(uncompressed);
         }
         for (let i = 0; i < 16; i++) {
-            const witness = treeLeft.witness(i).nodes;
+            const witness = (await treeLeft.witness(i)).nodes;
             const exist = await registry.exists(
                 i,
                 pubkeys[i],

@@ -158,12 +158,12 @@ describe("Integration Test", function() {
             fromBlockNumber
         );
         assert.equal(subtreeReadyEvents.length, nSubtrees);
-        previousProof = getGenesisProof(genesisRoot);
+        previousProof = await getGenesisProof(genesisRoot);
         const subgroups = Array.from(earlyAdopters.groupInterator(subtreeSize));
         for (let i = 0; i < nSubtrees; i++) {
             const mergeOffsetLower = i * subtreeSize;
             const subgroup = subgroups[i];
-            const vacant = stateTree.getVacancyProof(
+            const vacant = await stateTree.getVacancyProof(
                 mergeOffsetLower,
                 parameters.MAX_DEPOSIT_SUBTREE_DEPTH
             );
@@ -175,17 +175,16 @@ describe("Integration Test", function() {
                 });
             const batchID = await getBatchID(rollup);
             stakedBatchIDs.push(batchID);
-            subgroup.createStates({
+            await subgroup.createStates({
                 initialBalance: balance.l2Value,
                 tokenID,
                 zeroNonce: true
             });
-            const depositBatch = new BodylessCommitment(
-                stateTree.root
-            ).toBatch();
+            const commitment = new BodylessCommitment(stateTree.root);
+            const depositBatch = await commitment.toBatch();
             const batch = await rollup.getBatch(batchID);
             assert.equal(batch.commitmentRoot, depositBatch.commitmentRoot);
-            previousProof = depositBatch.proofCompressed(0);
+            previousProof = await depositBatch.proofCompressed(0);
         }
     }).timeout(40000);
     it("Users doing Transfers", async function() {
@@ -196,11 +195,11 @@ describe("Integration Test", function() {
         const commits = [];
 
         for (let i = 0; i < numCommits; i++) {
-            const { txs, signature } = txTransferFactory(
+            const { txs, signature } = await txTransferFactory(
                 earlyAdopters,
                 parameters.MAX_TXS_PER_COMMIT
             );
-            stateTree.processTransferCommit(txs, feeReceiverID);
+            await stateTree.processTransferCommit(txs, feeReceiverID);
             const commit = TransferCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
@@ -211,7 +210,7 @@ describe("Integration Test", function() {
             commits.push(commit);
         }
         const transferBatchID = await rollup.nextBatchID();
-        await new TransferBatch(commits).submit(
+        await (await TransferBatch.new(commits)).submit(
             rollup.connect(coordinator),
             transferBatchID,
             parameters.STAKE_AMOUNT
@@ -250,12 +249,12 @@ describe("Integration Test", function() {
             newUsers.groupInterator(parameters.MAX_TXS_PER_COMMIT)
         );
         for (let i = 0; i < numCommits; i++) {
-            const { txs, signature } = txCreate2TransferFactory(
+            const { txs, signature } = await txCreate2TransferFactory(
                 kindEarlyAdopters,
                 newUsersGroups[i]
             );
-            stateTree.processCreate2TransferCommit(txs, feeReceiverID);
-            const commit = Create2TransferCommitment.new(
+            await stateTree.processCreate2TransferCommit(txs, feeReceiverID);
+            const commit = await Create2TransferCommitment.new(
                 stateTree.root,
                 accountRegistry.root(),
                 signature,
@@ -265,7 +264,7 @@ describe("Integration Test", function() {
             commits.push(commit);
         }
         const c2TBatchID = await rollup.nextBatchID();
-        await new Create2TransferBatch(commits).submit(
+        await (await Create2TransferBatch.new(commits)).submit(
             rollup.connect(coordinator),
             c2TBatchID,
             parameters.STAKE_AMOUNT
@@ -286,13 +285,16 @@ describe("Integration Test", function() {
         );
         for (let i = 0; i < numCommits; i++) {
             const group = allUserGroups[i];
-            const { txs, signature } = txMassMigrationFactory(group, spokeID);
-            stateTree.processMassMigrationCommit(txs, feeReceiverID);
+            const { txs, signature } = await txMassMigrationFactory(
+                group,
+                spokeID
+            );
+            await stateTree.processMassMigrationCommit(txs, feeReceiverID);
 
             const {
                 commitment,
                 migrationTree
-            } = MassMigrationCommitment.fromStateProvider(
+            } = await MassMigrationCommitment.fromStateProvider(
                 accountRegistry.root(),
                 txs,
                 signature,
@@ -302,7 +304,7 @@ describe("Integration Test", function() {
             commits.push(commitment);
             migrationTrees.push(migrationTree);
         }
-        const batch = new MassMigrationBatch(commits);
+        const batch = await MassMigrationBatch.new(commits);
         const mMBatchID = await rollup.nextBatchID();
         await batch.submit(
             rollup.connect(coordinator),
@@ -316,7 +318,7 @@ describe("Integration Test", function() {
         for (let i = 0; i < commits.length; i++) {
             await withdrawManager.processWithdrawCommitment(
                 batchID,
-                batch.proof(i)
+                await batch.proof(i)
             );
         }
 
@@ -330,7 +332,7 @@ describe("Integration Test", function() {
             const { user, index } = group.pickRandom();
             const signature = user.signRaw(withdrawerAddress).sol;
             // The new stateID in the migration tree is the position user in the group
-            const withdrawProof = tree.getWithdrawProof(index);
+            const withdrawProof = await tree.getWithdrawProof(index);
             await withdrawManager
                 .connect(withdrawer)
                 .claimTokens(
@@ -338,7 +340,7 @@ describe("Integration Test", function() {
                     withdrawProof,
                     user.pubkey,
                     signature,
-                    accountRegistry.witness(user.pubkeyID)
+                    await accountRegistry.witness(user.pubkeyID)
                 );
             const postBalance = await newToken.balanceOf(withdrawerAddress);
             assert.equal(

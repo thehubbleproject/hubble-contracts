@@ -65,11 +65,11 @@ describe("Rollup Create2Transfer Commitment", () => {
         rollup = await new TestCreate2Transfer__factory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         usersWithState.connect(stateTree);
-        usersWithState.createStates({ tokenID });
+        await usersWithState.createStates({ tokenID });
     });
 
     it("create2transfer commitment: signature check", async function() {
-        const { txs, signature } = txCreate2TransferFactory(
+        const { txs, signature } = await txCreate2TransferFactory(
             usersWithState,
             usersWithoutState
         );
@@ -78,18 +78,24 @@ describe("Rollup Create2Transfer Commitment", () => {
         const pubkeyHashesReceiver = usersWithoutState
             .getPubkeys()
             .map(hashPubkey);
-        const pubkeyWitnessesSender = usersWithState
-            .getPubkeyIDs()
-            .map(pubkeyID => registry.witness(pubkeyID));
-        const pubkeyWitnessesReceiver = usersWithoutState
-            .getPubkeyIDs()
-            .map(pubkeyID => registry.witness(pubkeyID));
+        const pubkeyWitnessesSender = await Promise.all(
+            usersWithState
+                .getPubkeyIDs()
+                .map(pubkeyID => registry.witness(pubkeyID))
+        );
+        const pubkeyWitnessesReceiver = await Promise.all(
+            usersWithoutState
+                .getPubkeyIDs()
+                .map(pubkeyID => registry.witness(pubkeyID))
+        );
 
-        stateTree.processCreate2TransferCommit(txs, 0);
+        await stateTree.processCreate2TransferCommit(txs, 0);
 
         const serialized = serialize(txs);
 
-        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const postProofs = await Promise.all(
+            txs.map(tx => stateTree.getState(tx.fromIndex))
+        );
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
@@ -140,7 +146,7 @@ describe("Rollup Create2Transfer Commitment", () => {
     }).timeout(800000);
     it("transfer commitment: signature check, with 2 more tx from same sender", async function() {
         const fewSenderGroup = usersWithState.slice(5);
-        const { txs, signature, senders } = txCreate2TransferFactory(
+        const { txs, signature, senders } = await txCreate2TransferFactory(
             fewSenderGroup,
             usersWithoutState
         );
@@ -148,15 +154,20 @@ describe("Rollup Create2Transfer Commitment", () => {
         const pubkeyHashesReceiver = usersWithoutState
             .getPubkeys()
             .map(hashPubkey);
-        const pubkeyWitnessesSender = senders.map(sender =>
-            registry.witness(sender.pubkeyID)
+        const pubkeyWitnessesSender = await Promise.all(
+            senders.map(sender => registry.witness(sender.pubkeyID))
         );
-        const pubkeyWitnessesReceiver = usersWithoutState
-            .getPubkeyIDs()
-            .map(pubkeyID => registry.witness(pubkeyID));
-        stateTree.processCreate2TransferCommit(txs, 0);
+        const pubkeyWitnessesReceiver = await Promise.all(
+            usersWithoutState
+                .getPubkeyIDs()
+                .map(pubkeyID => registry.witness(pubkeyID))
+        );
 
-        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        await stateTree.processCreate2TransferCommit(txs, 0);
+
+        const postProofs = await Promise.all(
+            txs.map(tx => stateTree.getState(tx.fromIndex))
+        );
         const proof = {
             states: postProofs.map(proof => proof.state),
             stateWitnesses: postProofs.map(proof => proof.witness),
@@ -180,7 +191,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
     it("create2trasnfer commitment: processTx", async function() {
-        const { txs } = txCreate2TransferFactory(
+        const { txs } = await txCreate2TransferFactory(
             usersWithState,
             usersWithoutState
         );
@@ -190,7 +201,7 @@ describe("Rollup Create2Transfer Commitment", () => {
             const [
                 senderProof,
                 receiverProof
-            ] = stateTree.processCreate2Transfer(tx, tokenID);
+            ] = await stateTree.processCreate2Transfer(tx, tokenID);
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,

@@ -88,11 +88,11 @@ export async function processTransferCommit(
         const checkpoint = engine.getCheckpoint();
         try {
             await processTransfer(tx, tokenID, engine);
-            engine.commit();
+            await engine.commit();
             acceptedTxs.push(tx);
         } catch (err) {
             console.log("Drop tx due to ", err.message);
-            engine.revert(checkpoint);
+            await engine.revert(checkpoint);
         }
     }
     const fees = sum(acceptedTxs.map(tx => tx.fee));

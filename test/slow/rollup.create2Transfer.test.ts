@@ -56,7 +56,7 @@ describe("Rollup Create2Transfer", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
 
         const initialBalance = USDT.fromHumanValue("55.6").l2Value;
-        usersWithStates
+        await usersWithStates
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: true });
 
@@ -82,7 +82,7 @@ describe("Rollup Create2Transfer", async function() {
 
     it("fails if batchID is incorrect", async function() {
         const feeReceiver = usersWithStates.getUser(0).stateID;
-        const { txs, signature } = txCreate2TransferFactory(
+        const { txs, signature } = await txCreate2TransferFactory(
             usersWithStates,
             usersWithoutState
         );
@@ -95,7 +95,7 @@ describe("Rollup Create2Transfer", async function() {
             feeReceiver,
             serialize(txs)
         );
-        const batch = commit.toBatch();
+        const batch = await commit.toBatch();
 
         const invalidBatchID = 420;
         await assert.isRejected(
@@ -112,12 +112,12 @@ describe("Rollup Create2Transfer", async function() {
         const feeReceiver = usersWithStates.getUser(0).stateID;
         const { rollup } = contracts;
 
-        const { txs, signature } = txCreate2TransferFactory(
+        const { txs, signature } = await txCreate2TransferFactory(
             usersWithStates,
             usersWithoutState
         );
 
-        const { proofs } = stateTree.processCreate2TransferCommit(
+        const { proofs } = await stateTree.processCreate2TransferCommit(
             txs,
             feeReceiver
         );
@@ -136,7 +136,7 @@ describe("Rollup Create2Transfer", async function() {
             serialized
         );
 
-        const targetBatch = commitment.toBatch();
+        const targetBatch = await commitment.toBatch();
         const c2TBatchID = 1;
         const _txSubmit = await targetBatch.submit(
             rollup,
@@ -160,8 +160,8 @@ describe("Rollup Create2Transfer", async function() {
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = getGenesisProof(genesisRoot);
-        const commitmentMP = targetBatch.proof(0);
+        const previousMP = await getGenesisProof(genesisRoot);
+        const commitmentMP = await targetBatch.proof(0);
 
         const _tx = await rollup.disputeTransitionCreate2Transfer(
             batchID,

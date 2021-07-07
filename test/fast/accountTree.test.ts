@@ -53,7 +53,7 @@ describe("Account Tree", async () => {
             const leaf = randHex(32);
             const leafIndexLeft = Number(await accountTree.leafIndexLeft());
             assert.equal(leafIndexLeft, i);
-            treeLeft.updateSingle(i, leaf);
+            await treeLeft.updateSingle(i, leaf);
             await accountTree.updateSingle(leaf);
             assert.equal(treeLeft.root, await accountTree.rootLeft());
             const root = hasher.hash2(treeLeft.root, treeRight.root);
@@ -66,7 +66,7 @@ describe("Account Tree", async () => {
             const leafs = randomLeaves(batchSize);
             const leafIndexRight = Number(await accountTree.leafIndexRight());
             assert.equal(leafIndexRight, batchSize * k);
-            treeRight.updateBatch(batchSize * k, leafs);
+            await treeRight.updateBatch(batchSize * k, leafs);
             await accountTree.updateBatch(leafs as UpdateBatchLeafs);
             assert.equal(treeRight.root, await accountTree.rootRight());
             const root = hasher.hash2(treeLeft.root, treeRight.root);
@@ -82,7 +82,7 @@ describe("Account Tree", async () => {
         for (let i = 0; i < 16; i++) {
             let leafIndex = i;
             let leaf = leafs[i];
-            let witness = treeLeft.witness(i).nodes;
+            let witness = (await treeLeft.witness(i)).nodes;
             const { 1: result } = await accountTree.callStatic.checkInclusion(
                 leaf,
                 leafIndex,
@@ -100,7 +100,7 @@ describe("Account Tree", async () => {
         for (let i = 0; i < batchSize; i += 41) {
             const leafIndex = offset.add(i);
             let leaf = leafs[i];
-            let witness = treeRight.witness(i).nodes;
+            let witness = (await treeRight.witness(i)).nodes;
             let { 1: result } = await accountTree.callStatic.checkInclusion(
                 leaf,
                 leafIndex,

@@ -38,7 +38,7 @@ export class MemoryEngine<Item extends Hashable>
 
     public async getWithWitness(itemID: number): Promise<WithWitness<Item>> {
         const item = await this.get(itemID);
-        const witness = this.tree.witness(itemID).nodes;
+        const witness = (await this.tree.witness(itemID)).nodes;
         return { item, witness };
     }
 
@@ -49,7 +49,7 @@ export class MemoryEngine<Item extends Hashable>
     }
     private async trueUpdate(itemID: number, item: Item) {
         this.items[itemID] = item;
-        this.tree.updateSingle(itemID, item.hash());
+        await this.tree.updateSingle(itemID, item.hash());
     }
 
     public async create(itemID: number, item: Item) {
@@ -77,7 +77,7 @@ export class MemoryEngine<Item extends Hashable>
         const zero = this.tree.zeros[level];
         for (let i = 0; i < 2 ** level; i++) {
             // Check tree for entry at that level
-            if (this.tree.getNode(level, i) !== zero) {
+            if ((await this.tree.getNode(level, i)) !== zero) {
                 continue;
             }
 
@@ -94,7 +94,7 @@ export class MemoryEngine<Item extends Hashable>
                 continue;
             }
 
-            const witness = this.tree.witness(i, level).nodes;
+            const witness = (await this.tree.witness(i, level)).nodes;
             return {
                 pathAtDepth: i,
                 witness

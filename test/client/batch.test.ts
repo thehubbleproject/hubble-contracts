@@ -20,7 +20,9 @@ class TestBatch implements Batch {
         this.commitments = [];
     }
 
-    public proofCompressed(_leafIndex: number): CommitmentInclusionProof {
+    public proofCompressed(
+        _leafIndex: number
+    ): Promise<CommitmentInclusionProof> {
         throw new Error("TestBatch: proofCompressed not implemented");
     }
 

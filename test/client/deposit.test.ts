@@ -11,8 +11,8 @@ describe("Deposit feature", () => {
         const numStates = 5;
         let states: State[];
 
-        const getMerklizedRoot = (states: State[]): string =>
-            MemoryTree.merklize(states.map(s => s.hash())).root;
+        const getMerklizedRoot = async (states: State[]): Promise<string> =>
+            (await MemoryTree.merklize(states.map(s => s.hash()))).root;
 
         beforeEach(function() {
             pool = new DepositPool(params.MAX_DEPOSIT_SUBTREE_DEPTH);
@@ -35,11 +35,11 @@ describe("Deposit feature", () => {
             assert.throws(pool.popDepositSubtree);
         });
 
-        it("properly queues states and dequeues subtrees", function() {
+        it("properly queues states and dequeues subtrees", async function() {
             assert.isFalse(pool.isSubtreeReady());
 
             for (const s of states) {
-                pool.pushDeposit(s.encode());
+                await pool.pushDeposit(s.encode());
             }
 
             assert.isTrue(pool.isSubtreeReady());
@@ -52,12 +52,12 @@ describe("Deposit feature", () => {
             assert.equal(subtree1.id.toNumber(), 1);
             const subtreeStates1 = [states[0], states[1]];
             assert.deepEqual(subtree1.states, subtreeStates1);
-            assert.equal(subtree1.root, getMerklizedRoot(subtreeStates1));
+            assert.equal(subtree1.root, await getMerklizedRoot(subtreeStates1));
 
             assert.equal(subtree2.id.toNumber(), 2);
             const subtreeStates2 = [states[2], states[3]];
             assert.deepEqual(subtree2.states, subtreeStates2);
-            assert.equal(subtree2.root, getMerklizedRoot(subtreeStates2));
+            assert.equal(subtree2.root, await getMerklizedRoot(subtreeStates2));
         });
     });
 });

@@ -17,13 +17,13 @@ import { Vacant } from "./interfaces";
 import { MemoryTree } from "./tree/memoryTree";
 
 export interface StateProvider {
-    getState(stateID: number): SolStateMerkleProof;
+    getState(stateID: number): Promise<SolStateMerkleProof>;
     createState(stateID: number, state: State): void;
     root: string;
 }
 
 class NullProvider implements StateProvider {
-    getState(stateID: number): SolStateMerkleProof {
+    getState(stateID: number): Promise<SolStateMerkleProof> {
         throw new Error(
             "This is a NullProvider, please connect to a real provider"
         );
@@ -68,11 +68,18 @@ function applyReceiver(receiver: State, increment: BigNumber): State {
     state.balance = receiver.balance.add(increment);
     return state;
 }
+async function gen2array<T>(gen: AsyncGenerator<T>): Promise<T[]> {
+    const out: T[] = [];
+    for await (const x of gen) {
+        out.push(x);
+    }
+    return out;
+}
 
-function processNoRaise(
-    generator: Generator<SolStateMerkleProof>,
+async function processNoRaise(
+    generator: AsyncGenerator<SolStateMerkleProof>,
     expectedNumProofs: number
-): { proofs: SolStateMerkleProof[]; safe: boolean } {
+): Promise<{ proofs: SolStateMerkleProof[]; safe: boolean }> {
     let proofs: SolStateMerkleProof[] = [];
     let safe = true;
     for (let i = 0; i < expectedNumProofs; i++) {
@@ -81,7 +88,7 @@ function processNoRaise(
             continue;
         }
         try {
-            proofs.push(generator.next().value);
+            proofs.push((await generator.next()).value);
         } catch (error) {
             safe = false;
         }
@@ -108,25 +115,25 @@ export class StateTree implements StateProvider {
             );
     }
 
-    public getState(stateID: number): SolStateMerkleProof {
+    public async getState(stateID: number): Promise<SolStateMerkleProof> {
         this.checkSize(stateID);
         const state = this.states[stateID] || ZERO_STATE;
-        const witness = this.stateTree.witness(stateID).nodes;
+        const witness = (await this.stateTree.witness(stateID)).nodes;
         return { state, witness };
     }
 
     /** Side effect! */
-    private updateState(stateID: number, state: State) {
+    private async updateState(stateID: number, state: State) {
         this.checkSize(stateID);
         this.states[stateID] = state;
-        this.stateTree.updateSingle(stateID, state.toStateLeaf());
+        await this.stateTree.updateSingle(stateID, state.toStateLeaf());
     }
 
-    public getVacancyProof(
+    public async getVacancyProof(
         mergeOffsetLower: number,
         subtreeDepth: number
-    ): Vacant {
-        const witness = this.stateTree.witnessForBatch(
+    ): Promise<Vacant> {
+        const witness = await this.stateTree.witnessForBatch(
             mergeOffsetLower,
             subtreeDepth
         );
@@ -142,14 +149,14 @@ export class StateTree implements StateProvider {
         return this.stateTree.depth;
     }
 
-    public createState(stateID: number, state: State) {
+    public async createState(stateID: number, state: State) {
         if (this.states[stateID])
             throw new StateAlreadyExist(`stateID: ${stateID}`);
-        this.updateState(stateID, state);
+        await this.updateState(stateID, state);
     }
-    public createStateBulk(firstStateID: number, states: State[]) {
+    public async createStateBulk(firstStateID: number, states: State[]) {
         for (const [i, state] of states.entries()) {
-            this.createState(firstStateID + i, state);
+            await this.createState(firstStateID + i, state);
         }
         return this;
     }
@@ -157,20 +164,20 @@ export class StateTree implements StateProvider {
     public get root() {
         return this.stateTree.root;
     }
-    private *_processTransferCommit(
+    private async *_processTransferCommit(
         txs: TxTransfer[],
         feeReceiverID: number
-    ): Generator<SolStateMerkleProof> {
+    ): AsyncGenerator<SolStateMerkleProof> {
         const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
-            const [senderProof, receiverProof] = this.processTransfer(
+            const [senderProof, receiverProof] = await this.processTransfer(
                 tx,
                 tokenID
             );
             yield senderProof;
             yield receiverProof;
         }
-        const proof = this.processReceiver(
+        const proof = await this.processReceiver(
             feeReceiverID,
             sum(txs.map(tx => tx.fee)),
             tokenID
@@ -179,35 +186,35 @@ export class StateTree implements StateProvider {
         return;
     }
 
-    public processTransferCommit(
+    public async processTransferCommit(
         txs: TxTransfer[],
         feeReceiverID: number,
         raiseError: boolean = true
-    ): {
+    ): Promise<{
         proofs: SolStateMerkleProof[];
         safe: boolean;
-    } {
+    }> {
         const generator = this._processTransferCommit(txs, feeReceiverID);
         if (raiseError) {
-            return { proofs: Array.from(generator), safe: true };
+            return { proofs: await gen2array(generator), safe: true };
         } else {
             return processNoRaise(generator, txs.length * 2 + 1);
         }
     }
-    private *_processCreate2TransferCommit(
+    private async *_processCreate2TransferCommit(
         txs: TxCreate2Transfer[],
         feeReceiverID: number
-    ): Generator<SolStateMerkleProof> {
+    ): AsyncGenerator<SolStateMerkleProof> {
         const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
-            const [senderProof, receiverProof] = this.processCreate2Transfer(
-                tx,
-                tokenID
-            );
+            const [
+                senderProof,
+                receiverProof
+            ] = await this.processCreate2Transfer(tx, tokenID);
             yield senderProof;
             yield receiverProof;
         }
-        const proof = this.processReceiver(
+        const proof = await this.processReceiver(
             feeReceiverID,
             sum(txs.map(tx => tx.fee)),
             tokenID
@@ -216,34 +223,34 @@ export class StateTree implements StateProvider {
         return;
     }
 
-    public processCreate2TransferCommit(
+    public async processCreate2TransferCommit(
         txs: TxCreate2Transfer[],
         feeReceiverID: number,
         raiseError: boolean = true
-    ): {
+    ): Promise<{
         proofs: SolStateMerkleProof[];
         safe: boolean;
-    } {
+    }> {
         const generator = this._processCreate2TransferCommit(
             txs,
             feeReceiverID
         );
         if (raiseError) {
-            return { proofs: Array.from(generator), safe: true };
+            return { proofs: await gen2array(generator), safe: true };
         } else {
-            return processNoRaise(generator, txs.length * 2 + 1);
+            return await processNoRaise(generator, txs.length * 2 + 1);
         }
     }
-    private *_processMassMigrationCommit(
+    private async *_processMassMigrationCommit(
         txs: TxMassMigration[],
         feeReceiverID: number
-    ): Generator<SolStateMerkleProof> {
+    ): AsyncGenerator<SolStateMerkleProof> {
         const tokenID = this.states[txs[0].fromIndex].tokenID;
         for (const tx of txs) {
             const proof = this.processMassMigration(tx, tokenID);
             yield proof;
         }
-        const proof = this.processReceiver(
+        const proof = await this.processReceiver(
             feeReceiverID,
             sum(txs.map(tx => tx.fee)),
             tokenID
@@ -252,33 +259,33 @@ export class StateTree implements StateProvider {
         return;
     }
 
-    public processMassMigrationCommit(
+    public async processMassMigrationCommit(
         txs: TxMassMigration[],
         feeReceiverID: number,
         raiseError: boolean = true
-    ): {
+    ): Promise<{
         proofs: SolStateMerkleProof[];
         safe: boolean;
-    } {
+    }> {
         const generator = this._processMassMigrationCommit(txs, feeReceiverID);
         if (raiseError) {
-            return { proofs: Array.from(generator), safe: true };
+            return { proofs: await gen2array(generator), safe: true };
         } else {
-            return processNoRaise(generator, txs.length + 1);
+            return await processNoRaise(generator, txs.length + 1);
         }
     }
 
-    public processTransfer(
+    public async processTransfer(
         tx: TxTransfer,
         tokenID: number
-    ): SolStateMerkleProof[] {
-        const senderProof = this.processSender(
+    ): Promise<SolStateMerkleProof[]> {
+        const senderProof = await this.processSender(
             tx.fromIndex,
             tokenID,
             tx.amount,
             tx.fee
         );
-        const receiverProof = this.processReceiver(
+        const receiverProof = await this.processReceiver(
             tx.toIndex,
             tx.amount,
             tokenID
@@ -286,24 +293,29 @@ export class StateTree implements StateProvider {
         return [senderProof, receiverProof];
     }
 
-    public processMassMigration(
+    public async processMassMigration(
         tx: TxMassMigration,
         tokenID: number
-    ): SolStateMerkleProof {
-        return this.processSender(tx.fromIndex, tokenID, tx.amount, tx.fee);
-    }
-
-    public processCreate2Transfer(
-        tx: TxCreate2Transfer,
-        tokenID: number
-    ): SolStateMerkleProof[] {
-        const senderProof = this.processSender(
+    ): Promise<SolStateMerkleProof> {
+        return await this.processSender(
             tx.fromIndex,
             tokenID,
             tx.amount,
             tx.fee
         );
-        const receiverProof = this.processCreate(
+    }
+
+    public async processCreate2Transfer(
+        tx: TxCreate2Transfer,
+        tokenID: number
+    ): Promise<SolStateMerkleProof[]> {
+        const senderProof = await this.processSender(
+            tx.fromIndex,
+            tokenID,
+            tx.amount,
+            tx.fee
+        );
+        const receiverProof = await this.processCreate(
             tx.toIndex,
             tx.toPubkeyID,
             tx.amount,
@@ -312,20 +324,20 @@ export class StateTree implements StateProvider {
         return [senderProof, receiverProof];
     }
 
-    private getProofAndUpdate(
+    private async getProofAndUpdate(
         stateID: number,
         postState: State
-    ): SolStateMerkleProof {
-        const proofBeforeUpdate = this.getState(stateID);
-        this.updateState(stateID, postState);
+    ): Promise<SolStateMerkleProof> {
+        const proofBeforeUpdate = await this.getState(stateID);
+        await this.updateState(stateID, postState);
         return proofBeforeUpdate;
     }
-    public processSender(
+    public async processSender(
         senderIndex: number,
         tokenID: number,
         amount: BigNumber,
         fee: BigNumber
-    ): SolStateMerkleProof {
+    ): Promise<SolStateMerkleProof> {
         const state = this.states[senderIndex];
         if (!state) throw new SenderNotExist(`stateID: ${senderIndex}`);
         if (amount.isZero()) throw new ZeroAmount();
@@ -340,14 +352,14 @@ export class StateTree implements StateProvider {
             );
 
         const postState = applySender(state, decrement);
-        const proof = this.getProofAndUpdate(senderIndex, postState);
+        const proof = await this.getProofAndUpdate(senderIndex, postState);
         return proof;
     }
-    public processReceiver(
+    public async processReceiver(
         receiverIndex: number,
         increment: BigNumber,
         tokenID: number
-    ): SolStateMerkleProof {
+    ): Promise<SolStateMerkleProof> {
         const state = this.states[receiverIndex];
         if (!state) throw new ReceiverNotExist(`stateID: ${receiverIndex}`);
         if (state.tokenID != tokenID)
@@ -355,32 +367,33 @@ export class StateTree implements StateProvider {
                 `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
             );
         const postState = applyReceiver(state, increment);
-        const proof = this.getProofAndUpdate(receiverIndex, postState);
+        const proof = await this.getProofAndUpdate(receiverIndex, postState);
         return proof;
     }
 
-    public processCreate(
+    public async processCreate(
         createIndex: number,
         pubkeyID: number,
         balance: BigNumber,
         tokenID: number
-    ): SolStateMerkleProof {
+    ): Promise<SolStateMerkleProof> {
         if (this.states[createIndex] !== undefined)
             throw new StateAlreadyExist(`stateID: ${createIndex}`);
         const postState = State.new(pubkeyID, tokenID, balance, 0);
-        const proof = this.getProofAndUpdate(createIndex, postState);
+        const proof = await this.getProofAndUpdate(createIndex, postState);
         return proof;
     }
 }
 
 export class MigrationTree extends StateTree {
-    public static fromStates(states: State[]) {
+    public static async fromStates(states: State[]) {
         const depth = minTreeDepth(states.length);
-        return new this(depth).createStateBulk(0, states);
+        const migrationTree = new this(depth);
+        return await migrationTree.createStateBulk(0, states);
     }
 
-    public getWithdrawProof(stateID: number) {
-        const { state, witness } = this.getState(stateID);
+    public async getWithdrawProof(stateID: number) {
+        const { state, witness } = await this.getState(stateID);
         return { state, witness, path: stateID };
     }
 }

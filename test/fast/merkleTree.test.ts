@@ -19,7 +19,7 @@ describe("MerkleTree", async function() {
         let totalCost = 0;
         const leaves = randomLeaves(size);
         const tree = MemoryTree.new(MAX_DEPTH);
-        tree.updateBatch(0, leaves);
+        await tree.updateBatch(0, leaves);
         for (const [path, leaf] of leaves.entries()) {
             const {
                 0: result,
@@ -28,7 +28,7 @@ describe("MerkleTree", async function() {
                 tree.root,
                 leaf,
                 path,
-                tree.witness(path).nodes
+                (await tree.witness(path)).nodes
             );
             assert.isTrue(result);
             totalCost += gasCost.toNumber();
@@ -44,7 +44,7 @@ describe("MerkleTree", async function() {
                 0: root,
                 1: gasCost
             } = await contract.callStatic.testMerklize(leaves);
-            assert.equal(root, MemoryTree.merklize(leaves).root);
+            assert.equal(root, (await MemoryTree.merklize(leaves)).root);
             console.log(
                 `Merklizing ${size} leaves onchain`,
                 gasCost.toNumber()

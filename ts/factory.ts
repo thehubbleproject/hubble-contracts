@@ -139,8 +139,8 @@ export class Group {
         if (i >= this.users.length) throw new UserNotExist(`${i}`);
         return this.users[i];
     }
-    public getState(user: User) {
-        return this.stateProvider.getState(user.stateID).state;
+    public async getState(user: User) {
+        return (await this.stateProvider.getState(user.stateID)).state;
     }
     public getPubkeys() {
         return this.users.map(user => user.pubkey);
@@ -149,15 +149,16 @@ export class Group {
         return this.users.map(user => user.pubkeyID);
     }
 
-    public syncState(): State[] {
+    public async syncState(): Promise<State[]> {
         const states: State[] = [];
         for (const user of this.users) {
-            const state = this.stateProvider.getState(user.stateID).state;
+            const state = (await this.stateProvider.getState(user.stateID))
+                .state;
             states.push(state);
         }
         return states;
     }
-    public createStates(options?: createStateOptions) {
+    public async createStates(options?: createStateOptions) {
         const initialBalance =
             options?.initialBalance || USDT.fromHumanValue("1000.0").l2Value;
         const tokenID = options?.tokenID === undefined ? 5678 : options.tokenID;
@@ -172,23 +173,23 @@ export class Group {
                 initialBalance,
                 nonce
             );
-            this.stateProvider.createState(user.stateID, state);
+            await this.stateProvider.createState(user.stateID, state);
         }
     }
 }
 
 // Created n transfers from Group of Users, if n is greater than the size of the group, balance is not guaranteed to be sufficient
-export function txTransferFactory(
+export async function txTransferFactory(
     group: Group,
     n: number
-): { txs: TxTransfer[]; signature: solG1; senders: User[] } {
+): Promise<{ txs: TxTransfer[]; signature: solG1; senders: User[] }> {
     const txs: TxTransfer[] = [];
     const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
     for (let i = 0; i < n; i++) {
         const sender = group.getUser(i % group.size);
         const receiver = group.getUser((i + 5) % group.size);
-        const senderState = group.getState(sender);
+        const senderState = await group.getState(sender);
         const amount = float16.round(senderState.balance.div(10));
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
@@ -211,10 +212,10 @@ export function txTransferFactory(
 }
 
 // creates N new transactions with existing sender and non-existent receiver
-export function txCreate2TransferFactory(
+export async function txCreate2TransferFactory(
     registered: Group,
     unregistered: Group
-): { txs: TxCreate2Transfer[]; signature: solG1; senders: User[] } {
+): Promise<{ txs: TxCreate2Transfer[]; signature: solG1; senders: User[] }> {
     const txs: TxCreate2Transfer[] = [];
     const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
@@ -222,7 +223,7 @@ export function txCreate2TransferFactory(
     for (let i = 0; i < n; i++) {
         const sender = registered.getUser(i % registered.size);
         const reciver = unregistered.getUser(i % unregistered.size);
-        const senderState = registered.getState(sender);
+        const senderState = await registered.getState(sender);
         const amount = float16.round(senderState.balance.div(10));
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
@@ -247,15 +248,15 @@ export function txCreate2TransferFactory(
     return { txs, signature, senders };
 }
 
-export function txMassMigrationFactory(
+export async function txMassMigrationFactory(
     group: Group,
     spokeID = 0
-): { txs: TxMassMigration[]; signature: solG1; senders: User[] } {
+): Promise<{ txs: TxMassMigration[]; signature: solG1; senders: User[] }> {
     const txs: TxMassMigration[] = [];
     const senders = [];
     const seenNonce: { [stateID: number]: number } = {};
     for (const sender of group.userIterator()) {
-        const senderState = group.getState(sender);
+        const senderState = await group.getState(sender);
         const amount = float16.round(senderState.balance.div(10));
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]

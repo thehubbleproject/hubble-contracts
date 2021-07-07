@@ -47,24 +47,26 @@ describe("Rollup Transfer Commitment", () => {
         rollup = await new TestTransfer__factory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         users.connect(stateTree);
-        users.createStates({ tokenID });
+        await users.createStates({ tokenID });
     });
 
     it("transfer commitment: signature check", async function() {
-        const { txs, signature, senders } = txTransferFactory(
+        const { txs, signature, senders } = await txTransferFactory(
             users,
             COMMIT_SIZE
         );
         const pubkeys = senders.map(sender => sender.pubkey);
-        const pubkeyWitnesses = senders.map(sender =>
-            registry.witness(sender.pubkeyID)
+        const pubkeyWitnesses = await Promise.all(
+            senders.map(sender => registry.witness(sender.pubkeyID))
         );
 
-        stateTree.processTransferCommit(txs, 0);
+        await stateTree.processTransferCommit(txs, 0);
         const serialized = serialize(txs);
 
         // Need post stateWitnesses
-        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const postProofs = await Promise.all(
+            txs.map(tx => stateTree.getState(tx.fromIndex))
+        );
 
         const postStateRoot = stateTree.root;
         const accountRoot = registry.root();
@@ -110,18 +112,20 @@ describe("Rollup Transfer Commitment", () => {
     }).timeout(400000);
     it("transfer commitment: signature check, with 2 more tx from same sender", async function() {
         const fewSenderGroup = users.slice(3);
-        const { txs, signature, senders } = txTransferFactory(
+        const { txs, signature, senders } = await txTransferFactory(
             fewSenderGroup,
             COMMIT_SIZE
         );
         const pubkeys = senders.map(sender => sender.pubkey);
-        const pubkeyWitnesses = senders.map(sender =>
-            registry.witness(sender.pubkeyID)
+        const pubkeyWitnesses = await Promise.all(
+            senders.map(sender => registry.witness(sender.pubkeyID))
         );
 
-        stateTree.processTransferCommit(txs, 0);
+        await stateTree.processTransferCommit(txs, 0);
 
-        const postProofs = txs.map(tx => stateTree.getState(tx.fromIndex));
+        const postProofs = await Promise.all(
+            txs.map(tx => stateTree.getState(tx.fromIndex))
+        );
         const proof = {
             states: postProofs.map(proof => proof.state),
             stateWitnesses: postProofs.map(proof => proof.witness),
@@ -143,13 +147,13 @@ describe("Rollup Transfer Commitment", () => {
         console.log("operation gas cost:", gasCost.toString());
     }).timeout(400000);
     it("transfer commitment: processTx", async function() {
-        const { txs } = txTransferFactory(users, COMMIT_SIZE);
+        const { txs } = await txTransferFactory(users, COMMIT_SIZE);
         for (const tx of txs) {
             const preRoot = stateTree.root;
-            const [senderProof, receiverProof] = stateTree.processTransfer(
-                tx,
-                tokenID
-            );
+            const [
+                senderProof,
+                receiverProof
+            ] = await stateTree.processTransfer(tx, tokenID);
             const postRoot = stateTree.root;
             const {
                 0: processedRoot,
@@ -170,11 +174,14 @@ describe("Rollup Transfer Commitment", () => {
         }
     });
     it("transfer commitment: processTransferCommit", async function() {
-        const { txs } = txTransferFactory(users, COMMIT_SIZE);
+        const { txs } = await txTransferFactory(users, COMMIT_SIZE);
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
+        const { proofs } = await stateTree.processTransferCommit(
+            txs,
+            feeReceiver
+        );
         const postStateRoot = stateTree.root;
 
         const {

@@ -12,7 +12,7 @@ export async function handleNewBatch(
     const batchID = event.args?.batchID;
     const batchType = event.args?.batchType;
     const accountRoot = event.args?.accountRoot;
-    const batch = batchFactory(batchType, txDescription, accountRoot);
+    const batch = await batchFactory(batchType, txDescription, accountRoot);
     const commitmentRoot = (await rollup.batches(batchID)).commitmentRoot;
     if (batch.commitmentRoot != commitmentRoot) {
         throw new Error(

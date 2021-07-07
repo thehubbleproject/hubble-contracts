@@ -38,7 +38,7 @@ describe("Mass Migrations", async function() {
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         // The example token is 18 decimals
         const initialBalance = CommonToken.fromHumanValue("1000").l2Value;
-        users
+        await users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
 
@@ -62,16 +62,16 @@ describe("Mass Migrations", async function() {
 
     it("fails if batchID is incorrect", async function() {
         const feeReceiver = users.getUser(0).stateID;
-        const { txs, signature } = txMassMigrationFactory(users, spokeID);
+        const { txs, signature } = await txMassMigrationFactory(users, spokeID);
 
-        const { commitment } = MassMigrationCommitment.fromStateProvider(
+        const { commitment } = await MassMigrationCommitment.fromStateProvider(
             registry.root(),
             txs,
             signature,
             feeReceiver,
             stateTree
         );
-        const batch = commitment.toBatch();
+        const batch = await commitment.toBatch();
 
         const invalidBatchID = 42;
         await assert.isRejected(
@@ -87,14 +87,14 @@ describe("Mass Migrations", async function() {
     it("submit a batch and dispute", async function() {
         const { rollup, massMigration } = contracts;
         const feeReceiver = users.getUser(0).stateID;
-        const { txs, signature } = txMassMigrationFactory(users, spokeID);
+        const { txs, signature } = await txMassMigrationFactory(users, spokeID);
         const preStateRoot = stateTree.root;
-        const { proofs } = stateTree.processMassMigrationCommit(
+        const { proofs } = await stateTree.processMassMigrationCommit(
             txs,
             feeReceiver
         );
         const postStateRoot = stateTree.root;
-        const { commitment } = MassMigrationCommitment.fromStateProvider(
+        const { commitment } = await MassMigrationCommitment.fromStateProvider(
             registry.root(),
             txs,
             signature,
@@ -117,7 +117,7 @@ describe("Mass Migrations", async function() {
             "should have same state root"
         );
 
-        const targetBatch = commitment.toBatch();
+        const targetBatch = await commitment.toBatch();
         const mMBatchID = 1;
         const _txSubmit = await targetBatch.submit(
             rollup,
@@ -138,8 +138,8 @@ describe("Mass Migrations", async function() {
             targetBatch.commitmentRoot,
             "mismatch commitment tree root"
         );
-        const previousMP = getGenesisProof(genesisRoot);
-        const commitmentMP = targetBatch.proof(0);
+        const previousMP = await getGenesisProof(genesisRoot);
+        const commitmentMP = await targetBatch.proof(0);
 
         await rollup.disputeTransitionMassMigration(
             batchID,
@@ -158,7 +158,7 @@ describe("Mass Migrations", async function() {
         const { rollup, withdrawManager, exampleToken, vault } = contracts;
         const feeReceiver = users.getUser(0).stateID;
         const alice = users.getUser(1);
-        const aliceState = stateTree.getState(alice.stateID).state;
+        const aliceState = (await stateTree.getState(alice.stateID)).state;
         const tx = new TxMassMigration(
             alice.stateID,
             CommonToken.fromHumanValue("39.99").l2Value,
@@ -171,7 +171,7 @@ describe("Mass Migrations", async function() {
         const {
             commitment,
             migrationTree
-        } = MassMigrationCommitment.fromStateProvider(
+        } = await MassMigrationCommitment.fromStateProvider(
             registry.root(),
             [tx],
             alice.sign(tx).sol,
@@ -179,14 +179,17 @@ describe("Mass Migrations", async function() {
             stateTree
         );
 
-        const batch = commitment.toBatch();
+        const batch = await commitment.toBatch();
         const mMBatchID = 1;
         await batch.submit(rollup, mMBatchID, TESTING_PARAMS.STAKE_AMOUNT);
 
         const batchId = Number(await rollup.nextBatchID()) - 1;
 
         await expectRevert(
-            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
+            withdrawManager.processWithdrawCommitment(
+                batchId,
+                await batch.proof(0)
+            ),
             "Vault: Batch shoould be finalised"
         );
 
@@ -201,14 +204,14 @@ describe("Mass Migrations", async function() {
 
         const txProcess = await withdrawManager.processWithdrawCommitment(
             batchId,
-            batch.proof(0)
+            await batch.proof(0)
         );
         const receiptProcess = await txProcess.wait();
         console.log(
             "Transaction cost: Process Withdraw Commitment",
             receiptProcess.gasUsed.toNumber()
         );
-        const withdrawProof = migrationTree.getWithdrawProof(0);
+        const withdrawProof = await migrationTree.getWithdrawProof(0);
         const [, claimer] = await ethers.getSigners();
         const claimerAddress = await claimer.getAddress();
         const signature = alice.signRaw(claimerAddress).sol;
@@ -220,7 +223,7 @@ describe("Mass Migrations", async function() {
                     withdrawProof,
                     alice.pubkey,
                     signature,
-                    registry.witness(alice.pubkeyID)
+                    await registry.witness(alice.pubkeyID)
                 );
         }
         const firstClaim = await claim();

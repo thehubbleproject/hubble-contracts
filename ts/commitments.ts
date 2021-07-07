@@ -42,7 +42,7 @@ abstract class Commitment {
         );
     }
     abstract toSolStruct(): SolStruct;
-    abstract toBatch(): Batch;
+    abstract toBatch(): Promise<Batch>;
     public toCompressedStruct(): CompressedStruct {
         return {
             stateRoot: this.stateRoot,
@@ -58,15 +58,16 @@ export class BodylessCommitment extends Commitment {
     public toSolStruct() {
         return { stateRoot: this.stateRoot, body: {} };
     }
-    public toBatch(): Batch {
-        return new Batch([this]);
+    public async toBatch(): Promise<Batch> {
+        return Batch.new([this]);
     }
 }
 
-export function getGenesisProof(
+export async function getGenesisProof(
     stateRoot: BytesLike
-): CommitmentInclusionProof {
-    return new BodylessCommitment(stateRoot).toBatch().proofCompressed(0);
+): Promise<CommitmentInclusionProof> {
+    const bodyLessCommitment = new BodylessCommitment(stateRoot);
+    return (await bodyLessCommitment.toBatch()).proofCompressed(0);
 }
 
 export class TransferCommitment extends Commitment {
@@ -111,8 +112,8 @@ export class TransferCommitment extends Commitment {
             }
         };
     }
-    public toBatch() {
-        return new TransferBatch([this]);
+    public async toBatch() {
+        return await TransferBatch.new([this]);
     }
 }
 
@@ -140,7 +141,7 @@ export class MassMigrationCommitment extends Commitment {
             txs
         );
     }
-    public static fromStateProvider(
+    public static async fromStateProvider(
         accountRoot: BytesLike,
         txs: TxMassMigration[],
         signature: solG1,
@@ -149,7 +150,7 @@ export class MassMigrationCommitment extends Commitment {
     ) {
         const states = [];
         for (const tx of txs) {
-            const origin = stateProvider.getState(tx.fromIndex).state;
+            const origin = (await stateProvider.getState(tx.fromIndex)).state;
             const destination = State.new(
                 origin.pubkeyID,
                 origin.tokenID,
@@ -158,7 +159,7 @@ export class MassMigrationCommitment extends Commitment {
             );
             states.push(destination);
         }
-        const migrationTree = MigrationTree.fromStates(states);
+        const migrationTree = await MigrationTree.fromStates(states);
         const commitment = new this(
             stateProvider.root,
             accountRoot,
@@ -225,58 +226,70 @@ export class MassMigrationCommitment extends Commitment {
             }
         };
     }
-    public toBatch() {
-        return new MassMigrationBatch([this]);
+    public async toBatch() {
+        return await MassMigrationBatch.new([this]);
     }
 }
 
 export class Create2TransferCommitment extends TransferCommitment {
-    public toBatch(): Create2TransferBatch {
-        return new Create2TransferBatch([this]);
+    public async toBatch(): Promise<Create2TransferBatch> {
+        return await Create2TransferBatch.new([this]);
     }
 }
 
 export class Batch {
-    private tree: MemoryTree;
-    constructor(public readonly commitments: Commitment[]) {
-        this.tree = MemoryTree.merklize(commitments.map(c => c.hash()));
+    public tree: MemoryTree = MemoryTree.new(1);
+    constructor(public readonly commitments: Commitment[]) {}
+
+    static async new(commitments: Commitment[]) {
+        const batch = new Batch(commitments);
+        batch.tree = await MemoryTree.merklize(commitments.map(c => c.hash()));
+        return batch;
     }
 
     get commitmentRoot(): string {
         return this.tree.root;
     }
 
-    witness(leafIndex: number): string[] {
-        return this.tree.witness(leafIndex).nodes;
+    async witness(leafIndex: number): Promise<string[]> {
+        return (await this.tree.witness(leafIndex)).nodes;
     }
 
-    proof(leafIndex: number): XCommitmentInclusionProof {
+    async proof(leafIndex: number): Promise<XCommitmentInclusionProof> {
         return {
             commitment: this.commitments[leafIndex].toSolStruct(),
             path: leafIndex,
-            witness: this.witness(leafIndex)
+            witness: await this.witness(leafIndex)
         };
     }
-    proofCompressed(leafIndex: number): CommitmentInclusionProof {
+    async proofCompressed(
+        leafIndex: number
+    ): Promise<CommitmentInclusionProof> {
         return {
             commitment: this.commitments[leafIndex].toCompressedStruct(),
             path: leafIndex,
-            witness: this.witness(leafIndex)
+            witness: await this.witness(leafIndex)
         };
     }
 }
 
-export function batchFactory(
+export async function batchFactory(
     batchType: Usage,
     txDescription: TransactionDescription,
     accountRoot: string
-): Batch {
+): Promise<Batch> {
     if (batchType == Usage.Transfer) {
-        return TransferBatch.fromCalldata(txDescription, accountRoot);
+        return await TransferBatch.fromCalldata(txDescription, accountRoot);
     } else if (batchType == Usage.MassMigration) {
-        return MassMigrationBatch.fromCalldata(txDescription, accountRoot);
+        return await MassMigrationBatch.fromCalldata(
+            txDescription,
+            accountRoot
+        );
     } else if (batchType == Usage.Create2Transfer) {
-        return MassMigrationBatch.fromCalldata(txDescription, accountRoot);
+        return await MassMigrationBatch.fromCalldata(
+            txDescription,
+            accountRoot
+        );
     } else {
         throw new Error(`Invalid or unimplemented batchType ${batchType}`);
     }
@@ -287,7 +300,15 @@ export class TransferBatch extends Batch {
         super(commitments);
     }
 
-    static fromCalldata(
+    static async new(commitments: TransferCommitment[]) {
+        const transferBatch = new TransferBatch(commitments);
+        transferBatch.tree = await MemoryTree.merklize(
+            commitments.map(c => c.hash())
+        );
+        return transferBatch;
+    }
+
+    static async fromCalldata(
         txDescription: TransactionDescription,
         accountRoot: string
     ) {
@@ -308,7 +329,7 @@ export class TransferBatch extends Batch {
             );
             commitments.push(commitment);
         }
-        return new this(commitments);
+        return await TransferBatch.new(commitments);
     }
 
     async submit(rollup: Rollup, batchID: BigNumberish, stakingAmount: Wei) {
@@ -328,7 +349,15 @@ export class MassMigrationBatch extends Batch {
         super(commitments);
     }
 
-    static fromCalldata(
+    static async new(commitments: MassMigrationCommitment[]) {
+        const massMigrationBatch = new MassMigrationBatch(commitments);
+        massMigrationBatch.tree = await MemoryTree.merklize(
+            commitments.map(c => c.hash())
+        );
+        return massMigrationBatch;
+    }
+
+    static async fromCalldata(
         txDescription: TransactionDescription,
         accountRoot: string
     ) {
@@ -355,7 +384,7 @@ export class MassMigrationBatch extends Batch {
             );
             commitments.push(commitment);
         }
-        return new this(commitments);
+        return await MassMigrationBatch.new(commitments);
     }
 
     async submit(rollup: Rollup, batchID: BigNumberish, stakingAmount: Wei) {
@@ -381,7 +410,15 @@ export class Create2TransferBatch extends Batch {
         super(commitments);
     }
 
-    static fromCalldata(
+    static async new(commitments: TransferCommitment[]) {
+        const create2TransferBatch = new Create2TransferBatch(commitments);
+        create2TransferBatch.tree = await MemoryTree.merklize(
+            commitments.map(c => c.hash())
+        );
+        return create2TransferBatch;
+    }
+
+    static async fromCalldata(
         txDescription: TransactionDescription,
         accountRoot: string
     ) {
@@ -402,7 +439,7 @@ export class Create2TransferBatch extends Batch {
             );
             commitments.push(commitment);
         }
-        return new this(commitments);
+        return await Create2TransferBatch.new(commitments);
     }
 
     async submit(rollup: Rollup, batchID: BigNumberish, stakingAmount: Wei) {

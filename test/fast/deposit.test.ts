@@ -42,10 +42,10 @@ describe("Deposit Core", async function() {
                 );
                 const tx = await contract.testInsertAndMerge(leaves[i]);
                 const events = await contract.queryFilter(
-                    contract.filters.DepositSubTreeReady(null, null),
+                    await contract.filters.DepositSubTreeReady(null, null),
                     tx.blockHash
                 );
-                tree.updateSingle(i, leaves[i]);
+                await tree.updateSingle(i, leaves[i]);
                 if (i !== maxSubtreeSize - 1) {
                     assert.equal(
                         events.length,
@@ -92,7 +92,7 @@ describe("DepositManager", async function() {
     });
     it("fails if batchID is incorrect", async function() {
         const stateTree = StateTree.new(TESTING_PARAMS.MAX_DEPTH);
-        const vacancyProof = stateTree.getVacancyProof(
+        const vacancyProof = await stateTree.getVacancyProof(
             0,
             TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
         );
@@ -101,13 +101,13 @@ describe("DepositManager", async function() {
             stateTree.root,
             await contracts.blsAccountRegistry.root()
         );
-        const batch = commit.toBatch();
+        const batch = await commit.toBatch();
 
         const invalidBatchID = 1337;
         await assert.isRejected(
             contracts.rollup.submitDeposits(
                 invalidBatchID,
-                batch.proofCompressed(0),
+                await batch.proofCompressed(0),
                 vacancyProof,
                 { value: TESTING_PARAMS.STAKE_AMOUNT }
             ),
@@ -172,16 +172,16 @@ describe("DepositManager", async function() {
 
         const stateTree = StateTree.new(TESTING_PARAMS.MAX_DEPTH);
 
-        const vacancyProof = stateTree.getVacancyProof(
+        const vacancyProof = await stateTree.getVacancyProof(
             0,
             TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
         );
 
-        const initialCommitment = TransferCommitment.new(
+        const initialCommitment = await TransferCommitment.new(
             stateTree.root,
             await blsAccountRegistry.root()
         );
-        const initialBatch = initialCommitment.toBatch();
+        const initialBatch = await initialCommitment.toBatch();
         const initialBatchID = 1;
         await initialBatch.submit(
             rollup,
@@ -201,13 +201,13 @@ describe("DepositManager", async function() {
         const nextBatchID = 2;
         await rollup.submitDeposits(
             nextBatchID,
-            initialBatch.proofCompressed(0),
+            await initialBatch.proofCompressed(0),
             vacancyProof,
             { value: TESTING_PARAMS.STAKE_AMOUNT }
         );
         const batchID = Number(await rollup.nextBatchID()) - 1;
         const depositSubTreeRoot = await rollup.deposits(batchID);
-        const root = MemoryTree.merklize(stateLeaves).root;
+        const root = (await MemoryTree.merklize(stateLeaves)).root;
         assert.equal(depositSubTreeRoot, root);
     });
 });

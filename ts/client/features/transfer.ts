@@ -461,7 +461,7 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
             );
             commitments.push(commitment);
         }
-        return new ConcreteBatch(commitments);
+        return await ConcreteBatch.new(commitments);
     }
 
     async processBatch(
@@ -599,7 +599,7 @@ async function packBatch(
         }
     }
     if (commitments.length == 0) throw new Error("The batch has no commitment");
-    const batch = new ConcreteBatch(commitments);
+    const batch = await ConcreteBatch.new(commitments);
     return { ...txBundle, batch };
 }
 
