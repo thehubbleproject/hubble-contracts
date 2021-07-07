@@ -14,11 +14,12 @@ import { Result } from "../../ts/interfaces";
 import { Group, txTransferFactory } from "../../ts/factory";
 import { STATE_TREE_DEPTH, COMMIT_SIZE } from "../../ts/constants";
 import { deployKeyless } from "../../ts/deployment/deploy";
+import { BigNumber } from "ethers";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
 const BAD_DOMAIN = hexToUint8Array(randHex(32));
-const tokenID = 5566;
+const tokenID = BigNumber.from(5566);
 
 describe("Rollup Transfer Commitment", () => {
     let rollup: TestTransfer;
@@ -47,7 +48,7 @@ describe("Rollup Transfer Commitment", () => {
         rollup = await new TestTransfer__factory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         users.connect(stateTree);
-        users.createStates({ tokenID });
+        users.createStates({ tokenID: tokenID.toNumber() });
     });
 
     it("transfer commitment: signature check", async function() {

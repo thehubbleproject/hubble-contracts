@@ -210,7 +210,7 @@ export class GenesisBatchCommitmentRootMismatch extends Error {
     }
 }
 
-// ConfigurationExcpetions
+// ConfigurationExceptions
 
 export class MissingConfigPropError extends Error {
     constructor(prop: string) {
@@ -223,5 +223,35 @@ export class EmptyConfigPropError extends Error {
     constructor(prop: string) {
         super(`${prop} is empty`);
         this.name = "EmptyConfigPropError";
+    }
+}
+
+// TransactionPoolExceptions
+
+export class PoolFullError extends Error {
+    constructor(maxSize: number) {
+        super(`pool full, max size of ${maxSize} reached`);
+        this.name = "PoolFullError";
+    }
+}
+
+export class PoolEmptyError extends Error {
+    constructor() {
+        super("pool empty");
+        this.name = "PoolEmptyError";
+    }
+}
+
+export class TokenPoolEmpty extends Error {
+    constructor(tokenID: string) {
+        super(`pool for tokenID ${tokenID} empty`);
+        this.name = "TokenPoolEmpty";
+    }
+}
+
+export class TokenNotConfiguredError extends Error {
+    constructor(tokenID: string) {
+        super(`tokenID ${tokenID} not configured`);
+        this.name = "TokenNotConfiguredError";
     }
 }

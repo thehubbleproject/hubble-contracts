@@ -27,17 +27,17 @@ export const FloatLength = 2;
 
 export interface CompressedTx {
     txType: string;
+    fromIndex: BigNumber;
     serialize(): string;
-    message(nonce: number): string;
+    message(nonce: BigNumber): string;
     toString(): string;
 }
 
 export interface OffchainTx extends CompressedTx {
-    txType: string;
     toCompressed(): CompressedTx;
     message(): string;
     fee: BigNumber;
-    nonce: number;
+    nonce: BigNumber;
     signature?: SignatureInterface;
     hash(): string;
 }

@@ -1,7 +1,7 @@
 import {
     TokenRegistry,
     Transfer,
-    ExampleToken,
+    CustomToken,
     DepositManager,
     Rollup,
     BLSAccountRegistry,
@@ -28,7 +28,7 @@ export interface allContracts {
     massMigration: MassMigration;
     create2Transfer: Create2Transfer;
     burnAuction: BurnAuction;
-    exampleToken: ExampleToken;
+    exampleToken: CustomToken;
     spokeRegistry: SpokeRegistry;
     vault: Vault;
     depositManager: DepositManager;

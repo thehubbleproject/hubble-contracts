@@ -5,6 +5,7 @@ import { ContractEventSyncer } from "./contractEventSyncer";
 
 /**
  * Syncs batchPubkeyRegistered events from the blsAccountRegistry contract
+ * TODO Implement https://github.com/thehubbleproject/hubble-contracts/issues/625
  */
 export class BatchPubkeyRegisteredEventSyncer extends ContractEventSyncer {
     private readonly pubkeyStorage: PubkeyStorageEngine;

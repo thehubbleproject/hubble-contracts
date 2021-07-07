@@ -27,7 +27,7 @@ import {
 } from "../ts/commitments";
 import { getBatchID, hexToUint8Array, mineBlocks } from "../ts/utils";
 import { serialize } from "../ts/tx";
-import { ExampleToken, ExampleToken__factory } from "../types/ethers-contracts";
+import { CustomToken, CustomToken__factory } from "../types/ethers-contracts";
 import { CommonToken } from "../ts/decimal";
 import { deployKeyless } from "../ts/deployment/deploy";
 
@@ -44,7 +44,7 @@ describe("Integration Test", function() {
     let stakedBatchIDs: number[] = [];
     let withdrawer: Signer;
     let accountRegistry: AccountRegistry;
-    let newToken: ExampleToken;
+    let newToken: CustomToken;
     let nextStateID = 0;
     let previousProof: CommitmentInclusionProof;
     let earlyAdopters: Group;
@@ -89,7 +89,10 @@ describe("Integration Test", function() {
     });
     it("Register another token", async function() {
         const { tokenRegistry } = contracts;
-        newToken = await new ExampleToken__factory(coordinator).deploy();
+        newToken = await new CustomToken__factory(coordinator).deploy(
+            "FreshCoin",
+            "FRSH"
+        );
         await tokenRegistry.requestRegistration(newToken.address);
         const tx = await tokenRegistry.finaliseRegistration(newToken.address);
         const [event] = await tokenRegistry.queryFilter(

@@ -2,7 +2,7 @@ import {
     TokenRegistry__factory,
     Transfer__factory,
     MassMigration__factory,
-    ExampleToken__factory,
+    CustomToken__factory,
     DepositManager__factory,
     Rollup__factory,
     BLSAccountRegistry__factory,
@@ -96,7 +96,10 @@ export async function deployAll(
     await waitAndRegister(create2Transfer, "create2transfer", verbose);
 
     // deploy example token
-    const exampleToken = await new ExampleToken__factory(signer).deploy();
+    const exampleToken = await new CustomToken__factory(signer).deploy(
+        "Example",
+        "EMP"
+    );
     await waitAndRegister(exampleToken, "exampleToken", verbose);
     await waitUntilMined(
         tokenRegistry.requestRegistration(exampleToken.address)

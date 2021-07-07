@@ -21,9 +21,7 @@ describe("Deposit feature", () => {
             const nonce = 0;
             states = [];
             for (let i = 0; i < numStates; i++) {
-                states.push(
-                    new State(i, tokenID, BigNumber.from(i * 10), nonce)
-                );
+                states.push(State.new(i, tokenID, i * 10, nonce));
             }
         });
 

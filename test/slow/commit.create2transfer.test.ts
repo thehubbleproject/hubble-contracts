@@ -15,11 +15,12 @@ import { Group, txCreate2TransferFactory } from "../../ts/factory";
 import { STATE_TREE_DEPTH } from "../../ts/constants";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { hashPubkey } from "../../ts/pubkey";
+import { BigNumber } from "ethers";
 
 const DOMAIN_HEX = randHex(32);
 const DOMAIN = hexToUint8Array(DOMAIN_HEX);
 const BAD_DOMAIN = hexToUint8Array(randHex(32));
-const tokenID = 5566;
+const tokenID = BigNumber.from(5566);
 
 describe("Rollup Create2Transfer Commitment", () => {
     let rollup: TestCreate2Transfer;
@@ -65,7 +66,7 @@ describe("Rollup Create2Transfer Commitment", () => {
         rollup = await new TestCreate2Transfer__factory(signer).deploy();
         stateTree = StateTree.new(STATE_TREE_DEPTH);
         usersWithState.connect(stateTree);
-        usersWithState.createStates({ tokenID });
+        usersWithState.createStates({ tokenID: tokenID.toNumber() });
     });
 
     it("create2transfer commitment: signature check", async function() {

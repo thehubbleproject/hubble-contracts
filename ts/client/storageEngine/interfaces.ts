@@ -10,6 +10,8 @@ export interface Entry<Item> {
     item: Item;
 }
 
+// TODO Update this interface and implementations to
+// use BigNumber for itemID.
 export interface StorageEngine<Item> {
     get(itemID: number): Promise<Item>;
     update(itemID: number, item: Item): Promise<void>;
