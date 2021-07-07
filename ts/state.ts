@@ -4,12 +4,12 @@ import { Hashable } from "./interfaces";
 
 export class State implements Hashable {
     public static new(
-        pubkeyID: number,
-        tokenID: number,
+        pubkeyID: BigNumberish,
+        tokenID: BigNumberish,
         balance: BigNumberish,
-        nonce: number
+        nonce: BigNumberish
     ): State {
-        return new State(pubkeyID, tokenID, BigNumber.from(balance), nonce);
+        return new State(BigNumber.from(pubkeyID), BigNumber.from(tokenID), BigNumber.from(balance), BigNumber.from(nonce));
     }
 
     static fromEncoded(data: BytesLike): State {
@@ -23,10 +23,10 @@ export class State implements Hashable {
             data
         );
         return new this(
-            pubkeyID.toNumber(),
-            tokenID.toNumber(),
+            pubkeyID,
+            tokenID,
             balance,
-            nonce.toNumber()
+            nonce
         );
     }
 
@@ -35,7 +35,7 @@ export class State implements Hashable {
             throw new Error("DepositQueued event missing args");
         }
         const { pubkeyID, tokenID, l2Amount } = event.args;
-        return State.new(pubkeyID.toNumber(), tokenID.toNumber(), l2Amount, 0);
+        return State.new(pubkeyID, tokenID, l2Amount, 0);
     }
 
     public clone() {
@@ -43,10 +43,10 @@ export class State implements Hashable {
     }
 
     constructor(
-        public pubkeyID: number,
-        public tokenID: number,
+        public pubkeyID: BigNumber,
+        public tokenID: BigNumber,
         public balance: BigNumber,
-        public nonce: number
+        public nonce: BigNumber
     ) {}
 
     public encode(): string {
@@ -66,13 +66,11 @@ export class State implements Hashable {
         return this.hash();
     }
     public toJSON() {
-        const { pubkeyID, tokenID, nonce } = this;
-        const balance = this.balance.toString();
         return {
-            pubkeyID,
-            tokenID,
-            balance,
-            nonce
+            pubkeyID: this.pubkeyID.toString(),
+            tokenID: this.tokenID.toString(),
+            balance: this.balance.toString(),
+            nonce: this.nonce.toString(),
         };
     }
     public toString(): string {
