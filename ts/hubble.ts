@@ -42,22 +42,23 @@ export class Hubble {
     }
 
     async transfer(
-        fromIndex: number,
-        toIndex: number,
-        amount: number,
-        fee: number
+        fromIndex: BigNumber,
+        toIndex: BigNumber,
+        amount: BigNumber,
+        fee: BigNumber
     ) {
-        const state = await this.getState(fromIndex);
+        const { nonce } = await this.getState(fromIndex.toNumber());
 
-        const nonce = state.nonce;
         const tx = new TransferOffchainTx(
             fromIndex,
             toIndex,
-            BigNumber.from(amount),
-            BigNumber.from(fee),
+            amount,
+            fee,
             nonce
         );
-        tx.signature = this.group.getUser(fromIndex).signRaw(tx.message());
+        tx.signature = this.group
+            .getUser(fromIndex.toNumber())
+            .signRaw(tx.message());
         const body = { bytes: tx.serialize() };
 
         const result = await fetchJson(

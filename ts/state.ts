@@ -9,7 +9,12 @@ export class State implements Hashable {
         balance: BigNumberish,
         nonce: BigNumberish
     ): State {
-        return new State(BigNumber.from(pubkeyID), BigNumber.from(tokenID), BigNumber.from(balance), BigNumber.from(nonce));
+        return new State(
+            BigNumber.from(pubkeyID),
+            BigNumber.from(tokenID),
+            BigNumber.from(balance),
+            BigNumber.from(nonce)
+        );
     }
 
     static fromEncoded(data: BytesLike): State {
@@ -22,12 +27,7 @@ export class State implements Hashable {
             ["uint256", "uint256", "uint256", "uint256"],
             data
         );
-        return new this(
-            pubkeyID,
-            tokenID,
-            balance,
-            nonce
-        );
+        return new this(pubkeyID, tokenID, balance, nonce);
     }
 
     static fromDepositQueuedEvent(event: Event): State {
@@ -70,7 +70,7 @@ export class State implements Hashable {
             pubkeyID: this.pubkeyID.toString(),
             tokenID: this.tokenID.toString(),
             balance: this.balance.toString(),
-            nonce: this.nonce.toString(),
+            nonce: this.nonce.toString()
         };
     }
     public toString(): string {

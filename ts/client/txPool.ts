@@ -19,13 +19,17 @@ export class MultiTokenPool<Item extends OffchainTx> {
     private tokenIDStrToFeeRecieverID: Record<string, BigNumber>;
     private txCount: number;
 
-    constructor(private readonly stateStorage: StateStorageEngine, feeRecievers: FeeReceivers, public readonly maxSize: Number = 1024) {
+    constructor(
+        private readonly stateStorage: StateStorageEngine,
+        feeRecievers: FeeReceivers,
+        public readonly maxSize: Number = 1024
+    ) {
         this.tokenIDStrToQueue = {};
         this.tokenIDStrToFeeRecieverID = {};
         for (const { tokenID, stateID } of feeRecievers) {
             const tokenIDStr = BigNumber.from(tokenID).toString();
             const bnStateID = BigNumber.from(stateID);
-            
+
             this.tokenIDStrToQueue[tokenIDStr] = [];
             this.tokenIDStrToFeeRecieverID[tokenIDStr] = bnStateID;
         }
@@ -49,14 +53,17 @@ export class MultiTokenPool<Item extends OffchainTx> {
             throw new Error(`MultiTokenPool: max size ${this.maxSize} reached`);
         }
 
-        const fromState = await this.stateStorage.get(tx.fromIndex);
+        const fromState = await this.stateStorage.get(tx.fromIndex.toNumber());
         // TODO State struct needs BN as well.
         const tokenQueue = this.tokenIDStrToQueue[fromState.tokenID.toString()];
         tokenQueue.push(tx);
     }
     // Don't care about token and their exchange rate, just compare the numeric value of fee
     // https://github.com/thehubbleproject/hubble-contracts/issues/572
-    public async getHighestValueToken(): Promise<{ tokenID: BigNumber, feeReceiverID: BigNumber }> {
+    public async getHighestValueToken(): Promise<{
+        tokenID: BigNumber;
+        feeReceiverID: BigNumber;
+    }> {
         let highValue = BigNumber.from(0);
         let tokenID = BigNumber.from(-1);
         for (const tokenIDStr of Object.keys(this.tokenIDStrToQueue)) {
@@ -67,10 +74,12 @@ export class MultiTokenPool<Item extends OffchainTx> {
             }
         }
 
-        const feeReceiverID = this.tokenIDStrToFeeRecieverID[tokenID.toString()];
+        const feeReceiverID = this.tokenIDStrToFeeRecieverID[
+            tokenID.toString()
+        ];
         return {
             tokenID,
-            feeReceiverID,
+            feeReceiverID
         };
     }
 
@@ -80,7 +89,9 @@ export class MultiTokenPool<Item extends OffchainTx> {
 
         const tx = tokenQueue.pop();
         if (!tx) {
-            throw new Error(`MultiTokenPool: tokenID ${tokenID.toString()} empty`);
+            throw new Error(
+                `MultiTokenPool: tokenID ${tokenID.toString()} empty`
+            );
         }
         return tx;
     }

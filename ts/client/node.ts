@@ -58,7 +58,8 @@ export class HubbleNode {
 
         const modes = this.getNodeModes(config);
         if (modes.isProposer) {
-            const { feeReceivers, willingnessToBid, maxPendingTransactions } = config.proposer || {};
+            const { feeReceivers, willingnessToBid, maxPendingTransactions } =
+                config.proposer || {};
             if (!feeReceivers) {
                 throw new MissingConfigPropError("proposer.feeRecievers");
             }
@@ -69,7 +70,11 @@ export class HubbleNode {
                 throw new MissingConfigPropError("proposer.willingnessToBid");
             }
 
-            transferPool = new TransferPool(storageManager.state, feeReceivers, maxPendingTransactions);
+            transferPool = new TransferPool(
+                storageManager.state,
+                feeReceivers,
+                maxPendingTransactions
+            );
 
             packer = new Packer(api, transferPool);
             bidder = await Bidder.new(

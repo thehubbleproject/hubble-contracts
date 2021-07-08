@@ -193,7 +193,7 @@ export function txTransferFactory(
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
-            : senderState.nonce;
+            : senderState.nonce.toNumber();
         seenNonce[sender.stateID] = nonce;
         const tx = new TxTransfer(
             sender.stateID,
@@ -227,7 +227,7 @@ export function txCreate2TransferFactory(
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
-            : senderState.nonce;
+            : senderState.nonce.toNumber();
         seenNonce[sender.stateID] = nonce;
 
         const tx = new TxCreate2Transfer(
@@ -260,7 +260,7 @@ export function txMassMigrationFactory(
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
-            : senderState.nonce;
+            : senderState.nonce.toNumber();
         seenNonce[sender.stateID] = nonce;
 
         const tx = new TxMassMigration(

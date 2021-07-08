@@ -83,7 +83,7 @@ export class TransferCompressedTx implements CompressedTx {
         return new this(fromIndex, toIndex, amount, fee);
     }
 
-    public message(nonce: number): string {
+    public message(nonce: BigNumber): string {
         return solidityPack(
             ["uint256", "uint256", "uint256", "uint256", "uint256", "uint256"],
             [
@@ -105,7 +105,7 @@ export class TransferOffchainTx extends TransferCompressedTx
     implements OffchainTx {
     public static fromCompressed(
         compTx: TransferCompressedTx,
-        nonce: number
+        nonce: BigNumber
     ): TransferOffchainTx {
         return new TransferOffchainTx(
             compTx.fromIndex,
@@ -121,7 +121,7 @@ export class TransferOffchainTx extends TransferCompressedTx
         public readonly toIndex: BigNumber,
         public readonly amount: BigNumber,
         public readonly fee: BigNumber,
-        public nonce: number,
+        public nonce: BigNumber,
         public signature?: SignatureInterface
     ) {
         super(fromIndex, toIndex, amount, fee);
@@ -234,7 +234,7 @@ export class TransferCommitment extends BaseCommitment {
         public stateRoot: BytesLike,
         public accountRoot: BytesLike,
         public signature: solG1,
-        public feeReceiver: BigNumberish,
+        public feeReceiver: BigNumber,
         public txs: BytesLike
     ) {
         super(stateRoot);
@@ -244,7 +244,7 @@ export class TransferCommitment extends BaseCommitment {
         txs: TransferOffchainTx[],
         stateRoot: BytesLike,
         accountRoot: BytesLike,
-        feeReceiver: BigNumberish
+        feeReceiver: BigNumber
     ) {
         const signature = getAggregateSig(txs);
         const compressedTx = compress(txs);
@@ -292,16 +292,16 @@ export class TransferCommitment extends BaseCommitment {
 
 async function validateTransferStateTransition(
     tx: TransferOffchainTx,
-    tokenID: number,
+    tokenID: BigNumber,
     storage: StorageManager,
     verifier: BlsVerifier
 ) {
-    const sender = await storage.state.get(tx.fromIndex);
-    const receiver = await storage.state.get(tx.toIndex);
+    const sender = await storage.state.get(tx.fromIndex.toNumber());
+    const receiver = await storage.state.get(tx.toIndex.toNumber());
 
     validateSender(sender, tokenID, tx.amount, tx.fee);
     validateReceiver(receiver, tokenID);
-    const senderKey = await storage.pubkey.get(sender.pubkeyID);
+    const senderKey = await storage.pubkey.get(sender.pubkeyID.toNumber());
     if (tx.nonce != sender.nonce)
         throw new Error(`Bad nonce  tx ${tx.nonce}  state ${sender.nonce}`);
     if (!tx.signature) throw new Error("Expect tx to have signature here");
@@ -311,7 +311,7 @@ async function validateTransferStateTransition(
 
 async function processTransfer(
     tx: TransferCompressedTx,
-    tokenID: number,
+    tokenID: BigNumber,
     engine: StateStorageEngine
 ): Promise<void> {
     await processSender(tx.fromIndex, tokenID, tx.amount, tx.fee, engine);
@@ -323,16 +323,20 @@ async function process(
     storageManager: StorageManager,
     params: DeploymentParameters
 ): Promise<OffchainTx[]> {
-    const { state: engine, transactions } = storageManager;
+    const { state: engine } = storageManager;
     const txs = commitment.decompressTxs();
+    if (txs.length > params.MAX_TXS_PER_COMMIT) {
+        throw new Error(
+            `txs count of ${txs.length} exceeds ${params.MAX_TXS_PER_COMMIT}`
+        );
+    }
 
-    const feeReceiverID = Number(commitment.feeReceiver);
-    const tokenID = (await engine.get(txs[0].fromIndex)).tokenID;
-    if (txs.length > params.MAX_TXS_PER_COMMIT) throw new Error("Too many tx");
+    const feeReceiverID = commitment.feeReceiver;
+    const { tokenID } = await engine.get(txs[0].fromIndex.toNumber());
 
     const offchainTxs = [];
     for (const tx of txs) {
-        const { nonce } = await engine.get(tx.fromIndex);
+        const { nonce } = await engine.get(tx.fromIndex.toNumber());
         const offchainTx = TransferOffchainTx.fromCompressed(tx, nonce);
         offchainTxs.push(offchainTx);
         await processTransfer(tx, tokenID, engine);
@@ -492,8 +496,16 @@ export interface ITransferPool {
 export class TransferPool implements ITransferPool {
     private pool: MultiTokenPool<TransferOffchainTx>;
 
-    constructor(stateStorage: StateStorageEngine, feeRecievers: FeeReceivers, maxPendingTransactions?: number) {
-        this.pool = new MultiTokenPool(stateStorage, feeRecievers, maxPendingTransactions);
+    constructor(
+        stateStorage: StateStorageEngine,
+        feeRecievers: FeeReceivers,
+        maxPendingTransactions?: number
+    ) {
+        this.pool = new MultiTokenPool(
+            stateStorage,
+            feeRecievers,
+            maxPendingTransactions
+        );
     }
 
     public isEmpty(): boolean {
@@ -501,7 +513,10 @@ export class TransferPool implements ITransferPool {
     }
 
     public async getNextPipe(): Promise<TransferPipe> {
-        const { tokenID, feeReceiverID } = await this.pool.getHighestValueToken();
+        const {
+            tokenID,
+            feeReceiverID
+        } = await this.pool.getHighestValueToken();
         const source = this.genTx(tokenID);
         return {
             source,
@@ -518,7 +533,9 @@ export class TransferPool implements ITransferPool {
         await this.pool.push(tx);
     }
 
-    private async *genTx(tokenID: BigNumber): AsyncGenerator<TransferOffchainTx> {
+    private async *genTx(
+        tokenID: BigNumber
+    ): AsyncGenerator<TransferOffchainTx> {
         while (this.pool.size(tokenID) > 0) {
             yield this.pool.pop(tokenID);
         }
@@ -535,8 +552,8 @@ type SimulatorPoolOptions = {
 
 export class SimulatorPool extends OffchainTransferFactory
     implements ITransferPool {
-    private readonly tokenID: number;
-    private readonly feeReceiverID: number;
+    private readonly tokenID: BigNumber;
+    private readonly feeReceiverID: BigNumber;
 
     constructor({
         group,
@@ -546,19 +563,19 @@ export class SimulatorPool extends OffchainTransferFactory
         maxTransfers
     }: SimulatorPoolOptions) {
         super(group, storage, maxTransfers);
-        this.tokenID = tokenID;
-        this.feeReceiverID = feeReceiverID;
+        this.tokenID = BigNumber.from(tokenID);
+        this.feeReceiverID = BigNumber.from(feeReceiverID);
     }
 
-    public async push(_tx: TransferOffchainTx) {
+    public async push(_tx: TransferOffchainTx): Promise<void> {
         throw new Error("SimulatorPool: push not implemented.");
     }
 
-    isEmpty() {
+    public isEmpty(): boolean {
         return this.isComplete();
     }
 
-    getNextPipe() {
+    public async getNextPipe(): Promise<TransferPipe> {
         const source = this.genTx();
         return {
             source,
@@ -582,7 +599,7 @@ async function packBatch(
         failedTxs: []
     };
     for (let i = 0; i < MAX_COMMIT_PER_BATCH; i++) {
-        const pipe = pool.getNextPipe();
+        const pipe = await pool.getNextPipe();
         const { commit, acceptedTxs, failedTxs } = await pack(
             pipe,
             storageManager,
