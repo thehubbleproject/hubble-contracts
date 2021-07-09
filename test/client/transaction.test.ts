@@ -1,6 +1,7 @@
 import { BigNumber } from "@ethersproject/bignumber";
 import chai, { assert } from "chai";
 import chaiAsPromised from "chai-as-promised";
+import { OffchainTx } from "../../ts/client/features/interface";
 import { TransferOffchainTx } from "../../ts/client/features/transfer";
 import { Status } from "../../ts/client/storageEngine/transactions/constants";
 import { TransactionStorage } from "../../ts/client/storageEngine/transactions/interfaces";
@@ -12,6 +13,22 @@ import {
 } from "../../ts/exceptions";
 
 chai.use(chaiAsPromised);
+
+const txFactory = (
+    fromIndex: number,
+    toIndex: number,
+    amount: number,
+    fee: number,
+    nonce: number
+): OffchainTx => {
+    return new TransferOffchainTx(
+        BigNumber.from(fromIndex),
+        BigNumber.from(toIndex),
+        BigNumber.from(amount),
+        BigNumber.from(fee),
+        BigNumber.from(nonce)
+    );
+};
 
 describe("TransactionMemoryStorage", () => {
     let storage: TransactionStorage;
@@ -26,10 +43,10 @@ describe("TransactionMemoryStorage", () => {
         });
 
         it("returns the correct transaction", async function() {
-            const fee = BigNumber.from(1);
+            const fee = 1;
             const txns = [
-                new TransferOffchainTx(0, 1, BigNumber.from(123), fee, 0),
-                new TransferOffchainTx(2, 3, BigNumber.from(456), fee, 0)
+                txFactory(0, 1, 123, fee, 0),
+                txFactory(2, 3, 456, fee, 0)
             ];
 
             await Promise.all(txns.map(async t => storage.pending(t)));
@@ -48,13 +65,7 @@ describe("TransactionMemoryStorage", () => {
     describe("transaction lifecycle", () => {
         describe("succeeds", () => {
             it("properly transitions to finalized", async function() {
-                const txn = new TransferOffchainTx(
-                    4,
-                    5,
-                    BigNumber.from(1337),
-                    BigNumber.from(42),
-                    0
-                );
+                const txn = txFactory(4, 5, 1337, 42, 0);
                 const txnMsg = txn.message();
 
                 const pendingStatus = await storage.pending(txn);
@@ -88,13 +99,7 @@ describe("TransactionMemoryStorage", () => {
             });
 
             it("properly transitions to failed state from pending", async function() {
-                const txn = new TransferOffchainTx(
-                    10,
-                    11,
-                    BigNumber.from(10101),
-                    BigNumber.from(101),
-                    0
-                );
+                const txn = txFactory(10, 11, 10101, 101, 0);
                 await storage.pending(txn);
 
                 const detail = "whoops";
@@ -108,13 +113,7 @@ describe("TransactionMemoryStorage", () => {
             });
 
             it("properly transitions to failed state from submitted", async function() {
-                const txn = new TransferOffchainTx(
-                    11,
-                    12,
-                    BigNumber.from(20202),
-                    BigNumber.from(202),
-                    0
-                );
+                const txn = txFactory(11, 12, 20202, 202, 0);
                 await storage.pending(txn);
                 const meta = {
                     batchID: 111,
@@ -136,13 +135,7 @@ describe("TransactionMemoryStorage", () => {
 
         describe("fails", () => {
             it("when already added", async function() {
-                const txn = new TransferOffchainTx(
-                    6,
-                    7,
-                    BigNumber.from(111),
-                    BigNumber.from(22),
-                    0
-                );
+                const txn = txFactory(6, 7, 111, 22, 0);
                 await storage.pending(txn);
                 await assert.isRejected(
                     storage.pending(txn),
@@ -172,13 +165,7 @@ describe("TransactionMemoryStorage", () => {
             });
 
             it("when transitioning to an improper state", async function() {
-                const txn = new TransferOffchainTx(
-                    9,
-                    0,
-                    BigNumber.from(420),
-                    BigNumber.from(69),
-                    0
-                );
+                const txn = txFactory(9, 0, 420, 69, 0);
                 const txnMsg = txn.message();
                 await storage.pending(txn);
 
@@ -218,13 +205,7 @@ describe("TransactionMemoryStorage", () => {
 
     describe("sync", () => {
         it("fails if transaction already exists", async function() {
-            const txn = new TransferOffchainTx(
-                111,
-                112,
-                BigNumber.from(421),
-                BigNumber.from(70),
-                0
-            );
+            const txn = txFactory(111, 112, 421, 70, 0);
             await storage.pending(txn);
 
             const meta = {
@@ -241,13 +222,7 @@ describe("TransactionMemoryStorage", () => {
         });
 
         it("successfully syncs a submitted transaction", async function() {
-            const txn = new TransferOffchainTx(
-                111,
-                222,
-                BigNumber.from(543),
-                BigNumber.from(65),
-                1
-            );
+            const txn = txFactory(111, 222, 543, 65, 1);
             const meta = {
                 batchID: 999,
                 l1TxnHash: "zzz999",
@@ -267,13 +242,7 @@ describe("TransactionMemoryStorage", () => {
         });
 
         it("successfully syncs a finalized transaction", async function() {
-            const txn = new TransferOffchainTx(
-                111,
-                333,
-                BigNumber.from(345),
-                BigNumber.from(56),
-                0
-            );
+            const txn = txFactory(111, 333, 345, 56, 0);
             const meta = {
                 batchID: 111,
                 l1TxnHash: "aaa111",

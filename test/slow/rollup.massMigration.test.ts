@@ -164,7 +164,7 @@ describe("Mass Migrations", async function() {
             CommonToken.fromHumanValue("39.99").l2Value,
             1,
             CommonToken.fromHumanValue("0.01").l2Value,
-            aliceState.nonce + 1
+            aliceState.nonce.add(1).toNumber()
         );
         stateTree.processMassMigrationCommit([tx], feeReceiver);
 

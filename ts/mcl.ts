@@ -176,7 +176,7 @@ export function parseG2(solG2: solG2): mclG2 {
 }
 
 function dump(sol: solG1 | solG2): string {
-    return `0x${sol.map(n => n.toString().slice(2)).join()}`;
+    return `0x${sol.map(n => n.toString().slice(2)).join("")}`;
 }
 
 export function dumpG1(solG1: solG1): string {
