@@ -29,7 +29,7 @@ export class User {
     ) {
         const signer = BlsSigner.new(domain, privKey);
         const user = new this(signer, pubkeyID);
-        user.addStateID(stateID, 0);
+        user.addStateID(0, stateID);
         return user;
     }
     constructor(public blsSigner: BlsSigner, public pubkeyID: number) {
