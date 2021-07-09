@@ -143,7 +143,7 @@ describe("Client Integration", function() {
 
         // Confirm storage has correct counts
         const numGenesisBatches = 1;
-        const numDepositBatches = numDeposits / 4;
+        const numDepositBatches = numDeposits / subtreeSize;
         const numBatches =
             numGenesisBatches + numDepositBatches + numTransferBatches;
         assert.equal(storageSyncer.batches.count(), numBatches);

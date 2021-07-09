@@ -1,7 +1,7 @@
 import { allContracts } from "./allContractsInterfaces";
 import { DeploymentParameters } from "./interfaces";
 import { ExampleToken__factory } from "../types/ethers-contracts";
-import { BigNumber, ethers, Signer } from "ethers";
+import { BigNumber, BigNumberish, ethers, Signer } from "ethers";
 import { solG2 } from "./mcl";
 import { toWei } from "./utils";
 import { Genesis } from "./genesis";
@@ -42,22 +42,23 @@ export class Hubble {
     }
 
     async transfer(
-        fromIndex: BigNumber,
-        toIndex: BigNumber,
-        amount: BigNumber,
-        fee: BigNumber
+        fromIndex: BigNumberish,
+        toIndex: BigNumberish,
+        amount: BigNumberish,
+        fee: BigNumberish
     ) {
-        const { nonce } = await this.getState(fromIndex.toNumber());
+        const fromIndexBN = BigNumber.from(fromIndex);
+        const { nonce } = await this.getState(fromIndexBN.toNumber());
 
         const tx = new TransferOffchainTx(
-            fromIndex,
-            toIndex,
-            amount,
-            fee,
+            fromIndexBN,
+            BigNumber.from(toIndex),
+            BigNumber.from(amount),
+            BigNumber.from(fee),
             nonce
         );
         tx.signature = this.group
-            .getUser(fromIndex.toNumber())
+            .getUser(fromIndexBN.toNumber())
             .signRaw(tx.message());
         const body = { bytes: tx.serialize() };
 
