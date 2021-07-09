@@ -60,7 +60,7 @@ export class User {
         return this.tokenIDtoStateID[tokenID];
     }
     public clearStateIDs() {
-        this.tokenIDtoStateID = [];
+        this.tokenIDtoStateID = {};
     }
 
     get stateID() {

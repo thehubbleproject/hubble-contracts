@@ -351,6 +351,9 @@ async function process(
     return offchainTxs;
 }
 
+/**
+ * A pipe of transfer transactions for a token.
+ */
 export interface TransferPipe {
     source: AsyncGenerator<TransferOffchainTx>;
     tokenID: BigNumber;
@@ -400,6 +403,9 @@ async function pack(
     return { commit, acceptedTxs, failedTxs };
 }
 
+/**
+ * Factory which generates random transactions.
+ */
 export class OffchainTransferFactory {
     private numTransfers: number = 0;
 
@@ -413,17 +419,19 @@ export class OffchainTransferFactory {
         return !!this.maxTransfers && this.numTransfers >= this.maxTransfers;
     }
 
-    async *genTx(): AsyncGenerator<TransferOffchainTx> {
+    async *genTx(tokenID: number): AsyncGenerator<TransferOffchainTx> {
         const { state, transactions } = this.storage;
         while (true) {
             for (const sender of this.group.userIterator()) {
                 const { user: receiver } = this.group.pickRandom();
-                const senderState = await state.get(sender.stateID);
+                const receiverStateID = receiver.getStateID(tokenID);
+                const senderStateID = sender.getStateID(tokenID);
+                const senderState = await state.get(senderStateID);
                 const amount = float16.round(senderState.balance.div(10));
                 const fee = float16.round(amount.div(10));
                 const tx = new TransferOffchainTx(
-                    BigNumber.from(sender.stateID),
-                    BigNumber.from(receiver.stateID),
+                    BigNumber.from(senderStateID),
+                    BigNumber.from(receiverStateID),
                     amount,
                     fee,
                     senderState.nonce
@@ -487,12 +495,33 @@ export class TransferHandlingStrategy implements BatchHandlingStrategy {
     }
 }
 
+/**
+ * Pool of pending transfers
+ */
 export interface ITransferPool {
+    /**
+     * Returns if the pool is empty.
+     *
+     * @returns Whether the pool is empty.
+     */
     isEmpty(): boolean;
-    getNextPipe(): Promise<TransferPipe>;
+    /**
+     * Adds a transfer transaction to the pool.
+     *
+     * @param tx Transfer transaction to add.
+     */
     push(tx: TransferOffchainTx): Promise<void>;
+    /**
+     * Gets the next pipe of trnsfer transactions to process.
+     *
+     * @returns Pipe of next transfer transactions.
+     */
+    getNextPipe(): Promise<TransferPipe>;
 }
 
+/**
+ * Memory implementation of transfer pool.
+ */
 export class TransferPool implements ITransferPool {
     private pool: MultiTokenPool<TransferOffchainTx>;
 
@@ -512,6 +541,10 @@ export class TransferPool implements ITransferPool {
         return this.pool.size() == 0;
     }
 
+    public async push(tx: TransferOffchainTx) {
+        await this.pool.push(tx);
+    }
+
     public async getNextPipe(): Promise<TransferPipe> {
         const {
             tokenID,
@@ -529,10 +562,6 @@ export class TransferPool implements ITransferPool {
         return `<TransferPool  size ${this.pool.size()}>`;
     }
 
-    public async push(tx: TransferOffchainTx) {
-        await this.pool.push(tx);
-    }
-
     private async *genTx(
         tokenID: BigNumber
     ): AsyncGenerator<TransferOffchainTx> {
@@ -545,42 +574,51 @@ export class TransferPool implements ITransferPool {
 type SimulatorPoolOptions = {
     group: Group;
     storage: StorageManager;
-    tokenID: number;
-    feeReceiverID: number;
+    feeReceivers: FeeReceivers;
     maxTransfers?: number;
 };
 
+/**
+ * Transfer pool which generates random transactions.
+ */
 export class SimulatorPool extends OffchainTransferFactory
     implements ITransferPool {
-    private readonly tokenID: BigNumber;
-    private readonly feeReceiverID: BigNumber;
+    private readonly feeReceivers: FeeReceivers;
 
     constructor({
         group,
         storage,
-        tokenID,
-        feeReceiverID,
+        feeReceivers,
         maxTransfers
     }: SimulatorPoolOptions) {
         super(group, storage, maxTransfers);
-        this.tokenID = BigNumber.from(tokenID);
-        this.feeReceiverID = BigNumber.from(feeReceiverID);
-    }
-
-    public async push(_tx: TransferOffchainTx): Promise<void> {
-        throw new Error("SimulatorPool: push not implemented.");
+        this.feeReceivers = feeReceivers;
     }
 
     public isEmpty(): boolean {
         return this.isComplete();
     }
 
+    public async push(_tx: TransferOffchainTx): Promise<void> {
+        throw new Error("SimulatorPool: push not implemented.");
+    }
+
     public async getNextPipe(): Promise<TransferPipe> {
-        const source = this.genTx();
+        const { tokenID, feeReceiverID } = this.getRandomToken();
+        const source = this.genTx(tokenID.toNumber());
         return {
             source,
-            tokenID: this.tokenID,
-            feeReceiverID: this.feeReceiverID
+            tokenID,
+            feeReceiverID
+        };
+    }
+
+    private getRandomToken(): { tokenID: BigNumber; feeReceiverID: BigNumber } {
+        const idx = Math.floor(Math.random() * this.feeReceivers.length);
+        const { tokenID, stateID } = this.feeReceivers[idx];
+        return {
+            tokenID: BigNumber.from(tokenID),
+            feeReceiverID: BigNumber.from(stateID)
         };
     }
 }

@@ -1,6 +1,6 @@
 import { arrayify } from "@ethersproject/bytes";
 import { assert } from "chai";
-import { BigNumber, providers } from "ethers";
+import { providers } from "ethers";
 import { ethers } from "hardhat";
 import { CoreAPI } from "../../ts/client/coreAPI";
 import { SimulatorPool } from "../../ts/client/features/transfer";
@@ -64,7 +64,7 @@ describe("Client Integration", function() {
         const allTokens = [contracts.exampleToken, ...customTokens];
 
         // Setup users/accounts
-        const numUsers = 4; // TODO Revert to 32
+        const numUsers = 32;
         const initialBalance = CommonToken.fromHumanValue("100.12");
         const group = Group.new({ n: numUsers });
 
@@ -103,15 +103,18 @@ describe("Client Integration", function() {
         }
 
         // Setup a pool which simulates random token transfers
-        const feeReceiverID = 0;
-        const numTransferBatches = 1;
+        // Use first user as fee receiver
+        const firstUser = group.getUser(0);
+        const numTransferBatches = 10;
         const maxTransfers =
             numTransferBatches * parameters.MAX_TXS_PER_COMMIT ** 2;
         const simPool = new SimulatorPool({
             group,
             storage: storagePacker,
-            tokenID: 0, // TODO Update for multi-token
-            feeReceiverID,
+            feeReceivers: allTokens.map((_token, tokenID) => ({
+                tokenID,
+                stateID: firstUser.getStateID(tokenID)
+            })),
             maxTransfers
         });
 
