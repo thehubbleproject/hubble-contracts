@@ -4,7 +4,7 @@ import { FeeReceivers } from "./config";
 import { OffchainTx } from "./features/interface";
 import { StateStorageEngine } from "./storageEngine";
 
-function naiveCompareFee(a: OffchainTx, b: OffchainTx) {
+const sortByFee = (a: OffchainTx, b: OffchainTx): number => {
     if (a.fee.lt(b.fee)) {
         return -1;
     }
@@ -12,13 +12,22 @@ function naiveCompareFee(a: OffchainTx, b: OffchainTx) {
         return 1;
     }
     return 0;
-}
+};
 
+/**
+ * Pool of pending transactions with functionality to retrieve the
+ * most proftable transactions to process.
+ */
 export class MultiTokenPool<Item extends OffchainTx> {
     private tokenIDStrToQueue: Record<string, Item[]>;
     private tokenIDStrToFeeRecieverID: Record<string, BigNumber>;
     private txCount: number;
 
+    /**
+     * @param stateStorage State tree storage
+     * @param feeRecievers List of tokenIDs to feeRecieverIDs
+     * @param maxSize Optional mamximum number of transactions allowed in pool. Default 1024.
+     */
     constructor(
         private readonly stateStorage: StateStorageEngine,
         feeRecievers: FeeReceivers,
@@ -37,6 +46,12 @@ export class MultiTokenPool<Item extends OffchainTx> {
         this.txCount = 0;
     }
 
+    /**
+     * Gets the current number of transactions in the pool.
+     *
+     * @param tokenID Optional filter number of transactions by a tokenID
+     * @returns Number of transactions in pool
+     */
     public size(tokenID?: BigNumber): number {
         if (!tokenID) {
             return this.txCount;
@@ -48,18 +63,53 @@ export class MultiTokenPool<Item extends OffchainTx> {
         return queue.length;
     }
 
+    /**
+     * Adds a transaction to the pool.
+     *
+     * @param tx Transaction to add to pool.
+     */
     public async push(tx: Item): Promise<void> {
         if (this.txCount > this.maxSize) {
             throw new Error(`MultiTokenPool: max size ${this.maxSize} reached`);
         }
 
         const fromState = await this.stateStorage.get(tx.fromIndex.toNumber());
-        // TODO State struct needs BN as well.
         const tokenQueue = this.tokenIDStrToQueue[fromState.tokenID.toString()];
         tokenQueue.push(tx);
+        this.txCount++;
     }
-    // Don't care about token and their exchange rate, just compare the numeric value of fee
-    // https://github.com/thehubbleproject/hubble-contracts/issues/572
+
+    /**
+     * Removes the highest fee transaction for a token from the pool.
+     *
+     * @param tokenID Token to remove a transaction for.
+     * @returns Trasnaction from the pool
+     */
+    public pop(tokenID: BigNumber): Item {
+        const tokenQueue = this.tokenIDStrToQueue[tokenID.toString()];
+        tokenQueue.sort(sortByFee);
+
+        const tx = tokenQueue.pop();
+        if (!tx) {
+            throw new Error(
+                `MultiTokenPool: tokenID ${tokenID.toString()} empty`
+            );
+        }
+        this.txCount--;
+        return tx;
+    }
+
+    /**
+     * Gets the highest value token trasnactions to process.
+     *
+     * Currently doesn't account for the token's exchange rate and
+     * prioritizes by summed fees.
+     *
+     * https://github.com/thehubbleproject/hubble-contracts/issues/572
+     * will change this behavior.
+     *
+     * @returns Object with the highest value tokenID and its feeReceiverID
+     */
     public async getHighestValueToken(): Promise<{
         tokenID: BigNumber;
         feeReceiverID: BigNumber;
@@ -81,19 +131,6 @@ export class MultiTokenPool<Item extends OffchainTx> {
             tokenID,
             feeReceiverID
         };
-    }
-
-    public pop(tokenID: BigNumber): Item {
-        const tokenQueue = this.tokenIDStrToQueue[tokenID.toString()];
-        tokenQueue.sort(naiveCompareFee);
-
-        const tx = tokenQueue.pop();
-        if (!tx) {
-            throw new Error(
-                `MultiTokenPool: tokenID ${tokenID.toString()} empty`
-            );
-        }
-        return tx;
     }
 
     private getQueueValue(tokenIDStr: string): BigNumber {
