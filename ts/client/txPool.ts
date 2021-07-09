@@ -1,4 +1,10 @@
 import { BigNumber } from "ethers";
+import {
+    PoolEmptyError,
+    PoolFullError,
+    TokenNotConfiguredError,
+    TokenPoolEmpty
+} from "../exceptions";
 import { sum } from "../utils";
 import { FeeReceivers } from "./config";
 import { OffchainTx } from "./features/interface";
@@ -31,7 +37,7 @@ export class MultiTokenPool<Item extends OffchainTx> {
     constructor(
         private readonly stateStorage: StateStorageEngine,
         feeRecievers: FeeReceivers,
-        public readonly maxSize: Number = 1024
+        public readonly maxSize: number = 1024
     ) {
         this.tokenIDStrToQueue = {};
         this.tokenIDStrToFeeRecieverID = {};
@@ -69,12 +75,17 @@ export class MultiTokenPool<Item extends OffchainTx> {
      * @param tx Transaction to add to pool.
      */
     public async push(tx: Item): Promise<void> {
-        if (this.txCount > this.maxSize) {
-            throw new Error(`MultiTokenPool: max size ${this.maxSize} reached`);
+        if (this.txCount >= this.maxSize) {
+            throw new PoolFullError(this.maxSize);
         }
 
         const fromState = await this.stateStorage.get(tx.fromIndex.toNumber());
-        const tokenQueue = this.tokenIDStrToQueue[fromState.tokenID.toString()];
+        const tokenIDStr = fromState.tokenID.toString();
+        const tokenQueue = this.tokenIDStrToQueue[tokenIDStr];
+        if (!tokenQueue) {
+            throw new TokenNotConfiguredError(tokenIDStr);
+        }
+
         tokenQueue.push(tx);
         this.txCount++;
     }
@@ -83,24 +94,26 @@ export class MultiTokenPool<Item extends OffchainTx> {
      * Removes the highest fee transaction for a token from the pool.
      *
      * @param tokenID Token to remove a transaction for.
-     * @returns Trasnaction from the pool
+     * @returns Transaction from the pool
      */
     public pop(tokenID: BigNumber): Item {
-        const tokenQueue = this.tokenIDStrToQueue[tokenID.toString()];
+        const tokenIDStr = tokenID.toString();
+        const tokenQueue = this.tokenIDStrToQueue[tokenIDStr];
+        if (!tokenQueue) {
+            throw new TokenNotConfiguredError(tokenIDStr);
+        }
         tokenQueue.sort(sortByFee);
 
         const tx = tokenQueue.pop();
         if (!tx) {
-            throw new Error(
-                `MultiTokenPool: tokenID ${tokenID.toString()} empty`
-            );
+            throw new TokenPoolEmpty(tokenID.toString());
         }
         this.txCount--;
         return tx;
     }
 
     /**
-     * Gets the highest value token trasnactions to process.
+     * Gets the highest value token transactions to process.
      *
      * Currently doesn't account for the token's exchange rate and
      * prioritizes by summed fees.
@@ -114,6 +127,10 @@ export class MultiTokenPool<Item extends OffchainTx> {
         tokenID: BigNumber;
         feeReceiverID: BigNumber;
     }> {
+        if (!this.txCount) {
+            throw new PoolEmptyError();
+        }
+
         let highValue = BigNumber.from(0);
         let tokenID = BigNumber.from(-1);
         for (const tokenIDStr of Object.keys(this.tokenIDStrToQueue)) {
