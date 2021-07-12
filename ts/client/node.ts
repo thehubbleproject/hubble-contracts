@@ -40,7 +40,9 @@ export class HubbleNode {
             config.providerUrl,
             genesis.auxiliary.chainid
         );
-        const signer = provider.getSigner();
+        provider.on("error", err => {
+            console.error(err);
+        });
 
         const { MAX_DEPTH } = genesis.parameters;
         const storageManager = await storageManagerFactory({
@@ -48,6 +50,7 @@ export class HubbleNode {
             pubkeyTreeDepth: MAX_DEPTH
         });
 
+        const signer = provider.getSigner();
         const api = CoreAPI.new(storageManager, genesis, provider, signer);
 
         const syncer = new SyncerService(api);
