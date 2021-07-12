@@ -4,16 +4,15 @@ import { ethers } from "ethers";
 import { solG2 } from "./mcl";
 import { RegistrationFail, WrongBatchSize } from "./exceptions";
 import { ZERO_BYTES32 } from "./constants";
-import { DBTree } from "./tree/dbTree";
-import { PubkeyLeaf } from "./tree/leaves/PubkeyLeaf";
+import { MemoryTree } from "./tree/memoryTree";
 
 type RegisterBatchPubkeys = Parameters<BLSAccountRegistry["registerBatch"]>[0];
 type ExistsWitness = Parameters<BLSAccountRegistry["exists"]>[2];
 
 // Tree is 32 level depth, the index is still smaller than Number.MAX_SAFE_INTEGER
 export class AccountRegistry {
-    treeLeft: DBTree<PubkeyLeaf>;
-    treeRight: DBTree<PubkeyLeaf>;
+    treeLeft: MemoryTree;
+    treeRight: MemoryTree;
     leftIndex: number = 0;
     rightIndex: number = 0;
     setSize: number;
@@ -33,8 +32,8 @@ export class AccountRegistry {
     ) {
         // Want the treeLeft and treeRight to have default hashes start with ZERO_BYTES32
         const hasher = Hasher.new("bytes", ZERO_BYTES32);
-        this.treeLeft = new DBTree(depth, PubkeyLeaf.fromDB, hasher);
-        this.treeRight = new DBTree(depth, PubkeyLeaf.fromDB, hasher);
+        this.treeLeft = MemoryTree.new(depth, hasher);
+        this.treeRight = MemoryTree.new(depth, hasher);
         this.setSize = 2 ** depth;
         this.batchSize = 2 ** batchDepth;
     }

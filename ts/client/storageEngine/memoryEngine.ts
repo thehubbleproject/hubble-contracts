@@ -3,8 +3,7 @@ import { TreeAtLevelIsFull } from "../../exceptions";
 import { Hashable, Vacant } from "../../interfaces";
 import { Hasher } from "../../tree";
 import { MemoryTree } from "../../tree/memoryTree";
-import { Entry } from "./batches/interfaces";
-import { StorageEngine, WithWitness } from "./interfaces";
+import { StorageEngine, WithWitness, Entry } from "./interfaces";
 
 export class MemoryEngine<Item extends Hashable>
     implements StorageEngine<Item> {
