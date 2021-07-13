@@ -1,16 +1,14 @@
 import { LevelUp } from "levelup";
 import { Hashable } from "../../interfaces";
 
-export type LeafFactoryFunc<T extends Leaf<Hashable>> = (
-    itemId: number,
-    itemHash: string
-) => Promise<T>;
+export type LeafFactoryFunc<Item extends Hashable> = {
+    name: string;
+    newLeaf(item: Item, itemID: number): Leaf<Item>;
+    fromDB(itemId: number): Promise<Leaf<Item>>;
+};
 
-export const getLeafKey = (
-    name: string,
-    itemID: number,
-    itemHash: string
-): string => `${name}${itemID}${itemHash}`;
+export const getLeafKey = (name: string, itemID: number): string =>
+    `${name}${itemID}`;
 
 export abstract class Leaf<Item extends Hashable> {
     abstract readonly name: string;
@@ -25,7 +23,7 @@ export abstract class Leaf<Item extends Hashable> {
     }
 
     getKey() {
-        return getLeafKey(this.name, this.itemID, this.item.hash());
+        return getLeafKey(this.name, this.itemID);
     }
 
     get key() {

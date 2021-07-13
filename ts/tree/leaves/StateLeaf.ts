@@ -9,7 +9,7 @@ export class StateLeaf extends Leaf<State> {
     db = stateDB;
 
     static async fromDB(itemId: number, itemHash: string): Promise<StateLeaf> {
-        const key = getLeafKey(stateName, itemId, itemHash);
+        const key = getLeafKey(stateName, itemId);
         const bytes = await stateDB.get(key);
         const item = State.fromEncoded(bytes);
         return new StateLeaf(item, itemId);

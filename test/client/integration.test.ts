@@ -13,6 +13,7 @@ import { deployKeyless } from "../../ts/deployment/deploy";
 import { Group, storageManagerFactory } from "../../ts/factory";
 import { Genesis } from "../../ts/genesis";
 import * as mcl from "../../ts/mcl";
+import del from "del";
 
 /**
  * This integration test ensures that
@@ -26,6 +27,14 @@ import * as mcl from "../../ts/mcl";
  * and reach a correct end state.
  */
 describe("Client Integration", function() {
+    before(async function() {
+        await del("./leveldb/*");
+    });
+
+    after(async function() {
+        await del("./leveldb/*");
+    });
+
     it("run", async function() {
         await mcl.init();
         const [signer] = await ethers.getSigners();
