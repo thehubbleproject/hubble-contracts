@@ -60,7 +60,7 @@ const PLACEHOLDER_SOL_STATE_PROOF: SolStateMerkleProof = {
 function applySender(sender: State, decrement: BigNumber): State {
     const state = sender.clone();
     state.balance = sender.balance.sub(decrement);
-    state.nonce = sender.nonce + 1;
+    state.nonce = sender.nonce.add(1);
     return state;
 }
 function applyReceiver(receiver: State, increment: BigNumber): State {
@@ -198,7 +198,7 @@ export class StateTree implements StateProvider {
         txs: TxCreate2Transfer[],
         feeReceiverID: number
     ): Generator<SolStateMerkleProof> {
-        const tokenID = this.states[txs[0].fromIndex].tokenID;
+        const { tokenID } = this.states[txs[0].fromIndex];
         for (const tx of txs) {
             const [senderProof, receiverProof] = this.processCreate2Transfer(
                 tx,
@@ -270,7 +270,7 @@ export class StateTree implements StateProvider {
 
     public processTransfer(
         tx: TxTransfer,
-        tokenID: number
+        tokenID: BigNumber
     ): SolStateMerkleProof[] {
         const senderProof = this.processSender(
             tx.fromIndex,
@@ -288,14 +288,14 @@ export class StateTree implements StateProvider {
 
     public processMassMigration(
         tx: TxMassMigration,
-        tokenID: number
+        tokenID: BigNumber
     ): SolStateMerkleProof {
         return this.processSender(tx.fromIndex, tokenID, tx.amount, tx.fee);
     }
 
     public processCreate2Transfer(
         tx: TxCreate2Transfer,
-        tokenID: number
+        tokenID: BigNumber
     ): SolStateMerkleProof[] {
         const senderProof = this.processSender(
             tx.fromIndex,
@@ -322,7 +322,7 @@ export class StateTree implements StateProvider {
     }
     public processSender(
         senderIndex: number,
-        tokenID: number,
+        tokenID: BigNumber,
         amount: BigNumber,
         fee: BigNumber
     ): SolStateMerkleProof {
@@ -334,7 +334,7 @@ export class StateTree implements StateProvider {
             throw new InsufficientFund(
                 `balance: ${state.balance}, tx amount+fee: ${decrement}`
             );
-        if (state.tokenID != tokenID)
+        if (!state.tokenID.eq(tokenID))
             throw new WrongTokenID(
                 `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
             );
@@ -346,11 +346,11 @@ export class StateTree implements StateProvider {
     public processReceiver(
         receiverIndex: number,
         increment: BigNumber,
-        tokenID: number
+        tokenID: BigNumber
     ): SolStateMerkleProof {
         const state = this.states[receiverIndex];
         if (!state) throw new ReceiverNotExist(`stateID: ${receiverIndex}`);
-        if (state.tokenID != tokenID)
+        if (!state.tokenID.eq(tokenID))
             throw new WrongTokenID(
                 `Tx tokenID: ${tokenID}, State tokenID: ${state.tokenID}`
             );
@@ -363,7 +363,7 @@ export class StateTree implements StateProvider {
         createIndex: number,
         pubkeyID: number,
         balance: BigNumber,
-        tokenID: number
+        tokenID: BigNumber
     ): SolStateMerkleProof {
         if (this.states[createIndex] !== undefined)
             throw new StateAlreadyExist(`stateID: ${createIndex}`);

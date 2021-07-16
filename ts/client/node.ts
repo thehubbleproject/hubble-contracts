@@ -61,7 +61,8 @@ export class HubbleNode {
 
         const modes = this.getNodeModes(config);
         if (modes.isProposer) {
-            const { feeReceivers, willingnessToBid } = config.proposer || {};
+            const { feeReceivers, willingnessToBid, maxPendingTransactions } =
+                config.proposer || {};
             if (!feeReceivers) {
                 throw new MissingConfigPropError("proposer.feeRecievers");
             }
@@ -72,13 +73,11 @@ export class HubbleNode {
                 throw new MissingConfigPropError("proposer.willingnessToBid");
             }
 
-            // TODO Implement multi-token pool
-            // https://github.com/thehubbleproject/hubble-contracts/issues/476
-            if (feeReceivers.length > 1) {
-                throw new Error("multiple tokens are currently not supported");
-            }
-            const { tokenID, stateID } = feeReceivers[0];
-            transferPool = new TransferPool(tokenID, stateID);
+            transferPool = new TransferPool(
+                storageManager.state,
+                feeReceivers,
+                maxPendingTransactions
+            );
 
             packer = new Packer(api, transferPool);
             bidder = await Bidder.new(

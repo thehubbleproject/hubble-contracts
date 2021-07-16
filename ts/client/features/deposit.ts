@@ -116,7 +116,7 @@ export async function handleNewBatch(
     const receipt = await event.getTransactionReceipt();
     const logs = receipt.logs.map(log => rollup.interface.parseLog(log));
     const depositsFinalisedLog = logs.filter(
-        log => log.signature == "DepositsFinalised(uint256,bytes32,uint256)"
+        log => log.signature === "DepositsFinalised(uint256,bytes32,uint256)"
     )[0];
     const txDescription = rollup.interface.parseTransaction({ data });
     const depositSubtreeRoot = depositsFinalisedLog.args?.depositSubTreeRoot;

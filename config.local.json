@@ -8,6 +8,7 @@
     "proposer": {
         "enabled": true,
         "willingnessToBid": 1,
+        "maxPendingTransactions": 1024,
         "feeReceivers": [{
             "tokenID": 1,
             "stateID": 0

@@ -80,10 +80,11 @@ async function main() {
             `Registering ${numPubkeys} pubkeys. Custom mnemonic: ${!!pubkeyMnemonic}`
         );
         const group = Group.new({
-            n: pubkeyMnemonic,
+            n: parseInt(numPubkeys),
             mnemonic: pubkeyMnemonic
         });
         // Convert this to batch register once implemented
+        // https://github.com/thehubbleproject/hubble-contracts/issues/625
         for (const user of group.userIterator()) {
             await blsAccountRegistry.register(user.pubkey);
         }

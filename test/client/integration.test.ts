@@ -3,7 +3,7 @@ import { assert } from "chai";
 import { providers } from "ethers";
 import { ethers } from "hardhat";
 import { CoreAPI } from "../../ts/client/coreAPI";
-import { SimulatorPool, TransferPool } from "../../ts/client/features/transfer";
+import { SimulatorPool } from "../../ts/client/features/transfer";
 import { Packer } from "../../ts/client/services/packer";
 import { SyncerService } from "../../ts/client/services/syncer";
 import { PRODUCTION_PARAMS } from "../../ts/constants";
@@ -14,6 +14,7 @@ import { Group, storageManagerFactory } from "../../ts/factory";
 import { Genesis } from "../../ts/genesis";
 import * as mcl from "../../ts/mcl";
 import del from "del";
+import { CustomToken__factory } from "../../types/ethers-contracts";
 
 /**
  * This integration test ensures that
@@ -60,49 +61,69 @@ describe("Client Integration", function() {
 
         const contracts = await deployAll(signer, parameters);
 
+        // Setup and register custom tokens
+        const customTokens = await Promise.all([
+            new CustomToken__factory(signer).deploy("Hubble", "HUB"),
+            new CustomToken__factory(signer).deploy("Telescope", "TLSC")
+        ]);
+        for (const token of customTokens) {
+            await contracts.tokenRegistry.requestRegistration(token.address);
+            await contracts.tokenRegistry.finaliseRegistration(token.address);
+        }
+        const allTokens = [contracts.exampleToken, ...customTokens];
+
         // Setup users/accounts
         const numUsers = 32;
-        const tokenID = 0; // ExampleToken
         const initialBalance = CommonToken.fromHumanValue("100.12");
         const group = Group.new({ n: numUsers });
 
         const domainSeparator = await contracts.rollup.domainSeparator();
         group.setupSigners(arrayify(domainSeparator));
 
-        let numDepositBatches = 0;
+        let numDeposits = 0;
+        let currentStateID = 0;
         // Split users in subtree sized chunks
         const subtreeSize = 2 ** parameters.MAX_DEPOSIT_SUBTREE_DEPTH;
         for (const subGroup of group.groupInterator(subtreeSize)) {
             // Setup L1 for syncer & packer
             for (const user of subGroup.userIterator()) {
+                // Clear out default stateIDs
+                user.clearStateIDs();
                 // Pubkey
                 await contracts.blsAccountRegistry.register(user.pubkey);
-                // Approve token transfer
-                await contracts.exampleToken.approve(
-                    contracts.depositManager.address,
-                    initialBalance.l1Value
-                );
-                // Queue deposit
-                await contracts.depositManager.depositFor(
-                    user.pubkeyID,
-                    initialBalance.l1Value,
-                    tokenID
-                );
+                // Deposit tokens
+                for (let tokenID = 0; tokenID < allTokens.length; tokenID++) {
+                    const token = allTokens[tokenID];
+                    // Approve token transfer
+                    await token.approve(
+                        contracts.depositManager.address,
+                        initialBalance.l1Value
+                    );
+                    // Queue deposit
+                    await contracts.depositManager.depositFor(
+                        user.pubkeyID,
+                        initialBalance.l1Value,
+                        tokenID
+                    );
+                    user.addStateID(tokenID, currentStateID++);
+                    numDeposits++;
+                }
             }
-
-            numDepositBatches++;
         }
 
         // Setup a pool which simulates random token transfers
-        const feeReceiverID = 0;
+        // Use first user as fee receiver
+        const firstUser = group.getUser(0);
         const numTransferBatches = 10;
         const maxTransfers =
             numTransferBatches * parameters.MAX_TXS_PER_COMMIT ** 2;
         const simPool = new SimulatorPool({
             group,
             storage: storagePacker,
-            tokenID,
-            feeReceiverID,
+            feeReceivers: allTokens.map((_token, tokenID) => ({
+                tokenID,
+                stateID: firstUser.getStateID(tokenID)
+            })),
             maxTransfers
         });
 
@@ -131,6 +152,7 @@ describe("Client Integration", function() {
 
         // Confirm storage has correct counts
         const numGenesisBatches = 1;
+        const numDepositBatches = numDeposits / subtreeSize;
         const numBatches =
             numGenesisBatches + numDepositBatches + numTransferBatches;
         assert.equal(storageSyncer.batches.count(), numBatches);

@@ -19,6 +19,8 @@ import {
 } from "./tx";
 
 export class User {
+    private tokenIDtoStateID: Record<number, number>;
+
     static new(
         stateID: number,
         pubkeyID: number,
@@ -26,13 +28,13 @@ export class User {
         privKey?: string
     ) {
         const signer = BlsSigner.new(domain, privKey);
-        return new this(signer, stateID, pubkeyID);
+        const user = new this(signer, pubkeyID);
+        user.addStateID(0, stateID);
+        return user;
     }
-    constructor(
-        public blsSigner: BlsSigner,
-        public stateID: number,
-        public pubkeyID: number
-    ) {}
+    constructor(public blsSigner: BlsSigner, public pubkeyID: number) {
+        this.tokenIDtoStateID = [];
+    }
     public sign(tx: SignableTx) {
         return this.blsSigner.sign(tx.message());
     }
@@ -43,7 +45,27 @@ export class User {
         this.blsSigner.setDomain(domain);
         return this;
     }
+    public addStateID(tokenID: number, stateID: number) {
+        if (this.tokenIDtoStateID[tokenID] !== undefined) {
+            throw new Error(`stateID alreadt set for tokenID ${tokenID}`);
+        }
 
+        this.tokenIDtoStateID[tokenID] = stateID;
+    }
+    public getStateID(tokenID: number): number {
+        if (this.tokenIDtoStateID[tokenID] === undefined) {
+            throw new Error(`stateID missing for tokenID ${tokenID}`);
+        }
+
+        return this.tokenIDtoStateID[tokenID];
+    }
+    public clearStateIDs() {
+        this.tokenIDtoStateID = {};
+    }
+
+    get stateID() {
+        return this.getStateID(0);
+    }
     get pubkey() {
         return this.blsSigner.pubkey;
     }
@@ -193,7 +215,7 @@ export function txTransferFactory(
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
-            : senderState.nonce;
+            : senderState.nonce.toNumber();
         seenNonce[sender.stateID] = nonce;
         const tx = new TxTransfer(
             sender.stateID,
@@ -227,7 +249,7 @@ export function txCreate2TransferFactory(
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
-            : senderState.nonce;
+            : senderState.nonce.toNumber();
         seenNonce[sender.stateID] = nonce;
 
         const tx = new TxCreate2Transfer(
@@ -260,7 +282,7 @@ export function txMassMigrationFactory(
         const fee = float16.round(amount.div(10));
         const nonce = seenNonce[sender.stateID]
             ? seenNonce[sender.stateID] + 1
-            : senderState.nonce;
+            : senderState.nonce.toNumber();
         seenNonce[sender.stateID] = nonce;
 
         const tx = new TxMassMigration(
