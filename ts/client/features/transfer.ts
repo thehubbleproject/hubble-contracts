@@ -302,7 +302,7 @@ async function validateTransferStateTransition(
     validateSender(sender, tokenID, tx.amount, tx.fee);
     validateReceiver(receiver, tokenID);
     const senderKey = await storage.pubkey.get(sender.pubkeyID.toNumber());
-    if (tx.nonce != sender.nonce)
+    if (!tx.nonce.eq(sender.nonce))
         throw new Error(`Bad nonce  tx ${tx.nonce}  state ${sender.nonce}`);
     if (!tx.signature) throw new Error("Expect tx to have signature here");
     if (!verifier.verify(tx.signature.sol, senderKey.pubkey, tx.message()))
