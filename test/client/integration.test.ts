@@ -160,5 +160,5 @@ describe("Client Integration", function() {
 
         assert.equal(storageSyncer.transactions.count(), maxTransfers);
         assert.equal(storagePacker.transactions.count(), maxTransfers);
-    }).timeout(300000);
+    }).timeout(600000);
 });
