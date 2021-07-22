@@ -1,9 +1,10 @@
-import { BigNumber } from "@ethersproject/bignumber";
 import { assert } from "chai";
 import { DepositPool, IDepositPool } from "../../ts/client/features/deposit";
 import { TESTING_PARAMS as params } from "../../ts/constants";
 import { State } from "../../ts/state";
 import { MemoryTree } from "../../ts/tree/memoryTree";
+
+const encode = (states: State[]): string[] => states.map(s => s.encode());
 
 describe("Deposit feature", () => {
     describe("DepositPool", () => {
@@ -49,12 +50,12 @@ describe("Deposit feature", () => {
 
             assert.equal(subtree1.id.toNumber(), 1);
             const subtreeStates1 = [states[0], states[1]];
-            assert.deepEqual(subtree1.states, subtreeStates1);
+            assert.deepEqual(encode(subtree1.states), encode(subtreeStates1));
             assert.equal(subtree1.root, getMerklizedRoot(subtreeStates1));
 
             assert.equal(subtree2.id.toNumber(), 2);
             const subtreeStates2 = [states[2], states[3]];
-            assert.deepEqual(subtree2.states, subtreeStates2);
+            assert.deepEqual(encode(subtree2.states), encode(subtreeStates2));
             assert.equal(subtree2.root, getMerklizedRoot(subtreeStates2));
         });
     });

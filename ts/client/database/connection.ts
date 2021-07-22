@@ -3,6 +3,10 @@ import sub from "subleveldown";
 
 const db = level("./leveldb", { valueEncoding: "json" });
 
+export const close = async (): Promise<void> => {
+    await db.close();
+};
+
 export const pubkeyDB = sub(db, "pubkey");
 export const stateDB = sub(db, "state");
 export const nodeDB = sub(db, "node");

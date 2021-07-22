@@ -41,7 +41,11 @@ Users can onboard accounts to Hubble without going through L1. The coordinator c
 
 ## Local Development
 
-See [Setup](./SETUP.md) instructions
+[Local Development Setup](./docs/setup/LOCAL_DEVELOPMENT.md)
+
+## Node Operator
+
+[Node Operator](./docs/setup/NODE_OPERATOR.md)
 
 ## Docker
 

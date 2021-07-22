@@ -1,8 +1,5 @@
 import { execSync } from "child_process";
 import { Signer } from "ethers";
-import { readFile, writeFile } from "fs";
-import { resolve } from "path";
-import { promisify } from "util";
 import { allContracts } from "./allContractsInterfaces";
 import { DeploymentParameters } from "./interfaces";
 import {
@@ -23,9 +20,7 @@ import {
     WithdrawManager__factory,
     BurnAuction__factory
 } from "../types/ethers-contracts";
-
-const readFileAsync = promisify(readFile);
-const writeFileAsync = promisify(writeFile);
+import { readJSON, writeJSON } from "./file";
 
 export interface Auxiliary {
     domain: string;
@@ -44,12 +39,8 @@ export class Genesis {
     public static async fromConfig(
         path: string = "./genesis.json"
     ): Promise<Genesis> {
-        const genesisPath = resolve(path);
-        console.info(`loading genesis from ${genesisPath}`);
-        const genesisJSONStr = await readFileAsync(genesisPath, {
-            encoding: "utf8"
-        });
-        const { parameters, addresses, auxiliary } = JSON.parse(genesisJSONStr);
+        console.info(`loading genesis from ${path}`);
+        const { parameters, addresses, auxiliary } = await readJSON(path);
         return new this(parameters, addresses, auxiliary);
     }
 
@@ -81,9 +72,8 @@ export class Genesis {
     }
 
     public async dump(path: string): Promise<void> {
-        const genesisPath = resolve(path);
-        console.info(`writing genesis to ${genesisPath}`);
-        await writeFileAsync(genesisPath, this.toString());
+        console.info(`writing genesis to ${path}`);
+        await writeJSON(path, this);
     }
 
     public getContracts(signer: Signer): allContracts {

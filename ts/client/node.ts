@@ -15,6 +15,7 @@ import { SyncCompleteEvent } from "./constants";
 import { ClientConfig } from "./config";
 import { Genesis } from "../genesis";
 import { EmptyConfigPropError, MissingConfigPropError } from "../exceptions";
+import { close as closeDB } from "./database/connection";
 
 export type NodeModes = {
     isProposer: boolean;
@@ -128,9 +129,11 @@ export class HubbleNode {
 
     public async close() {
         console.log("Node start closing");
-        this.syncer?.stop();
+        this.syncer.stop();
         this.packer?.stop();
         this.bidder?.stop();
+        console.log("closing leveldb connection");
+        await closeDB();
     }
 
     onSyncComplete = async () => {

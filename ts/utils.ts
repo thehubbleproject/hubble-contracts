@@ -1,4 +1,4 @@
-import { ethers, BigNumber, ContractTransaction } from "ethers";
+import { ethers, BigNumber } from "ethers";
 import {
     randomBytes,
     hexlify,

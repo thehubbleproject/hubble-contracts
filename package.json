@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "scripts": {
+    "node": "ts-node --files ./ts/client",
     "dev": "ts-node --files ./ts/client --configPath config.local.json",
     "repl": "ts-node --files ./scripts/repl.ts",
     "test": "hardhat test",
@@ -12,8 +13,9 @@
     "generate": "hardhat compile && typechain --target ethers-v5 './artifacts/contracts/**/!(*.dbg).json'",
     "compile": "hardhat compile",
     "tsc": "tsc",
-    "node": "hardhat node",
+    "hardhat:node": "hardhat node",
     "deploy": "ts-node --files ./scripts/deploy.ts",
+    "feeReceivers": "ts-node --files ./scripts/feeReceivers.ts",
     "keyless:check": "ts-node --files ./scripts/keyless.ts --check",
     "keyless:deploy": "ts-node --files ./scripts/keyless.ts --deploy",
     "deposit": "ts-node --files ./scripts/deposit.ts",
@@ -57,7 +59,7 @@
   "dependencies": {
     "@godaddy/terminus": "^4.9.0",
     "bn.js": "^5.2.0",
-    "ethers": "5.4.0",
+    "ethers": "5.4.3",
     "fastify": "^3.18.0",
     "level": "^7.0.0",
     "lodash": "^4.17.21",

@@ -2,10 +2,11 @@ import { ethers } from "ethers";
 import minimist from "minimist";
 import { deployAndWriteGenesis } from "../ts/deploy";
 import { DeploymentParameters } from "../ts/interfaces";
-import fs from "fs";
 import { PRODUCTION_PARAMS } from "../ts/constants";
 import { StateTree } from "../ts/stateTree";
 import { Group } from "../ts/factory";
+import * as mcl from "../ts/mcl";
+import { readJSON } from "../ts/file";
 
 const { url, root, key, input, output, numPubkeys, pubkeyMnemonic } = minimist(
     process.argv.slice(2),
@@ -54,6 +55,7 @@ function getDefaultGenesisRoot(parameters: DeploymentParameters) {
 
 async function main() {
     validateArgv();
+    await mcl.init();
 
     const provider = new ethers.providers.JsonRpcProvider(
         url ?? "http://localhost:8545"
@@ -62,9 +64,7 @@ async function main() {
         ? new ethers.Wallet(key).connect(provider)
         : provider.getSigner();
 
-    const parameters = input
-        ? JSON.parse(fs.readFileSync(input).toString())
-        : PRODUCTION_PARAMS;
+    const parameters = input ? await readJSON(input) : PRODUCTION_PARAMS;
 
     parameters.GENESIS_STATE_ROOT = root || getDefaultGenesisRoot(parameters);
     console.log("Deploy with parameters", parameters);

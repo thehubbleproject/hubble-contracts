@@ -44,6 +44,8 @@ export class DepositQueuedEventSyncer extends ContractEventSyncer {
         pubkeyID: null,
         tokenID: null,
         l2Amount: null,
+        subtreeID: null,
+        depositID: null,
         event: Event
     ) => {
         this.handleDepositQueued(event);

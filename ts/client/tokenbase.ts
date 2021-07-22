@@ -1,3 +1,7 @@
+/**
+ * Consider using this as wrapper for feeReceivers, with updates
+ * https://github.com/thehubbleproject/hubble-contracts/issues/628
+ */
 import fs from "fs";
 
 export class Tokenbase {
