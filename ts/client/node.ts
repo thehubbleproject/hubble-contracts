@@ -5,7 +5,7 @@ import { FastifyInstance } from "fastify";
 import { storageManagerFactory } from "../factory";
 import * as mcl from "../../ts/mcl";
 import { Bidder } from "./services/bidder";
-import { SyncerService } from "./services/syncer";
+import { SyncerService, SyncMode } from "./services/syncer";
 import { Packer } from "./services/packer";
 import { TransferPool } from "./features/transfer";
 import { BurnAuctionWrapper } from "../burnAuction";
@@ -89,9 +89,16 @@ export class HubbleNode {
             throw new Error("watcher is currently not supported");
         }
 
-        // In the future, we will want to delay starting up the rpc client
-        // until after the initial sync is completed (HTTP 503).
-        // https://github.com/thehubbleproject/hubble-contracts/issues/558
+        fast.addHook("onRequest", async (_request, reply) => {
+            if (syncer.getMode() === SyncMode.INITIAL_SYNCING) {
+                return reply.status(503).send({
+                    message: "Initial sync incomplete",
+                    error: "RPC unavailable",
+                    statusCode: 503
+                });
+            }
+        });
+
         const rpc = new RPC(api, fast, transferPool);
         return new this(
             modes,
