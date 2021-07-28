@@ -11,7 +11,13 @@ import { Rollup } from "./rollup/Rollup.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 
 interface IDepositManager {
-    event DepositQueued(uint256 pubkeyID, uint256 tokenID, uint256 l2Amount);
+    event DepositQueued(
+        uint256 pubkeyID,
+        uint256 tokenID,
+        uint256 l2Amount,
+        uint256 subtreeID,
+        uint256 depositID
+    );
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
     function paramMaxSubtreeDepth() external returns (uint256);
@@ -23,6 +29,9 @@ interface IDepositManager {
     function reenqueue(bytes32 subtreeRoot) external;
 }
 
+/**
+ * @dev subtreeID starts at 1
+ */
 contract SubtreeQueue {
     // Each element of the queue is a root of a subtree of deposits.
     mapping(uint256 => bytes32) public queue;
@@ -31,8 +40,8 @@ contract SubtreeQueue {
 
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
-    function enqueue(bytes32 subtreeRoot) internal {
-        uint256 subtreeID = back + 1;
+    function enqueue(bytes32 subtreeRoot) internal returns (uint256 subtreeID) {
+        subtreeID = back + 1;
         back = subtreeID;
         queue[subtreeID] = subtreeRoot;
         emit DepositSubTreeReady(subtreeID, subtreeRoot);
@@ -65,9 +74,12 @@ contract DepositCore is SubtreeQueue {
         paramMaxSubtreeSize = 1 << maxSubtreeDepth;
     }
 
-    function insertAndMerge(bytes32 depositLeaf) internal {
-        depositCount++;
-        uint256 i = depositCount;
+    function insertAndMerge(bytes32 depositLeaf)
+        internal
+        returns (uint256 subtreeID, uint256 depositID)
+    {
+        depositID = depositCount + 1;
+        uint256 i = depositID;
 
         uint256 len = babyTreesLength;
         babyTrees[len] = depositLeaf;
@@ -83,13 +95,18 @@ contract DepositCore is SubtreeQueue {
             i >>= 1;
         }
         babyTreesLength = len;
+
         // Subtree is ready, send to SubtreeQueue
-        if (depositCount == paramMaxSubtreeSize) {
-            enqueue(babyTrees[0]);
+        if (depositID == paramMaxSubtreeSize) {
+            subtreeID = enqueue(babyTrees[0]);
             // reset
             babyTreesLength = 0;
             depositCount = 0;
+            return (subtreeID, depositID);
         }
+
+        subtreeID = back + 1;
+        depositCount = depositID;
     }
 }
 
@@ -163,8 +180,9 @@ contract DepositManager is
             Types.UserState(pubkeyID, tokenID, l2Amount, 0);
         // get new state hash
         bytes memory encodedState = newState.encode();
-        emit DepositQueued(pubkeyID, tokenID, l2Amount);
-        insertAndMerge(keccak256(encodedState));
+        (uint256 subtreeID, uint256 depositID) =
+            insertAndMerge(keccak256(encodedState));
+        emit DepositQueued(pubkeyID, tokenID, l2Amount, subtreeID, depositID);
     }
 
     function dequeueToSubmit()
