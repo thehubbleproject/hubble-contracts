@@ -169,12 +169,15 @@ contract DepositManager is
             "l1Amount should be a multiple of l2Unit"
         );
         // transfer from msg.sender to vault
-        require(
-            IERC20(addr).allowance(msg.sender, address(this)) >= l1Amount,
-            "token allowance not approved"
-        );
-        IERC20(addr).safeTransferFrom(msg.sender, vault, l1Amount);
-        uint256 l2Amount = l1Amount / l2Unit;
+        uint256 l2Amount = 0;
+        if (l1Amount > 0) {
+            require(
+                IERC20(addr).allowance(msg.sender, address(this)) >= l1Amount,
+                "token allowance not approved"
+            );
+            IERC20(addr).safeTransferFrom(msg.sender, vault, l1Amount);
+            l2Amount = l1Amount / l2Unit;
+        }
         // create a new state
         Types.UserState memory newState =
             Types.UserState(pubkeyID, tokenID, l2Amount, 0);
