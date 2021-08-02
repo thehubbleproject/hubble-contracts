@@ -13,7 +13,7 @@ export class DepositQueuedEventSyncer extends ContractEventSyncer {
     constructor(api: CoreAPI) {
         super(
             api.contracts.depositManager,
-            api.contracts.depositManager.filters.DepositQueued(null, null, null)
+            api.contracts.depositManager.filters.DepositQueued()
         );
         this.eventListener = this.depositQueuedListener;
 
