@@ -1,5 +1,15 @@
 import { PRODUCTION_PARAMS } from "../ts/constants";
+import { writeJSON } from "../ts/file";
 
-import fs from "fs";
+async function main() {
+    await writeJSON("parameters.json", PRODUCTION_PARAMS);
+}
 
-fs.writeFileSync("parameters.json", JSON.stringify(PRODUCTION_PARAMS, null, 4));
+main()
+    .then(() => {
+        process.exit(0);
+    })
+    .catch(err => {
+        console.error(err);
+        process.exit(1);
+    });
