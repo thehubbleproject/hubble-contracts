@@ -107,14 +107,13 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         _;
     }
 
-    /*
-     * When running multiple batch submissions in a single transaction,
+    /**
+     * @dev When running multiple batch submissions in a single transaction,
      * if one of the earlier batch submissions fails the latter submission
      * will still proceed, be invalid since it depended on the earlier
-     * submission's state, and be slashed.
-     *
-     * To prevent this scenario, verify the expected batchID matches
-     * nextBatchID when a submission function is executed.
+     * submission's state, and be slashed. To prevent this scenario,
+     * verify the expected batchID matches nextBatchID when a
+     * submission function is executed.
      *
      * @param batchID expected batch ID
      */
