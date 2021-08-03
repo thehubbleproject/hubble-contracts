@@ -114,6 +114,39 @@ describe("DepositManager", async function() {
             /.*batchID does not match nextBatchID.*/
         );
     });
+    it("should bypass transfer if amount = 0", async function() {
+        const { depositManager, exampleToken } = contracts;
+        const amount = erc20.fromHumanValue("0");
+
+        const txDeposit = await depositManager.depositFor(
+            0,
+            amount.l1Value,
+            tokenID
+        );
+        const [event] = await exampleToken.queryFilter(
+            exampleToken.filters.Transfer(null, null, null),
+            txDeposit.blockHash
+        );
+        assert.isUndefined(event);
+    });
+    it("should fail if l1Amount is not a multiple of l2Unit", async function() {
+        const { depositManager } = contracts;
+        const amount = erc20.fromHumanValue("10");
+
+        await assert.isRejected(
+            depositManager.depositFor(0, amount.l1Value.sub(1), tokenID),
+            "l1Amount should be a multiple of l2Unit"
+        );
+    });
+    it("should fail if token allowance less than deposit amount", async function() {
+        const { depositManager } = contracts;
+        const amount = erc20.fromHumanValue("1000001");
+
+        await assert.isRejected(
+            depositManager.depositFor(0, amount.l1Value, tokenID),
+            "token allowance not approved"
+        );
+    });
     it("should allow depositing 3 leaves in a subtree and merging the first 2", async function() {
         const { depositManager } = contracts;
         const amount = erc20.fromHumanValue("10");
