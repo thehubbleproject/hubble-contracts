@@ -27,13 +27,13 @@ jobs:
         name: Pull image for git sha
         run: docker pull ${{ env.DOCKER_IMAGE_SHA }}
       -
-        name: Tag image with release
-        run: docker tag ${{ env.DOCKER_IMAGE_SHA }} ${{ env.DOCKER_IMAGE_TAG }}
+        name: Tag and push image with release
+        run: |
+          docker tag ${{ env.DOCKER_IMAGE_SHA }} ${{ env.DOCKER_IMAGE_TAG }} &&
+          docker push ${{ env.DOCKER_IMAGE_TAG }}
       -
-        name: Tag image with latest
+        name: Tag and push image with latest
         if: ${{ github.event.release.prerelease == 'false' }}
-        run: docker tag ${{ env.DOCKER_IMAGE_SHA }} ${{ env.DOCKER_IMAGE_LATEST }}
-      - 
-        name: Push tagged image(s)
-        # Pushing the image name without a tag will push all new tags.
-        run: docker push ${{ env.DOCKER_IMAGE }}
+        run: |
+          docker tag ${{ env.DOCKER_IMAGE_SHA }} ${{ env.DOCKER_IMAGE_LATEST }} &&
+          docker push ${{ env.DOCKER_IMAGE_LATEST }}
