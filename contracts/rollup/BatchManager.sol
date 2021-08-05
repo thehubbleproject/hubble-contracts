@@ -39,6 +39,7 @@ contract BatchManager {
     event NewBatch(uint256 batchID, bytes32 accountRoot, Types.Usage batchType);
     event StakeWithdraw(address committed, uint256 batchID);
     event RollbackStatus(uint256 startID, uint256 nDeleted, bool completed);
+    event RollbackTriggered(uint256 batchID, Types.Result result);
 
     modifier isNotRollingBack() {
         require(invalidBatchMarker == 0, "BatchManager: Is rolling back");
@@ -88,8 +89,11 @@ contract BatchManager {
         batch = batches[batchID];
     }
 
-    function startRollingBack(uint256 invalidBatchID) internal {
+    function startRollingBack(uint256 invalidBatchID, Types.Result result)
+        internal
+    {
         invalidBatchMarker = invalidBatchID;
+        emit RollbackTriggered(invalidBatchID, result);
         rollback();
     }
 

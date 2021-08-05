@@ -390,7 +390,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) startRollingBack(batchID);
+        ) startRollingBack(batchID, result);
     }
 
     function disputeTransitionMassMigration(
@@ -419,7 +419,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) startRollingBack(batchID);
+        ) startRollingBack(batchID, result);
     }
 
     function disputeTransitionCreate2Transfer(
@@ -449,7 +449,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         if (
             result != Types.Result.Ok ||
             (processedStateRoot != target.commitment.stateRoot)
-        ) startRollingBack(batchID);
+        ) startRollingBack(batchID, result);
     }
 
     function disputeSignatureTransfer(
@@ -471,7 +471,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
             });
         Types.Result result = transfer.checkSignature(common, signatureProof);
 
-        if (result != Types.Result.Ok) startRollingBack(batchID);
+        if (result != Types.Result.Ok) startRollingBack(batchID, result);
     }
 
     function disputeSignatureMassMigration(
@@ -499,7 +499,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
                 target.commitment.body.spokeID
             );
 
-        if (result != Types.Result.Ok) startRollingBack(batchID);
+        if (result != Types.Result.Ok) startRollingBack(batchID, result);
     }
 
     function disputeSignatureCreate2Transfer(
@@ -523,6 +523,6 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         Types.Result result =
             create2Transfer.checkSignature(common, signatureProof);
 
-        if (result != Types.Result.Ok) startRollingBack(batchID);
+        if (result != Types.Result.Ok) startRollingBack(batchID, result);
     }
 }

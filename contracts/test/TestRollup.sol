@@ -52,7 +52,7 @@ contract TestRollup is BatchManager {
 
     function testRollback(uint256 batchID) external returns (uint256) {
         uint256 g = gasleft();
-        startRollingBack(batchID);
+        startRollingBack(batchID, Types.Result.BadSignature);
         return g - gasleft();
     }
 }
