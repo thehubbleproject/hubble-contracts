@@ -10,7 +10,19 @@ import { ImmutableOwnable } from "./libs/ImmutableOwnable.sol";
 import { Rollup } from "./rollup/Rollup.sol";
 import { ITokenRegistry } from "./TokenRegistry.sol";
 
+/**
+ * @notice Interface for a contract acting as a manager of deposits for a Hubble network
+ */
 interface IDepositManager {
+    /**
+     * @notice Event when a deposit has been enqueued
+     * for eventual submission to the rollup
+     * @param pubkeyID Registered public key ID
+     * @param tokenID Registered token ID
+     * @param l2Amount UserState.balance of deposit
+     * @param subtreeID Subtree this deposit will be part of (1 ... n)
+     * @param depositID Deposit number in the subtree (0 ... 1 << maxSubtreeDepth)
+     */
     event DepositQueued(
         uint256 pubkeyID,
         uint256 tokenID,
@@ -18,18 +30,35 @@ interface IDepositManager {
         uint256 subtreeID,
         uint256 depositID
     );
+    /**
+     * @notice Event when a deposit subtree is ready
+     * to be submitted to the rollup
+     * @param subtreeID Subtree ID of deposits (1 ... n)
+     * @param subtreeRoot Merklized root of subtree
+     */
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
+    /**
+     * @notice Max subtree depth for queued deposits
+     */
     function paramMaxSubtreeDepth() external returns (uint256);
 
+    /**
+     * @notice Dequeues a deposit subtree for submission to the rollup
+     */
     function dequeueToSubmit()
         external
         returns (uint256 subtreeID, bytes32 subtreeRoot);
 
+    /**
+     * @notice Re-enqueues a deposit subtree.
+     * @param subtreeRoot Merklized root of subtree
+     */
     function reenqueue(bytes32 subtreeRoot) external;
 }
 
 /**
+ * @notice Contract which is a queue for deposit subtrees
  * @dev subtreeID starts at 1
  */
 contract SubtreeQueue {
@@ -59,6 +88,10 @@ contract SubtreeQueue {
     }
 }
 
+/**
+ * @notice Contract which merges deposits into subtrees
+ * @dev subtreeID starts at 1
+ */
 contract DepositCore is SubtreeQueue {
     // An element is a deposit tree root of any depth.
     // It could be just a leaf of a new deposit or
@@ -78,9 +111,10 @@ contract DepositCore is SubtreeQueue {
         internal
         returns (uint256 subtreeID, uint256 depositID)
     {
-        depositID = depositCount + 1;
-        uint256 i = depositID;
+        depositID = depositCount;
+        uint256 numDeposits = depositID + 1;
 
+        uint256 i = numDeposits;
         uint256 len = babyTreesLength;
         babyTrees[len] = depositLeaf;
         len++;
@@ -97,7 +131,7 @@ contract DepositCore is SubtreeQueue {
         babyTreesLength = len;
 
         // Subtree is ready, send to SubtreeQueue
-        if (depositID == paramMaxSubtreeSize) {
+        if (numDeposits == paramMaxSubtreeSize) {
             subtreeID = enqueue(babyTrees[0]);
             // reset
             babyTreesLength = 0;
@@ -106,10 +140,16 @@ contract DepositCore is SubtreeQueue {
         }
 
         subtreeID = back + 1;
-        depositCount = depositID;
+        depositCount = numDeposits;
     }
 }
 
+/**
+ * @notice Contract which manages deposits. Most functions are
+ * restricted only for the rollup's use. Most Hubble users need
+ * only call depositFor.
+ * @dev subtreeID starts at 1
+ */
 contract DepositManager is
     DepositCore,
     IDepositManager,

@@ -78,8 +78,7 @@ export class DepositsFinalisedEventSyncer extends ContractEventSyncer {
         for (const pd of pendingDeposits) {
             const stateID = pathToSubTree
                 .mul(2 ** this.maxDepositSubtreeDepth)
-                .add(pd.depositID)
-                .sub(1);
+                .add(pd.depositID);
             const tokenIDStr = pd.tokenID.toString();
             this.feeReceivers.push({
                 tokenID: tokenIDStr,

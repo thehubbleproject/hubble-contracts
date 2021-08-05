@@ -176,7 +176,7 @@ describe("DepositManager", async function() {
         const event0State = State.fromDepositQueuedEvent(event0);
         assert.equal(event0State.hash(), deposit0.hash());
         assert.equal(event0.args.subtreeID.toNumber(), 1);
-        assert.equal(event0.args.depositID.toNumber(), 1);
+        assert.equal(event0.args.depositID.toNumber(), 0);
 
         const txDeposit1 = await depositManager.depositFor(
             1,
@@ -195,7 +195,7 @@ describe("DepositManager", async function() {
         const event1State = State.fromDepositQueuedEvent(event1);
         assert.equal(event1State.hash(), deposit1.hash());
         assert.equal(event1.args.subtreeID.toNumber(), 1);
-        assert.equal(event1.args.depositID.toNumber(), 2);
+        assert.equal(event1.args.depositID.toNumber(), 1);
 
         const [eventReady] = await depositManager.queryFilter(
             depositManager.filters.DepositSubTreeReady(),
@@ -222,7 +222,7 @@ describe("DepositManager", async function() {
         const event2State = State.fromDepositQueuedEvent(event2);
         assert.equal(event2State.hash(), deposit2.hash());
         assert.equal(event2.args.subtreeID.toNumber(), 2);
-        assert.equal(event2.args.depositID.toNumber(), 1);
+        assert.equal(event2.args.depositID.toNumber(), 0);
     });
 
     it("submit a deposit Batch to rollup", async function() {
