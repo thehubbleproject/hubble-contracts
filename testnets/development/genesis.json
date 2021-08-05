@@ -1,0 +1,38 @@
+{
+    "parameters": {
+        "MAX_DEPTH": 32,
+        "MAX_DEPOSIT_SUBTREE_DEPTH": 2,
+        "STAKE_AMOUNT": "100000000000000000",
+        "BLOCKS_TO_FINALISE": 40320,
+        "MIN_GAS_LEFT": 10000,
+        "MAX_TXS_PER_COMMIT": 32,
+        "USE_BURN_AUCTION": true,
+        "DONATION_ADDRESS": "0x00000000000000000000000000000000000000d0",
+        "DONATION_NUMERATOR": 7500,
+        "GENESIS_STATE_ROOT": "0xcf277fb80a82478460e8988570b718f1e083ceb76f7e271a1a1497e5975f53ae"
+    },
+    "addresses": {
+        "frontendGeneric": "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+        "frontendTransfer": "0x5FC8d32690cc91D4c39d9d3abcBD16989F875707",
+        "frontendMassMigration": "0x0165878A594ca255338adfa4d48449f69242Eb8F",
+        "frontendCreate2Transfer": "0xa513E6E4b8f2a923D98304ec87F64353C4D5C853",
+        "blsAccountRegistry": "0x8A791620dd6260079BF849Dc5567aDC3F2FdC318",
+        "tokenRegistry": "0x610178dA211FEF7D417bC0e6FeD39F05609AD788",
+        "transfer": "0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0",
+        "massMigration": "0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e",
+        "create2Transfer": "0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82",
+        "burnAuction": "0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6",
+        "exampleToken": "0x9A676e781A523b5d0C0e43731313A708CB607508",
+        "spokeRegistry": "0x9A9f2CCfdE556A7E9Ff0848998Aa4a0CFD8863AE",
+        "vault": "0x68B1D87F95878fE05B998F19b66F4baba5De1aed",
+        "depositManager": "0x3Aa5ebB10DC797CAC828524e59A333d0A371443c",
+        "rollup": "0xc6e7DF5E7b4f2A278906862b61205850344D4e7d",
+        "withdrawManager": "0x322813Fd9A801c5507c9de605d63CEA4f2CE6c44"
+    },
+    "auxiliary": {
+        "domain": "0xa55113725973fc2327a8621e22cf3c050cf559e6feb795b83c2b24e28bdf842c",
+        "genesisEth1Block": 109,
+        "version": "8f556f1a3de2229c8a86249b35eb982c8cd78be9",
+        "chainid": 1337
+    }
+}

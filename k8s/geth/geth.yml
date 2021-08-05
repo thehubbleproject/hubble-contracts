@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: geth
+spec:
+  selector:
+    matchLabels:
+      app: geth
+  serviceName: geth
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: geth
+    spec:
+      containers:
+      - name: geth
+        image: ethereum/client-go:v1.10.6
+        args: [
+          "--datadir", "/dev-chain/",
+          "--http",
+          "--http.addr", "0.0.0.0",
+          "--http.vhosts", "*",
+          "--dev",
+          "--dev.period", "14",
+          "--rpc.allow-unprotected-txs"
+        ]
+        volumeMounts:
+        - mountPath: "/dev-chain"
+          name: geth-pvc
+  volumeClaimTemplates:
+  - metadata:
+      name: geth-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: do-block-storage
+# TODO readiness and liveness probes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: geth
+  labels:
+    app: geth
+spec:
+  ports:
+  - port: 8545
+    name: http
+  clusterIP: None
+  selector:
+    app: geth

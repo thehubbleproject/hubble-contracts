@@ -79,7 +79,6 @@ npm run generate
 ```
 npm run deploy -- \
 --key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
---root 0xbfef011dd64abe7707cee7b3b74a00b86689c8451f548371073ce3c935e09984 \
 --numPubkeys 32
 ```
 

@@ -5,3 +5,6 @@ node_modules/
 **/testData
 types/ethers-contracts
 genesis.json
+docs/
+k8s/
+testnets/

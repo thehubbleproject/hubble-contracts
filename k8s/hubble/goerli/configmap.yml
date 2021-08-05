@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hubble-proposer
+data:
+  config.json: |-
+    {
+        "genesisPath": "/app/configs/genesis.json",
+        "rpc": {
+            "address": "0.0.0.0",
+            "port": 3000
+        },
+        "proposer": {
+            "enabled": true,
+            "willingnessToBid": 1,
+            "maxPendingTransactions": 1024,
+            "feeReceivers": [{
+                "tokenID": 1,
+                "stateID": 0
+            }]
+        }
+    }
+  # From testnets/goerli/genesis.json
+  genesis.json: |-
+    {
+        "parameters": {
+            "MAX_DEPTH": 32,
+            "MAX_DEPOSIT_SUBTREE_DEPTH": 2,
+            "STAKE_AMOUNT": "100000000000000000",
+            "BLOCKS_TO_FINALISE": 40320,
+            "MIN_GAS_LEFT": 10000,
+            "MAX_TXS_PER_COMMIT": 32,
+            "USE_BURN_AUCTION": true,
+            "DONATION_ADDRESS": "0x00000000000000000000000000000000000000d0",
+            "DONATION_NUMERATOR": 7500,
+            "GENESIS_STATE_ROOT": "0xcf277fb80a82478460e8988570b718f1e083ceb76f7e271a1a1497e5975f53ae"
+        },
+        "addresses": {
+            "frontendGeneric": "0x42858f35b36EE33502538cFd42eC04d50251062E",
+            "frontendTransfer": "0xb77AF9ecb2720E6Da7AEA5E0E2FC524b4169cBBa",
+            "frontendMassMigration": "0x4917AC5616E48da34A9979AF55b19DeD44da511D",
+            "frontendCreate2Transfer": "0x0946A6f70819DAd7F20485f7ff6bd9dbFdF66Af1",
+            "blsAccountRegistry": "0xA134bfC85236382A3c2B5A9CD1A72AC22FC0DB8B",
+            "tokenRegistry": "0xE36f8eC1D7Cd5C7Be26C0C394619947378Cf85F0",
+            "transfer": "0xabb16b477603D4741Dc4D90Ad2b38Eae6404686b",
+            "massMigration": "0x49D86109FF1d0E7102E2efaE6daEcEAeb40c3e6A",
+            "create2Transfer": "0x9B08bF9F281DDcE6F12A09C3f166c56f45b35cb9",
+            "burnAuction": "0xeAC7B62479a506a7fA72A4C4e9e984F29a904c0c",
+            "exampleToken": "0x4AD2cFA786D5754938cC374891C15DB3c9a70dee",
+            "spokeRegistry": "0xf9b54f4eB09DCE8D35376821f569bf7F6A0E6685",
+            "vault": "0x2Fc8510187950B504B7FfA291838210Fdc85118b",
+            "depositManager": "0xAc0Bc0DD5E0101bf4004AbbDd42Da63bc0FEEa25",
+            "rollup": "0xfF4b918cc19584307c436CAeF894F1b7754f7A8a",
+            "withdrawManager": "0xafA15b18cED82b29Cbb88D7921f796E63EC8a047"
+        },
+        "auxiliary": {
+            "domain": "0x7fe7f8a4fe0d61637418b294796fc779e2bc9be221e121ee73a680e89b83be47",
+            "genesisEth1Block": 5269072,
+            "version": "1d0f7e29f8a0e332d7f6c02f2f8e806c90b74632",
+            "chainid": 5
+        }
+    }

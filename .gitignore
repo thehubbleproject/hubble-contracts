@@ -1,6 +1,7 @@
 node_modules/
 parameters.json
 genesis.json
+!testnets/**/genesis.json
 types/ethers-contracts/
 cache/
 artifacts/
