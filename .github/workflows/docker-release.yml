@@ -6,14 +6,13 @@ on:
 
 env:
   DOCKER_IMAGE: thehubbleproject/node
-  DOCKER_IMAGE_SHA: ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-  DOCKER_IMAGE_TAG: ${{ env.DOCKER_IMAGE }}:${{ github.event.release.tag_name }}
-  DOCKER_IMAGE_LATEST: ${{ env.DOCKER_IMAGE }}:latest
+  DOCKER_IMAGE_SHA: thehubbleproject/node:${{ github.sha }}
+  DOCKER_IMAGE_TAG: thehubbleproject/node:${{ github.event.release.tag_name }}
+  DOCKER_IMAGE_LATEST: thehubbleproject/node:latest
 
 jobs:
   pull-tag-push:
     runs-on: ubuntu-latest
-    needs: images
 
     steps:
       - uses: actions/checkout@v2
