@@ -255,3 +255,10 @@ export class TokenNotConfiguredError extends Error {
         this.name = "TokenNotConfiguredError";
     }
 }
+
+export class TokenPoolHighestFeeError extends Error {
+    constructor() {
+        super("unable to determine highest fee token for pool");
+        this.name = "TokenPoolHighestFeeError";
+    }
+}

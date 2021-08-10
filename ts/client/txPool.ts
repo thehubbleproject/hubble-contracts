@@ -3,7 +3,8 @@ import {
     PoolEmptyError,
     PoolFullError,
     TokenNotConfiguredError,
-    TokenPoolEmpty
+    TokenPoolEmpty,
+    TokenPoolHighestFeeError
 } from "../exceptions";
 import { sum } from "../utils";
 import { FeeReceivers } from "./config";
@@ -133,7 +134,7 @@ export class MultiTokenPool<Item extends OffchainTx> {
             throw new PoolEmptyError();
         }
 
-        let highValue = BigNumber.from(0);
+        let highValue = BigNumber.from(-1);
         let tokenID = BigNumber.from(-1);
         for (const tokenIDStr of Object.keys(this.tokenIDStrToQueue)) {
             const value = this.getQueueValue(tokenIDStr);
@@ -141,6 +142,11 @@ export class MultiTokenPool<Item extends OffchainTx> {
                 highValue = value;
                 tokenID = BigNumber.from(tokenIDStr);
             }
+        }
+
+        // This case should never be hit, but best to be explicit if it does
+        if (highValue.lt(0) || tokenID.lt(0)) {
+            throw new TokenPoolHighestFeeError();
         }
 
         const feeReceiverID = this.tokenIDStrToFeeRecieverID[
@@ -154,6 +160,11 @@ export class MultiTokenPool<Item extends OffchainTx> {
     }
 
     private getQueueValue(tokenIDStr: string): BigNumber {
-        return sum(this.tokenIDStrToQueue[tokenIDStr].map(tx => tx.fee));
+        const tokenQueue = this.tokenIDStrToQueue[tokenIDStr];
+        if (!tokenQueue.length) {
+            return BigNumber.from(-1);
+        }
+
+        return sum(tokenQueue.map(tx => tx.fee));
     }
 }
