@@ -13,7 +13,8 @@ import {
     PoolEmptyError,
     PoolFullError,
     TokenNotConfiguredError,
-    TokenPoolEmpty
+    TokenPoolEmpty,
+    TokenPoolHighestFeeError
 } from "../../ts/exceptions";
 import { State } from "../../ts/state";
 import * as mcl from "../../ts/mcl";
@@ -129,6 +130,36 @@ describe("MultiTokenPool", () => {
                 pool.getHighestValueToken(),
                 PoolEmptyError
             );
+        });
+
+        it("fails if unable to determine highest value token", async function() {
+            // This simulates a path which this func will fail
+            // @ts-ignore
+            pool.txCount = 1;
+
+            await assert.isRejected(
+                pool.getHighestValueToken(),
+                TokenPoolHighestFeeError
+            );
+        });
+
+        it("suceeds when summed tx fees are 0", async function() {
+            const user1Token1 = 0;
+            const s = State.new(-1, tokenID1BN, -1, -1);
+            await state.create(user1Token1, s);
+            await state.commit();
+
+            const token1Tx1 = txFactory(user1Token1, 0);
+            await pool.push(token1Tx1);
+
+            const highToken1 = highTokenToNum(
+                await pool.getHighestValueToken()
+            );
+            assert.deepEqual(highToken1, {
+                tokenID: tokenID1,
+                feeReceiverID: feeReceiver1,
+                sumFees: 0
+            });
         });
     });
 
