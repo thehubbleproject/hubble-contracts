@@ -124,15 +124,25 @@ library Transition {
         uint256 fee,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes32 newRoot, Types.Result) {
+        // disputer must first justify the inclusion of the stateHash
         require(
             MerkleTree.verify(
                 stateRoot,
-                keccak256(proof.state.encode()),
+                proof.stateHash,
                 senderStateIndex,
                 proof.witness
             ),
             "Transition: Sender does not exist"
         );
+        // check if sender is empty
+        if (proof.stateHash == Types.ZERO_BYTES32)
+            return (bytes32(0), Types.Result.BadFromIndex);
+        // sender is non-empty, the disputer now has to justify the preimage of the state
+        require(
+            proof.stateHash == keccak256(proof.state.encode()),
+            "stateHash mismatch"
+        );
+
         (Types.UserState memory newSender, Types.Result result) =
             validateAndApplySender(tokenID, amount, fee, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);
@@ -151,15 +161,25 @@ library Transition {
         uint256 amount,
         Types.StateMerkleProof memory proof
     ) internal pure returns (bytes32 newRoot, Types.Result) {
+        // disputer must first justify the inclusion of the stateHash
         require(
             MerkleTree.verify(
                 stateRoot,
-                keccak256(proof.state.encode()),
+                proof.stateHash,
                 receiverStateIndex,
                 proof.witness
             ),
             "Transition: receiver does not exist"
         );
+        // check if receiver is empty
+        if (proof.stateHash == Types.ZERO_BYTES32)
+            return (bytes32(0), Types.Result.BadFromIndex);
+        // receiver is non-empty, the disputer now has to justify the preimage of the state
+        require(
+            proof.stateHash == keccak256(proof.state.encode()),
+            "stateHash mismatch"
+        );
+
         (Types.UserState memory newReceiver, Types.Result result) =
             validateAndApplyReceiver(tokenID, amount, proof.state);
         if (result != Types.Result.Ok) return (bytes32(0), result);

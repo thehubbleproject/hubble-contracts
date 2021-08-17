@@ -1,3 +1,4 @@
+// This should stay in sync with contracts/libs/Types.sol:Usage
 export enum Usage {
     Genesis,
     Transfer,
@@ -6,6 +7,7 @@ export enum Usage {
     Deposit
 }
 
+// This should stay in sync with contracts/libs/Types.sol:Result
 export enum Result {
     Ok,
     InvalidTokenAmount,
@@ -16,7 +18,10 @@ export enum Result {
     MismatchedAmount,
     BadWithdrawRoot,
     BadCompression,
-    TooManyTx
+    TooManyTx,
+    BadPrecompileCall,
+    BadFromIndex,
+    BadToIndex
 }
 
 export type Wei = string;
