@@ -197,11 +197,11 @@ export class TransferOffchainTx extends TransferCompressedTx
         const signature = { sol: solG1, mcl: mclG1 };
 
         return new this(
-            obj.fromIndex.toNumber(),
-            obj.toIndex.toNumber(),
+            obj.fromIndex,
+            obj.toIndex,
             obj.amount,
             obj.fee,
-            obj.nonce.toNumber(),
+            obj.nonce,
             signature
         );
     }

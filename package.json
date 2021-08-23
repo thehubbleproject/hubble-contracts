@@ -61,6 +61,7 @@
     "bn.js": "^5.2.0",
     "ethers": "5.4.3",
     "fastify": "^3.18.0",
+    "fastify-cors": "^6.0.2",
     "level": "^7.0.0",
     "lodash": "^4.17.21",
     "mcl-wasm": "0.4.5",

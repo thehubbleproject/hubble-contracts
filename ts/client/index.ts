@@ -12,7 +12,7 @@ async function main() {
     console.info("Starting Hubble node...");
     const config = await configFromPath(configPath);
 
-    const fast = fastify({ logger: true });
+    const fast = fastify({ logger: true, maxParamLength: 512 });
     fast.setErrorHandler(console.error);
 
     const node = await HubbleNode.init(config, fast);
