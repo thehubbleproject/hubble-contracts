@@ -15,7 +15,7 @@ data:
             "willingnessToBid": 1,
             "maxPendingTransactions": 1024,
             "feeReceivers": [{
-                "tokenID": 1,
+                "tokenID": 0,
                 "stateID": 0
             }]
         }

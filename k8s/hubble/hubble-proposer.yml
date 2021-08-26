@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
       - name: hubble-proposer
-        image: thehubbleproject/node:v0.11.0
+        # TODO Make injectable
+        image: thehubbleproject/node:5b23e3baf0358e50be78879d6146d09f43a9dab4@sha256:1e6ca054e3f7265ea8dac5f509fafa41ed54021e47df184e86328cf2580707a8
         env:
         - name: PROVIDER_URL
           valueFrom:
