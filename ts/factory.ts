@@ -47,7 +47,7 @@ export class User {
     }
     public addStateID(tokenID: number, stateID: number) {
         if (this.tokenIDtoStateID[tokenID] !== undefined) {
-            throw new Error(`stateID alreadt set for tokenID ${tokenID}`);
+            throw new Error(`stateID already set for tokenID ${tokenID}`);
         }
 
         this.tokenIDtoStateID[tokenID] = stateID;
@@ -61,6 +61,9 @@ export class User {
     }
     public clearStateIDs() {
         this.tokenIDtoStateID = {};
+    }
+    public changePubkeyID(pubkeyID: number) {
+        this.pubkeyID = pubkeyID;
     }
 
     get stateID() {

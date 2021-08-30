@@ -80,6 +80,19 @@ describe("Client Integration", function() {
         const domainSeparator = await contracts.rollup.domainSeparator();
         group.setupSigners(arrayify(domainSeparator));
 
+        const pubkeyBatch: any = [];
+        let batchBasePubkeyID = 2 ** (parameters.MAX_DEPTH - 1);
+        for (const user of group.userIterator()) {
+            // Pubkey
+            if (user.pubkeyID < 16) {
+                await contracts.blsAccountRegistry.register(user.pubkey);
+            } else {
+                user.changePubkeyID(batchBasePubkeyID++);
+                pubkeyBatch.push(user.pubkey);
+            }
+        }
+        await contracts.blsAccountRegistry.registerBatch(pubkeyBatch);
+
         let numDeposits = 0;
         let currentStateID = 0;
         // Split users in subtree sized chunks
@@ -89,8 +102,6 @@ describe("Client Integration", function() {
             for (const user of subGroup.userIterator()) {
                 // Clear out default stateIDs
                 user.clearStateIDs();
-                // Pubkey
-                await contracts.blsAccountRegistry.register(user.pubkey);
                 // Deposit tokens
                 for (let tokenID = 0; tokenID < allTokens.length; tokenID++) {
                     const token = allTokens[tokenID];
