@@ -114,7 +114,8 @@ export class StateTree implements StateProvider {
         this.checkSize(stateID);
         const state = this.states[stateID] || ZERO_STATE;
         const witness = this.stateTree.witness(stateID).nodes;
-        return { state, stateHash: state.hash(), witness };
+        const stateHash = state === ZERO_STATE ? ZERO_BYTES32 : state.hash();
+        return { state, stateHash, witness };
     }
 
     /** Side effect! */

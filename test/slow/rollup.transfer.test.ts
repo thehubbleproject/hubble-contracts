@@ -1,21 +1,21 @@
+import chai, { assert } from "chai";
+import chaiAsPromised from "chai-as-promised";
+import { BigNumber } from "ethers";
+import { ethers } from "hardhat";
 import { flatten } from "lodash";
 import { deployAll } from "../../ts/deploy";
-import { TESTING_PARAMS } from "../../ts/constants";
-import { ethers } from "hardhat";
+import { TESTING_PARAMS, ZERO_BYTES32 } from "../../ts/constants";
 import { StateTree } from "../../ts/stateTree";
 import { AccountRegistry } from "../../ts/accountTree";
 import { getAggregateSig, serialize, TxTransfer } from "../../ts/tx";
 import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
-import chai, { assert } from "chai";
-import chaiAsPromised from "chai-as-promised";
 import { getGenesisProof, TransferCommitment } from "../../ts/commitments";
 import { float16, USDT } from "../../ts/decimal";
 import { hexToUint8Array } from "../../ts/utils";
 import { Group, txTransferFactory, User } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { handleNewBatch } from "../../ts/client/batchHandler";
-import { BigNumber } from "ethers";
 import { Result } from "../../ts/interfaces";
 
 chai.use(chaiAsPromised);
@@ -239,7 +239,7 @@ describe("Rollup Transfer", async function() {
                 expectedResult: Result.BadToIndex
             }
         ].forEach(({ description, txsFactory, expectedResult }) => {
-            it(`dispute and rollback a bad batch with l2 tx(s) with ${description}`, async function() {
+            it(`dispute and rollback a bad batch with L2 tx(s) with ${description}`, async function() {
                 const { rollup } = contracts;
 
                 const txs = txsFactory();

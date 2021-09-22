@@ -31,6 +31,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
     /**
      * @dev If this is not being externally consumed, it can be removed.
      */
+    // solhint-disable-next-line var-name-mixedcase
     bytes32 public immutable ZERO_BYTES32;
 
     // External contracts
