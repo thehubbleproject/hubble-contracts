@@ -4,10 +4,12 @@ import chai, { assert } from "chai";
 import chaiAsPromised from "chai-as-promised";
 import del from "del";
 import { BlsSigner } from "../../ts/blsSigner";
+import { Connection } from "../../ts/client/database/connection";
 import { OffchainTx } from "../../ts/client/features/interface";
 import { TransferOffchainTx } from "../../ts/client/features/transfer";
 import { Status } from "../../ts/client/storageEngine/transactions/constants";
 import { TransactionDBStorage } from "../../ts/client/storageEngine/transactions/db";
+import { TESTING_PARAMS } from "../../ts/constants";
 import {
     StatusTransitionInvalid,
     TransactionAlreadyExists,
@@ -38,11 +40,18 @@ const txFactory = (
 };
 
 describe("TransactionDBStorage", () => {
-    let storage = new TransactionDBStorage();
+    let connection: Connection;
+    let storage: TransactionDBStorage;
 
     before(async function() {
         await del("./leveldb/*");
         await mcl.init();
+        connection = await Connection.create(TESTING_PARAMS.STORAGE_DIRECTORY);
+        storage = new TransactionDBStorage(connection);
+    });
+
+    after(async function() {
+        await connection.close();
     });
 
     describe("get", () => {

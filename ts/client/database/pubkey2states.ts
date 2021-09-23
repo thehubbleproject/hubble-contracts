@@ -1,14 +1,22 @@
 import _ from "lodash";
 import { PubkeyLeafFactory } from "../../tree/leaves/PubkeyLeaf";
-import { pubkey2statesDB } from "./connection";
+import { LevelUp } from "levelup";
 
 export class Pubkey2StatesDB {
-    static async getStates(pubkeyHash: string): Promise<number[]> {
+    static async getStates(
+        pubkeyHash: string,
+        pubkey2statesDB: LevelUp
+    ): Promise<number[]> {
         return JSON.parse(await pubkey2statesDB.get(pubkeyHash));
     }
 
-    static async update(pubkeyID: number, stateID: number): Promise<void> {
-        const pubkeyLeaf = await PubkeyLeafFactory().fromDB(pubkeyID);
+    static async update(
+        pubkeyID: number,
+        stateID: number,
+        pubkey2statesDB: LevelUp,
+        pubkeyDB: LevelUp
+    ): Promise<void> {
+        const pubkeyLeaf = await PubkeyLeafFactory(pubkeyDB).fromDB(pubkeyID);
         const pubkeyHash = pubkeyLeaf.item.hash();
 
         try {

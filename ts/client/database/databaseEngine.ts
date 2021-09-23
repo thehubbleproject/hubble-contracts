@@ -5,16 +5,18 @@ import { Hasher } from "../../tree";
 import { DBTree } from "../../tree/dbTree";
 import { LeafFactoryFunc } from "../../tree/leaves/Leaf";
 import { StorageEngine, WithWitness } from "../storageEngine/interfaces";
+import { LevelUp } from "levelup";
 
 export class DatabaseEngine<Item extends Hashable>
     implements StorageEngine<Item> {
     private tree: DBTree;
     public readonly leafFactory: LeafFactoryFunc<Item>;
 
-    constructor(depth: number, factory: LeafFactoryFunc<Item>) {
+    constructor(depth: number, db: LevelUp, factory: LeafFactoryFunc<Item>) {
         this.tree = DBTree.new(
             depth,
             factory.name,
+            db,
             Hasher.new("bytes", ZERO_BYTES32)
         );
         this.leafFactory = factory;

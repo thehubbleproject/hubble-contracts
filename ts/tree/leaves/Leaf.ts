@@ -12,14 +12,15 @@ export const getLeafKey = (name: string, itemID: number): string =>
 
 export abstract class Leaf<Item extends Hashable> {
     abstract readonly name: string;
-    abstract readonly db: LevelUp;
 
+    public readonly db: LevelUp;
     public readonly item: Item;
     public readonly itemID: number;
 
-    constructor(item: Item, itemID: number) {
+    constructor(item: Item, itemID: number, db: LevelUp) {
         this.item = item;
         this.itemID = itemID;
+        this.db = db;
     }
 
     getKey() {

@@ -9,6 +9,8 @@ import {
 import { Hasher, Node } from "./hasher";
 import { ItemNode } from "./leaves/Node";
 import { AsyncTree, Data, Witness } from "./tree";
+import { LevelUp } from "levelup";
+import sub from "subleveldown";
 
 export class DBTree implements AsyncTree {
     public readonly zeros: Array<Node>;
@@ -16,19 +18,26 @@ export class DBTree implements AsyncTree {
     public readonly setSize: number;
     public readonly hasher: Hasher;
     public readonly nodeType: string;
+    public readonly nodeDB: LevelUp;
     public _root: Node;
 
-    public static new(depth: number, nodeType: string, hasher?: Hasher) {
-        return new DBTree(depth, nodeType, hasher || Hasher.new());
+    public static new(
+        depth: number,
+        nodeType: string,
+        db: LevelUp,
+        hasher?: Hasher
+    ) {
+        return new DBTree(depth, nodeType, db, hasher || Hasher.new());
     }
 
-    constructor(depth: number, nodeType: string, hasher: Hasher) {
+    constructor(depth: number, nodeType: string, db: LevelUp, hasher: Hasher) {
         this.depth = depth;
         this.hasher = hasher;
         this.zeros = this.hasher.zeros(depth);
         this.setSize = 2 ** this.depth;
         this.nodeType = nodeType;
         this._root = this.zeros[0];
+        this.nodeDB = sub(db, "node");
     }
 
     get root(): Node {
@@ -37,7 +46,12 @@ export class DBTree implements AsyncTree {
 
     public async getNode(level: number, index: number): Promise<Node> {
         try {
-            return await ItemNode.fromDB(this.nodeType, level, index);
+            return await ItemNode.fromDB(
+                this.nodeDB,
+                this.nodeType,
+                level,
+                index
+            );
         } catch (error) {
             if (error.name === "NotFoundError") {
                 return this.zeros[level];
@@ -117,6 +131,7 @@ export class DBTree implements AsyncTree {
     public async insertSingle(leafIndex: number, data: Data) {
         this.checkSetSize(leafIndex);
         await ItemNode.toDB(
+            this.nodeDB,
             this.nodeType,
             this.depth,
             leafIndex,
@@ -127,7 +142,13 @@ export class DBTree implements AsyncTree {
 
     public async updateSingle(leafIndex: number, leaf: Node) {
         this.checkSetSize(leafIndex);
-        await ItemNode.toDB(this.nodeType, this.depth, leafIndex, leaf);
+        await ItemNode.toDB(
+            this.nodeDB,
+            this.nodeType,
+            this.depth,
+            leafIndex,
+            leaf
+        );
         await this.ascend(leafIndex, 1);
     }
 
@@ -138,6 +159,7 @@ export class DBTree implements AsyncTree {
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
             await ItemNode.toDB(
+                this.nodeDB,
                 this.nodeType,
                 this.depth,
                 offset + 1,
@@ -154,6 +176,7 @@ export class DBTree implements AsyncTree {
         this.checkSetSize(lastIndex);
         for (let i = 0; i < len; i++) {
             await ItemNode.toDB(
+                this.nodeDB,
                 this.nodeType,
                 this.depth,
                 offset + 1,
@@ -201,7 +224,13 @@ export class DBTree implements AsyncTree {
 
     private async updateCouple(level: number, leafIndex: number) {
         const n = await this.hashCouple(level, leafIndex);
-        await ItemNode.toDB(this.nodeType, level - 1, leafIndex >> 1, n);
+        await ItemNode.toDB(
+            this.nodeDB,
+            this.nodeType,
+            level - 1,
+            leafIndex >> 1,
+            n
+        );
     }
 
     private async hashCouple(level: number, leafIndex: number) {

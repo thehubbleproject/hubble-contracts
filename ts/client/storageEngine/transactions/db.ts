@@ -4,7 +4,6 @@ import {
     TransactionAlreadyExists,
     TransactionDoesNotExist
 } from "../../../exceptions";
-import { txDB } from "../../database/connection";
 import { OffchainTx } from "../../features/interface";
 import { TransferOffchainTx } from "../../features/transfer";
 import { Status } from "./constants";
@@ -15,12 +14,18 @@ import {
     TransactionStorage,
     TransationMessageOrObject
 } from "./interfaces";
+import { LevelUp } from "levelup";
+import { Connection } from "../../database/connection";
 
 /**
  * levelDB implementation of TransactionStorage
  */
 export class TransactionDBStorage implements TransactionStorage {
-    private readonly db = txDB;
+    private readonly db: LevelUp;
+
+    constructor(connection: Connection) {
+        this.db = connection.txDB;
+    }
 
     public async get(
         msgOrTxn: TransationMessageOrObject

@@ -3,6 +3,7 @@ import { solG1 } from "./mcl";
 import { toWei } from "./utils";
 
 export const TESTING_PARAMS: DeploymentParameters = {
+    STORAGE_DIRECTORY: "./levelDB/test",
     MAX_DEPTH: 8,
     MAX_DEPOSIT_SUBTREE_DEPTH: 1,
     STAKE_AMOUNT: toWei("0.1"),
@@ -15,6 +16,7 @@ export const TESTING_PARAMS: DeploymentParameters = {
 };
 
 export const PRODUCTION_PARAMS: DeploymentParameters = {
+    STORAGE_DIRECTORY: "./levelDB/live",
     MAX_DEPTH: 32,
     MAX_DEPOSIT_SUBTREE_DEPTH: 2,
     STAKE_AMOUNT: toWei("0.1"),

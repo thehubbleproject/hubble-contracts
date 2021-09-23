@@ -15,7 +15,6 @@ import { SyncCompleteEvent } from "./constants";
 import { ClientConfig } from "./config";
 import { Genesis } from "../genesis";
 import { EmptyConfigPropError, MissingConfigPropError } from "../exceptions";
-import { close as closeDB } from "./database/connection";
 
 export type NodeModes = {
     isProposer: boolean;
@@ -45,10 +44,11 @@ export class HubbleNode {
             console.error(err);
         });
 
-        const { MAX_DEPTH } = genesis.parameters;
+        const { MAX_DEPTH, STORAGE_DIRECTORY } = genesis.parameters;
         const storageManager = await storageManagerFactory({
             stateTreeDepth: MAX_DEPTH,
-            pubkeyTreeDepth: MAX_DEPTH
+            pubkeyTreeDepth: MAX_DEPTH,
+            storageDirectory: STORAGE_DIRECTORY
         });
 
         const signer = provider.getSigner();
@@ -133,7 +133,6 @@ export class HubbleNode {
         this.packer?.stop();
         this.bidder?.stop();
         console.log("closing leveldb connection");
-        await closeDB();
     }
 
     onSyncComplete = async () => {
