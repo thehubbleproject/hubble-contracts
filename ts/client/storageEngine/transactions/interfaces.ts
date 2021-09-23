@@ -90,5 +90,5 @@ export interface TransactionStorage {
     /**
      * @returns Current number of transactions.
      */
-    count(): number;
+    count(): Promise<number>;
 }
