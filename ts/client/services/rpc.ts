@@ -50,7 +50,8 @@ export class RPC {
                 try {
                     const { pubkeyHash } = request.params;
                     const stateIndices = await Pubkey2StatesDB.getStates(
-                        pubkeyHash
+                        pubkeyHash,
+                        l2Storage.connection.pubkey2statesDB
                     );
                     let data = stateIndices.map(async id => {
                         let state = await l2Storage.state.get(Number(id));
@@ -94,7 +95,8 @@ export class RPC {
                 try {
                     const { pubkeyHash } = request.params;
                     const stateIndices = await Pubkey2StatesDB.getStates(
-                        pubkeyHash
+                        pubkeyHash,
+                        l2Storage.connection.pubkey2statesDB
                     );
                     let data = await l2Storage.state.get(
                         Number(stateIndices[0])

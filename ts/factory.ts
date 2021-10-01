@@ -1,10 +1,11 @@
 import { BigNumber, Wallet } from "ethers";
 import { BlsSigner } from "./blsSigner";
 import { PubkeyDatabaseEngine, StateDatabaseEngine } from "./client/database";
+import { Connection } from "./client/database/connection";
 import { StorageManager } from "./client/storageEngine";
 import { BatchMemoryStorage } from "./client/storageEngine/batches/memory";
-import { TransactionMemoryStorage } from "./client/storageEngine/transactions/memory";
-import { DEFAULT_MNEMONIC } from "./constants";
+import { TransactionDBStorage } from "./client/storageEngine/transactions/db";
+import { DEFAULT_MNEMONIC, TESTING_PARAMS } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
@@ -306,6 +307,7 @@ export function txMassMigrationFactory(
 interface StorageManagerFactoryOptions {
     stateTreeDepth?: number;
     pubkeyTreeDepth?: number;
+    storageDirectory?: string;
 }
 
 export async function storageManagerFactory(
@@ -313,10 +315,16 @@ export async function storageManagerFactory(
 ): Promise<StorageManager> {
     const stateTreeDepth = options?.stateTreeDepth ?? 32;
     const pubkeyTreeDepth = options?.pubkeyTreeDepth ?? 32;
+    const storageDirectory =
+        options?.storageDirectory ?? TESTING_PARAMS.STORAGE_DIRECTORY;
+
+    const connection = await Connection.create(storageDirectory);
+
     return {
-        pubkey: new PubkeyDatabaseEngine(pubkeyTreeDepth),
-        state: new StateDatabaseEngine(stateTreeDepth),
+        pubkey: new PubkeyDatabaseEngine(pubkeyTreeDepth, connection),
+        state: new StateDatabaseEngine(stateTreeDepth, connection),
         batches: new BatchMemoryStorage(),
-        transactions: new TransactionMemoryStorage()
+        transactions: new TransactionDBStorage(connection),
+        connection
     };
 }

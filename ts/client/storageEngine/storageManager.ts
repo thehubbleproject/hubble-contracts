@@ -1,3 +1,4 @@
+import { Connection } from "../database/connection";
 import { BatchStorage } from "./batches/interfaces";
 import { PubkeyStorageEngine } from "./pubkeyEngine";
 import { StateStorageEngine } from "./stateEngine";
@@ -11,4 +12,5 @@ export interface StorageManager {
     state: StateStorageEngine;
     batches: BatchStorage;
     transactions: TransactionStorage;
+    connection: Connection;
 }

@@ -1,15 +1,41 @@
 import level from "level";
 import sub from "subleveldown";
+import { LevelUp } from "levelup";
 
-const db = level("./leveldb", { valueEncoding: "json" });
+import { mkdir, stat } from "fs";
+import { promisify } from "util";
 
-export const close = async (): Promise<void> => {
-    await db.close();
-};
+const mkdirAsync = promisify(mkdir);
+const existsAsync = promisify(stat);
 
-export const pubkeyDB = sub(db, "pubkey");
-export const stateDB = sub(db, "state");
-export const nodeDB = sub(db, "node");
-// export const batchDB = sub(db, "batch");
-export const txDB = sub(db, "tx");
-export const pubkey2statesDB = sub(db, "pubkey2states");
+export class Connection {
+    public readonly pubkeyDB: LevelUp;
+    public readonly stateDB: LevelUp;
+    public readonly txDB: LevelUp;
+    public readonly pubkey2statesDB: LevelUp;
+
+    private db: LevelUp;
+
+    constructor(path: string) {
+        this.db = level(`${path}`, { valueEncoding: "json" });
+
+        this.pubkeyDB = sub(this.db, "pubkey");
+        this.stateDB = sub(this.db, "state");
+        this.txDB = sub(this.db, "tx");
+        this.pubkey2statesDB = sub(this.db, "pubkey2states");
+    }
+
+    public static async create(path: string) {
+        try {
+            await existsAsync(path);
+        } catch (error) {
+            await mkdirAsync(path, { recursive: true });
+        }
+
+        return new Connection(path);
+    }
+
+    public async close(): Promise<void> {
+        await this.db.close();
+    }
+}

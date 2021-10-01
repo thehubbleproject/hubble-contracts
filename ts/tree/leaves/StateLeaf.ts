@@ -1,18 +1,18 @@
 import { State } from "../../state";
-import { stateDB } from "../../client/database/connection";
 import { Leaf, getLeafKey, LeafFactoryFunc } from "./Leaf";
+import { LevelUp } from "levelup";
 
 const stateName = "stateLeaf";
 
-export function StateLeafFactory(): LeafFactoryFunc<State> {
+export function StateLeafFactory(db: LevelUp): LeafFactoryFunc<State> {
     const name = stateName;
 
     const newLeaf = (item: State, itemID: number) => {
-        return StateLeaf.new(item, itemID);
+        return StateLeaf.new(item, itemID, db);
     };
 
     const fromDB = async (itemId: number) => {
-        return await StateLeaf.fromDB(itemId);
+        return await StateLeaf.fromDB(itemId, db);
     };
 
     return { name, newLeaf, fromDB };
@@ -20,20 +20,19 @@ export function StateLeafFactory(): LeafFactoryFunc<State> {
 
 export class StateLeaf extends Leaf<State> {
     name = stateName;
-    db = stateDB;
 
-    static new(item: State, itemID: number): StateLeaf {
-        return new StateLeaf(item, itemID);
+    static new(item: State, itemID: number, db: LevelUp): StateLeaf {
+        return new StateLeaf(item, itemID, db);
     }
 
-    static async fromDB(itemId: number): Promise<StateLeaf> {
+    static async fromDB(itemId: number, db: LevelUp): Promise<StateLeaf> {
         const key = getLeafKey(stateName, itemId);
-        const bytes = await stateDB.get(key);
+        const bytes = await db.get(key);
         const item = State.fromEncoded(bytes);
-        return new StateLeaf(item, itemId);
+        return new StateLeaf(item, itemId, db);
     }
 
-    static fromState(state: State, itemId: number) {
-        return new StateLeaf(state, itemId);
+    static fromState(state: State, itemId: number, db: LevelUp) {
+        return new StateLeaf(state, itemId, db);
     }
 }

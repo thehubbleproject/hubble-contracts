@@ -1,5 +1,5 @@
-import { nodeDB } from "../../client/database/connection";
 import { Node } from "../hasher";
+import { LevelUp } from "levelup";
 
 export const getNodeKey = (
     name: string,
@@ -9,6 +9,7 @@ export const getNodeKey = (
 
 export class ItemNode {
     static async fromDB(
+        nodeDB: LevelUp,
         name: string,
         depth: number,
         index: number
@@ -18,6 +19,7 @@ export class ItemNode {
     }
 
     static async toDB(
+        nodeDB: LevelUp,
         name: string,
         depth: number,
         index: number,
@@ -28,6 +30,7 @@ export class ItemNode {
     }
 
     static async delete(
+        nodeDB: LevelUp,
         name: string,
         depth: number,
         index: number

@@ -29,11 +29,13 @@ import { CustomToken__factory } from "../../types/ethers-contracts";
  */
 describe("Client Integration", function() {
     before(async function() {
-        await del("./leveldb/*");
+        await del("./leveldb/test/syncer/*");
+        await del("./leveldb/test/packer/*");
     });
 
     after(async function() {
-        await del("./leveldb/*");
+        await del("./leveldb/test/syncer/*");
+        await del("./leveldb/test/packer/*");
     });
 
     it("run", async function() {
@@ -47,8 +49,12 @@ describe("Client Integration", function() {
 
         await deployKeyless(signer, false);
 
-        const storageSyncer = await storageManagerFactory();
-        const storagePacker = await storageManagerFactory();
+        const storageSyncer = await storageManagerFactory({
+            storageDirectory: "./levelDB/test/syncer"
+        });
+        const storagePacker = await storageManagerFactory({
+            storageDirectory: "./levelDB/test/packer"
+        });
 
         // Ensure initial states match
         assert.equal(storageSyncer.state.root, storagePacker.state.root);

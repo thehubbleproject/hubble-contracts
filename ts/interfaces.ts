@@ -27,6 +27,7 @@ export type Vacant = {
 };
 
 export interface DeploymentParameters {
+    STORAGE_DIRECTORY: string;
     MAX_DEPTH: number;
     MAX_DEPOSIT_SUBTREE_DEPTH: number;
     STAKE_AMOUNT: Wei;
