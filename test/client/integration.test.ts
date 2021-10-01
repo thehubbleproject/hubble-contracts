@@ -169,7 +169,7 @@ describe("Client Integration", function() {
         assert.equal(storageSyncer.batches.count(), numBatches);
         assert.equal(storagePacker.batches.count(), numBatches);
 
-        assert.equal(storageSyncer.transactions.count(), maxTransfers);
-        assert.equal(storagePacker.transactions.count(), maxTransfers);
+        assert.equal(await storageSyncer.transactions.count(), maxTransfers);
+        assert.equal(await storagePacker.transactions.count(), maxTransfers);
     }).timeout(900000);
 });

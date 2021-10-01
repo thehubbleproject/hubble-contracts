@@ -10,4 +10,6 @@ export const close = async (): Promise<void> => {
 export const pubkeyDB = sub(db, "pubkey");
 export const stateDB = sub(db, "state");
 export const nodeDB = sub(db, "node");
+// export const batchDB = sub(db, "batch");
+export const txDB = sub(db, "tx");
 export const pubkey2statesDB = sub(db, "pubkey2states");
