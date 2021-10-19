@@ -184,6 +184,10 @@ library Authenticity {
                 "Authenticity: to account does not exists"
             );
 
+            if (proof.pubkeyHashesReceiver[i] == MerkleTree.getRoot(0)) {
+                return Types.Result.NonexistentReceiver;
+            }
+
             // construct the message
 
             uint256 nonce = proof.states[i].nonce - 1;
