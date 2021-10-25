@@ -7,6 +7,9 @@ pragma solidity ^0.6.12;
 library Types {
     // prettier-ignore
     uint256 public constant ADDRESS_MASK = 0x000000000000000000000000ffffffffffffffffffffffffffffffffffffffff;
+    bytes32 public constant ZERO_BYTES32 =
+        0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+
     struct SignatureProof {
         Types.UserState[] states;
         bytes32[][] stateWitnesses;
@@ -225,6 +228,7 @@ library Types {
 
     struct StateMerkleProof {
         UserState state;
+        bytes32 stateHash;
         bytes32[] witness;
     }
 
@@ -239,6 +243,9 @@ library Types {
         bytes32[] witness;
     }
 
+    /**
+     * @notice Results of a validation check on a transaction or commit
+     */
     enum Result {
         Ok,
         InvalidTokenAmount,
@@ -250,6 +257,8 @@ library Types {
         BadWithdrawRoot,
         BadCompression,
         TooManyTx,
-        BadPrecompileCall
+        BadPrecompileCall,
+        BadFromIndex,
+        BadToIndex
     }
 }

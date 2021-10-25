@@ -1,7 +1,7 @@
 import { Hasher } from "./tree";
 import { State, ZERO_STATE } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
-import { BigNumber, constants } from "ethers";
+import { BigNumber, BytesLike, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { minTreeDepth, sum } from "./utils";
 import {
@@ -43,6 +43,7 @@ export const nullProvider = new NullProvider();
 
 interface SolStateMerkleProof {
     state: State;
+    stateHash: BytesLike;
     witness: string[];
 }
 
@@ -54,6 +55,7 @@ const PLACEHOLDER_PROOF_WITNESS = Array(STATE_WITNESS_LENGHT).fill(
 
 const PLACEHOLDER_SOL_STATE_PROOF: SolStateMerkleProof = {
     state: ZERO_STATE,
+    stateHash: ZERO_BYTES32,
     witness: PLACEHOLDER_PROOF_WITNESS
 };
 
@@ -112,7 +114,8 @@ export class StateTree implements StateProvider {
         this.checkSize(stateID);
         const state = this.states[stateID] || ZERO_STATE;
         const witness = this.stateTree.witness(stateID).nodes;
-        return { state, witness };
+        const stateHash = state === ZERO_STATE ? ZERO_BYTES32 : state.hash();
+        return { state, stateHash, witness };
     }
 
     /** Side effect! */

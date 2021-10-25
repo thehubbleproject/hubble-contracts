@@ -28,8 +28,11 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
     string public constant DOMAIN_NAME = "Hubble";
     string public constant DOMAIN_VERSION = "1";
 
-    bytes32 public constant ZERO_BYTES32 =
-        0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+    /**
+     * @dev If this is not being externally consumed, it can be removed.
+     */
+    // solhint-disable-next-line var-name-mixedcase
+    bytes32 public immutable ZERO_BYTES32;
 
     // External contracts
     BLSAccountRegistry public immutable accountRegistry;
@@ -69,6 +72,8 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         )
         EIP712(DOMAIN_NAME, DOMAIN_VERSION)
     {
+        ZERO_BYTES32 = Types.ZERO_BYTES32;
+
         accountRegistry = _accountRegistry;
         transfer = _transfer;
         massMigration = _massMigration;
@@ -80,11 +85,11 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         );
 
         bytes32 genesisCommitment =
-            keccak256(abi.encode(genesisStateRoot, ZERO_BYTES32));
+            keccak256(abi.encode(genesisStateRoot, Types.ZERO_BYTES32));
 
         // Same effect as `MerkleTree.merklize`
         bytes32 commitmentRoot =
-            keccak256(abi.encode(genesisCommitment, ZERO_BYTES32));
+            keccak256(abi.encode(genesisCommitment, Types.ZERO_BYTES32));
         batches[nextBatchID] = Types.Batch({
             commitmentRoot: commitmentRoot,
             meta: Types.encodeMeta(
@@ -355,13 +360,15 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
                 vacant.witness
             );
         bytes32 depositCommitment =
-            keccak256(abi.encode(newRoot, ZERO_BYTES32));
+            keccak256(abi.encode(newRoot, Types.ZERO_BYTES32));
         // Same effect as `MerkleTree.merklize`
-        bytes32 root = keccak256(abi.encode(depositCommitment, ZERO_BYTES32));
+        bytes32 root =
+            keccak256(abi.encode(depositCommitment, Types.ZERO_BYTES32));
         // AccountRoot doesn't matter for deposit, add dummy value
         submitBatch(root, 1, bytes32(0), Types.Usage.Deposit);
     }
 
+    // TODO Add note about proofs beng dif in this one than C2T and MM?
     function disputeTransitionTransfer(
         uint256 batchID,
         Types.CommitmentInclusionProof memory previous,

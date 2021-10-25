@@ -219,7 +219,7 @@ type TransactionBundle = {
 export function getAggregateSig(txs: OffchainTx[]): solG1 {
     const signatures = [];
     for (const tx of txs) {
-        if (!tx.signature) throw new Error(`tx has no signautre ${tx}`);
+        if (!tx.signature) throw new Error(`tx has no signature ${tx}`);
         signatures.push(tx.signature);
     }
     return aggregate(signatures).sol;
