@@ -15,6 +15,9 @@ library Authenticity {
     using Tx for bytes;
     using Types for Types.UserState;
 
+    bytes32 public constant ZERO_BYTES32 =
+        0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
+
     function verifyTransfer(
         Types.AuthCommon memory common,
         Types.SignatureProof memory proof
@@ -183,6 +186,10 @@ library Authenticity {
                 ),
                 "Authenticity: to account does not exists"
             );
+
+            if (proof.pubkeyHashesReceiver[i] == ZERO_BYTES32) {
+                return Types.Result.NonexistentReceiver;
+            }
 
             // construct the message
 

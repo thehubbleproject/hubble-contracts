@@ -4,7 +4,7 @@ import { PubkeyDatabaseEngine, StateDatabaseEngine } from "./client/database";
 import { StorageManager } from "./client/storageEngine";
 import { BatchMemoryStorage } from "./client/storageEngine/batches/memory";
 import { TransactionMemoryStorage } from "./client/storageEngine/transactions/memory";
-import { DEFAULT_MNEMONIC } from "./constants";
+import { DEFAULT_MNEMONIC, ZERO_BYTES32 } from "./constants";
 import { float16, USDT } from "./decimal";
 import { UserNotExist } from "./exceptions";
 import { Domain, solG1 } from "./mcl";
@@ -17,6 +17,7 @@ import {
     SignableTx,
     getAggregateSig
 } from "./tx";
+import { solidityPack } from "ethers/lib/utils";
 
 export class User {
     private tokenIDtoStateID: Record<number, number>;
@@ -301,6 +302,46 @@ export function txMassMigrationFactory(
     }
     const signature = getAggregateSig(txs);
     return { txs, signature, senders };
+}
+
+export function txCreate2TransferToNonexistentReceiver(
+    registered: Group,
+    unregistered: Group
+): {
+    txs: TxCreate2Transfer[];
+    signature: solG1;
+    sender: User;
+} {
+    const sender = registered.getUser(0);
+    const receiver = unregistered.getUser(0);
+    const senderState = registered.getState(sender);
+    const amount = float16.round(senderState.balance.div(10));
+    const fee = float16.round(amount.div(10));
+
+    const tx = new TxCreate2Transfer(
+        sender.stateID,
+        receiver.stateID,
+        receiver.pubkey,
+        1000,
+        amount,
+        fee,
+        senderState.nonce.toNumber()
+    );
+    const txMessage = create2TransferMessage(tx, ZERO_BYTES32);
+    tx.signature = sender.signRaw(txMessage);
+    const txs = [tx];
+
+    return { txs: txs, signature: getAggregateSig(txs), sender };
+}
+
+function create2TransferMessage(
+    tx: TxCreate2Transfer,
+    pubkeyHash: string
+): string {
+    return solidityPack(
+        ["uint256", "uint256", "bytes32", "uint256", "uint256", "uint256"],
+        ["0x03", tx.fromIndex, pubkeyHash, tx.nonce, tx.amount, tx.fee]
+    );
 }
 
 interface StorageManagerFactoryOptions {
