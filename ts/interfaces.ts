@@ -16,7 +16,9 @@ export enum Result {
     MismatchedAmount,
     BadWithdrawRoot,
     BadCompression,
-    TooManyTx
+    TooManyTx,
+    BadPrecompileCall,
+    NonexistentReceiver
 }
 
 export type Wei = string;
