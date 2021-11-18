@@ -8,15 +8,15 @@ import * as mcl from "../../ts/mcl";
 import { allContracts } from "../../ts/allContractsInterfaces";
 import chai, { assert } from "chai";
 import chaiAsPromised from "chai-as-promised";
-import {
-    getGenesisProof,
-    TransferBatch,
-    TransferCommitment
-} from "../../ts/commitments";
+import { getGenesisProof, TransferCommitment } from "../../ts/commitments";
 import { ERC20ValueFactory, USDT } from "../../ts/decimal";
 import { hexToUint8Array } from "../../ts/utils";
 import { Group, txTransferFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
+import { handleNewBatch } from "../../ts/client/features/deposit";
+import { Batch } from "../../ts/client/features/interface";
+import { BigNumberish } from "ethers";
+import { State } from "../../ts/state";
 
 chai.use(chaiAsPromised);
 
@@ -59,6 +59,7 @@ describe("Rollup Deposit", async function() {
         await deployKeyless(signer, false);
         contracts = await deployAll(signer, {
             ...TESTING_PARAMS,
+            BLOCKS_TO_FINALISE: 10,
             GENESIS_STATE_ROOT: genesisRoot
         });
 
@@ -77,7 +78,7 @@ describe("Rollup Deposit", async function() {
         );
     });
 
-    it("reenqueue deposit subtree on rollback", async function() {
+    it.only("reenqueue deposit subtree on rollback", async function() {
         const feeReceiver = users.getUser(0).stateID;
         const { rollup, depositManager } = contracts;
         const { txs, signature } = txTransferFactory(
@@ -103,9 +104,11 @@ describe("Rollup Deposit", async function() {
         );
         await _txSubmit.wait();
 
-        const depositSubtreeRoot = await submitDepositBatch(
+        const subtreeRoots = await submitTwoDepositBatches(
             targetBatch,
-            postBatchStateTree
+            2,
+            postBatchStateTree,
+            0
         );
 
         const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
@@ -119,35 +122,74 @@ describe("Rollup Deposit", async function() {
         const receipt = await _tx.wait();
         console.log("disputeBatch execution cost", receipt.gasUsed.toNumber());
 
-        const root = await depositManager.queue(1);
-        assert.equal(root, depositSubtreeRoot);
+        for (let i = 0; i < subtreeRoots.length; i++) {
+            const root = await depositManager.queue(i + 1);
+            assert.equal(root, subtreeRoots[i]);
+        }
     }).timeout(120000);
 
-    async function submitDepositBatch(
-        previousBatch: TransferBatch,
-        stateTree: StateTree
-    ): Promise<string> {
-        const { depositManager, rollup } = contracts;
-
-        const vacancyProof = stateTree.getVacancyProof(
-            0,
-            TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
+    async function submitTwoDepositBatches(
+        previousBatch: Batch,
+        batchID: number,
+        stateTree: StateTree,
+        startStateID: number
+    ): Promise<string[]> {
+        const submitResult1 = await submitDepositBatch(
+            previousBatch,
+            batchID,
+            stateTree,
+            startStateID
         );
+
+        const submitResult2 = await submitDepositBatch(
+            submitResult1.batch,
+            batchID + 1,
+            stateTree,
+            startStateID + 4
+        );
+
+        return [submitResult1.subtreeRoot, submitResult2.subtreeRoot];
+    }
+
+    async function submitDepositBatch(
+        previousBatch: Batch,
+        batchID: BigNumberish,
+        stateTree: StateTree,
+        startStateID: number
+    ): Promise<{
+        subtreeRoot: string;
+        batch: Batch;
+    }> {
+        const { depositManager, rollup } = contracts;
 
         const amount = erc20.fromHumanValue("10");
 
-        const nDeposits = 2 ** TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
+        const vacancyProof = stateTree.getVacancyProof(
+            startStateID,
+            TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH
+        );
 
+        const nDeposits = 2 ** TESTING_PARAMS.MAX_DEPOSIT_SUBTREE_DEPTH;
         for (let i = 0; i < nDeposits; i++) {
             await depositManager.depositFor(i, amount.l1Value, tokenID);
+            const state = State.new(i, tokenID, amount.l2Value, 0);
+            stateTree.createState(startStateID + i, state);
         }
-        const batchID = 2;
-        await rollup.submitDeposits(
+        const _txSubmit = await rollup.submitDeposits(
             batchID,
             previousBatch.proofCompressed(0),
             vacancyProof,
             { value: TESTING_PARAMS.STAKE_AMOUNT }
         );
-        return rollup.deposits(2);
+        await _txSubmit.wait();
+
+        const [event] = await rollup.queryFilter(
+            rollup.filters.NewBatch(null, null, null),
+            _txSubmit.blockHash
+        );
+        return {
+            subtreeRoot: await rollup.deposits(2),
+            batch: await handleNewBatch(event, rollup)
+        };
     }
 });
