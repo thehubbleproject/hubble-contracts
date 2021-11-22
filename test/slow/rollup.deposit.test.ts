@@ -78,7 +78,7 @@ describe("Rollup Deposit", async function() {
         );
     });
 
-    it.only("reenqueue deposit subtree on rollback", async function() {
+    it("reenqueue deposit subtree on rollback", async function() {
         const feeReceiver = users.getUser(0).stateID;
         const { rollup, depositManager } = contracts;
         const { txs, signature } = txTransferFactory(
