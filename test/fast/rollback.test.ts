@@ -123,28 +123,4 @@ describe("Rollback", function() {
         assert.equal(Number(await rollup.invalidBatchMarker()), 0);
         assert.equal(await getTipBatchID(), goodBatchID);
     });
-    it("Test rollback with deposits", async function() {
-        const badBatchID = await getTipBatchID();
-        const [subtree1, subtree2, subtree3] = [
-            randHex(32),
-            randHex(32),
-            randHex(32)
-        ];
-        await rollup.submitDeposits(subtree1, { value: param.STAKE_AMOUNT });
-        await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
-        await rollup.submitDeposits(subtree2, { value: param.STAKE_AMOUNT });
-        await rollup.submitDummyBatch({ value: param.STAKE_AMOUNT });
-        await rollup.submitDeposits(subtree3, { value: param.STAKE_AMOUNT });
-        const tx = await rollup.testRollback(badBatchID, { gasLimit: 1000000 });
-        const events = await depositManager.queryFilter(
-            depositManager.filters.DepositSubTreeReady(),
-            tx.blockHash
-        );
-        assert.equal(events.length, 3);
-        const [event1, event2, event3] = events;
-        // Since we are rolling "back", the events are emitted in reverse order
-        assert.equal(event1.args?.subtreeRoot, subtree3);
-        assert.equal(event2.args?.subtreeRoot, subtree2);
-        assert.equal(event3.args?.subtreeRoot, subtree1);
-    });
 });

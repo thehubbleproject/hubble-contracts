@@ -69,17 +69,21 @@ contract SubtreeQueue {
 
     event DepositSubTreeReady(uint256 subtreeID, bytes32 subtreeRoot);
 
-    function enqueue(bytes32 subtreeRoot) internal returns (uint256 subtreeID) {
+    function unshift(bytes32 subtreeRoot) internal {
+        uint256 subtreeID = front - 1;
+        require(subtreeID > 0, "Deposit Core: No subtrees to unshift");
+        front = subtreeID;
+        queue[subtreeID] = subtreeRoot;
+    }
+
+    function push(bytes32 subtreeRoot) internal returns (uint256 subtreeID) {
         subtreeID = back + 1;
         back = subtreeID;
         queue[subtreeID] = subtreeRoot;
         emit DepositSubTreeReady(subtreeID, subtreeRoot);
     }
 
-    function dequeue()
-        internal
-        returns (uint256 subtreeID, bytes32 subtreeRoot)
-    {
+    function shift() internal returns (uint256 subtreeID, bytes32 subtreeRoot) {
         subtreeID = front;
         require(back >= subtreeID, "Deposit Core: Queue should be non-empty");
         subtreeRoot = queue[subtreeID];
@@ -132,7 +136,7 @@ contract DepositCore is SubtreeQueue {
 
         // Subtree is ready, send to SubtreeQueue
         if (numDeposits == paramMaxSubtreeSize) {
-            subtreeID = enqueue(babyTrees[0]);
+            subtreeID = push(babyTrees[0]);
             // reset
             babyTreesLength = 0;
             depositCount = 0;
@@ -234,10 +238,10 @@ contract DepositManager is
         onlyRollup
         returns (uint256 subtreeID, bytes32 subtreeRoot)
     {
-        return dequeue();
+        return shift();
     }
 
     function reenqueue(bytes32 subtreeRoot) external override onlyRollup {
-        enqueue(subtreeRoot);
+        unshift(subtreeRoot);
     }
 }

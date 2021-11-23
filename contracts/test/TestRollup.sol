@@ -19,9 +19,7 @@ contract MockDepositManager is IDepositManager {
         return (0, bytes32(0));
     }
 
-    function reenqueue(bytes32 subtreeRoot) external override {
-        emit DepositSubTreeReady(0, subtreeRoot);
-    }
+    function reenqueue(bytes32 subtreeRoot) external override {}
 }
 
 contract TestRollup is BatchManager {
