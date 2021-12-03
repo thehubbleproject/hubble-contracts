@@ -187,7 +187,7 @@ describe("Mass Migrations", async function() {
 
         await expectRevert(
             withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
-            "Vault: Batch shoould be finalised"
+            "Vault: Batch should be finalised"
         );
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
