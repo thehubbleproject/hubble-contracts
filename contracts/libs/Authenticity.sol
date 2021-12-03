@@ -8,7 +8,7 @@ import { Tx } from "./Tx.sol";
 import { BLS } from "./BLS.sol";
 
 /**
-    @notice methods in this libaray recover messages from the transactions and check
+    @notice methods in this library recover messages from the transactions and check
     if those are signed by the senders.
  */
 library Authenticity {

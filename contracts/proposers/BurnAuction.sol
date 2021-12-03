@@ -10,7 +10,7 @@ contract BurnAuction is Chooser {
     uint32 public constant BLOCKS_PER_SLOT = 100;
     uint32 public constant DELTA_BLOCKS_INITIAL_SLOT = 1000;
 
-    // donation numerator and demoninator are used to calculate donation amount
+    // donation numerator and denominator are used to calculate donation amount
     uint256 public constant DONATION_DENOMINATOR = 10000;
     uint256 public immutable donationNumerator;
 
@@ -23,7 +23,7 @@ contract BurnAuction is Chooser {
     // Bid is a structure indicating that
     // "coordinator" is willing to burn certain
     // "amount" of ether in order to forge a slot.
-    // "initialized" is used to indicate that the bid is valid (used to differenciate an empty bid)
+    // "initialized" is used to indicate that the bid is valid (used to differentiate an empty bid)
     struct Bid {
         address payable coordinator;
         uint128 amount;
@@ -90,7 +90,7 @@ contract BurnAuction is Chooser {
         );
         // update coordinator with remaining value
         updateBalance(coordinator, msg.value, bidAmount);
-        // set new best bider
+        // set new best bidder
         auction[auctionSlot].coordinator = msg.sender;
         auction[auctionSlot].amount = uint128(bidAmount);
         auction[auctionSlot].initialized = true;
@@ -145,7 +145,7 @@ contract BurnAuction is Chooser {
     }
 
     /**
-     * @dev Retrieve block number. THIS FUNCTION IS USEFULL FOR DEBUGGING PURPOSES
+     * @dev Retrieve block number. THIS FUNCTION IS USEFUL FOR DEBUGGING PURPOSES
      * @return current block number
      */
     function getBlockNumber() public view virtual returns (uint256) {

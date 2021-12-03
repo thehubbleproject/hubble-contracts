@@ -16,7 +16,7 @@ library BLS {
     // prettier-ignore
     uint256 private constant N = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
-    // Negated genarator of G2
+    // Negated generator of G2
     // prettier-ignore
     uint256 private constant N_G2_X1 = 11559732032986387107991004021392285783925812861821192530917403151452391805634;
     // prettier-ignore
