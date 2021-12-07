@@ -9,7 +9,7 @@ contract BNPairingPrecompileCostEstimator {
     uint256 private constant G1_X = 1;
     uint256 private constant G1_Y = 2;
 
-    // G2 genarator
+    // G2 generator
     // prettier-ignore
     uint256 private constant G2_X0 = 10857046999023057135944570762232829481370756359578518086990519993285655852781;
     // prettier-ignore
@@ -19,7 +19,7 @@ contract BNPairingPrecompileCostEstimator {
     // prettier-ignore
     uint256 private constant G2_Y1 = 4082367875863433681332203403145435568316851327593401208105741076214120093531;
 
-    // G2 negated genarator y coordinates
+    // G2 negated generator y coordinates
     // prettier-ignore
     uint256 private constant N_G2_Y0 = 13392588948715843804641432497768002650278120570034223513918757245338268106653;
     // prettier-ignore

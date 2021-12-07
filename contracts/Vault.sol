@@ -54,7 +54,7 @@ contract Vault is Initializable, ImmutableOwnable {
 
         require(
             block.number >= batch.finaliseOn(),
-            "Vault: Batch shoould be finalised"
+            "Vault: Batch should be finalised"
         );
 
         require(

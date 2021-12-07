@@ -8,7 +8,7 @@ import { BLS } from "./BLS.sol";
     @title Transaction Data To Commit on Chain
     @notice This library manipulates transaction data that'll be stored/computed on chain.
     - It compress transaction so they can be gas efficiently stored on chain.
-    - It also decompresses the transaction for performning state transition.
+    - It also decompresses the transaction for performing state transition.
     - It recovers the signing messages for signature verification.
  */
 library Tx {

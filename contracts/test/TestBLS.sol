@@ -77,8 +77,8 @@ contract TestBLS {
             pubkeys,
             messages
         );
-        require(callSuccess, "BLSTest: expect succesful precompile call");
-        require(checkSuccess, "BLSTest: expect succesful verification");
+        require(callSuccess, "BLSTest: expect successful precompile call");
+        require(checkSuccess, "BLSTest: expect successful verification");
         return g - gasleft();
     }
 
@@ -96,8 +96,8 @@ contract TestBLS {
             pubkey,
             message
         );
-        require(callSuccess, "BLSTest: expect succesful call");
-        require(checkSuccess, "BLSTest: expect succesful verification");
+        require(callSuccess, "BLSTest: expect successful call");
+        require(checkSuccess, "BLSTest: expect successful verification");
         return g - gasleft();
     }
 

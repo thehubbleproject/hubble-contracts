@@ -56,7 +56,7 @@ contract TokenRegistry is ITokenRegistry {
         );
         require(
             ERC20(tokenContract).decimals() <= 18,
-            "Don't serve deciamls > 18"
+            "Don't serve decimals > 18"
         );
         pendingRegistrations[tokenContract] = true;
         emit RegistrationRequest(tokenContract);
