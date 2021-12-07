@@ -145,7 +145,7 @@ export class TxTransfer implements SignableTx {
 }
 
 export class TxMassMigration implements SignableTx {
-    private readonly TX_TYPE = "0x05";
+    private readonly TX_TYPE = "0x02";
     public static rand(): TxMassMigration {
         const sender = randomNum(stateIDLen);
         const amount = float16.randInt();
