@@ -35,7 +35,7 @@
   "homepage": "https://github.com/thehubbleproject/hubble-contracts",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.2",
-    "@openzeppelin/contracts": "^3.4.2",
+    "@openzeppelin/contracts": "^4.4.1",
     "@typechain/ethers-v5": "^7.0.1",
     "@types/chai": "^4.2.19",
     "@types/chai-as-promised": "^7.1.4",
