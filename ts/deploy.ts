@@ -39,6 +39,13 @@ export async function deployAll(
     parameters: DeploymentParameters,
     verbose: boolean = false
 ): Promise<allContracts> {
+    function verboseLog(...args: any[]) {
+        if (!verbose) {
+            return;
+        }
+        console.log(...args);
+    }
+
     // deploy libs
     const frontendGeneric = await new FrontendGeneric__factory(signer).deploy();
     await waitAndRegister(frontendGeneric, "frontendGeneric", verbose);
@@ -101,12 +108,15 @@ export async function deployAll(
         "EMP"
     );
     await waitAndRegister(exampleToken, "exampleToken", verbose);
+    verboseLog("Requesting registration for exampleToken...");
     await waitUntilMined(
         tokenRegistry.requestRegistration(exampleToken.address)
     );
+    verboseLog("Finalising registration for exampleToken...");
     await waitUntilMined(
         tokenRegistry.finaliseRegistration(exampleToken.address)
     );
+    verboseLog("exampleToken registered");
 
     const spokeRegistry = await new SpokeRegistry__factory(signer).deploy();
     await waitAndRegister(spokeRegistry, "spokeRegistry", verbose);
@@ -143,7 +153,9 @@ export async function deployAll(
     );
     await waitAndRegister(rollup, "rollup", verbose);
 
+    verboseLog(`setting vault rollup address to ${rollup.address}`);
     await waitUntilMined(vault.setRollupAddress(rollup.address));
+    verboseLog(`setting depositManager rollup address to ${rollup.address}`);
     await waitUntilMined(depositManager.setRollupAddress(rollup.address));
 
     const withdrawManager = await new WithdrawManager__factory(signer).deploy(
@@ -152,6 +164,7 @@ export async function deployAll(
         rollup.address
     );
     await waitAndRegister(withdrawManager, "withdrawManager", verbose);
+    verboseLog("registering withdrawManager as spoke");
     await waitUntilMined(spokeRegistry.registerSpoke(withdrawManager.address));
 
     return {

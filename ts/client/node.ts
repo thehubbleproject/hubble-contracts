@@ -1,5 +1,5 @@
 import { Provider } from "@ethersproject/providers";
-import { BigNumber, ethers } from "ethers";
+import { BigNumber, ethers, Signer } from "ethers";
 import { EventEmitter } from "events";
 import { FastifyInstance } from "fastify";
 import { storageManagerFactory } from "../factory";
@@ -17,6 +17,11 @@ import { Genesis } from "../genesis";
 import { EmptyConfigPropError, MissingConfigPropError } from "../exceptions";
 import { close as closeDB } from "./database/connection";
 
+type HubbleNodeOverrides = {
+    providerUrl?: string;
+    privateKey?: string;
+};
+
 export type NodeModes = {
     isProposer: boolean;
     isWatcher: boolean;
@@ -33,12 +38,16 @@ export class HubbleNode {
         private readonly rpc?: RPC
     ) {}
 
-    public static async init(config: ClientConfig, fast: FastifyInstance) {
+    public static async init(
+        config: ClientConfig,
+        fast: FastifyInstance,
+        overrides: HubbleNodeOverrides = {}
+    ) {
         await mcl.init();
         const genesis = await Genesis.fromConfig(config.genesisPath);
 
         const provider = new ethers.providers.JsonRpcProvider(
-            config.providerUrl,
+            overrides.providerUrl ?? config.providerUrl,
             genesis.auxiliary.chainid
         );
         provider.on("error", err => {
@@ -51,7 +60,7 @@ export class HubbleNode {
             pubkeyTreeDepth: MAX_DEPTH
         });
 
-        const signer = provider.getSigner();
+        const signer = this.getSigner(provider, overrides.privateKey);
         const api = CoreAPI.new(storageManager, genesis, provider, signer);
 
         const syncer = new SyncerService(api);
@@ -120,6 +129,18 @@ export class HubbleNode {
             isProposer: proposer ? proposer.enabled : false,
             isWatcher: watcher ? watcher.enabled : false
         };
+    }
+
+    private static getSigner(
+        provider: ethers.providers.JsonRpcProvider,
+        privateKey?: string
+    ): Signer {
+        if (privateKey) {
+            console.log("using provided privateKey as signer");
+            return new ethers.Wallet(privateKey).connect(provider);
+        }
+        console.log("using default JSON RPC signer");
+        return provider.getSigner();
     }
 
     public async start() {

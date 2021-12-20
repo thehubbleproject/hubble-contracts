@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: hubble-proposer
+spec:
+  selector:
+    matchLabels:
+      app: hubble-proposer
+  serviceName: hubble-proposer
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: hubble-proposer
+    spec:
+      containers:
+      - name: hubble-proposer
+        # TODO Make injectable
+        image: thehubbleproject/node:5b23e3baf0358e50be78879d6146d09f43a9dab4@sha256:1e6ca054e3f7265ea8dac5f509fafa41ed54021e47df184e86328cf2580707a8
+        env:
+        - name: PROVIDER_URL
+          valueFrom:
+            secretKeyRef:
+              name: hubble-proposer-provider-url
+              key: providerUrl
+        - name: PRIVATE_KEY
+          valueFrom:
+            secretKeyRef:
+              name: hubble-proposer-private-key
+              key: privateKey
+        args: [
+          "--configPath", "/app/configs/config.json",
+          "--providerUrl", "$(PROVIDER_URL)",
+          "--privateKey", "$(PRIVATE_KEY)",
+        ]
+        volumeMounts:
+        - mountPath: "/app/leveldb"
+          name: hubble-proposer-pvc
+        - mountPath: "/app/configs"
+          name: config-volume
+      volumes:
+        - name: config-volume
+          configMap:
+            name: hubble-proposer
+  volumeClaimTemplates:
+  - metadata:
+      name: hubble-proposer-pvc
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+      storageClassName: do-block-storage
+# TODO readiness and liveness probes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hubble-proposer
+  labels:
+    app: hubble-proposer
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+    name: http
+  clusterIP: None
+  selector:
+    app: hubble-proposer
