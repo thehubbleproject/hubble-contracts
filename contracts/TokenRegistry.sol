@@ -4,16 +4,13 @@ import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 interface ITokenRegistry {
     event RegisteredToken(uint256 tokenID, address tokenContract);
-    event RegistrationRequest(address tokenContract);
 
     function safeGetRecord(uint256 tokenID)
-        external
-        view
-        returns (address, uint256 l2Unit);
+    external
+    view
+    returns (address, uint256 l2Unit);
 
-    function requestRegistration(address tokenContract) external;
-
-    function finaliseRegistration(address tokenContract) external;
+    function registerToken(address tokenContract) external;
 }
 
 contract TokenRegistry is ITokenRegistry {
@@ -21,8 +18,8 @@ contract TokenRegistry is ITokenRegistry {
         address addr;
         bool useL2Unit;
     }
-    mapping(address => bool) public pendingRegistrations;
     mapping(uint256 => Record) private registeredTokens;
+    mapping(address => bool) private registeredContracts;
 
     uint256 public nextTokenID = 0;
 
@@ -45,33 +42,23 @@ contract TokenRegistry is ITokenRegistry {
         return (record.addr, l2Unit);
     }
 
-    /**
-     * @notice Requests addition of a new token to the chain, can be called by anyone
-     * @param tokenContract Address for the new token being added
-     */
-    function requestRegistration(address tokenContract) public override {
+    function registerToken(address tokenContract) public override {
         require(
-            !pendingRegistrations[tokenContract],
+            registeredContracts[tokenContract],
             "Token already registered."
         );
         require(
             ERC20(tokenContract).decimals() <= 18,
             "Don't serve decimals > 18"
         );
-        pendingRegistrations[tokenContract] = true;
-        emit RegistrationRequest(tokenContract);
-    }
 
-    function finaliseRegistration(address tokenContract) public override {
-        require(
-            pendingRegistrations[tokenContract],
-            "Token was not registered"
-        );
         bool useL2Unit = ERC20(tokenContract).decimals() >= 9;
         registeredTokens[nextTokenID] = Record({
             addr: tokenContract,
             useL2Unit: useL2Unit
         });
+        registeredContracts[tokenContract] = true;
+
         emit RegisteredToken(nextTokenID, tokenContract);
         nextTokenID++;
     }
