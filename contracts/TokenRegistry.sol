@@ -6,9 +6,9 @@ interface ITokenRegistry {
     event RegisteredToken(uint256 tokenID, address tokenContract);
 
     function safeGetRecord(uint256 tokenID)
-    external
-    view
-    returns (address, uint256 l2Unit);
+        external
+        view
+        returns (address, uint256 l2Unit);
 
     function registerToken(address tokenContract) external;
 }
@@ -44,7 +44,7 @@ contract TokenRegistry is ITokenRegistry {
 
     function registerToken(address tokenContract) public override {
         require(
-            registeredContracts[tokenContract],
+            !registeredContracts[tokenContract],
             "Token already registered."
         );
         require(
