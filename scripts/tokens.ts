@@ -62,23 +62,14 @@ async function registerToken(
     tokenAddress: string
 ): Promise<BigNumber> {
     console.log(`  registering token at ${tokenAddress}`);
-    const requestL1Txn = await tokenRegistry.requestRegistration(tokenAddress);
-    console.log("    token registration request sent", requestL1Txn.hash);
-    await requestL1Txn.wait(1);
-    console.log("    token registration request confirmed", requestL1Txn.hash);
+    const registerL1Txn = await tokenRegistry.registerToken(tokenAddress);
+    console.log("    token registration sent", registerL1Txn.hash);
+    const txnReceipt = await registerL1Txn.wait(1);
+    console.log("    token registration confirmed", registerL1Txn.hash);
 
-    const finaliseL1Txn = await tokenRegistry.finaliseRegistration(
-        tokenAddress
-    );
-    console.log("    token registration finalisation sent", finaliseL1Txn.hash);
-    const finaliseTxnReceipt = await finaliseL1Txn.wait(1);
-    console.log(
-        "    token registration finalisation confirmed",
-        finaliseL1Txn.hash
-    );
-    const [registeredTokenLog] = finaliseTxnReceipt.logs
+    const [registeredTokenLog] = txnReceipt.logs
         .map(log => tokenRegistry.interface.parseLog(log))
-        .filter(log => log.signature === "RegisteredToken(uint256,address)");
+        .filter(log => log.signature === "TokenRegistered(uint256,address)");
     return registeredTokenLog.args.tokenID;
 }
 
