@@ -2,7 +2,7 @@
 pragma solidity ^0.6.12;
 
 contract SpokeRegistry {
-    event RegisteredSpoke(uint256 spokeID, address spokeContract);
+    event SpokeRegistered(uint256 spokeID, address spokeContract);
 
     mapping(uint256 => address) public registeredSpokes;
     uint256 public numSpokes;
@@ -10,7 +10,7 @@ contract SpokeRegistry {
     function registerSpoke(address spokeContract) external {
         numSpokes++;
         registeredSpokes[numSpokes] = spokeContract;
-        emit RegisteredSpoke(numSpokes, spokeContract);
+        emit SpokeRegistered(numSpokes, spokeContract);
     }
 
     function getSpokeAddress(uint256 spokeID) external view returns (address) {
