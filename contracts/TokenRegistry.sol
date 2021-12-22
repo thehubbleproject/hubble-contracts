@@ -3,7 +3,7 @@ pragma solidity ^0.6.12;
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 interface ITokenRegistry {
-    event RegisteredToken(uint256 tokenID, address tokenContract);
+    event TokenRegistered(uint256 tokenID, address tokenContract);
 
     function safeGetRecord(uint256 tokenID)
         external
@@ -59,7 +59,7 @@ contract TokenRegistry is ITokenRegistry {
         });
         registeredContracts[tokenContract] = true;
 
-        emit RegisteredToken(nextTokenID, tokenContract);
+        emit TokenRegistered(nextTokenID, tokenContract);
         nextTokenID++;
     }
 }

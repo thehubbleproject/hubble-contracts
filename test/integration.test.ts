@@ -95,7 +95,7 @@ describe("Integration Test", function() {
         );
         const tx = await tokenRegistry.registerToken(newToken.address);
         const [event] = await tokenRegistry.queryFilter(
-            tokenRegistry.filters.RegisteredToken(null, null),
+            tokenRegistry.filters.TokenRegistered(null, null),
             tx.blockHash
         );
 
