@@ -251,6 +251,7 @@ library Types {
         BadCompression,
         TooManyTx,
         BadPrecompileCall,
-        NonexistentReceiver
+        NonexistentReceiver,
+        InvalidPostStateRoot
     }
 }

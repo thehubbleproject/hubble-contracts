@@ -18,7 +18,8 @@ export enum Result {
     BadCompression,
     TooManyTx,
     BadPrecompileCall,
-    NonexistentReceiver
+    NonexistentReceiver,
+    InvalidPostStateRoot
 }
 
 export type Wei = string;
