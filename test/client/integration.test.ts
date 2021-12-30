@@ -67,8 +67,7 @@ describe("Client Integration", function() {
             new CustomToken__factory(signer).deploy("Telescope", "TLSC")
         ]);
         for (const token of customTokens) {
-            await contracts.tokenRegistry.requestRegistration(token.address);
-            await contracts.tokenRegistry.finaliseRegistration(token.address);
+            await contracts.tokenRegistry.registerToken(token.address);
         }
         const allTokens = [contracts.exampleToken, ...customTokens];
 

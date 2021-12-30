@@ -101,12 +101,7 @@ export async function deployAll(
         "EMP"
     );
     await waitAndRegister(exampleToken, "exampleToken", verbose);
-    await waitUntilMined(
-        tokenRegistry.requestRegistration(exampleToken.address)
-    );
-    await waitUntilMined(
-        tokenRegistry.finaliseRegistration(exampleToken.address)
-    );
+    await waitUntilMined(tokenRegistry.registerToken(exampleToken.address));
 
     const spokeRegistry = await new SpokeRegistry__factory(signer).deploy();
     await waitAndRegister(spokeRegistry, "spokeRegistry", verbose);
