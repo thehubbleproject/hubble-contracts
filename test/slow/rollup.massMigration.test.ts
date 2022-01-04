@@ -201,6 +201,12 @@ describe("Mass Migrations", async function() {
             "Transaction cost: Process Withdraw Commitment",
             receiptProcess.gasUsed.toNumber()
         );
+
+        await expectRevert(
+            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
+            "WithdrawManager: commitment was already processed"
+        );
+
         const withdrawProof = migrationTree.getWithdrawProof(0);
         const [, claimer] = await ethers.getSigners();
         const claimerAddress = await claimer.getAddress();

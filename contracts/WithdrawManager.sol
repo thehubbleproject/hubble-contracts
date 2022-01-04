@@ -41,6 +41,10 @@ contract WithdrawManager {
         uint256 batchID,
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
+        require(
+            processed[commitmentMP.commitment.body.withdrawRoot] == "",
+            "WithdrawManager: commitment was already processed"
+        );
         vault.requestApproval(batchID, commitmentMP);
         (address addr, uint256 l2Unit) =
             tokenRegistry.safeGetRecord(commitmentMP.commitment.body.tokenID);
