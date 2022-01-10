@@ -193,6 +193,10 @@ describe("Rollup Mass Migration", () => {
             proofs
         );
         console.log("processMassMigrationCommit gas cost", gasCost.toNumber());
-        assert.equal(result, Result.InvalidPostStateRoot, `Got ${Result[result]}`);
+        assert.equal(
+            result,
+            Result.InvalidPostStateRoot,
+            `Got ${Result[result]}`
+        );
     }).timeout(80000);
 });

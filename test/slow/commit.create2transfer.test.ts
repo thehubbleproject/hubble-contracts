@@ -11,8 +11,12 @@ import { assert } from "chai";
 import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../../ts/utils";
 import { Result } from "../../ts/interfaces";
-import {Group, txCreate2TransferFactory, txTransferFactory} from "../../ts/factory";
-import {COMMIT_SIZE, STATE_TREE_DEPTH} from "../../ts/constants";
+import {
+    Group,
+    txCreate2TransferFactory,
+    txTransferFactory
+} from "../../ts/factory";
+import { COMMIT_SIZE, STATE_TREE_DEPTH } from "../../ts/constants";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { hashPubkey } from "../../ts/pubkey";
 import { BigNumber } from "ethers";
@@ -220,7 +224,10 @@ describe("Rollup Create2Transfer Commitment", () => {
         const feeReceiver = 0;
 
         const preStateRoot = stateTree.root;
-        const { proofs } = stateTree.processCreate2TransferCommit(txs, feeReceiver);
+        const { proofs } = stateTree.processCreate2TransferCommit(
+            txs,
+            feeReceiver
+        );
 
         const [
             gasCost,
@@ -233,7 +240,14 @@ describe("Rollup Create2Transfer Commitment", () => {
             serialize(txs),
             proofs
         );
-        console.log("processCreate2TransferCommit gas cost", gasCost.toNumber());
-        assert.equal(result, Result.InvalidPostStateRoot, `Got ${Result[result]}`);
+        console.log(
+            "processCreate2TransferCommit gas cost",
+            gasCost.toNumber()
+        );
+        assert.equal(
+            result,
+            Result.InvalidPostStateRoot,
+            `Got ${Result[result]}`
+        );
     }).timeout(80000);
 });

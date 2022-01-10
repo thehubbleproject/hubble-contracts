@@ -206,6 +206,10 @@ describe("Rollup Transfer Commitment", () => {
             proofs
         );
         console.log("processTransferCommit gas cost", gasCost.toNumber());
-        assert.equal(result, Result.InvalidPostStateRoot, `Got ${Result[result]}`);
+        assert.equal(
+            result,
+            Result.InvalidPostStateRoot,
+            `Got ${Result[result]}`
+        );
     }).timeout(80000);
 });
