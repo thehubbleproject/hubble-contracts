@@ -161,7 +161,38 @@ describe("Rollup Mass Migration", () => {
             commitment.toSolStruct().body,
             proofs
         );
-        console.log("processTransferBatch gas cost", gasCost.toNumber());
+        console.log("processMassMigrationCommit gas cost", gasCost.toNumber());
         assert.equal(result, Result.Ok, `Got ${Result[result]}`);
+    }).timeout(80000);
+
+    it("returns invalid post state root result", async function() {
+        const { txs } = txMassMigrationFactory(users, spokeID);
+        const feeReceiver = 0;
+
+        const preStateRoot = stateTree.root;
+        const { proofs } = stateTree.processMassMigrationCommit(
+            txs,
+            feeReceiver
+        );
+        const { commitment } = MassMigrationCommitment.fromStateProvider(
+            constants.HashZero,
+            txs,
+            EMPTY_SIGNATURE,
+            feeReceiver,
+            stateTree
+        );
+
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessMassMigrationCommit(
+            preStateRoot,
+            preStateRoot,
+            COMMIT_SIZE,
+            commitment.toSolStruct().body,
+            proofs
+        );
+        console.log("processMassMigrationCommit gas cost", gasCost.toNumber());
+        assert.equal(result, Result.InvalidPostStateRoot, `Got ${Result[result]}`);
     }).timeout(80000);
 });

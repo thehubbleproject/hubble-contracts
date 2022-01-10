@@ -183,7 +183,29 @@ describe("Rollup Transfer Commitment", () => {
             serialize(txs),
             proofs
         );
-        console.log("processTransferBatch gas cost", gasCost.toNumber());
+        console.log("processTransferCommit gas cost", gasCost.toNumber());
         assert.equal(result, Result.Ok, `Got ${Result[result]}`);
+    }).timeout(80000);
+
+    it("returns invalid post state root result", async function() {
+        const { txs } = txTransferFactory(users, COMMIT_SIZE);
+        const feeReceiver = 0;
+
+        const preStateRoot = stateTree.root;
+        const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
+
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessTransferCommit(
+            preStateRoot,
+            preStateRoot,
+            COMMIT_SIZE,
+            feeReceiver,
+            serialize(txs),
+            proofs
+        );
+        console.log("processTransferCommit gas cost", gasCost.toNumber());
+        assert.equal(result, Result.InvalidPostStateRoot, `Got ${Result[result]}`);
     }).timeout(80000);
 });

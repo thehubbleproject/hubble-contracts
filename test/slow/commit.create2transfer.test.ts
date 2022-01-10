@@ -11,8 +11,8 @@ import { assert } from "chai";
 import { ethers } from "hardhat";
 import { hexToUint8Array, randHex } from "../../ts/utils";
 import { Result } from "../../ts/interfaces";
-import { Group, txCreate2TransferFactory } from "../../ts/factory";
-import { STATE_TREE_DEPTH } from "../../ts/constants";
+import {Group, txCreate2TransferFactory, txTransferFactory} from "../../ts/factory";
+import {COMMIT_SIZE, STATE_TREE_DEPTH} from "../../ts/constants";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { hashPubkey } from "../../ts/pubkey";
 import { BigNumber } from "ethers";
@@ -211,4 +211,29 @@ describe("Rollup Create2Transfer Commitment", () => {
             );
         }
     });
+
+    it("returns invalid post state root result", async function() {
+        const { txs } = txCreate2TransferFactory(
+            usersWithState,
+            usersWithoutState
+        );
+        const feeReceiver = 0;
+
+        const preStateRoot = stateTree.root;
+        const { proofs } = stateTree.processCreate2TransferCommit(txs, feeReceiver);
+
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessCreate2TransferCommit(
+            preStateRoot,
+            preStateRoot,
+            COMMIT_SIZE,
+            feeReceiver,
+            serialize(txs),
+            proofs
+        );
+        console.log("processCreate2TransferCommit gas cost", gasCost.toNumber());
+        assert.equal(result, Result.InvalidPostStateRoot, `Got ${Result[result]}`);
+    }).timeout(80000);
 });
