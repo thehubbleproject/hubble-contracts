@@ -377,8 +377,9 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, Types.Result result) =
+        Types.Result result =
             transfer.processTransferCommit(
+                target.commitment.stateRoot,
                 previous.commitment.stateRoot,
                 paramMaxTxsPerCommit,
                 target.commitment.body.feeReceiver,
@@ -386,10 +387,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
                 proofs
             );
 
-        if (
-            result != Types.Result.Ok ||
-            (processedStateRoot != target.commitment.stateRoot)
-        ) startRollingBack(batchID, result);
+        if (result != Types.Result.Ok) startRollingBack(batchID, result);
     }
 
     function disputeTransitionMassMigration(
@@ -407,18 +405,16 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, Types.Result result) =
+        Types.Result result =
             massMigration.processMassMigrationCommit(
+                target.commitment.stateRoot,
                 previous.commitment.stateRoot,
                 paramMaxTxsPerCommit,
                 target.commitment.body,
                 proofs
             );
 
-        if (
-            result != Types.Result.Ok ||
-            (processedStateRoot != target.commitment.stateRoot)
-        ) startRollingBack(batchID, result);
+        if (result != Types.Result.Ok) startRollingBack(batchID, result);
     }
 
     function disputeTransitionCreate2Transfer(
@@ -436,8 +432,9 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
             "Target commitment is absent in the batch"
         );
 
-        (bytes32 processedStateRoot, Types.Result result) =
+        Types.Result result =
             create2Transfer.processCreate2TransferCommit(
+                target.commitment.stateRoot,
                 previous.commitment.stateRoot,
                 paramMaxTxsPerCommit,
                 target.commitment.body.feeReceiver,
@@ -445,10 +442,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
                 proofs
             );
 
-        if (
-            result != Types.Result.Ok ||
-            (processedStateRoot != target.commitment.stateRoot)
-        ) startRollingBack(batchID, result);
+        if (result != Types.Result.Ok) startRollingBack(batchID, result);
     }
 
     function disputeSignatureTransfer(
