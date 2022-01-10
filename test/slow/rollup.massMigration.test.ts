@@ -101,21 +101,14 @@ describe("Mass Migrations", async function() {
             feeReceiver,
             stateTree
         );
-        const {
-            0: processedStateRoot,
-            1: result
-        } = await massMigration.processMassMigrationCommit(
+        const result = await massMigration.processMassMigrationCommit(
+            postStateRoot,
             preStateRoot,
             TESTING_PARAMS.MAX_TXS_PER_COMMIT,
             commitment.toSolStruct().body,
             proofs
         );
-        assert.equal(Result[result], Result[Result.Ok]);
-        assert.equal(
-            processedStateRoot,
-            postStateRoot,
-            "should have same state root"
-        );
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
 
         const targetBatch = commitment.toBatch();
         const mMBatchID = 1;

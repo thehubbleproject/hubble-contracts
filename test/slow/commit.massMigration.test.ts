@@ -79,10 +79,7 @@ describe("Rollup Mass Migration", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        const {
-            0: gasCost,
-            1: result
-        } = await rollup.callStatic.testCheckSignature(
+        const [gasCost, result] = await rollup.callStatic.testCheckSignature(
             signature,
             proof,
             postStateRoot,
@@ -123,10 +120,7 @@ describe("Rollup Mass Migration", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        const {
-            0: gasCost,
-            1: result
-        } = await rollup.callStatic.testCheckSignature(
+        const [gasCost, result] = await rollup.callStatic.testCheckSignature(
             signature,
             proof,
             postStateRoot,
@@ -157,18 +151,17 @@ describe("Rollup Mass Migration", () => {
             stateTree
         );
 
-        const {
-            0: gasCost,
-            1: postRoot,
-            2: result
-        } = await rollup.callStatic.testProcessMassMigrationCommit(
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessMassMigrationCommit(
+            postStateRoot,
             preStateRoot,
             COMMIT_SIZE,
             commitment.toSolStruct().body,
             proofs
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());
-        assert.equal(postRoot, postStateRoot, "Mismatch post state root");
-        assert.equal(Result[result], Result[Result.Ok]);
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
     }).timeout(80000);
 });

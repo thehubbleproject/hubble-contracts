@@ -129,10 +129,7 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        const {
-            0: gasCost,
-            1: result
-        } = await rollup.callStatic._checkSignature(
+        const [gasCost, result] = await rollup.callStatic._checkSignature(
             signature,
             proof,
             stateTree.root,
@@ -152,10 +149,7 @@ describe("Rollup Transfer Commitment", () => {
                 tokenID
             );
             const postRoot = stateTree.root;
-            const {
-                0: processedRoot,
-                1: result
-            } = await rollup.testProcessTransfer(
+            const [processedRoot, result] = await rollup.testProcessTransfer(
                 preRoot,
                 tx,
                 tokenID,
@@ -178,10 +172,11 @@ describe("Rollup Transfer Commitment", () => {
         const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
         const postStateRoot = stateTree.root;
 
-        const {
-            0: postRoot,
-            1: gasCost
-        } = await rollup.callStatic.testProcessTransferCommit(
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessTransferCommit(
+            postStateRoot,
             preStateRoot,
             COMMIT_SIZE,
             feeReceiver,
@@ -189,6 +184,6 @@ describe("Rollup Transfer Commitment", () => {
             proofs
         );
         console.log("processTransferBatch gas cost", gasCost.toNumber());
-        assert.equal(postRoot, postStateRoot, "Mismatch post state root");
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
     }).timeout(80000);
 });
