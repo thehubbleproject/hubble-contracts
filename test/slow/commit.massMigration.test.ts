@@ -155,8 +155,8 @@ describe("Rollup Mass Migration", () => {
             gasCost,
             result
         ] = await rollup.callStatic.testProcessMassMigrationCommit(
-            postStateRoot,
             preStateRoot,
+            postStateRoot,
             COMMIT_SIZE,
             commitment.toSolStruct().body,
             proofs

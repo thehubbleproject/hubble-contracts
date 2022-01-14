@@ -379,8 +379,8 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
 
         Types.Result result =
             transfer.processTransferCommit(
-                target.commitment.stateRoot,
                 previous.commitment.stateRoot,
+                target.commitment.stateRoot,
                 paramMaxTxsPerCommit,
                 target.commitment.body.feeReceiver,
                 target.commitment.body.txs,
@@ -407,8 +407,8 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
 
         Types.Result result =
             massMigration.processMassMigrationCommit(
-                target.commitment.stateRoot,
                 previous.commitment.stateRoot,
+                target.commitment.stateRoot,
                 paramMaxTxsPerCommit,
                 target.commitment.body,
                 proofs
@@ -434,8 +434,8 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
 
         Types.Result result =
             create2Transfer.processCreate2TransferCommit(
-                target.commitment.stateRoot,
                 previous.commitment.stateRoot,
+                target.commitment.stateRoot,
                 paramMaxTxsPerCommit,
                 target.commitment.body.feeReceiver,
                 target.commitment.body.txs,

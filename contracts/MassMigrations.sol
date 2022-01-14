@@ -23,11 +23,11 @@ contract MassMigration {
 
     /**
      * @notice processes the state transition of a commitment
-     * @param previousStateRoot represents the state before the state transition
+     * @param currentStateRoot represents the state before the state transition
      * */
     function processMassMigrationCommit(
+        bytes32 currentStateRoot,
         bytes32 postStateRoot,
-        bytes32 previousStateRoot,
         uint256 maxTxSize,
         Types.MassMigrationBody memory committed,
         Types.StateMerkleProof[] memory proofs
@@ -46,9 +46,9 @@ contract MassMigration {
 
         for (uint256 i = 0; i < size; i++) {
             _tx = committed.txs.massMigrationDecode(i);
-            (previousStateRoot, freshState, result) = Transition
+            (currentStateRoot, freshState, result) = Transition
                 .processMassMigration(
-                previousStateRoot,
+                currentStateRoot,
                 _tx,
                 committed.tokenID,
                 proofs[i]
@@ -60,8 +60,8 @@ contract MassMigration {
             fees += _tx.fee;
             withdrawLeaves[i] = keccak256(freshState);
         }
-        (previousStateRoot, result) = Transition.processReceiver(
-            previousStateRoot,
+        (currentStateRoot, result) = Transition.processReceiver(
+            currentStateRoot,
             committed.feeReceiver,
             committed.tokenID,
             fees,
@@ -75,7 +75,7 @@ contract MassMigration {
         if (MerkleTree.merklize(withdrawLeaves) != committed.withdrawRoot)
             return Types.Result.BadWithdrawRoot;
 
-        if (previousStateRoot != postStateRoot)
+        if (currentStateRoot != postStateRoot)
             return Types.Result.InvalidPostStateRoot;
 
         return result;

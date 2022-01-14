@@ -23,8 +23,8 @@ contract Transfer {
      * @notice processes the state transition of a commitment
      * */
     function processTransferCommit(
+        bytes32 currentStateRoot,
         bytes32 postStateRoot,
-        bytes32 previousStateRoot,
         uint256 maxTxSize,
         uint256 feeReceiver,
         bytes memory txs,
@@ -42,8 +42,8 @@ contract Transfer {
 
         for (uint256 i = 0; i < size; i++) {
             _tx = txs.transferDecode(i);
-            (previousStateRoot, result) = Transition.processTransfer(
-                previousStateRoot,
+            (currentStateRoot, result) = Transition.processTransfer(
+                currentStateRoot,
                 _tx,
                 tokenID,
                 proofs[i * 2],
@@ -53,8 +53,8 @@ contract Transfer {
             // Only trust fees when the result is good
             fees = fees.add(_tx.fee);
         }
-        (previousStateRoot, result) = Transition.processReceiver(
-            previousStateRoot,
+        (currentStateRoot, result) = Transition.processReceiver(
+            currentStateRoot,
             feeReceiver,
             tokenID,
             fees,
@@ -62,7 +62,7 @@ contract Transfer {
         );
 
         if (result != Types.Result.Ok) return result;
-        if (previousStateRoot != postStateRoot)
+        if (currentStateRoot != postStateRoot)
             return Types.Result.InvalidPostStateRoot;
         return result;
     }

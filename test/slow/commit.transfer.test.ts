@@ -176,8 +176,8 @@ describe("Rollup Transfer Commitment", () => {
             gasCost,
             result
         ] = await rollup.callStatic.testProcessTransferCommit(
-            postStateRoot,
             preStateRoot,
+            postStateRoot,
             COMMIT_SIZE,
             feeReceiver,
             serialize(txs),

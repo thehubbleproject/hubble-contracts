@@ -47,8 +47,8 @@ contract TestCreate2Transfer is Create2Transfer {
     }
 
     function testProcessCreate2TransferCommit(
+        bytes32 currentStateRoot,
         bytes32 postStateRoot,
-        bytes32 previousStateRoot,
         uint256 maxTxSize,
         uint256 feeReceiver,
         bytes memory txs,
@@ -57,8 +57,8 @@ contract TestCreate2Transfer is Create2Transfer {
         gasCost = gasleft();
         Types.Result result =
             processCreate2TransferCommit(
+                currentStateRoot,
                 postStateRoot,
-                previousStateRoot,
                 maxTxSize,
                 feeReceiver,
                 txs,

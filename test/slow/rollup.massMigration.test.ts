@@ -102,8 +102,8 @@ describe("Mass Migrations", async function() {
             stateTree
         );
         const result = await massMigration.processMassMigrationCommit(
-            postStateRoot,
             preStateRoot,
+            postStateRoot,
             TESTING_PARAMS.MAX_TXS_PER_COMMIT,
             commitment.toSolStruct().body,
             proofs

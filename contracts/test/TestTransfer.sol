@@ -40,8 +40,8 @@ contract TestTransfer is Transfer {
     }
 
     function testProcessTransferCommit(
+        bytes32 currentStateRoot,
         bytes32 postStateRoot,
-        bytes32 previousStateRoot,
         uint256 maxTxSize,
         uint256 feeReceiver,
         bytes memory txs,
@@ -50,8 +50,8 @@ contract TestTransfer is Transfer {
         gasCost = gasleft();
         Types.Result result =
             processTransferCommit(
+                currentStateRoot,
                 postStateRoot,
-                previousStateRoot,
                 maxTxSize,
                 feeReceiver,
                 txs,
