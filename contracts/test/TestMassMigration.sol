@@ -29,27 +29,21 @@ contract TestMassMigration is MassMigration {
     }
 
     function testProcessMassMigrationCommit(
-        bytes32 stateRoot,
+        bytes32 currentStateRoot,
+        bytes32 postStateRoot,
         uint256 maxTxSize,
         Types.MassMigrationBody memory commitmentBody,
         Types.StateMerkleProof[] memory proofs
-    )
-        public
-        view
-        returns (
-            uint256 gasCost,
-            bytes32,
-            Types.Result
-        )
-    {
+    ) public view returns (uint256 gasCost, Types.Result) {
         gasCost = gasleft();
-        (bytes32 postRoot, Types.Result result) =
+        Types.Result result =
             processMassMigrationCommit(
-                stateRoot,
+                currentStateRoot,
+                postStateRoot,
                 maxTxSize,
                 commitmentBody,
                 proofs
             );
-        return (gasCost - gasleft(), postRoot, result);
+        return (gasCost - gasleft(), result);
     }
 }

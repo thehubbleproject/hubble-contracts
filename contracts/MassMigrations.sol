@@ -23,19 +23,20 @@ contract MassMigration {
 
     /**
      * @notice processes the state transition of a commitment
-     * @param stateRoot represents the state before the state transition
+     * @param currentStateRoot represents the state before the state transition
      * */
     function processMassMigrationCommit(
-        bytes32 stateRoot,
+        bytes32 currentStateRoot,
+        bytes32 postStateRoot,
         uint256 maxTxSize,
         Types.MassMigrationBody memory committed,
         Types.StateMerkleProof[] memory proofs
-    ) public pure returns (bytes32, Types.Result result) {
+    ) public pure returns (Types.Result result) {
         if (committed.txs.massMigrationHasExcessData())
-            return (stateRoot, Types.Result.BadCompression);
+            return Types.Result.BadCompression;
 
         uint256 size = committed.txs.massMigrationSize();
-        if (size > maxTxSize) return (stateRoot, Types.Result.TooManyTx);
+        if (size > maxTxSize) return Types.Result.TooManyTx;
 
         Tx.MassMigration memory _tx;
         uint256 totalAmount = 0;
@@ -45,34 +46,38 @@ contract MassMigration {
 
         for (uint256 i = 0; i < size; i++) {
             _tx = committed.txs.massMigrationDecode(i);
-            (stateRoot, freshState, result) = Transition.processMassMigration(
-                stateRoot,
+            (currentStateRoot, freshState, result) = Transition
+                .processMassMigration(
+                currentStateRoot,
                 _tx,
                 committed.tokenID,
                 proofs[i]
             );
-            if (result != Types.Result.Ok) return (stateRoot, result);
+            if (result != Types.Result.Ok) return result;
 
             // Only trust these variables when the result is good
             totalAmount += _tx.amount;
             fees += _tx.fee;
             withdrawLeaves[i] = keccak256(freshState);
         }
-        (stateRoot, result) = Transition.processReceiver(
-            stateRoot,
+        (currentStateRoot, result) = Transition.processReceiver(
+            currentStateRoot,
             committed.feeReceiver,
             committed.tokenID,
             fees,
             proofs[size]
         );
-        if (result != Types.Result.Ok) return (stateRoot, result);
+        if (result != Types.Result.Ok) return result;
 
         if (totalAmount != committed.amount)
-            return (stateRoot, Types.Result.MismatchedAmount);
+            return Types.Result.MismatchedAmount;
 
         if (MerkleTree.merklize(withdrawLeaves) != committed.withdrawRoot)
-            return (stateRoot, Types.Result.BadWithdrawRoot);
+            return Types.Result.BadWithdrawRoot;
 
-        return (stateRoot, result);
+        if (currentStateRoot != postStateRoot)
+            return Types.Result.InvalidPostStateRoot;
+
+        return result;
     }
 }

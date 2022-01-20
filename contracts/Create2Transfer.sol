@@ -22,16 +22,17 @@ contract Create2Transfer {
      * @notice processes the state transition of a commitment
      * */
     function processCreate2TransferCommit(
-        bytes32 stateRoot,
+        bytes32 currentStateRoot,
+        bytes32 postStateRoot,
         uint256 maxTxSize,
         uint256 feeReceiver,
         bytes memory txs,
         Types.StateMerkleProof[] memory proofs
-    ) public pure returns (bytes32, Types.Result result) {
+    ) public pure returns (Types.Result result) {
         if (txs.create2TransferHasExcessData())
-            return (stateRoot, Types.Result.BadCompression);
+            return Types.Result.BadCompression;
         uint256 size = txs.create2TransferSize();
-        if (size > maxTxSize) return (stateRoot, Types.Result.TooManyTx);
+        if (size > maxTxSize) return Types.Result.TooManyTx;
 
         uint256 fees = 0;
         // tokenID should be the same for all states in this commit
@@ -40,25 +41,28 @@ contract Create2Transfer {
 
         for (uint256 i = 0; i < size; i++) {
             _tx = txs.create2TransferDecode(i);
-            (stateRoot, result) = Transition.processCreate2Transfer(
-                stateRoot,
+            (currentStateRoot, result) = Transition.processCreate2Transfer(
+                currentStateRoot,
                 _tx,
                 tokenID,
                 proofs[i * 2],
                 proofs[i * 2 + 1]
             );
-            if (result != Types.Result.Ok) return (stateRoot, result);
+            if (result != Types.Result.Ok) return result;
             // Only trust fees when the result is good
             fees = fees.add(_tx.fee);
         }
-        (stateRoot, result) = Transition.processReceiver(
-            stateRoot,
+        (currentStateRoot, result) = Transition.processReceiver(
+            currentStateRoot,
             feeReceiver,
             tokenID,
             fees,
             proofs[size * 2]
         );
 
-        return (stateRoot, result);
+        if (result != Types.Result.Ok) return result;
+        if (currentStateRoot != postStateRoot)
+            return Types.Result.InvalidPostStateRoot;
+        return result;
     }
 }

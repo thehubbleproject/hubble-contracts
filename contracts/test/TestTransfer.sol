@@ -40,21 +40,23 @@ contract TestTransfer is Transfer {
     }
 
     function testProcessTransferCommit(
-        bytes32 stateRoot,
+        bytes32 currentStateRoot,
+        bytes32 postStateRoot,
         uint256 maxTxSize,
         uint256 feeReceiver,
         bytes memory txs,
         Types.StateMerkleProof[] memory proofs
-    ) public returns (bytes32, uint256) {
-        bytes32 newRoot;
-        uint256 operationCost = gasleft();
-        (newRoot, ) = processTransferCommit(
-            stateRoot,
-            maxTxSize,
-            feeReceiver,
-            txs,
-            proofs
-        );
-        return (newRoot, operationCost - gasleft());
+    ) public returns (uint256 gasCost, Types.Result) {
+        gasCost = gasleft();
+        Types.Result result =
+            processTransferCommit(
+                currentStateRoot,
+                postStateRoot,
+                maxTxSize,
+                feeReceiver,
+                txs,
+                proofs
+            );
+        return (gasCost - gasleft(), result);
     }
 }

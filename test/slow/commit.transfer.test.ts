@@ -129,10 +129,7 @@ describe("Rollup Transfer Commitment", () => {
             pubkeys,
             pubkeyWitnesses
         };
-        const {
-            0: gasCost,
-            1: result
-        } = await rollup.callStatic._checkSignature(
+        const [gasCost, result] = await rollup.callStatic._checkSignature(
             signature,
             proof,
             stateTree.root,
@@ -152,10 +149,7 @@ describe("Rollup Transfer Commitment", () => {
                 tokenID
             );
             const postRoot = stateTree.root;
-            const {
-                0: processedRoot,
-                1: result
-            } = await rollup.testProcessTransfer(
+            const [processedRoot, result] = await rollup.testProcessTransfer(
                 preRoot,
                 tx,
                 tokenID,
@@ -178,17 +172,44 @@ describe("Rollup Transfer Commitment", () => {
         const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
         const postStateRoot = stateTree.root;
 
-        const {
-            0: postRoot,
-            1: gasCost
-        } = await rollup.callStatic.testProcessTransferCommit(
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessTransferCommit(
+            preStateRoot,
+            postStateRoot,
+            COMMIT_SIZE,
+            feeReceiver,
+            serialize(txs),
+            proofs
+        );
+        console.log("processTransferCommit gas cost", gasCost.toNumber());
+        assert.equal(result, Result.Ok, `Got ${Result[result]}`);
+    }).timeout(80000);
+
+    it("returns invalid post state root result", async function() {
+        const { txs } = txTransferFactory(users, COMMIT_SIZE);
+        const feeReceiver = 0;
+
+        const preStateRoot = stateTree.root;
+        const { proofs } = stateTree.processTransferCommit(txs, feeReceiver);
+
+        const [
+            gasCost,
+            result
+        ] = await rollup.callStatic.testProcessTransferCommit(
+            preStateRoot,
             preStateRoot,
             COMMIT_SIZE,
             feeReceiver,
             serialize(txs),
             proofs
         );
-        console.log("processTransferBatch gas cost", gasCost.toNumber());
-        assert.equal(postRoot, postStateRoot, "Mismatch post state root");
+        console.log("processTransferCommit gas cost", gasCost.toNumber());
+        assert.equal(
+            result,
+            Result.InvalidPostStateRoot,
+            `Got ${Result[result]}`
+        );
     }).timeout(80000);
 });
