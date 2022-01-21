@@ -154,7 +154,7 @@ export class MassMigrationCommitment extends Commitment {
                 origin.pubkeyID,
                 origin.tokenID,
                 tx.amount,
-                tx.nonce,
+                tx.nonce
             );
             states.push(destination);
         }

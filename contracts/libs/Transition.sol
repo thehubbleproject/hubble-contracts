@@ -63,7 +63,12 @@ library Transition {
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);
-        freshState = createState(from.state.pubkeyID, tokenID, _tx.amount, from.state.nonce);
+        freshState = createState(
+            from.state.pubkeyID,
+            tokenID,
+            _tx.amount,
+            from.state.nonce
+        );
 
         return (newRoot, freshState, Types.Result.Ok);
     }
