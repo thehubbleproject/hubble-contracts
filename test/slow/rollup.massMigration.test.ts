@@ -16,6 +16,8 @@ import { expectRevert } from "../../test/utils";
 import { Group, txMassMigrationFactory } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { handleNewBatch } from "../../ts/client/batchHandler";
+import { Rollup, WithdrawManager } from "../../types/ethers-contracts";
+import { XCommitmentInclusionProof } from "../../ts/client/features/interface";
 
 chai.use(chaiAsPromised);
 
@@ -28,6 +30,7 @@ describe("Mass Migrations", async function() {
     let users: Group;
     let genesisRoot: string;
     const spokeID = 0;
+
     before(async function() {
         await mcl.init();
     });
@@ -59,6 +62,58 @@ describe("Mass Migrations", async function() {
             assert.equal(pubkeyID, user.pubkeyID);
         }
     });
+
+    async function createAndSubmitBatch(rollup: Rollup, batchId: number) {
+        const feeReceiver = users.getUser(0).stateID;
+        const alice = users.getUser(1);
+        const aliceState = stateTree.getState(alice.stateID).state;
+
+        const tx = new TxMassMigration(
+            alice.stateID,
+            CommonToken.fromHumanValue("39.99").l2Value,
+            1,
+            CommonToken.fromHumanValue("0.01").l2Value,
+            aliceState.nonce.add(1).toNumber()
+        );
+        stateTree.processMassMigrationCommit([tx], feeReceiver);
+
+        const {
+            commitment,
+            migrationTree
+        } = MassMigrationCommitment.fromStateProvider(
+            registry.root(),
+            [tx],
+            alice.sign(tx).sol,
+            feeReceiver,
+            stateTree
+        );
+
+        const batch = commitment.toBatch();
+        await batch.submit(rollup, batchId, TESTING_PARAMS.STAKE_AMOUNT);
+
+        return { tx, commitment, migrationTree };
+    }
+
+    async function verifyProcessWithdrawCommitment(
+        withdrawManager: WithdrawManager,
+        batchId: number,
+        proof: XCommitmentInclusionProof
+    ) {
+        const txProcess = await withdrawManager.processWithdrawCommitment(
+            batchId,
+            proof
+        );
+        const receiptProcess = await txProcess.wait();
+        console.log(
+            "Transaction cost: Process Withdraw Commitment",
+            receiptProcess.gasUsed.toNumber()
+        );
+
+        await expectRevert(
+            withdrawManager.processWithdrawCommitment(batchId, proof),
+            "WithdrawManager: commitment was already processed"
+        );
+    }
 
     it("fails if batchID is incorrect", async function() {
         const feeReceiver = users.getUser(0).stateID;
@@ -147,36 +202,19 @@ describe("Mass Migrations", async function() {
             "Good state transition should not rollback"
         );
     }).timeout(80000);
+
     it("submit a batch, finalize, and withdraw", async function() {
         const { rollup, withdrawManager, exampleToken, vault } = contracts;
-        const feeReceiver = users.getUser(0).stateID;
         const alice = users.getUser(1);
-        const aliceState = stateTree.getState(alice.stateID).state;
-        const tx = new TxMassMigration(
-            alice.stateID,
-            CommonToken.fromHumanValue("39.99").l2Value,
-            1,
-            CommonToken.fromHumanValue("0.01").l2Value,
-            aliceState.nonce.add(1).toNumber()
-        );
-        stateTree.processMassMigrationCommit([tx], feeReceiver);
 
-        const {
-            commitment,
-            migrationTree
-        } = MassMigrationCommitment.fromStateProvider(
-            registry.root(),
-            [tx],
-            alice.sign(tx).sol,
-            feeReceiver,
-            stateTree
+        const batchId = Number(await rollup.nextBatchID());
+
+        const { tx, commitment, migrationTree } = await createAndSubmitBatch(
+            rollup,
+            batchId
         );
 
         const batch = commitment.toBatch();
-        const mMBatchID = 1;
-        await batch.submit(rollup, mMBatchID, TESTING_PARAMS.STAKE_AMOUNT);
-
-        const batchId = Number(await rollup.nextBatchID()) - 1;
 
         await expectRevert(
             withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
@@ -192,19 +230,10 @@ describe("Mass Migrations", async function() {
             CommonToken.fromL2Value(tx.amount).l1Value
         );
 
-        const txProcess = await withdrawManager.processWithdrawCommitment(
+        await verifyProcessWithdrawCommitment(
+            withdrawManager,
             batchId,
             batch.proof(0)
-        );
-        const receiptProcess = await txProcess.wait();
-        console.log(
-            "Transaction cost: Process Withdraw Commitment",
-            receiptProcess.gasUsed.toNumber()
-        );
-
-        await expectRevert(
-            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
-            "WithdrawManager: commitment was already processed"
         );
 
         const withdrawProof = migrationTree.getWithdrawProof(0);
@@ -230,5 +259,38 @@ describe("Mass Migrations", async function() {
         );
         // Try double claim
         await expectRevert(claim(), "WithdrawManager: Token has been claimed");
+    });
+
+    it("verifies absence of withdraw root collisions", async function() {
+        const { rollup, withdrawManager, exampleToken, vault } = contracts;
+
+        const { tx: tx1, commitment: commitment1 } = await createAndSubmitBatch(
+            rollup,
+            1
+        );
+        const { commitment: commitment2 } = await createAndSubmitBatch(
+            rollup,
+            2
+        );
+
+        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
+
+        // We cheat here a little bit by sending token to the vault manually.
+        // Ideally the tokens of the vault should come from the deposits
+        await exampleToken.transfer(
+            vault.address,
+            CommonToken.fromL2Value(tx1.amount).l1Value.mul(2)
+        );
+
+        await verifyProcessWithdrawCommitment(
+            withdrawManager,
+            1,
+            commitment1.toBatch().proof(0)
+        );
+        await verifyProcessWithdrawCommitment(
+            withdrawManager,
+            2,
+            commitment2.toBatch().proof(0)
+        );
     });
 });
