@@ -123,7 +123,8 @@ contract FrontendMassMigration {
         newReceiver = Transition.createState(
             sender.pubkeyID,
             tokenID,
-            _tx.amount
+            _tx.amount,
+            sender.nonce
         );
         return (sender.encode(), newReceiver, result);
     }

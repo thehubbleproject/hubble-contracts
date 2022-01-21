@@ -63,7 +63,7 @@ library Transition {
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);
-        freshState = createState(from.state.pubkeyID, tokenID, _tx.amount);
+        freshState = createState(from.state.pubkeyID, tokenID, _tx.amount, from.state.nonce);
 
         return (newRoot, freshState, Types.Result.Ok);
     }
@@ -106,7 +106,7 @@ library Transition {
             "Create2Transfer: receiver proof invalid"
         );
         bytes memory encodedState =
-            createState(_tx.toPubkeyID, tokenID, _tx.amount);
+            createState(_tx.toPubkeyID, tokenID, _tx.amount, 0);
 
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
@@ -212,14 +212,15 @@ library Transition {
     function createState(
         uint256 pubkeyID,
         uint256 tokenID,
-        uint256 amount
+        uint256 amount,
+        uint256 nonce
     ) internal pure returns (bytes memory stateEncoded) {
         Types.UserState memory state =
             Types.UserState({
                 pubkeyID: pubkeyID,
                 tokenID: tokenID,
                 balance: amount,
-                nonce: 0
+                nonce: nonce
             });
         return state.encode();
     }

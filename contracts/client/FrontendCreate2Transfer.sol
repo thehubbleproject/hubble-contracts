@@ -154,7 +154,8 @@ contract FrontendCreate2Transfer {
         newReceiver = Transition.createState(
             _tx.toPubkeyID,
             tokenID,
-            _tx.amount
+            _tx.amount,
+            0
         );
 
         return (sender.encode(), newReceiver, result);
