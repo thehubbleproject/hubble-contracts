@@ -178,6 +178,11 @@ contract DepositManager is
         _;
     }
 
+    modifier noInternalTransactions() {
+        require(msg.sender == tx.origin, "DepositManager: Internal transactions are forbidden");
+        _;
+    }
+
     constructor(
         ITokenRegistry _tokenRegistry,
         address _vault,
@@ -206,7 +211,7 @@ contract DepositManager is
         uint256 pubkeyID,
         uint256 l1Amount,
         uint256 tokenID
-    ) external {
+    ) external noInternalTransactions {
         (address addr, uint256 l2Unit) = tokenRegistry.safeGetRecord(tokenID);
         require(
             l1Amount == 0 || l1Amount % l2Unit == 0,
