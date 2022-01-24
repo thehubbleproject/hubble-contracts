@@ -12,7 +12,16 @@ contract BLSAccountRegistry is AccountTree {
     event SinglePubkeyRegistered(uint256 pubkeyID);
     event BatchPubkeyRegistered(uint256 startID, uint256 endID);
 
-    function register(uint256[4] calldata pubkey) external returns (uint256) {
+    modifier noInternalTransactions() {
+        require(msg.sender == tx.origin, "BLSAccountRegistry: Internal transactions are forbidden");
+        _;
+    }
+
+    function register(uint256[4] calldata pubkey)
+        external
+        noInternalTransactions
+        returns (uint256)
+    {
         bytes32 leaf = keccak256(abi.encodePacked(pubkey));
         uint256 pubkeyID = _updateSingle(leaf);
         emit SinglePubkeyRegistered(pubkeyID);
@@ -21,6 +30,7 @@ contract BLSAccountRegistry is AccountTree {
 
     function registerBatch(uint256[4][BATCH_SIZE] calldata pubkeys)
         external
+        noInternalTransactions
         returns (uint256)
     {
         bytes32[BATCH_SIZE] memory leafs;
