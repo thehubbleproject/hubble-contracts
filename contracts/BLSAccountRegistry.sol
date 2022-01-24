@@ -13,7 +13,10 @@ contract BLSAccountRegistry is AccountTree {
     event BatchPubkeyRegistered(uint256 startID, uint256 endID);
 
     modifier noInternalTransactions() {
-        require(msg.sender == tx.origin, "BLSAccountRegistry: Internal transactions are forbidden");
+        require(
+            msg.sender == tx.origin,
+            "BLSAccountRegistry: Internal transactions are forbidden"
+        );
         _;
     }
 

@@ -108,7 +108,10 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
     }
 
     modifier noInternalTransactions() {
-        require(msg.sender == tx.origin, "Rollup: Internal transactions are forbidden");
+        require(
+            msg.sender == tx.origin,
+            "Rollup: Internal transactions are forbidden"
+        );
         _;
     }
 

@@ -179,7 +179,10 @@ contract DepositManager is
     }
 
     modifier noInternalTransactions() {
-        require(msg.sender == tx.origin, "DepositManager: Internal transactions are forbidden");
+        require(
+            msg.sender == tx.origin,
+            "DepositManager: Internal transactions are forbidden"
+        );
         _;
     }
 
