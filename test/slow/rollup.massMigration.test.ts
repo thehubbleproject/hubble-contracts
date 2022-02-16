@@ -13,7 +13,7 @@ import { CommonToken } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
 import { hexToUint8Array, mineBlocks } from "../../ts/utils";
 import { expectRevert } from "../../test/utils";
-import { Group, txMassMigrationFactory } from "../../ts/factory";
+import { Group, txMassMigrationFactory, User } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { handleNewBatch } from "../../ts/client/batchHandler";
 import { Rollup, WithdrawManager } from "../../types/ethers-contracts";
@@ -37,13 +37,25 @@ describe("Mass Migrations", async function() {
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        users = Group.new({ n: 32, initialStateID: 0, initialPubkeyID: 0 });
+        users = Group.new({ n: 30, initialStateID: 0, initialPubkeyID: 0 });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         // The example token is 18 decimals
         const initialBalance = CommonToken.fromHumanValue("1000").l2Value;
         users
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
+
+        const usersWithDifferentPubkeyIDs = users;
+
+        let usersWithTheSamePubkeyID = Group.new({
+            n: 2,
+            initialStateID: 30,
+            initialPubkeyID: 0
+        });
+        usersWithTheSamePubkeyID
+            .connect(stateTree)
+            .createStates({ initialBalance, tokenID, zeroNonce: false });
+        users = users.join(usersWithTheSamePubkeyID);
 
         genesisRoot = stateTree.root;
 
@@ -57,23 +69,26 @@ describe("Mass Migrations", async function() {
         users.setupSigners(DOMAIN);
 
         registry = await AccountRegistry.new(blsAccountRegistry);
-        for (const user of users.userIterator()) {
+        for (const user of usersWithDifferentPubkeyIDs.userIterator()) {
             const pubkeyID = await registry.register(user.pubkey);
             assert.equal(pubkeyID, user.pubkeyID);
         }
     });
 
-    async function createAndSubmitBatch(rollup: Rollup, batchId: number) {
+    async function createAndSubmitBatch(
+        rollup: Rollup,
+        batchId: number,
+        user: User
+    ) {
         const feeReceiver = users.getUser(0).stateID;
-        const alice = users.getUser(1);
-        const aliceState = stateTree.getState(alice.stateID).state;
+        const userState = stateTree.getState(user.stateID).state;
 
         const tx = new TxMassMigration(
-            alice.stateID,
+            user.stateID,
             CommonToken.fromHumanValue("39.99").l2Value,
             1,
             CommonToken.fromHumanValue("0.01").l2Value,
-            aliceState.nonce.add(1).toNumber()
+            userState.nonce.add(1).toNumber()
         );
         stateTree.processMassMigrationCommit([tx], feeReceiver);
 
@@ -83,7 +98,7 @@ describe("Mass Migrations", async function() {
         } = MassMigrationCommitment.fromStateProvider(
             registry.root(),
             [tx],
-            alice.sign(tx).sol,
+            user.sign(tx).sol,
             feeReceiver,
             stateTree
         );
@@ -209,10 +224,11 @@ describe("Mass Migrations", async function() {
 
         const batchId = Number(await rollup.nextBatchID());
 
-        const { tx, commitment, migrationTree } = await createAndSubmitBatch(
-            rollup,
-            batchId
-        );
+        const {
+            tx,
+            commitment,
+            migrationTree
+        } = await createAndSubmitBatch(rollup, batchId, alice);
 
         const batch = commitment.toBatch();
 
@@ -236,7 +252,7 @@ describe("Mass Migrations", async function() {
             batch.proof(0)
         );
 
-        const withdrawProof = migrationTree.getWithdrawProof(0);
+        const withdrawProof = migrationTree.getWithdrawProof(alice.stateID, 0);
         const [, claimer] = await ethers.getSigners();
         const claimerAddress = await claimer.getAddress();
         const signature = alice.signRaw(claimerAddress).sol;
@@ -264,14 +280,18 @@ describe("Mass Migrations", async function() {
     it("verifies absence of withdraw root collisions", async function() {
         const { rollup, withdrawManager, exampleToken, vault } = contracts;
 
-        const { tx: tx1, commitment: commitment1 } = await createAndSubmitBatch(
-            rollup,
-            1
-        );
-        const { commitment: commitment2 } = await createAndSubmitBatch(
-            rollup,
-            2
-        );
+        const alice = users.getUser(1);
+        const aliceClone = users.getUser(31);
+        assert.equal(alice.pubkeyID, aliceClone.pubkeyID);
+        assert.notEqual(alice.stateID, aliceClone.stateID);
+
+        const {
+            tx: tx1,
+            commitment: commitment1
+        } = await createAndSubmitBatch(rollup, 1, alice);
+        const {
+            commitment: commitment2
+        } = await createAndSubmitBatch(rollup, 2, aliceClone);
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
 
