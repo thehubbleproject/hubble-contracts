@@ -42,7 +42,7 @@ contract Vault is Initializable, ImmutableOwnable {
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
         require(
-            approvedWithdrawals[commitmentMP.commitment.body.withdrawRoot] != true,
+            !approvedWithdrawals[commitmentMP.commitment.body.withdrawRoot],
             "Vault: commitment was already approved for withdrawal"
         );
 

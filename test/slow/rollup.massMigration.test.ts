@@ -224,11 +224,11 @@ describe("Mass Migrations", async function() {
 
         const batchId = Number(await rollup.nextBatchID());
 
-        const {
-            tx,
-            commitment,
-            migrationTree
-        } = await createAndSubmitBatch(rollup, batchId, alice);
+        const { tx, commitment, migrationTree } = await createAndSubmitBatch(
+            rollup,
+            batchId,
+            alice
+        );
 
         const batch = commitment.toBatch();
 
@@ -285,13 +285,16 @@ describe("Mass Migrations", async function() {
         assert.equal(alice.pubkeyID, aliceClone.pubkeyID);
         assert.notEqual(alice.stateID, aliceClone.stateID);
 
-        const {
-            tx: tx1,
-            commitment: commitment1
-        } = await createAndSubmitBatch(rollup, 1, alice);
-        const {
-            commitment: commitment2
-        } = await createAndSubmitBatch(rollup, 2, aliceClone);
+        const { tx: tx1, commitment: commitment1 } = await createAndSubmitBatch(
+            rollup,
+            1,
+            alice
+        );
+        const { commitment: commitment2 } = await createAndSubmitBatch(
+            rollup,
+            2,
+            aliceClone
+        );
 
         await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
 

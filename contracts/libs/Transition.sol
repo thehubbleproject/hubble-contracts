@@ -240,13 +240,13 @@ library Transition {
         uint256 nonce
     ) internal pure returns (bytes memory stateEncoded) {
         Types.MMUserState memory state =
-        Types.MMUserState({
-        stateID: stateID,
-        pubkeyID: pubkeyID,
-        tokenID: tokenID,
-        balance: amount,
-        nonce: nonce
-        });
+            Types.MMUserState({
+                stateID: stateID,
+                pubkeyID: pubkeyID,
+                tokenID: tokenID,
+                balance: amount,
+                nonce: nonce
+            });
         return state.encode();
     }
 }
