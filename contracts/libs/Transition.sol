@@ -13,6 +13,7 @@ import { Tx } from "./Tx.sol";
 library Transition {
     using SafeMath for uint256;
     using Types for Types.UserState;
+    using Types for Types.MMUserState;
 
     function processTransfer(
         bytes32 stateRoot,
@@ -63,7 +64,8 @@ library Transition {
             from
         );
         if (result != Types.Result.Ok) return (newRoot, "", result);
-        freshState = createState(
+        freshState = createMMState(
+            _tx.fromIndex,
             from.state.pubkeyID,
             tokenID,
             _tx.amount,
@@ -227,6 +229,24 @@ library Transition {
                 balance: amount,
                 nonce: nonce
             });
+        return state.encode();
+    }
+
+    function createMMState(
+        uint256 stateID,
+        uint256 pubkeyID,
+        uint256 tokenID,
+        uint256 amount,
+        uint256 nonce
+    ) internal pure returns (bytes memory stateEncoded) {
+        Types.MMUserState memory state =
+        Types.MMUserState({
+        stateID: stateID,
+        pubkeyID: pubkeyID,
+        tokenID: tokenID,
+        balance: amount,
+        nonce: nonce
+        });
         return state.encode();
     }
 }
