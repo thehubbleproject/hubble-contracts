@@ -15,6 +15,9 @@ contract Vault is Initializable, ImmutableOwnable {
     using Types for Types.MassMigrationCommitment;
     using Types for Types.Batch;
 
+    // withdrawRoot => bool
+    mapping(bytes32 => bool) private approvedWithdrawals;
+
     // Can't be immutable yet. Since the rollup is deployed after Vault
     Rollup public rollup;
     SpokeRegistry public immutable spokes;
@@ -39,6 +42,11 @@ contract Vault is Initializable, ImmutableOwnable {
         Types.MMCommitmentInclusionProof memory commitmentMP
     ) public {
         require(
+            approvedWithdrawals[commitmentMP.commitment.body.withdrawRoot] != true,
+            "Vault: commitment was already approved for withdrawal"
+        );
+
+        require(
             msg.sender ==
                 spokes.getSpokeAddress(commitmentMP.commitment.body.spokeID),
             "Vault: msg.sender should be the target spoke"
@@ -59,6 +67,8 @@ contract Vault is Initializable, ImmutableOwnable {
             ),
             "Vault: Commitment is not present in batch"
         );
+
+        approvedWithdrawals[commitmentMP.commitment.body.withdrawRoot] = true;
 
         (address addr, uint256 l2Unit) =
             tokenRegistry.safeGetRecord(commitmentMP.commitment.body.tokenID);

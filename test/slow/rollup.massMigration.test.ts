@@ -126,7 +126,7 @@ describe("Mass Migrations", async function() {
 
         await expectRevert(
             withdrawManager.processWithdrawCommitment(batchId, proof),
-            "WithdrawManager: commitment was already processed"
+            "Vault: commitment was already approved for withdrawal"
         );
     }
 
