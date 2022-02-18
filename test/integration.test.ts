@@ -331,7 +331,6 @@ describe("Integration Test", function() {
             const tree = migrationTrees[i];
             const { user, index } = group.pickRandom();
             const signature = user.signRaw(withdrawerAddress).sol;
-            // The new stateID in the migration tree is the position user in the group
             const withdrawProof = tree.getWithdrawProof(user.stateID, index);
             await withdrawManager
                 .connect(withdrawer)
