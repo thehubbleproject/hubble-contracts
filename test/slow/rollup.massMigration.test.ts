@@ -16,8 +16,14 @@ import { expectRevert } from "../../test/utils";
 import { Group, txMassMigrationFactory, User } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
 import { handleNewBatch } from "../../ts/client/batchHandler";
-import { Rollup, WithdrawManager } from "../../types/ethers-contracts";
+import {
+    CustomToken,
+    Rollup,
+    Vault,
+    WithdrawManager
+} from "../../types/ethers-contracts";
 import { XCommitmentInclusionProof } from "../../ts/client/features/interface";
+import { BigNumberish } from "ethers";
 
 chai.use(chaiAsPromised);
 
@@ -135,6 +141,21 @@ describe("Mass Migrations", async function() {
         await expectRevert(
             withdrawManager.processWithdrawCommitment(batchId, proof),
             "Vault: commitment was already approved for withdrawal"
+        );
+    }
+
+    async function finalizeAllBatchesAndAddFundsToVault(
+        vault: Vault,
+        token: CustomToken,
+        tokensAmount: BigNumberish
+    ) {
+        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
+
+        // We cheat here a little bit by sending token to the vault manually.
+        // Ideally the tokens of the vault should come from the deposits
+        await token.transfer(
+            vault.address,
+            CommonToken.fromL2Value(tokensAmount).l1Value
         );
     }
 
@@ -280,13 +301,10 @@ describe("Mass Migrations", async function() {
             "Vault: Batch should be finalised"
         );
 
-        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
-
-        // We cheat here a little bit by sending token to the vault manually.
-        // Ideally the tokens of the vault should come from the deposits
-        await exampleToken.transfer(
-            vault.address,
-            CommonToken.fromL2Value(tx.amount).l1Value
+        await finalizeAllBatchesAndAddFundsToVault(
+            vault,
+            exampleToken,
+            tx.amount
         );
 
         await verifyProcessWithdrawCommitment(
@@ -317,13 +335,10 @@ describe("Mass Migrations", async function() {
             aliceClone
         );
 
-        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
-
-        // We cheat here a little bit by sending token to the vault manually.
-        // Ideally the tokens of the vault should come from the deposits
-        await exampleToken.transfer(
-            vault.address,
-            CommonToken.fromL2Value(tx1.amount).l1Value.mul(2)
+        await finalizeAllBatchesAndAddFundsToVault(
+            vault,
+            exampleToken,
+            tx1.amount.mul(2)
         );
 
         await verifyProcessWithdrawCommitment(
@@ -370,15 +385,11 @@ describe("Mass Migrations", async function() {
             "Vault: Batch should be finalised"
         );
 
-        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
-
         const totalAmount = sum(txs.map(tx => tx.amount));
-
-        // We cheat here a little bit by sending token to the vault manually.
-        // Ideally the tokens of the vault should come from the deposits
-        await exampleToken.transfer(
-            vault.address,
-            CommonToken.fromL2Value(totalAmount).l1Value
+        await finalizeAllBatchesAndAddFundsToVault(
+            vault,
+            exampleToken,
+            totalAmount
         );
 
         await verifyProcessWithdrawCommitment(
