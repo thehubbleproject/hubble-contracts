@@ -101,7 +101,10 @@ export class Group {
         const mnemonic = options.mnemonic ?? DEFAULT_MNEMONIC;
         const users: User[] = [];
         for (let i = 0; i < options.n; i++) {
-            const wallet = Wallet.fromMnemonic(mnemonic, `m/44'/60'/0'/0/${i}`);
+            const wallet = Wallet.fromMnemonic(
+                mnemonic,
+                `m/44'/60'/0'/0/${initialPubkeyID + i}`
+            );
             const stateID = initialStateID + i;
             const pubkeyID = initialPubkeyID + i;
             users.push(

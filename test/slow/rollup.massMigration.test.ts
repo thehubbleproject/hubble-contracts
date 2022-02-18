@@ -1,7 +1,7 @@
 import { deployAll } from "../../ts/deploy";
 import { TESTING_PARAMS } from "../../ts/constants";
 import { ethers } from "hardhat";
-import { StateTree } from "../../ts/stateTree";
+import { MigrationTree, StateTree } from "../../ts/stateTree";
 import { AccountRegistry } from "../../ts/accountTree";
 import { TxMassMigration } from "../../ts/tx";
 import * as mcl from "../../ts/mcl";
@@ -11,7 +11,7 @@ import chaiAsPromised from "chai-as-promised";
 import { getGenesisProof, MassMigrationCommitment } from "../../ts/commitments";
 import { CommonToken } from "../../ts/decimal";
 import { Result } from "../../ts/interfaces";
-import { hexToUint8Array, mineBlocks } from "../../ts/utils";
+import { hexToUint8Array, mineBlocks, sum } from "../../ts/utils";
 import { expectRevert } from "../../test/utils";
 import { Group, txMassMigrationFactory, User } from "../../ts/factory";
 import { deployKeyless } from "../../ts/deployment/deploy";
@@ -28,8 +28,9 @@ describe("Mass Migrations", async function() {
     let registry: AccountRegistry;
     let DOMAIN: Uint8Array;
     let users: Group;
+    let usersWithIdenticalPubkeyID: Group;
     let genesisRoot: string;
-    const spokeID = 0;
+    const spokeID = 1;
 
     before(async function() {
         await mcl.init();
@@ -45,17 +46,24 @@ describe("Mass Migrations", async function() {
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
 
-        const usersWithDifferentPubkeyIDs = users;
+        const usersWithDifferentPubkeyID = users;
 
-        let usersWithTheSamePubkeyID = Group.new({
-            n: 2,
+        usersWithIdenticalPubkeyID = Group.new({
+            n: 1,
             initialStateID: 30,
-            initialPubkeyID: 0
+            initialPubkeyID: 1
         });
-        usersWithTheSamePubkeyID
+        usersWithIdenticalPubkeyID = usersWithIdenticalPubkeyID.join(
+            Group.new({
+                n: 1,
+                initialStateID: 31,
+                initialPubkeyID: 1
+            })
+        );
+        usersWithIdenticalPubkeyID
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
-        users = users.join(usersWithTheSamePubkeyID);
+        users = users.join(usersWithIdenticalPubkeyID);
 
         genesisRoot = stateTree.root;
 
@@ -69,7 +77,7 @@ describe("Mass Migrations", async function() {
         users.setupSigners(DOMAIN);
 
         registry = await AccountRegistry.new(blsAccountRegistry);
-        for (const user of usersWithDifferentPubkeyIDs.userIterator()) {
+        for (const user of usersWithDifferentPubkeyID.userIterator()) {
             const pubkeyID = await registry.register(user.pubkey);
             assert.equal(pubkeyID, user.pubkeyID);
         }
@@ -128,6 +136,41 @@ describe("Mass Migrations", async function() {
             withdrawManager.processWithdrawCommitment(batchId, proof),
             "Vault: commitment was already approved for withdrawal"
         );
+    }
+
+    async function claimTest(
+        withdrawManager: WithdrawManager,
+        commitment: MassMigrationCommitment,
+        migrationTree: MigrationTree,
+        user: User,
+        txIndex: number
+    ) {
+        const withdrawProof = migrationTree.getWithdrawProof(
+            user.stateID,
+            txIndex
+        );
+        const [, claimer] = await ethers.getSigners();
+        const claimerAddress = await claimer.getAddress();
+        const signature = user.signRaw(claimerAddress).sol;
+        async function claim() {
+            return withdrawManager
+                .connect(claimer)
+                .claimTokens(
+                    commitment.withdrawRoot,
+                    withdrawProof,
+                    user.pubkey,
+                    signature,
+                    registry.witness(user.pubkeyID)
+                );
+        }
+        const firstClaim = await claim();
+        const receipt = await firstClaim.wait();
+        console.log(
+            "Transaction cost: claiming a token",
+            receipt.gasUsed.toNumber()
+        );
+        // Try double claim
+        await expectRevert(claim(), "WithdrawManager: Token has been claimed");
     }
 
     it("fails if batchID is incorrect", async function() {
@@ -252,29 +295,7 @@ describe("Mass Migrations", async function() {
             batch.proof(0)
         );
 
-        const withdrawProof = migrationTree.getWithdrawProof(alice.stateID, 0);
-        const [, claimer] = await ethers.getSigners();
-        const claimerAddress = await claimer.getAddress();
-        const signature = alice.signRaw(claimerAddress).sol;
-        async function claim() {
-            return withdrawManager
-                .connect(claimer)
-                .claimTokens(
-                    commitment.withdrawRoot,
-                    withdrawProof,
-                    alice.pubkey,
-                    signature,
-                    registry.witness(alice.pubkeyID)
-                );
-        }
-        const firstClaim = await claim();
-        const receipt = await firstClaim.wait();
-        console.log(
-            "Transaction cost: claiming a token",
-            receipt.gasUsed.toNumber()
-        );
-        // Try double claim
-        await expectRevert(claim(), "WithdrawManager: Token has been claimed");
+        await claimTest(withdrawManager, commitment, migrationTree, alice, 0);
     });
 
     it("verifies absence of withdraw root collisions", async function() {
@@ -314,6 +335,72 @@ describe("Mass Migrations", async function() {
             withdrawManager,
             2,
             commitment2.toBatch().proof(0)
+        );
+    });
+
+    it("verifies that all users with identical pubkey IDs in the same commitment can claim tokens", async function() {
+        const { rollup, withdrawManager, exampleToken, vault } = contracts;
+        const feeReceiver = users.getUser(0).stateID;
+
+        const batchId = Number(await rollup.nextBatchID());
+
+        const { txs, signature } = txMassMigrationFactory(
+            usersWithIdenticalPubkeyID,
+            spokeID
+        );
+
+        stateTree.processMassMigrationCommit(txs, feeReceiver);
+
+        const {
+            commitment,
+            migrationTree
+        } = MassMigrationCommitment.fromStateProvider(
+            registry.root(),
+            txs,
+            signature,
+            feeReceiver,
+            stateTree
+        );
+
+        const batch = commitment.toBatch();
+        await batch.submit(rollup, batchId, TESTING_PARAMS.STAKE_AMOUNT);
+
+        await expectRevert(
+            withdrawManager.processWithdrawCommitment(batchId, batch.proof(0)),
+            "Vault: Batch should be finalised"
+        );
+
+        await mineBlocks(ethers.provider, TESTING_PARAMS.BLOCKS_TO_FINALISE);
+
+        const totalAmount = sum(txs.map(tx => tx.amount));
+
+        // We cheat here a little bit by sending token to the vault manually.
+        // Ideally the tokens of the vault should come from the deposits
+        await exampleToken.transfer(
+            vault.address,
+            CommonToken.fromL2Value(totalAmount).l1Value
+        );
+
+        await verifyProcessWithdrawCommitment(
+            withdrawManager,
+            batchId,
+            batch.proof(0)
+        );
+
+        await claimTest(
+            withdrawManager,
+            commitment,
+            migrationTree,
+            usersWithIdenticalPubkeyID.getUser(0),
+            0
+        );
+
+        await claimTest(
+            withdrawManager,
+            commitment,
+            migrationTree,
+            usersWithIdenticalPubkeyID.getUser(1),
+            1
         );
     });
 });
