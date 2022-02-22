@@ -15,7 +15,7 @@ import { Vault } from "./Vault.sol";
 
 contract WithdrawManager {
     using Tx for bytes;
-    using Types for Types.UserState;
+    using Types for Types.MMUserState;
     using SafeERC20 for IERC20;
 
     // withdrawRoot => a bitmap of whether a publicIndex owner has the token claimed
@@ -75,7 +75,7 @@ contract WithdrawManager {
             "WithdrawManager: state should be in the withdrawRoot"
         );
         require(
-            !Bitmap.isClaimed(withdrawal.state.pubkeyID, bitmap[withdrawRoot]),
+            !Bitmap.isClaimed(withdrawal.path, bitmap[withdrawRoot]),
             "WithdrawManager: Token has been claimed"
         );
         require(
@@ -102,7 +102,7 @@ contract WithdrawManager {
         require(checkSuccess, "WithdrawManager: Bad signature");
         (address addr, uint256 l2Unit) =
             tokenRegistry.safeGetRecord(withdrawal.state.tokenID);
-        Bitmap.setClaimed(withdrawal.state.pubkeyID, bitmap[withdrawRoot]);
+        Bitmap.setClaimed(withdrawal.path, bitmap[withdrawRoot]);
         uint256 l1Amount = withdrawal.state.balance * l2Unit;
         // transfer tokens from vault
         IERC20(addr).safeTransfer(msg.sender, l1Amount);

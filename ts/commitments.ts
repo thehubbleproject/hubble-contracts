@@ -4,7 +4,7 @@ import { Rollup } from "../types/ethers-contracts/Rollup";
 import { ZERO_BYTES32 } from "./constants";
 import { Usage, Wei } from "./interfaces";
 import { solG1 } from "./mcl";
-import { State } from "./state";
+import { MMState } from "./mmState";
 import { MigrationTree, StateProvider } from "./stateTree";
 import { MemoryTree } from "./tree/memoryTree";
 import { serialize, TxMassMigration } from "./tx";
@@ -150,11 +150,12 @@ export class MassMigrationCommitment extends Commitment {
         const states = [];
         for (const tx of txs) {
             const origin = stateProvider.getState(tx.fromIndex).state;
-            const destination = State.new(
+            const destination = MMState.new(
+                tx.fromIndex,
                 origin.pubkeyID,
                 origin.tokenID,
                 tx.amount,
-                0
+                tx.nonce
             );
             states.push(destination);
         }
