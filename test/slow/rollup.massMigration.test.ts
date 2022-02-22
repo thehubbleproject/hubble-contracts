@@ -44,15 +44,18 @@ describe("Mass Migrations", async function() {
 
     beforeEach(async function() {
         const [signer] = await ethers.getSigners();
-        users = Group.new({ n: 30, initialStateID: 0, initialPubkeyID: 0 });
         stateTree = new StateTree(TESTING_PARAMS.MAX_DEPTH);
         // The example token is 18 decimals
         const initialBalance = CommonToken.fromHumanValue("1000").l2Value;
-        users
+
+        const usersWithDifferentPubkeyID = Group.new({
+            n: 30,
+            initialStateID: 0,
+            initialPubkeyID: 0
+        });
+        usersWithDifferentPubkeyID
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
-
-        const usersWithDifferentPubkeyID = users;
 
         usersWithIdenticalPubkeyID = Group.new({
             n: 1,
@@ -69,8 +72,8 @@ describe("Mass Migrations", async function() {
         usersWithIdenticalPubkeyID
             .connect(stateTree)
             .createStates({ initialBalance, tokenID, zeroNonce: false });
-        users = users.join(usersWithIdenticalPubkeyID);
 
+        users = usersWithDifferentPubkeyID.join(usersWithIdenticalPubkeyID);
         genesisRoot = stateTree.root;
 
         await deployKeyless(signer, false);
