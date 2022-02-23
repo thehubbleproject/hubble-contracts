@@ -113,7 +113,7 @@ library Transition {
             "Create2Transfer: receiver proof invalid"
         );
         bytes memory encodedState =
-            createState(_tx.toPubkeyID, tokenID, _tx.amount, 0);
+            createState(_tx.toPubkeyID, tokenID, _tx.amount);
 
         newRoot = MerkleTree.computeRoot(
             keccak256(encodedState),
@@ -219,15 +219,14 @@ library Transition {
     function createState(
         uint256 pubkeyID,
         uint256 tokenID,
-        uint256 amount,
-        uint256 nonce
+        uint256 amount
     ) internal pure returns (bytes memory stateEncoded) {
         Types.UserState memory state =
             Types.UserState({
                 pubkeyID: pubkeyID,
                 tokenID: tokenID,
                 balance: amount,
-                nonce: nonce
+                nonce: 0
             });
         return state.encode();
     }
