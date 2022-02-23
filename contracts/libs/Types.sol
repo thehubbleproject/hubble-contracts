@@ -223,13 +223,36 @@ library Types {
             .decode(encoded, (uint256, uint256, uint256, uint256));
     }
 
+    struct MMUserState {
+        uint256 stateID;
+        uint256 pubkeyID;
+        uint256 tokenID;
+        uint256 balance;
+        uint256 nonce;
+    }
+
+    function encode(MMUserState memory state)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        return
+            abi.encodePacked(
+                state.stateID,
+                state.pubkeyID,
+                state.tokenID,
+                state.balance,
+                state.nonce
+            );
+    }
+
     struct StateMerkleProof {
         UserState state;
         bytes32[] witness;
     }
 
     struct StateMerkleProofWithPath {
-        UserState state;
+        MMUserState state;
         uint256 path;
         bytes32[] witness;
     }

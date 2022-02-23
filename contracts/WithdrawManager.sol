@@ -15,7 +15,7 @@ import { Vault } from "./Vault.sol";
 
 contract WithdrawManager {
     using Tx for bytes;
-    using Types for Types.UserState;
+    using Types for Types.MMUserState;
     using SafeERC20 for IERC20;
 
     // withdrawRoot => a bitmap of whether a publicIndex owner has the token claimed

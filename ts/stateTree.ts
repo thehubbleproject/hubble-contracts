@@ -1,7 +1,7 @@
 import { Hasher } from "./tree";
 import { State, ZERO_STATE } from "./state";
 import { TxTransfer, TxMassMigration, TxCreate2Transfer } from "./tx";
-import { BigNumber, constants } from "ethers";
+import { BigNumber, BigNumberish, constants } from "ethers";
 import { ZERO_BYTES32 } from "./constants";
 import { minTreeDepth, sum } from "./utils";
 import {
@@ -15,6 +15,7 @@ import {
 } from "./exceptions";
 import { Vacant } from "./interfaces";
 import { MemoryTree } from "./tree/memoryTree";
+import { MMState } from "./mmState";
 
 export interface StateProvider {
     getState(stateID: number): SolStateMerkleProof;
@@ -379,8 +380,17 @@ export class MigrationTree extends StateTree {
         return new this(depth).createStateBulk(0, states);
     }
 
-    public getWithdrawProof(stateID: number) {
-        const { state, witness } = this.getState(stateID);
-        return { state, witness, path: stateID };
+    public getWithdrawProof(stateID: BigNumberish, txIndex: number) {
+        const { state, witness } = this.getState(txIndex);
+
+        const mmState = MMState.new(
+            stateID,
+            state.pubkeyID,
+            state.tokenID,
+            state.balance,
+            state.nonce
+        );
+
+        return { state: mmState, witness, path: txIndex };
     }
 }
