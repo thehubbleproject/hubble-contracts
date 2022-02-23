@@ -120,7 +120,8 @@ contract FrontendMassMigration {
             sender
         );
         if (result != Types.Result.Ok) return (sender.encode(), "", result);
-        newReceiver = Transition.createState(
+        newReceiver = Transition.createMMState(
+            _tx.fromIndex,
             sender.pubkeyID,
             tokenID,
             _tx.amount,
