@@ -107,6 +107,14 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         _;
     }
 
+    modifier noInternalTransactions() {
+        require(
+            msg.sender == tx.origin,
+            "Rollup: Internal transactions are forbidden"
+        );
+        _;
+    }
+
     /**
      * @dev When running multiple batch submissions in a single transaction,
      * if one of the earlier batch submissions fails the latter submission
@@ -205,6 +213,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         external
         payable
         onlyCoordinator
+        noInternalTransactions
         isNotRollingBack
         correctBatchID(batchID)
     {
@@ -244,6 +253,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         external
         payable
         onlyCoordinator
+        noInternalTransactions
         isNotRollingBack
         correctBatchID(batchID)
     {
@@ -285,6 +295,7 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         external
         payable
         onlyCoordinator
+        noInternalTransactions
         isNotRollingBack
         correctBatchID(batchID)
     {
@@ -318,7 +329,14 @@ contract Rollup is BatchManager, EIP712, IEIP712 {
         uint256 batchID,
         Types.CommitmentInclusionProof memory previous,
         Types.SubtreeVacancyProof memory vacant
-    ) public payable onlyCoordinator isNotRollingBack correctBatchID(batchID) {
+    )
+        public
+        payable
+        onlyCoordinator
+        noInternalTransactions
+        isNotRollingBack
+        correctBatchID(batchID)
+    {
         uint256 preBatchID = batchID - 1;
         require(
             previous.path == batches[preBatchID].size() - 1,
