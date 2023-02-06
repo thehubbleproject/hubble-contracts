@@ -28,7 +28,7 @@ jobs:
       -
         name: Build and push git sha
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v4
         with:
           file: docker/Dockerfile
           push: true
